@@ -152,23 +152,62 @@
     }
 
     .preview{
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
       margin-top: 14px;
       padding-top: 14px;
       border-top: 1px dashed rgba(15,23,42,.18);
     }
-    .cardimg{
-      width: 92px;
-      height: 128px;
+    .preview h3{ margin: 0 0 10px; }
+
+    /* ✅ Galería de preview: 1 tarjeta por pregunta */
+    .previewGrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (min-width: 880px){
+      .previewGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    .pCard{
+      border: 1px solid rgba(15,23,42,.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,.65);
+      padding: 10px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      min-height: 132px;
+    }
+    .pImg{
+      width: 70px;
+      height: 98px;
       border-radius: 12px;
       border: 1px solid rgba(15,23,42,.12);
       background: rgba(255,255,255,.65);
       object-fit: cover;
+      flex: 0 0 auto;
     }
-    .preview h3{ margin: 0 0 6px; }
-    .preview ul{ margin:0; padding-left: 18px; color:#334155; }
+    .pMeta{
+      display:flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .pTitle{
+      font-weight: 800;
+      font-size: 13px;
+      color:#0f172a;
+      line-height: 1.1;
+    }
+    .pLabel{
+      font-size: 12px;
+      color:#334155;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+    }
     .muted{ color:#64748b; font-size: 13px; }
   </style>
 </head>
@@ -189,18 +228,18 @@
     <div class="grid" id="questions"></div>
 
     <div class="row">
-      <button class="btn" id="btnPreview" onclick="buildPreview()" disabled>Ver preview</button>
+      <!-- ✅ Ya no hace falta el botón; la preview es en vivo -->
       <span class="status-pill" id="countPill">0 cartas cargadas</span>
       <span class="status-pill" id="pickedPill">0/0 respondidas</span>
     </div>
 
-    <div class="preview" id="preview" style="display:none;">
-      <img class="cardimg" id="previewImg" alt="Carta" />
-      <div>
-        <h3>Resumen (preview)</h3>
-        <div class="muted">Luego aquí generaremos el “Wrapped” (pantallas, stats, etc.).</div>
-        <ul id="previewList"></ul>
+    <!-- ✅ Preview visible por defecto + 1 imagen por pregunta -->
+    <div class="preview" id="preview">
+      <h3>Vista previa</h3>
+      <div class="muted" style="margin-bottom:10px;">
+        Se actualiza en tiempo real al seleccionar cartas.
       </div>
+      <div class="previewGrid" id="previewGrid"></div>
     </div>
   </div>
 
@@ -211,7 +250,6 @@
   <script>
     const API_URL = "https://www.optcgapi.com/api/allSetCards/";
 
-    // Preguntas (puedes cambiar textos/IDs)
     const QUESTIONS = [
       { id: "fav_leader", title: "Tu líder favorito", hint: "El líder que más te representa." },
       { id: "most_played", title: "La carta más jugada", hint: "La que no sale nunca del deck." },
@@ -223,34 +261,16 @@
       { id: "tech", title: "Tech del meta", hint: "La carta “respuesta” para el entorno." }
     ];
 
-    // ✅ Ahora trabajamos por "label" (Nombre — Set (OP09-112))
     let cards = [];               // [{label, name, set_name, card_set_id, card_type, image, raw}]
     let cardsByLabel = new Map(); // label -> card
 
-    function normalize(s){
-      return String(s || "").trim();
-    }
+    function normalize(s){ return String(s || "").trim(); }
 
-    function guessName(card){
-      // Campos típicos en APIs
-      return card.card_name || card.name || card.cardName || card.title || "";
-    }
-
-    function guessSetName(card){
-      return card.set_name || card.setName || card.expansion || card.set || "";
-    }
-
-    function guessSetId(card){
-      // OP09-112, STxx-xxx, EBxx-xxx, etc.
-      return card.card_set_id || card.cardSetId || card.code || card.cardId || card.id || "";
-    }
-
-    function guessType(card){
-      return card.card_type || card.type || card.cardType || "";
-    }
-
+    function guessName(card){ return card.card_name || card.name || card.cardName || card.title || ""; }
+    function guessSetName(card){ return card.set_name || card.setName || card.expansion || card.set || ""; }
+    function guessSetId(card){ return card.card_set_id || card.cardSetId || card.code || card.cardId || card.id || ""; }
+    function guessType(card){ return card.card_type || card.type || card.cardType || ""; }
     function guessImageUrl(card){
-      // Campos típicos
       return card.card_image || card.image || card.imageUrl || card.cardImage || card.img || card.art || "";
     }
 
@@ -285,6 +305,9 @@
 
         root.appendChild(div);
       });
+
+      // ✅ Render preview vacía inicial (tarjetas "placeholder")
+      buildPreview();
     }
 
     function fillDatalists(){
@@ -319,7 +342,9 @@
       }
 
       document.getElementById("pickedPill").textContent = `${picked}/${total} respondidas`;
-      document.getElementById("btnPreview").disabled = (picked === 0);
+
+      // ✅ Preview en vivo
+      buildPreview();
     }
 
     async function loadCards(){
@@ -336,7 +361,6 @@
         return;
       }
 
-      // El API puede devolver array directo o {data:[...]} etc.
       const arr = Array.isArray(data) ? data
                 : Array.isArray(data?.data) ? data.data
                 : Array.isArray(data?.cards) ? data.cards
@@ -352,9 +376,7 @@
           const card_type = normalize(guessType(raw));
           const image = normalize(guessImageUrl(raw));
 
-          // ✅ Nombre — Expansión (OP09-112)
           const label = `${name} — ${set_name} (${card_set_id})`.replace(/\s+/g, " ").trim();
-
           return { label, name, set_name, card_set_id, card_type, image, raw };
         })
         .filter(Boolean);
@@ -365,43 +387,45 @@
       setStatus(`Cartas listas (${cards.length})`);
 
       fillDatalists();
+
+      // ✅ Al terminar de cargar, refrescamos preview por si ya había algo escrito
       onPickChanged();
     }
 
     function buildPreview(){
-      const list = document.getElementById("previewList");
-      list.innerHTML = "";
-
-      let firstCard = null;
+      const grid = document.getElementById("previewGrid");
+      grid.innerHTML = "";
 
       for (const q of QUESTIONS){
-        const label = normalize(document.getElementById(q.id).value);
+        const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
-        if (!card) continue;
 
-        if (!firstCard) firstCard = card;
+        const imgSrc = (card && card.image) ? card.image : "";
+        const shownLabel = card ? card.label : "—";
 
-        const li = document.createElement("li");
-        li.innerHTML = `<strong>${escapeHtml(q.title)}:</strong> ${escapeHtml(card.label)}`;
-        list.appendChild(li);
+        const item = document.createElement("div");
+        item.className = "pCard";
+
+        item.innerHTML = `
+          <img class="pImg" ${imgSrc ? `src="${escapeAttr(imgSrc)}"` : ""} alt="Carta" style="opacity:${imgSrc ? 1 : .25}">
+          <div class="pMeta">
+            <div class="pTitle">${escapeHtml(q.title)}</div>
+            <div class="pLabel">${escapeHtml(shownLabel)}</div>
+          </div>
+        `;
+
+        grid.appendChild(item);
       }
-
-      const img = document.getElementById("previewImg");
-      if (firstCard && firstCard.image){
-        img.src = firstCard.image;
-        img.style.opacity = "1";
-      }else{
-        img.removeAttribute("src");
-        img.style.opacity = ".35";
-      }
-
-      document.getElementById("preview").style.display = "flex";
     }
 
     function escapeHtml(s){
       return String(s)
         .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
         .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    function escapeAttr(s){
+      return String(s).replace(/"/g, "&quot;");
     }
 
     // init
