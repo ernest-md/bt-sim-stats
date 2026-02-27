@@ -94,6 +94,16 @@
     h1{ margin: 4px 0 6px; font-size: 22px; }
     p{ margin: 0 0 14px; color:#334155; }
 
+    .sectionTitle{
+      margin: 14px 0 8px;
+      font-weight: 900;
+      color:#0f172a;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      opacity: .85;
+    }
+
     .grid{
       display:grid;
       grid-template-columns: 1fr;
@@ -121,15 +131,16 @@
       color:#64748b;
     }
 
-    input[type="text"]{
+    input[type="text"], select{
       width:100%;
       border-radius: 12px;
       border: 1px solid rgba(15,23,42,.18);
       padding: 10px 12px;
       outline:none;
       background:#fff;
+      box-sizing: border-box;
     }
-    input[type="text"]:focus{
+    input[type="text"]:focus, select:focus{
       border-color: rgba(37, 99, 235, .55);
       box-shadow: 0 0 0 4px rgba(37, 99, 235, .15);
     }
@@ -158,7 +169,6 @@
     }
     .preview h3{ margin: 0 0 10px; }
 
-    /* ✅ Galería de preview: 1 tarjeta por pregunta */
     .previewGrid{
       display:grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -194,7 +204,7 @@
       min-width: 0;
     }
     .pTitle{
-      font-weight: 800;
+      font-weight: 900;
       font-size: 13px;
       color:#0f172a;
       line-height: 1.1;
@@ -207,6 +217,7 @@
       display: -webkit-box;
       -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
+      white-space: normal;
     }
     .muted{ color:#64748b; font-size: 13px; }
   </style>
@@ -223,22 +234,25 @@
 
   <div class="wrap">
     <h1>Tu “Wrapped” del mazo</h1>
-    <p>Elige cartas para cada pregunta. (De momento solo formulario + carga desde API.)</p>
+    <p>Elige cartas para cada pregunta.</p>
 
-    <div class="grid" id="questions"></div>
+    <div class="sectionTitle">Datos del jugador</div>
+    <div class="grid" id="playerQuestions"></div>
+
+    <div class="sectionTitle">Líderes</div>
+    <div class="grid" id="leaderQuestions"></div>
+
+    <div class="sectionTitle">Cartas individuales</div>
+    <div class="grid" id="cardQuestions"></div>
 
     <div class="row">
-      <!-- ✅ Ya no hace falta el botón; la preview es en vivo -->
       <span class="status-pill" id="countPill">0 cartas cargadas</span>
       <span class="status-pill" id="pickedPill">0/0 respondidas</span>
     </div>
 
-    <!-- ✅ Preview visible por defecto + 1 imagen por pregunta -->
     <div class="preview" id="preview">
       <h3>Vista previa</h3>
-      <div class="muted" style="margin-bottom:10px;">
-        Se actualiza en tiempo real al seleccionar cartas.
-      </div>
+      <div class="muted" style="margin-bottom:10px;">Se actualiza en tiempo real.</div>
       <div class="previewGrid" id="previewGrid"></div>
     </div>
   </div>
@@ -250,8 +264,27 @@
   <script>
     const API_URL = "https://www.optcgapi.com/api/allSetCards/";
 
-    const QUESTIONS = [
+    // ✅ Preguntas texto / select
+    const PLAYER_QUESTIONS = [
+      { id: "player_name", title: "Nombre de jugador", hint: "Tu nick.", type: "text", placeholder: "Ernest" },
+      { id: "start_expansion", title: "Expansión en la que empecé a jugar", hint: "Ej: OP05 / ST-xx / EB01…", type: "text", placeholder: "OP05" },
+      { id: "fav_color", title: "Color favorito", hint: "Elige un color.", type: "select",
+        options: ["rojo","verde","azul","lila","negro","amarillo"]
+      }
+    ];
+
+    // ✅ Preguntas de líder (solo Leaders)
+    const LEADER_QUESTIONS = [
       { id: "fav_leader", title: "Tu líder favorito", hint: "El líder que más te representa." },
+      { id: "first_leader", title: "Primer líder jugado", hint: "Tu primer main." },
+      { id: "last_leader", title: "Último líder jugado", hint: "El más reciente." },
+      { id: "best_results_leader", title: "Líder con mejores resultados", hint: "El que mejor te ha ido." },
+      { id: "meme_leader", title: "Líder más meme", hint: "Por las risas, no por winrate." },
+      { id: "hate_against_leader", title: "Líder que odias jugar en contra", hint: "Ese matchup que da pereza." }
+    ];
+
+    // ✅ Preguntas de cartas (excluye Leaders)
+    const CARD_QUESTIONS = [
       { id: "most_played", title: "La carta más jugada", hint: "La que no sale nunca del deck." },
       { id: "mvp", title: "MVP del mazo", hint: "La que te gana partidas." },
       { id: "guilty_pleasure", title: "Guilty pleasure", hint: "Esa carta que metes aunque no sea óptima." },
@@ -261,11 +294,11 @@
       { id: "tech", title: "Tech del meta", hint: "La carta “respuesta” para el entorno." }
     ];
 
-    let cards = [];               // [{label, name, set_name, card_set_id, card_type, image, raw}]
-    let cardsByLabel = new Map(); // label -> card
+    // ✅ Ahora trabajamos por "label" (Nombre — Set (OP09-112))
+    let cards = [];
+    let cardsByLabel = new Map();
 
     function normalize(s){ return String(s || "").trim(); }
-
     function guessName(card){ return card.card_name || card.name || card.cardName || card.title || ""; }
     function guessSetName(card){ return card.set_name || card.setName || card.expansion || card.set || ""; }
     function guessSetId(card){ return card.card_set_id || card.cardSetId || card.code || card.cardId || card.id || ""; }
@@ -278,19 +311,47 @@
       document.getElementById("apiStatus").textContent = text;
     }
 
-    function renderQuestions(){
-      const root = document.getElementById("questions");
+    function renderPlayerQuestions(){
+      const root = document.getElementById("playerQuestions");
       root.innerHTML = "";
 
-      const total = QUESTIONS.length;
-      document.getElementById("pickedPill").textContent = `0/${total} respondidas`;
-
-      QUESTIONS.forEach((q, idx) => {
+      for (const q of PLAYER_QUESTIONS){
         const div = document.createElement("div");
         div.className = "q";
 
-        // ✅ Solo la primera pregunta: Leaders
-        const listId = (idx === 0) ? "leadersList" : "nonLeadersList";
+        if (q.type === "select"){
+          const opts = q.options.map(o => `<option value="${escapeAttr(o)}">${escapeHtml(o)}</option>`).join("");
+          div.innerHTML = `
+            <label for="${q.id}">${q.title}</label>
+            <select id="${q.id}" onchange="onPickChanged()">
+              <option value="">Selecciona…</option>
+              ${opts}
+            </select>
+            <small>${q.hint}</small>
+          `;
+        } else {
+          div.innerHTML = `
+            <label for="${q.id}">${q.title}</label>
+            <input type="text"
+                   id="${q.id}"
+                   placeholder="${escapeAttr(q.placeholder || "")}"
+                   oninput="onPickChanged()"
+                   autocomplete="off" />
+            <small>${q.hint}</small>
+          `;
+        }
+
+        root.appendChild(div);
+      }
+    }
+
+    function renderCardQuestionBlock(rootId, questions, listId){
+      const root = document.getElementById(rootId);
+      root.innerHTML = "";
+
+      for (const q of questions){
+        const div = document.createElement("div");
+        div.className = "q";
 
         div.innerHTML = `
           <label for="${q.id}">${q.title}</label>
@@ -302,12 +363,8 @@
                  autocomplete="off" />
           <small>${q.hint}</small>
         `;
-
         root.appendChild(div);
-      });
-
-      // ✅ Render preview vacía inicial (tarjetas "placeholder")
-      buildPreview();
+      }
     }
 
     function fillDatalists(){
@@ -332,18 +389,39 @@
       dlNon.appendChild(fragN);
     }
 
-    function onPickChanged(){
-      const total = QUESTIONS.length;
-      let picked = 0;
+    function countAnswered(){
+      const total =
+        PLAYER_QUESTIONS.length +
+        LEADER_QUESTIONS.length +
+        CARD_QUESTIONS.length;
 
-      for (const q of QUESTIONS){
-        const v = normalize(document.getElementById(q.id).value);
-        if (v && cardsByLabel.has(v)) picked++;
+      let answered = 0;
+
+      // player
+      for (const q of PLAYER_QUESTIONS){
+        const el = document.getElementById(q.id);
+        const v = normalize(el ? el.value : "");
+        if (v) answered++;
       }
 
-      document.getElementById("pickedPill").textContent = `${picked}/${total} respondidas`;
+      // leaders (needs valid card label)
+      for (const q of LEADER_QUESTIONS){
+        const v = normalize(document.getElementById(q.id)?.value || "");
+        if (v && cardsByLabel.has(v)) answered++;
+      }
 
-      // ✅ Preview en vivo
+      // cards (needs valid card label)
+      for (const q of CARD_QUESTIONS){
+        const v = normalize(document.getElementById(q.id)?.value || "");
+        if (v && cardsByLabel.has(v)) answered++;
+      }
+
+      return { answered, total };
+    }
+
+    function onPickChanged(){
+      const { answered, total } = countAnswered();
+      document.getElementById("pickedPill").textContent = `${answered}/${total} respondidas`;
       buildPreview();
     }
 
@@ -387,8 +465,6 @@
       setStatus(`Cartas listas (${cards.length})`);
 
       fillDatalists();
-
-      // ✅ Al terminar de cargar, refrescamos preview por si ya había algo escrito
       onPickChanged();
     }
 
@@ -396,7 +472,23 @@
       const grid = document.getElementById("previewGrid");
       grid.innerHTML = "";
 
-      for (const q of QUESTIONS){
+      // Player preview (sin imagen)
+      for (const q of PLAYER_QUESTIONS){
+        const v = normalize(document.getElementById(q.id)?.value || "");
+        const item = document.createElement("div");
+        item.className = "pCard";
+        item.innerHTML = `
+          <img class="pImg" alt="-" style="opacity:.18">
+          <div class="pMeta">
+            <div class="pTitle">${escapeHtml(q.title)}</div>
+            <div class="pLabel">${escapeHtml(v || "—")}</div>
+          </div>
+        `;
+        grid.appendChild(item);
+      }
+
+      // Leaders preview (con imagen)
+      for (const q of LEADER_QUESTIONS){
         const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
 
@@ -405,7 +497,6 @@
 
         const item = document.createElement("div");
         item.className = "pCard";
-
         item.innerHTML = `
           <img class="pImg" ${imgSrc ? `src="${escapeAttr(imgSrc)}"` : ""} alt="Carta" style="opacity:${imgSrc ? 1 : .25}">
           <div class="pMeta">
@@ -413,7 +504,26 @@
             <div class="pLabel">${escapeHtml(shownLabel)}</div>
           </div>
         `;
+        grid.appendChild(item);
+      }
 
+      // Cards preview (con imagen)
+      for (const q of CARD_QUESTIONS){
+        const label = normalize(document.getElementById(q.id)?.value || "");
+        const card = cardsByLabel.get(label);
+
+        const imgSrc = (card && card.image) ? card.image : "";
+        const shownLabel = card ? card.label : "—";
+
+        const item = document.createElement("div");
+        item.className = "pCard";
+        item.innerHTML = `
+          <img class="pImg" ${imgSrc ? `src="${escapeAttr(imgSrc)}"` : ""} alt="Carta" style="opacity:${imgSrc ? 1 : .25}">
+          <div class="pMeta">
+            <div class="pTitle">${escapeHtml(q.title)}</div>
+            <div class="pLabel">${escapeHtml(shownLabel)}</div>
+          </div>
+        `;
         grid.appendChild(item);
       }
     }
@@ -423,13 +533,15 @@
         .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
         .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
     }
-
     function escapeAttr(s){
       return String(s).replace(/"/g, "&quot;");
     }
 
-    // init
-    renderQuestions();
+    // init (orden: leaders primero, luego cartas)
+    renderPlayerQuestions();
+    renderCardQuestionBlock("leaderQuestions", LEADER_QUESTIONS, "leadersList");
+    renderCardQuestionBlock("cardQuestions", CARD_QUESTIONS, "nonLeadersList");
+    buildPreview();
     loadCards();
   </script>
 </body>
