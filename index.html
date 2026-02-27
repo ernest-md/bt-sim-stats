@@ -23,6 +23,15 @@
     th { font-weight: 700; background:#f2f2f2; }
   .wr-ok { background:#A6FFB3 !important; color:#00690D; font-weight:600; }
   .wr-bad { background:#fee2e2 !important; color:#991b1b; font-weight:600; }
+
+    .box-win { border: 2px solid #8bcf95; }
+  .box-lose { border: 2px solid #f1a3a3; }
+
+  .head-win { background:#dff1df !important; font-weight:700; }
+  .head-lose { background:#f6d2d2 !important; font-weight:700; }
+
+  .t-win { color:#2e7d32; font-weight:700; }
+  .t-lose { color:#c62828; font-weight:700; }
   </style>
 </head>
 <body>
@@ -82,6 +91,44 @@
   const sheet = workbook.Sheets[sheetName];
   const range = XLSX.utils.decode_range(sheet['!ref'] || "A1:A1");
 
+  // Helpers
+  const getCellText = (r, c) => {
+    const addr = XLSX.utils.encode_cell({ r, c });
+    const cell = sheet[addr];
+    if (!cell) return "";
+    if (cell.w != null) return String(cell.w);
+    if (cell.v != null) return String(cell.v);
+    return "";
+  };
+
+  const findCell = (predicate) => {
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const t = getCellText(r, c).trim();
+        if (t && predicate(t)) return { r, c, t };
+      }
+    }
+    return null;
+  };
+
+  const blockEndRow = (anchor) => {
+    if (!anchor) return null;
+    const c0 = anchor.c;
+    const c1 = anchor.c + 1;
+    for (let r = anchor.r + 1; r <= range.e.r; r++) {
+      const a = getCellText(r, c0).trim();
+      const b = getCellText(r, c1).trim();
+      if (!a && !b) return r - 1;
+    }
+    return range.e.r;
+  };
+
+  // Detecta bloques por texto
+  const winAnchor = findCell(t => t.toLowerCase() === "más victorias contra");
+  const loseAnchor = findCell(t => t.toLowerCase() === "más derrotas contra");
+  const winEnd = winAnchor ? blockEndRow(winAnchor) : null;
+  const loseEnd = loseAnchor ? blockEndRow(loseAnchor) : null;
+
   // Cabeceras (fila 0)
   const headers = [];
   for (let C = range.s.c; C <= range.e.c; C++) {
@@ -98,33 +145,64 @@
     for (let C = range.s.c; C <= range.e.c; C++) {
       const addr = XLSX.utils.encode_cell({ r: R, c: C });
       const cell = sheet[addr];
-      let v = "";
 
+      // OJO: fórmula solo nos interesa para IMAGE; si no, mejor w/v
+      const formula = cell?.f ? ("=" + String(cell.f)) : "";
+      let v = "";
       if (cell) {
-        if (cell.f) v = "=" + cell.f;
-        else if (cell.w != null) v = String(cell.w);
+        if (cell.w != null) v = String(cell.w);
         else if (cell.v != null) v = String(cell.v);
       }
 
-      const imgUrl = extractImageUrl(v);
+      // IMG: prioriza fórmula IMAGE si existe
+      const imgUrl = extractImageUrl(formula || v);
       if (imgUrl) {
-        html.push(`<td class="imgcell"><img src="${escapeAttr(imgUrl)}"></td>`);
+        // clases del bloque (si la celda cae dentro)
+        let cls = "imgcell";
+        if (winAnchor && R >= winAnchor.r && R <= winEnd && C >= winAnchor.c && C <= winAnchor.c + 1) cls += " box-win";
+        if (loseAnchor && R >= loseAnchor.r && R <= loseEnd && C >= loseAnchor.c && C <= loseAnchor.c + 1) cls += " box-lose";
+
+        // cabecera del bloque
+        if (winAnchor && R === winAnchor.r && C >= winAnchor.c && C <= winAnchor.c + 1) cls += " head-win";
+        if (loseAnchor && R === loseAnchor.r && C >= loseAnchor.c && C <= loseAnchor.c + 1) cls += " head-lose";
+
+        html.push(`<td class="${cls}"><img src="${escapeAttr(imgUrl)}"></td>`);
         continue;
       }
 
-     // ✅ Cabecera correcta para esta columna
-const header = String(headers[C - range.s.c] ?? "").trim().toUpperCase();
-const isWR = header === "WR";
+      // --- clases extra (bloques expansión) ---
+      let extraClass = "";
 
-// ✅ Detecta porcentajes más robusto (espacios, coma decimal, etc.)
-const pm = String(v).match(/(-?\d+(?:[.,]\d+)?)\s*%/);
-if (isWR && pm) {
-  const n = parseFloat(pm[1].replace(',', '.'));
-  const cls = n >= 50 ? 'wr-ok' : 'wr-bad';
-  html.push(`<td class="${cls}">${escapeHtml(v)}</td>`);
-} else {
-  html.push(`<td>${escapeHtml(v)}</td>`);
-}
+      // Bloque victorias
+      if (winAnchor && R >= winAnchor.r && R <= winEnd && C >= winAnchor.c && C <= winAnchor.c + 1) {
+        extraClass += " box-win";
+        if (R === winAnchor.r) extraClass += " head-win";
+      }
+
+      // Bloque derrotas
+      if (loseAnchor && R >= loseAnchor.r && R <= loseEnd && C >= loseAnchor.c && C <= loseAnchor.c + 1) {
+        extraClass += " box-lose";
+        if (R === loseAnchor.r) extraClass += " head-lose";
+      }
+
+      // Contenido con coloreado de labels
+      let cellHtml = escapeHtml(v);
+      cellHtml = cellHtml
+        .replace(/VICTORIAS:/g, '<span class="t-win">VICTORIAS:</span>')
+        .replace(/DERROTAS:/g, '<span class="t-lose">DERROTAS:</span>');
+
+      // --- WR ---
+      const header = String(headers[C - range.s.c] ?? "").trim().toUpperCase();
+      const isWR = header === "WR";
+      const pm = String(v).match(/(-?\d+(?:[.,]\d+)?)\s*%/);
+
+      if (isWR && pm) {
+        const n = parseFloat(pm[1].replace(',', '.'));
+        const cls = (n >= 50 ? 'wr-ok' : 'wr-bad') + (extraClass ? (" " + extraClass.trim()) : "");
+        html.push(`<td class="${cls}">${cellHtml}</td>`);
+      } else {
+        html.push(`<td class="${extraClass.trim()}">${cellHtml}</td>`);
+      }
     }
     html.push('</tr>');
   }
