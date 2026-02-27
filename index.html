@@ -112,15 +112,19 @@
         continue;
       }
 
-      // 🎯 Estilo WR
-      const isWR = String(headers[C]).toUpperCase() === "WR";
-      if (isWR && /%$/.test(v)) {
-        const n = parseFloat(v.replace('%',''));
-        const cls = n >= 50 ? 'wr-ok' : 'wr-bad';
-        html.push(`<td class="${cls}">${escapeHtml(v)}</td>`);
-      } else {
-        html.push(`<td>${escapeHtml(v)}</td>`);
-      }
+     // ✅ Cabecera correcta para esta columna
+const header = String(headers[C - range.s.c] ?? "").trim().toUpperCase();
+const isWR = header === "WR";
+
+// ✅ Detecta porcentajes más robusto (espacios, coma decimal, etc.)
+const pm = String(v).match(/(-?\d+(?:[.,]\d+)?)\s*%/);
+if (isWR && pm) {
+  const n = parseFloat(pm[1].replace(',', '.'));
+  const cls = n >= 50 ? 'wr-ok' : 'wr-bad';
+  html.push(`<td class="${cls}">${escapeHtml(v)}</td>`);
+} else {
+  html.push(`<td>${escapeHtml(v)}</td>`);
+}
     }
     html.push('</tr>');
   }
