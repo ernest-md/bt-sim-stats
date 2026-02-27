@@ -20,6 +20,9 @@
     thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
 
     .imgcell img { display:block; max-height: 70px; max-width: 90px; object-fit: contain; }
+    th { font-weight: 700; background:#f2f2f2; }
+  .wr-ok { background:#dbeafe; color:#1e40af; font-weight:600; }
+  .wr-bad { background:#fee2e2; color:#991b1b; font-weight:600; }
   </style>
 </head>
 <body>
@@ -73,43 +76,58 @@
 }
 
     function renderSheet() {
-      if (!workbook) return;
+  if (!workbook) return;
 
-      const sheetName = document.getElementById('sheets').value;
-      const sheet = workbook.Sheets[sheetName];
+  const sheetName = document.getElementById('sheets').value;
+  const sheet = workbook.Sheets[sheetName];
+  const range = XLSX.utils.decode_range(sheet['!ref'] || "A1:A1");
 
-      // Matriz de valores; si hay fórmula, preferimos la fórmula (para detectar =IMAGE)
-      const range = XLSX.utils.decode_range(sheet['!ref'] || "A1:A1");
+  // Cabeceras (fila 0)
+  const headers = [];
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const a = XLSX.utils.encode_cell({ r: range.s.r, c: C });
+    headers.push(sheet[a]?.w ?? sheet[a]?.v ?? "");
+  }
 
-      const html = ['<table><tbody>'];
+  const html = ['<table><thead><tr>'];
+  headers.forEach(h => html.push(`<th>${escapeHtml(h)}</th>`));
+  html.push('</tr></thead><tbody>');
 
-      for (let R = range.s.r; R <= range.e.r; R++) {
-        html.push('<tr>');
-        for (let C = range.s.c; C <= range.e.c; C++) {
-          const addr = XLSX.utils.encode_cell({ r: R, c: C });
-          const cell = sheet[addr];
+  for (let R = range.s.r + 1; R <= range.e.r; R++) {
+    html.push('<tr>');
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = sheet[addr];
+      let v = "";
 
-          let v = "";
-          if (cell) {
-            // Si tiene fórmula, úsala (Google Sheets export -> IMAGE suele venir aquí)
-            if (cell.f) v = "=" + String(cell.f);
-            else if (cell.w != null) v = String(cell.w);
-            else if (cell.v != null) v = String(cell.v);
-          }
-
-          const imgUrl = extractImageUrl(v);
-          if (imgUrl) {
-            html.push(`<td class="imgcell"><img src="${escapeAttr(imgUrl)}" loading="lazy"></td>`);
-          } else {
-            html.push(`<td>${escapeHtml(v)}</td>`);
-          }
-        }
-        html.push('</tr>');
+      if (cell) {
+        if (cell.f) v = "=" + cell.f;
+        else if (cell.w != null) v = String(cell.w);
+        else if (cell.v != null) v = String(cell.v);
       }
 
-      html.push('</tbody></table>');
-      document.getElementById('output').innerHTML = html.join('');
+      const imgUrl = extractImageUrl(v);
+      if (imgUrl) {
+        html.push(`<td class="imgcell"><img src="${escapeAttr(imgUrl)}"></td>`);
+        continue;
+      }
+
+      // 🎯 Estilo WR
+      const isWR = String(headers[C]).toUpperCase() === "WR";
+      if (isWR && /%$/.test(v)) {
+        const n = parseFloat(v.replace('%',''));
+        const cls = n >= 50 ? 'wr-ok' : 'wr-bad';
+        html.push(`<td class="${cls}">${escapeHtml(v)}</td>`);
+      } else {
+        html.push(`<td>${escapeHtml(v)}</td>`);
+      }
     }
+    html.push('</tr>');
+  }
+
+  html.push('</tbody></table>');
+  document.getElementById('output').innerHTML = html.join('');
+}
 
     // Soporta =IMAGE("url";...) o =IMAGE("url",...) y también sin comillas (raro)
     function extractImageUrl(s) {
