@@ -2,68 +2,135 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Visor de Excels</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Visor Excels</title>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; }
-    table { border-collapse: collapse; margin-top: 1rem; }
-    td, th { border: 1px solid #ccc; padding: 4px 8px; }
-    button { margin-right: 8px; }
+    body { font-family: Arial, sans-serif; margin: 16px; }
+    .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    button { padding: 8px 10px; cursor: pointer; }
+    select { padding: 8px 10px; }
+    .hint { color:#666; margin-top: 10px; font-size: 13px; }
+
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 6px 8px; vertical-align: middle; }
+    tr:nth-child(even) td { background: #f7f7f7; }
+    thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
+
+    .imgcell img { display:block; max-height: 70px; max-width: 90px; object-fit: contain; }
   </style>
 </head>
 <body>
 
-  <h2>Excels</h2>
-  <button onclick="loadExcel('COQUITO.xlsx')">COQUITO</button>
-  <button onclick="loadExcel('ESTEREO.xlsx')">ESTEREO</button>
-  <button onclick="loadExcel('OSHIN.xlsx')">OSHIN</button>
+  <div class="bar">
+    <button onclick="loadExcel('COQUITO.xlsx')">COQUITO</button>
+    <button onclick="loadExcel('ESTEREO.xlsx')">ESTEREO</button>
+    <button onclick="loadExcel('OSHIN.xlsx')">OSHIN</button>
 
-  <select id="sheets" onchange="renderSheet()"></select>
-<div id="output"></div>
+    <span style="margin-left:10px;">Hoja:</span>
+    <select id="sheets" onchange="renderSheet()" disabled></select>
+  </div>
 
+  <div class="hint" id="status">Selecciona un Excel.</div>
   <div id="output"></div>
 
   <script>
+    let workbook = null;
+
     async function loadExcel(file) {
-      const res = await fetch(file);
+      document.getElementById('status').textContent = `Cargando ${file}...`;
+      document.getElementById('output').innerHTML = '';
+      workbook = null;
+
+      const res = await fetch(file, { cache: "no-store" });
+      if (!res.ok) {
+        document.getElementById('status').textContent = `No se pudo cargar ${file}`;
+        return;
+      }
+
       const data = await res.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const html = XLSX.utils.sheet_to_html(sheet);
-      document.getElementById('output').innerHTML = html;
+      workbook = XLSX.read(data, { cellFormula: true });
+
+      const select = document.getElementById('sheets');
+      select.innerHTML = "";
+      workbook.SheetNames.forEach((name) => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      select.disabled = false;
+
+      document.getElementById('status').textContent = `${file} cargado.`;
+      renderSheet();
+    }
+
+    function renderSheet() {
+      if (!workbook) return;
+
+      const sheetName = document.getElementById('sheets').value;
+      const sheet = workbook.Sheets[sheetName];
+
+      // Matriz de valores; si hay fórmula, preferimos la fórmula (para detectar =IMAGE)
+      const range = XLSX.utils.decode_range(sheet['!ref'] || "A1:A1");
+
+      const html = ['<table><tbody>'];
+
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        html.push('<tr>');
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = sheet[addr];
+
+          let v = "";
+          if (cell) {
+            // Si tiene fórmula, úsala (Google Sheets export -> IMAGE suele venir aquí)
+            if (cell.f) v = "=" + String(cell.f);
+            else if (cell.w != null) v = String(cell.w);
+            else if (cell.v != null) v = String(cell.v);
+          }
+
+          const imgUrl = extractImageUrl(v);
+          if (imgUrl) {
+            html.push(`<td class="imgcell"><img src="${escapeAttr(imgUrl)}" loading="lazy"></td>`);
+          } else {
+            html.push(`<td>${escapeHtml(v)}</td>`);
+          }
+        }
+        html.push('</tr>');
+      }
+
+      html.push('</tbody></table>');
+      document.getElementById('output').innerHTML = html.join('');
+    }
+
+    // Soporta =IMAGE("url";...) o =IMAGE("url",...) y también sin comillas (raro)
+    function extractImageUrl(s) {
+      if (typeof s !== "string") return null;
+      const t = s.trim();
+
+      // Caso típico: =IMAGE("https://...";4;80;60) o comas
+      let m = t.match(/^=IMAGE\(\s*"([^"]+)"\s*[,;)]/i);
+      if (m) return m[1];
+
+      // Variante: =IMAGE(https://...;...)
+      m = t.match(/^=IMAGE\(\s*(https?:\/\/[^,;\)]+)\s*[,;)]/i);
+      if (m) return m[1];
+
+      return null;
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    function escapeAttr(s){
+      return String(s).replace(/"/g, "&quot;");
     }
   </script>
-
-  
-
-<script>
-let workbook;
-
-async function loadExcel(file) {
-  const res = await fetch(file);
-  const data = await res.arrayBuffer();
-  workbook = XLSX.read(data);
-
-  const select = document.getElementById('sheets');
-  select.innerHTML = "";
-
-  workbook.SheetNames.forEach((name, i) => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
-  });
-
-  renderSheet();
-}
-
-function renderSheet() {
-  const sheetName = document.getElementById('sheets').value;
-  const sheet = workbook.Sheets[sheetName];
-  document.getElementById('output').innerHTML =
-    XLSX.utils.sheet_to_html(sheet);
-}
-</script>
-
 </body>
 </html>
