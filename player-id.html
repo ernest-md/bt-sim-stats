@@ -8,9 +8,19 @@
   <style>
     :root{
       --bg1:#0b1220;
-      --card: rgba(255,255,255,.90);
+      --card: rgba(255,255,255,.92);
       --card-border: rgba(255,255,255,.20);
-      --shadow: 0 10px 30px rgba(0,0,0,.25);
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+
+      --glass: rgba(255,255,255,.10);
+      --glass2: rgba(255,255,255,.14);
+      --textW: rgba(255,255,255,.92);
+      --textW2: rgba(255,255,255,.78);
+
+      --p1:#7c3aed; /* purple */
+      --p2:#06b6d4; /* cyan */
+      --p3:#22c55e; /* green */
+      --p4:#f59e0b; /* amber */
     }
 
     body{
@@ -20,16 +30,32 @@
       color:#0f172a;
     }
 
+    /* Fondo estilo “wrapped” */
     body::before{
       content:"";
       position: fixed;
       inset:0;
       background:
-        linear-gradient(180deg, rgba(11,18,32,.72), rgba(11,18,32,.72)),
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
         url("bg.png");
       background-size: cover;
       background-position: center;
-      filter: saturate(1.08);
+      filter: saturate(1.1);
+      z-index:-2;
+    }
+
+    /* noise overlay */
+    body::after{
+      content:"";
+      position: fixed;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode: overlay;
+      pointer-events:none;
       z-index:-1;
     }
 
@@ -37,7 +63,7 @@
       position: sticky;
       top:0;
       z-index:10;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(14px);
       background: rgba(15, 23, 42, .55);
       border-bottom: 1px solid rgba(255,255,255,.12);
       padding: 12px 14px;
@@ -48,15 +74,24 @@
       gap:10px;
       flex-wrap:wrap;
       align-items:center;
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
     }
 
     .brand{
+      display:flex;
+      flex-direction: column;
+      gap:2px;
       color:#fff;
-      font-weight:800;
-      letter-spacing:.3px;
+      font-weight:900;
+      letter-spacing:.4px;
       margin-right: 6px;
+      line-height: 1.1;
+    }
+    .brand small{
+      font-weight:700;
+      color: rgba(255,255,255,.72);
+      letter-spacing:.2px;
     }
 
     .btn{
@@ -79,29 +114,51 @@
       color: rgba(255,255,255,.82);
       font-size: 13px;
       margin-left:auto;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.86);
     }
 
     .wrap{
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 14px auto 28px;
       padding: 14px;
       background: var(--card);
       border: 1px solid var(--card-border);
-      border-radius: 18px;
+      border-radius: 22px;
       box-shadow: var(--shadow);
     }
 
-    h1{ margin: 4px 0 6px; font-size: 22px; }
+    h1{ margin: 6px 0 4px; font-size: 22px; }
     p{ margin: 0 0 14px; color:#334155; }
 
     .sectionTitle{
-      margin: 14px 0 8px;
-      font-weight: 900;
+      margin: 16px 0 10px;
+      font-weight: 1000;
       color:#0f172a;
-      font-size: 14px;
+      font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: .6px;
+      letter-spacing: .9px;
       opacity: .85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .sectionTitle::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background: linear-gradient(90deg, rgba(15,23,42,.25), transparent);
     }
 
     .grid{
@@ -115,13 +172,13 @@
 
     .q{
       border: 1px solid rgba(15,23,42,.10);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 12px;
-      background: rgba(255,255,255,.65);
+      background: rgba(255,255,255,.70);
     }
     .q label{
       display:block;
-      font-weight:800;
+      font-weight:900;
       margin-bottom: 8px;
       color:#0f172a;
     }
@@ -141,62 +198,82 @@
       box-sizing: border-box;
     }
     input[type="text"]:focus, select:focus{
-      border-color: rgba(37, 99, 235, .55);
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, .15);
-    }
-
-    .row{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      margin-top: 14px;
-    }
-
-    .status-pill{
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(15,23,42,.14);
-      background: rgba(255,255,255,.6);
-      color:#0f172a;
+      border-color: rgba(124,58,237,.55);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.15);
     }
 
     .preview{
-      margin-top: 14px;
+      margin-top: 16px;
       padding-top: 14px;
       border-top: 1px dashed rgba(15,23,42,.18);
     }
-    .preview h3{ margin: 0 0 10px; }
+    .previewHeader{
+      display:flex;
+      align-items:flex-end;
+      justify-content: space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+    }
+    .previewHeader h2{
+      margin:0;
+      font-size: 18px;
+      letter-spacing:.2px;
+    }
+    .previewHeader .sub{
+      margin:0;
+      color:#64748b;
+      font-size: 13px;
+    }
 
+    /* ✅ más “shareable”: grid tipo cards */
     .previewGrid{
       display:grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      gap: 12px;
     }
     @media (min-width: 880px){
       .previewGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
 
     .pCard{
-      border: 1px solid rgba(15,23,42,.10);
-      border-radius: 14px;
-      background: rgba(255,255,255,.65);
+      border-radius: 18px;
       padding: 10px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.62));
+      border: 1px solid rgba(15,23,42,.10);
       display:flex;
       gap:10px;
       align-items:flex-start;
-      min-height: 132px;
+      min-height: 134px;
+      position: relative;
+      overflow:hidden;
     }
+    .pCard::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(220px 140px at 10% 10%, rgba(124,58,237,.18), transparent 60%),
+                  radial-gradient(220px 140px at 90% 20%, rgba(6,182,212,.14), transparent 60%);
+      pointer-events:none;
+      z-index:0;
+    }
+    .pCard > *{ position:relative; z-index:1; }
+
     .pImg{
-      width: 70px;
-      height: 98px;
-      border-radius: 12px;
-      border: 1px solid rgba(15,23,42,.12);
-      background: rgba(255,255,255,.65);
+      width: 74px;
+      height: 104px;
+      border-radius: 14px;
+      border: 1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.7);
       object-fit: cover;
       flex: 0 0 auto;
+      box-shadow: 0 10px 20px rgba(0,0,0,.12);
     }
+    .pImg.noimg{
+      display:none; /* ✅ si no hace falta imagen (player fields) */
+    }
+
     .pMeta{
       display:flex;
       flex-direction: column;
@@ -204,7 +281,7 @@
       min-width: 0;
     }
     .pTitle{
-      font-weight: 900;
+      font-weight: 1000;
       font-size: 13px;
       color:#0f172a;
       line-height: 1.1;
@@ -219,22 +296,46 @@
       -webkit-box-orient: vertical;
       white-space: normal;
     }
-    .muted{ color:#64748b; font-size: 13px; }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.55);
+      color:#0f172a;
+      width: fit-content;
+    }
+    .dot{ width:8px; height:8px; border-radius:999px; background: var(--p1); display:inline-block; }
+    .dot.c2{ background: var(--p2); }
+    .dot.c3{ background: var(--p3); }
+    .dot.c4{ background: var(--p4); }
   </style>
 </head>
 
 <body>
   <div class="topbar">
     <div class="bar">
-      <div class="brand">OP Wrapped</div>
+      <div class="brand">
+        OP WRAPPED
+        <small>tu año en el TCG</small>
+      </div>
       <button class="btn" onclick="location.href='index.html'">← Volver al visor</button>
-      <div class="hint" id="apiStatus">Cargando cartas…</div>
+
+      <div class="hint">
+        <span class="pill" id="apiStatus">Cargando cartas…</span>
+        <span class="pill" id="countPill">0 cartas</span>
+        <span class="pill" id="pickedPill">0/0 respondidas</span>
+      </div>
     </div>
   </div>
 
   <div class="wrap">
     <h1>Tu “Wrapped” del mazo</h1>
-    <p>Elige cartas para cada pregunta.</p>
+    <p>Rellena y mira la vista previa. Luego lo convertimos a modo “captura para compartir”.</p>
 
     <div class="sectionTitle">Datos del jugador</div>
     <div class="grid" id="playerQuestions"></div>
@@ -245,35 +346,37 @@
     <div class="sectionTitle">Cartas individuales</div>
     <div class="grid" id="cardQuestions"></div>
 
-    <div class="row">
-      <span class="status-pill" id="countPill">0 cartas cargadas</span>
-      <span class="status-pill" id="pickedPill">0/0 respondidas</span>
-    </div>
-
     <div class="preview" id="preview">
-      <h3>Vista previa</h3>
-      <div class="muted" style="margin-bottom:10px;">Se actualiza en tiempo real.</div>
+      <div class="previewHeader">
+        <div>
+          <h2>Vista previa</h2>
+          <p class="sub">Se actualiza en tiempo real. (Listo para captura)</p>
+        </div>
+        <div class="tag"><span class="dot"></span> Leaders <span class="dot c2"></span> Cards <span class="dot c3"></span> Player</div>
+      </div>
       <div class="previewGrid" id="previewGrid"></div>
     </div>
   </div>
 
-  <!-- ✅ Dos listas: leaders / non-leaders -->
   <datalist id="leadersList"></datalist>
   <datalist id="nonLeadersList"></datalist>
 
   <script>
-    const API_URL = "https://www.optcgapi.com/api/allSetCards/";
+    // ✅ Ahora cargamos 3 endpoints
+    const API_URLS = [
+      "https://www.optcgapi.com/api/allSetCards/",
+      "https://www.optcgapi.com/api/allSTCards/",
+      "https://www.optcgapi.com/api/allPromos/"
+    ];
 
-    // ✅ Preguntas texto / select
     const PLAYER_QUESTIONS = [
       { id: "player_name", title: "Nombre de jugador", hint: "Tu nick.", type: "text", placeholder: "Ernest" },
-      { id: "start_expansion", title: "Expansión en la que empecé a jugar", hint: "Ej: OP05 / ST-xx / EB01…", type: "text", placeholder: "OP05" },
+      { id: "start_expansion", title: "Expansión en la que empecé a jugar", hint: "Ej: OP01 / OP05 / STxx / EB01…", type: "text", placeholder: "OP01" },
       { id: "fav_color", title: "Color favorito", hint: "Elige un color.", type: "select",
         options: ["rojo","verde","azul","lila","negro","amarillo"]
       }
     ];
 
-    // ✅ Preguntas de líder (solo Leaders)
     const LEADER_QUESTIONS = [
       { id: "fav_leader", title: "Tu líder favorito", hint: "El líder que más te representa." },
       { id: "first_leader", title: "Primer líder jugado", hint: "Tu primer main." },
@@ -283,7 +386,6 @@
       { id: "hate_against_leader", title: "Líder que odias jugar en contra", hint: "Ese matchup que da pereza." }
     ];
 
-    // ✅ Preguntas de cartas (excluye Leaders)
     const CARD_QUESTIONS = [
       { id: "most_played", title: "La carta más jugada", hint: "La que no sale nunca del deck." },
       { id: "mvp", title: "MVP del mazo", hint: "La que te gana partidas." },
@@ -294,11 +396,11 @@
       { id: "tech", title: "Tech del meta", hint: "La carta “respuesta” para el entorno." }
     ];
 
-    // ✅ Ahora trabajamos por "label" (Nombre — Set (OP09-112))
     let cards = [];
     let cardsByLabel = new Map();
 
     function normalize(s){ return String(s || "").trim(); }
+
     function guessName(card){ return card.card_name || card.name || card.cardName || card.title || ""; }
     function guessSetName(card){ return card.set_name || card.setName || card.expansion || card.set || ""; }
     function guessSetId(card){ return card.card_set_id || card.cardSetId || card.code || card.cardId || card.id || ""; }
@@ -397,20 +499,17 @@
 
       let answered = 0;
 
-      // player
       for (const q of PLAYER_QUESTIONS){
         const el = document.getElementById(q.id);
         const v = normalize(el ? el.value : "");
         if (v) answered++;
       }
 
-      // leaders (needs valid card label)
       for (const q of LEADER_QUESTIONS){
         const v = normalize(document.getElementById(q.id)?.value || "");
         if (v && cardsByLabel.has(v)) answered++;
       }
 
-      // cards (needs valid card label)
       for (const q of CARD_QUESTIONS){
         const v = normalize(document.getElementById(q.id)?.value || "");
         if (v && cardsByLabel.has(v)) answered++;
@@ -421,73 +520,90 @@
 
     function onPickChanged(){
       const { answered, total } = countAnswered();
-      document.getElementById("pickedPill").textContent = `${answered}/${total} respondidas`;
+      document.getElementById("pickedPill").textContent = `${answered}/${total}`;
       buildPreview();
     }
 
+    async function fetchJson(url){
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
+      return await res.json();
+    }
+
+    function normalizeApiArray(data){
+      return Array.isArray(data) ? data
+            : Array.isArray(data?.data) ? data.data
+            : Array.isArray(data?.cards) ? data.cards
+            : [];
+    }
+
     async function loadCards(){
-      setStatus("Cargando cartas…");
-
-      let data;
       try{
-        const res = await fetch(API_URL, { cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        data = await res.json();
+        setStatus("Cargando cartas…");
+
+        const all = [];
+        for (const url of API_URLS){
+          const data = await fetchJson(url);
+          all.push(...normalizeApiArray(data));
+        }
+
+        const mapped = all
+          .map(raw => {
+            const name = normalize(guessName(raw));
+            if (!name) return null;
+
+            const set_name = normalize(guessSetName(raw));
+            const card_set_id = normalize(guessSetId(raw));
+            const card_type = normalize(guessType(raw));
+            const image = normalize(guessImageUrl(raw));
+
+            const label = `${name} — ${set_name} (${card_set_id})`.replace(/\s+/g, " ").trim();
+            return { label, name, set_name, card_set_id, card_type, image, raw };
+          })
+          .filter(Boolean);
+
+        // Dedup por label (por si hay repeats entre endpoints)
+        const uniq = new Map();
+        for (const c of mapped){
+          if (!uniq.has(c.label)) uniq.set(c.label, c);
+        }
+
+        cards = Array.from(uniq.values());
+        cardsByLabel = new Map(cards.map(c => [c.label, c]));
+
+        document.getElementById("countPill").textContent = `${cards.length} cartas`;
+        setStatus("API OK");
+
+        fillDatalists();
+        onPickChanged();
       }catch(e){
-        setStatus("Error cargando API");
         console.error(e);
-        return;
+        setStatus("Error API");
       }
-
-      const arr = Array.isArray(data) ? data
-                : Array.isArray(data?.data) ? data.data
-                : Array.isArray(data?.cards) ? data.cards
-                : [];
-
-      cards = arr
-        .map(raw => {
-          const name = normalize(guessName(raw));
-          if (!name) return null;
-
-          const set_name = normalize(guessSetName(raw));
-          const card_set_id = normalize(guessSetId(raw));
-          const card_type = normalize(guessType(raw));
-          const image = normalize(guessImageUrl(raw));
-
-          const label = `${name} — ${set_name} (${card_set_id})`.replace(/\s+/g, " ").trim();
-          return { label, name, set_name, card_set_id, card_type, image, raw };
-        })
-        .filter(Boolean);
-
-      cardsByLabel = new Map(cards.map(c => [c.label, c]));
-
-      document.getElementById("countPill").textContent = `${cards.length} cartas cargadas`;
-      setStatus(`Cartas listas (${cards.length})`);
-
-      fillDatalists();
-      onPickChanged();
     }
 
     function buildPreview(){
       const grid = document.getElementById("previewGrid");
       grid.innerHTML = "";
 
-      // Player preview (sin imagen)
+      // Player: sin imagen
       for (const q of PLAYER_QUESTIONS){
         const v = normalize(document.getElementById(q.id)?.value || "");
+
         const item = document.createElement("div");
         item.className = "pCard";
         item.innerHTML = `
-          <img class="pImg" alt="-" style="opacity:.18">
+          <img class="pImg noimg" alt="">
           <div class="pMeta">
             <div class="pTitle">${escapeHtml(q.title)}</div>
             <div class="pLabel">${escapeHtml(v || "—")}</div>
+            <div class="tag"><span class="dot c3"></span> Player</div>
           </div>
         `;
         grid.appendChild(item);
       }
 
-      // Leaders preview (con imagen)
+      // Leaders
       for (const q of LEADER_QUESTIONS){
         const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
@@ -502,12 +618,13 @@
           <div class="pMeta">
             <div class="pTitle">${escapeHtml(q.title)}</div>
             <div class="pLabel">${escapeHtml(shownLabel)}</div>
+            <div class="tag"><span class="dot"></span> Leader</div>
           </div>
         `;
         grid.appendChild(item);
       }
 
-      // Cards preview (con imagen)
+      // Cards
       for (const q of CARD_QUESTIONS){
         const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
@@ -522,6 +639,7 @@
           <div class="pMeta">
             <div class="pTitle">${escapeHtml(q.title)}</div>
             <div class="pLabel">${escapeHtml(shownLabel)}</div>
+            <div class="tag"><span class="dot c2"></span> Card</div>
           </div>
         `;
         grid.appendChild(item);
@@ -537,7 +655,7 @@
       return String(s).replace(/"/g, "&quot;");
     }
 
-    // init (orden: leaders primero, luego cartas)
+    // init
     renderPlayerQuestions();
     renderCardQuestionBlock("leaderQuestions", LEADER_QUESTIONS, "leadersList");
     renderCardQuestionBlock("cardQuestions", CARD_QUESTIONS, "nonLeadersList");
