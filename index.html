@@ -31,5 +31,37 @@
     }
   </script>
 
+  <select id="sheets" onchange="renderSheet()"></select>
+<div id="output"></div>
+
+<script>
+let workbook;
+
+async function loadExcel(file) {
+  const res = await fetch(file);
+  const data = await res.arrayBuffer();
+  workbook = XLSX.read(data);
+
+  const select = document.getElementById('sheets');
+  select.innerHTML = "";
+
+  workbook.SheetNames.forEach((name, i) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+
+  renderSheet();
+}
+
+function renderSheet() {
+  const sheetName = document.getElementById('sheets').value;
+  const sheet = workbook.Sheets[sheetName];
+  document.getElementById('output').innerHTML =
+    XLSX.utils.sheet_to_html(sheet);
+}
+</script>
+
 </body>
 </html>
