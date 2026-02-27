@@ -26,7 +26,7 @@
       inset:0;
       background:
         linear-gradient(180deg, rgba(11,18,32,.72), rgba(11,18,32,.72)),
-        url("bg.jpg");
+        url("bg.png");
       background-size: cover;
       background-position: center;
       filter: saturate(1.08);
@@ -204,7 +204,9 @@
     </div>
   </div>
 
-  <datalist id="cardsList"></datalist>
+  <!-- ✅ Dos listas: leaders / non-leaders -->
+  <datalist id="leadersList"></datalist>
+  <datalist id="nonLeadersList"></datalist>
 
   <script>
     const API_URL = "https://www.optcgapi.com/api/allSetCards/";
@@ -221,25 +223,35 @@
       { id: "tech", title: "Tech del meta", hint: "La carta “respuesta” para el entorno." }
     ];
 
-    let cards = [];              // [{name, id, image, ...}]
-    let cardsByName = new Map(); // name -> card
-    let cardsByAnyKey = new Map();
+    // ✅ Ahora trabajamos por "label" (Nombre — Set (OP09-112))
+    let cards = [];               // [{label, name, set_name, card_set_id, card_type, image, raw}]
+    let cardsByLabel = new Map(); // label -> card
 
     function normalize(s){
       return String(s || "").trim();
     }
 
-    function guessImageUrl(card){
-      // No sé el shape exacto del payload; probamos campos típicos.
-      return card.image || card.imageUrl || card.cardImage || card.img || card.art || "";
-    }
-
     function guessName(card){
-      return card.name || card.cardName || card.card_name || card.title || "";
+      // Campos típicos en APIs
+      return card.card_name || card.name || card.cardName || card.title || "";
     }
 
-    function guessId(card){
-      return card.cardId || card.id || card.card_id || card.code || "";
+    function guessSetName(card){
+      return card.set_name || card.setName || card.expansion || card.set || "";
+    }
+
+    function guessSetId(card){
+      // OP09-112, STxx-xxx, EBxx-xxx, etc.
+      return card.card_set_id || card.cardSetId || card.code || card.cardId || card.id || "";
+    }
+
+    function guessType(card){
+      return card.card_type || card.type || card.cardType || "";
+    }
+
+    function guessImageUrl(card){
+      // Campos típicos
+      return card.card_image || card.image || card.imageUrl || card.cardImage || card.img || card.art || "";
     }
 
     function setStatus(text){
@@ -253,15 +265,18 @@
       const total = QUESTIONS.length;
       document.getElementById("pickedPill").textContent = `0/${total} respondidas`;
 
-      for (const q of QUESTIONS){
+      QUESTIONS.forEach((q, idx) => {
         const div = document.createElement("div");
         div.className = "q";
+
+        // ✅ Solo la primera pregunta: Leaders
+        const listId = (idx === 0) ? "leadersList" : "nonLeadersList";
 
         div.innerHTML = `
           <label for="${q.id}">${q.title}</label>
           <input type="text"
                  id="${q.id}"
-                 list="cardsList"
+                 list="${listId}"
                  placeholder="Escribe para buscar…"
                  oninput="onPickChanged()"
                  autocomplete="off" />
@@ -269,24 +284,29 @@
         `;
 
         root.appendChild(div);
-      }
+      });
     }
 
-    function fillDatalist(){
-      const dl = document.getElementById("cardsList");
-      dl.innerHTML = "";
+    function fillDatalists(){
+      const dlLeaders = document.getElementById("leadersList");
+      const dlNon = document.getElementById("nonLeadersList");
+      dlLeaders.innerHTML = "";
+      dlNon.innerHTML = "";
 
-      // Ojo: si son demasiadas opciones, esto puede tardar. Aun así suele aguantar.
-      // Si te va lento: en vez de datalist, hacemos dropdown filtrado manual.
-      const frag = document.createDocumentFragment();
+      const fragL = document.createDocumentFragment();
+      const fragN = document.createDocumentFragment();
 
       for (const c of cards){
         const opt = document.createElement("option");
-        opt.value = c.name;
-        frag.appendChild(opt);
+        opt.value = c.label;
+
+        const isLeader = (c.card_type || "").toLowerCase() === "leader";
+        if (isLeader) fragL.appendChild(opt);
+        else fragN.appendChild(opt);
       }
 
-      dl.appendChild(frag);
+      dlLeaders.appendChild(fragL);
+      dlNon.appendChild(fragN);
     }
 
     function onPickChanged(){
@@ -295,7 +315,7 @@
 
       for (const q of QUESTIONS){
         const v = normalize(document.getElementById(q.id).value);
-        if (v && cardsByName.has(v)) picked++;
+        if (v && cardsByLabel.has(v)) picked++;
       }
 
       document.getElementById("pickedPill").textContent = `${picked}/${total} respondidas`;
@@ -326,21 +346,25 @@
         .map(raw => {
           const name = normalize(guessName(raw));
           if (!name) return null;
-          return {
-            name,
-            id: normalize(guessId(raw)),
-            image: normalize(guessImageUrl(raw)),
-            raw
-          };
+
+          const set_name = normalize(guessSetName(raw));
+          const card_set_id = normalize(guessSetId(raw));
+          const card_type = normalize(guessType(raw));
+          const image = normalize(guessImageUrl(raw));
+
+          // ✅ Nombre — Expansión (OP09-112)
+          const label = `${name} — ${set_name} (${card_set_id})`.replace(/\s+/g, " ").trim();
+
+          return { label, name, set_name, card_set_id, card_type, image, raw };
         })
         .filter(Boolean);
 
-      cardsByName = new Map(cards.map(c => [c.name, c]));
+      cardsByLabel = new Map(cards.map(c => [c.label, c]));
 
       document.getElementById("countPill").textContent = `${cards.length} cartas cargadas`;
       setStatus(`Cartas listas (${cards.length})`);
 
-      fillDatalist();
+      fillDatalists();
       onPickChanged();
     }
 
@@ -348,18 +372,17 @@
       const list = document.getElementById("previewList");
       list.innerHTML = "";
 
-      // intenta coger primera respuesta válida para la imagen
       let firstCard = null;
 
       for (const q of QUESTIONS){
-        const name = normalize(document.getElementById(q.id).value);
-        const card = cardsByName.get(name);
+        const label = normalize(document.getElementById(q.id).value);
+        const card = cardsByLabel.get(label);
         if (!card) continue;
 
         if (!firstCard) firstCard = card;
 
         const li = document.createElement("li");
-        li.innerHTML = `<strong>${q.title}:</strong> ${escapeHtml(card.name)}`;
+        li.innerHTML = `<strong>${escapeHtml(q.title)}:</strong> ${escapeHtml(card.label)}`;
         list.appendChild(li);
       }
 
