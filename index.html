@@ -40,32 +40,37 @@
     let workbook = null;
 
     async function loadExcel(file) {
-      document.getElementById('status').textContent = `Cargando ${file}...`;
-      document.getElementById('output').innerHTML = '';
-      workbook = null;
+  document.getElementById('status').textContent = `Cargando ${file}...`;
+  document.getElementById('output').innerHTML = '';
+  workbook = null;
 
-      const res = await fetch(file, { cache: "no-store" });
-      if (!res.ok) {
-        document.getElementById('status').textContent = `No se pudo cargar ${file}`;
-        return;
-      }
+  const res = await fetch(file, { cache: "no-store" });
+  if (!res.ok) {
+    document.getElementById('status').textContent = `No se pudo cargar ${file}`;
+    return;
+  }
 
-      const data = await res.arrayBuffer();
-      workbook = XLSX.read(data, { cellFormula: true });
+  const data = await res.arrayBuffer();
+  workbook = XLSX.read(data, { cellFormula: true });
 
-      const select = document.getElementById('sheets');
-      select.innerHTML = "";
-      workbook.SheetNames.forEach((name) => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        select.appendChild(opt);
-      });
-      select.disabled = false;
+  const select = document.getElementById('sheets');
+  select.innerHTML = "";
 
-      document.getElementById('status').textContent = `${file} cargado.`;
-      renderSheet();
-    }
+  workbook.SheetNames.forEach((name) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+
+  // ✅ Seleccionar "RESUMEN" por defecto (case-insensitive)
+  const target = workbook.SheetNames.find(n => n.toLowerCase() === "resumen");
+  select.value = target ?? workbook.SheetNames[0];
+
+  select.disabled = false;
+  document.getElementById('status').textContent = `${file} cargado.`;
+  renderSheet();
+}
 
     function renderSheet() {
       if (!workbook) return;
