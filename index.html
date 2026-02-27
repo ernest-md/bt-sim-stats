@@ -18,6 +18,9 @@
   <button onclick="loadExcel('ESTEREO.xlsx')">ESTEREO</button>
   <button onclick="loadExcel('OSHIN.xlsx')">OSHIN</button>
 
+  <select id="sheets" onchange="renderSheet()"></select>
+<div id="output"></div>
+
   <div id="output"></div>
 
   <script>
@@ -31,8 +34,7 @@
     }
   </script>
 
-  <select id="sheets" onchange="renderSheet()"></select>
-<div id="output"></div>
+  
 
 <script>
 let workbook;
