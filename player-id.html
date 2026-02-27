@@ -21,6 +21,8 @@
       --p2:#06b6d4; /* cyan */
       --p3:#22c55e; /* green */
       --p4:#f59e0b; /* amber */
+      --pink:#ec4899;
+      --blue:#3b82f6;
     }
 
     body{
@@ -30,7 +32,6 @@
       color:#0f172a;
     }
 
-    /* Fondo estilo “wrapped” */
     body::before{
       content:"";
       position: fixed;
@@ -47,7 +48,6 @@
       z-index:-2;
     }
 
-    /* noise overlay */
     body::after{
       content:"";
       position: fixed;
@@ -202,31 +202,128 @@
       box-shadow: 0 0 0 4px rgba(124,58,237,.15);
     }
 
+    /* =========================
+       ✅ OP WRAPPED PREVIEW (NEW)
+       ========================= */
+
     .preview{
-      margin-top: 16px;
+      margin-top: 18px;
       padding-top: 14px;
       border-top: 1px dashed rgba(15,23,42,.18);
     }
-    .previewHeader{
-      display:flex;
-      align-items:flex-end;
-      justify-content: space-between;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-bottom: 10px;
+
+    .previewHero{
+      border-radius: 22px;
+      padding: 16px;
+      margin-bottom: 14px;
+      color: #fff;
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.75), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.60), transparent 60%),
+        radial-gradient(700px 250px at 40% 90%, rgba(245,158,11,.45), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.95), rgba(15,23,42,.75));
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
+      position: relative;
+      overflow:hidden;
     }
-    .previewHeader h2{
-      margin:0;
-      font-size: 18px;
-      letter-spacing:.2px;
-    }
-    .previewHeader .sub{
-      margin:0;
-      color:#64748b;
-      font-size: 13px;
+    .previewHero::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(255,255,255,.10), transparent 40%);
+      opacity:.22;
+      pointer-events:none;
     }
 
-    /* ✅ más “shareable”: grid tipo cards */
+    .heroRow{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      justify-content: space-between;
+      flex-wrap:wrap;
+      position:relative;
+      z-index:1;
+    }
+    .heroLeft{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width: 260px;
+    }
+    .heroTitle{
+      font-weight: 1000;
+      font-size: 22px;
+      letter-spacing:.2px;
+      line-height: 1.05;
+    }
+    .heroSub{
+      color: rgba(255,255,255,.78);
+      font-size: 13px;
+    }
+    .heroBadges{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 6px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      font-size: 12px;
+      color: rgba(255,255,255,.92);
+    }
+    .swatch{
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.25);
+      display:inline-block;
+    }
+
+    .heroRight{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+    .bigStat{
+      min-width: 170px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.10);
+      padding: 12px;
+    }
+    .bigStat .k{
+      font-size: 11px;
+      color: rgba(255,255,255,.75);
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      font-weight: 900;
+    }
+    .bigStat .v{
+      font-size: 20px;
+      font-weight: 1000;
+      margin-top: 6px;
+    }
+    .bigStat .s{
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      margin-top: 4px;
+    }
+
+    .previewRail{
+      border-radius: 22px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.55);
+      padding: 12px;
+    }
+
     .previewGrid{
       display:grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -239,13 +336,12 @@
     .pCard{
       border-radius: 18px;
       padding: 10px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.62));
       border: 1px solid rgba(15,23,42,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.62));
       display:flex;
       gap:10px;
       align-items:flex-start;
-      min-height: 134px;
+      min-height: 136px;
       position: relative;
       overflow:hidden;
     }
@@ -253,12 +349,26 @@
       content:"";
       position:absolute;
       inset:-2px;
-      background: radial-gradient(220px 140px at 10% 10%, rgba(124,58,237,.18), transparent 60%),
-                  radial-gradient(220px 140px at 90% 20%, rgba(6,182,212,.14), transparent 60%);
+      background:
+        radial-gradient(220px 140px at 10% 10%, rgba(124,58,237,.18), transparent 60%),
+        radial-gradient(220px 140px at 90% 20%, rgba(6,182,212,.14), transparent 60%);
       pointer-events:none;
       z-index:0;
     }
     .pCard > *{ position:relative; z-index:1; }
+
+    .pNum{
+      position:absolute;
+      top:10px;
+      right:10px;
+      font-weight: 1000;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.60);
+      color:#0f172a;
+    }
 
     .pImg{
       width: 74px;
@@ -270,9 +380,7 @@
       flex: 0 0 auto;
       box-shadow: 0 10px 20px rgba(0,0,0,.12);
     }
-    .pImg.noimg{
-      display:none; /* ✅ si no hace falta imagen (player fields) */
-    }
+    .pImg.noimg{ display:none; }
 
     .pMeta{
       display:flex;
@@ -312,7 +420,6 @@
     .dot{ width:8px; height:8px; border-radius:999px; background: var(--p1); display:inline-block; }
     .dot.c2{ background: var(--p2); }
     .dot.c3{ background: var(--p3); }
-    .dot.c4{ background: var(--p4); }
   </style>
 </head>
 
@@ -346,15 +453,12 @@
     <div class="sectionTitle">Cartas individuales</div>
     <div class="grid" id="cardQuestions"></div>
 
+    <!-- ✅ PREVIEW NUEVA (unificada + estilo Wrapped) -->
     <div class="preview" id="preview">
-      <div class="previewHeader">
-        <div>
-          <h2>Vista previa</h2>
-          <p class="sub">Se actualiza en tiempo real. (Listo para captura)</p>
-        </div>
-        <div class="tag"><span class="dot"></span> Leaders <span class="dot c2"></span> Cards <span class="dot c3"></span> Player</div>
+      <div class="previewHero" id="previewHero"></div>
+      <div class="previewRail">
+        <div class="previewGrid" id="previewGrid"></div>
       </div>
-      <div class="previewGrid" id="previewGrid"></div>
     </div>
   </div>
 
@@ -362,7 +466,6 @@
   <datalist id="nonLeadersList"></datalist>
 
   <script>
-    // ✅ Ahora cargamos 3 endpoints
     const API_URLS = [
       "https://www.optcgapi.com/api/allSetCards/",
       "https://www.optcgapi.com/api/allSTCards/",
@@ -373,7 +476,7 @@
       { id: "player_name", title: "Nombre de jugador", hint: "Tu nick.", type: "text", placeholder: "Ernest" },
       { id: "start_expansion", title: "Expansión en la que empecé a jugar", hint: "Ej: OP01 / OP05 / STxx / EB01…", type: "text", placeholder: "OP01" },
       { id: "fav_color", title: "Color favorito", hint: "Elige un color.", type: "select",
-        options: ["rojo","verde","azul","lila","negro","amarillo"]
+        options: ["Rojo","Verde","Azul","Lila","Negro","Amarillo"]
       }
     ];
 
@@ -562,7 +665,6 @@
           })
           .filter(Boolean);
 
-        // Dedup por label (por si hay repeats entre endpoints)
         const uniq = new Map();
         for (const c of mapped){
           if (!uniq.has(c.label)) uniq.set(c.label, c);
@@ -582,25 +684,78 @@
       }
     }
 
+    function colorToHex(c){
+      const x = normalize(c).toLowerCase();
+      if (x === "rojo") return "#ef4444";
+      if (x === "verde") return "#22c55e";
+      if (x === "azul") return "#3b82f6";
+      if (x === "lila") return "#a855f7";
+      if (x === "negro") return "#111827";
+      if (x === "amarillo") return "#f59e0b";
+      return "#94a3b8";
+    }
+
     function buildPreview(){
+      const { answered, total } = countAnswered();
+
+      const playerName = normalize(document.getElementById("player_name")?.value || "") || "Jugador";
+      const startExp = normalize(document.getElementById("start_expansion")?.value || "") || "—";
+      const favColor = normalize(document.getElementById("fav_color")?.value || "") || "—";
+      const sw = colorToHex(favColor);
+
+      document.getElementById("previewHero").innerHTML = `
+        <div class="heroRow">
+          <div class="heroLeft">
+            <div class="heroTitle">${escapeHtml(playerName)} · OP Wrapped</div>
+            <div class="heroSub">Empecé en <strong>${escapeHtml(startExp)}</strong> · Color favorito <strong>${escapeHtml(favColor)}</strong></div>
+            <div class="heroBadges">
+              <span class="badge"><span class="swatch" style="background:${sw}"></span>${escapeHtml(favColor)}</span>
+              <span class="badge">📦 Cartas: <strong>${cards.length}</strong></span>
+              <span class="badge">✅ Respondidas: <strong>${answered}/${total}</strong></span>
+            </div>
+          </div>
+
+          <div class="heroRight">
+            <div class="bigStat">
+              <div class="k">Progreso</div>
+              <div class="v">${answered}/${total}</div>
+              <div class="s">Lista para captura</div>
+            </div>
+            <div class="bigStat">
+              <div class="k">Colección</div>
+              <div class="v">${cards.length}</div>
+              <div class="s">Sets + ST + Promos</div>
+            </div>
+          </div>
+        </div>
+      `;
+
       const grid = document.getElementById("previewGrid");
       grid.innerHTML = "";
 
-      // Player: sin imagen
-      for (const q of PLAYER_QUESTIONS){
-        const v = normalize(document.getElementById(q.id)?.value || "");
+      let n = 1;
+
+      const pushCard = ({ title, label, tag, dotClass, img }) => {
+        const hasImg = !!img;
 
         const item = document.createElement("div");
         item.className = "pCard";
         item.innerHTML = `
-          <img class="pImg noimg" alt="">
+          <div class="pNum">#${n++}</div>
+          <img class="pImg ${hasImg ? "" : "noimg"}" ${hasImg ? `src="${escapeAttr(img)}"` : ""} alt="">
           <div class="pMeta">
-            <div class="pTitle">${escapeHtml(q.title)}</div>
-            <div class="pLabel">${escapeHtml(v || "—")}</div>
-            <div class="tag"><span class="dot c3"></span> Player</div>
+            <div class="pTitle">${escapeHtml(title)}</div>
+            <div class="pLabel">${escapeHtml(label || "—")}</div>
+            <div class="tag"><span class="dot ${dotClass}"></span>${escapeHtml(tag)}</div>
           </div>
         `;
         grid.appendChild(item);
+      };
+
+      // Player (sin imagen)
+      for (const q of PLAYER_QUESTIONS){
+        const v = normalize(document.getElementById(q.id)?.value || "");
+        pushCard({ title: q.title, label: v || "—", tag: "Player", dotClass: "c3", img: "" });
       }
 
       // Leaders
@@ -608,20 +763,13 @@
         const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
 
-        const imgSrc = (card && card.image) ? card.image : "";
-        const shownLabel = card ? card.label : "—";
-
-        const item = document.createElement("div");
-        item.className = "pCard";
-        item.innerHTML = `
-          <img class="pImg" ${imgSrc ? `src="${escapeAttr(imgSrc)}"` : ""} alt="Carta" style="opacity:${imgSrc ? 1 : .25}">
-          <div class="pMeta">
-            <div class="pTitle">${escapeHtml(q.title)}</div>
-            <div class="pLabel">${escapeHtml(shownLabel)}</div>
-            <div class="tag"><span class="dot"></span> Leader</div>
-          </div>
-        `;
-        grid.appendChild(item);
+        pushCard({
+          title: q.title,
+          label: card ? card.label : "—",
+          tag: "Leader",
+          dotClass: "",
+          img: card?.image || ""
+        });
       }
 
       // Cards
@@ -629,20 +777,13 @@
         const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
 
-        const imgSrc = (card && card.image) ? card.image : "";
-        const shownLabel = card ? card.label : "—";
-
-        const item = document.createElement("div");
-        item.className = "pCard";
-        item.innerHTML = `
-          <img class="pImg" ${imgSrc ? `src="${escapeAttr(imgSrc)}"` : ""} alt="Carta" style="opacity:${imgSrc ? 1 : .25}">
-          <div class="pMeta">
-            <div class="pTitle">${escapeHtml(q.title)}</div>
-            <div class="pLabel">${escapeHtml(shownLabel)}</div>
-            <div class="tag"><span class="dot c2"></span> Card</div>
-          </div>
-        `;
-        grid.appendChild(item);
+        pushCard({
+          title: q.title,
+          label: card ? card.label : "—",
+          tag: "Card",
+          dotClass: "c2",
+          img: card?.image || ""
+        });
       }
     }
 
