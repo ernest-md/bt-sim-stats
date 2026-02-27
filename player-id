@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>OP Wrapped (Form)</title>
+
+  <style>
+    :root{
+      --bg1:#0b1220;
+      --card: rgba(255,255,255,.90);
+      --card-border: rgba(255,255,255,.20);
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg1);
+      color:#0f172a;
+    }
+
+    body::before{
+      content:"";
+      position: fixed;
+      inset:0;
+      background:
+        linear-gradient(180deg, rgba(11,18,32,.72), rgba(11,18,32,.72)),
+        url("bg.jpg");
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.08);
+      z-index:-1;
+    }
+
+    .topbar{
+      position: sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, .55);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      padding: 12px 14px;
+    }
+
+    .bar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .brand{
+      color:#fff;
+      font-weight:800;
+      letter-spacing:.3px;
+      margin-right: 6px;
+    }
+
+    .btn{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color:#fff;
+      padding: 9px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .btn:hover{
+      background: rgba(255,255,255,.16);
+      border-color: rgba(255,255,255,.28);
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    .hint{
+      color: rgba(255,255,255,.82);
+      font-size: 13px;
+      margin-left:auto;
+    }
+
+    .wrap{
+      max-width: 1000px;
+      margin: 14px auto 28px;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    h1{ margin: 4px 0 6px; font-size: 22px; }
+    p{ margin: 0 0 14px; color:#334155; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 880px){
+      .grid{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .q{
+      border: 1px solid rgba(15,23,42,.10);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255,255,255,.65);
+    }
+    .q label{
+      display:block;
+      font-weight:800;
+      margin-bottom: 8px;
+      color:#0f172a;
+    }
+    .q small{
+      display:block;
+      margin-top: 6px;
+      color:#64748b;
+    }
+
+    input[type="text"]{
+      width:100%;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+      padding: 10px 12px;
+      outline:none;
+      background:#fff;
+    }
+    input[type="text"]:focus{
+      border-color: rgba(37, 99, 235, .55);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, .15);
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top: 14px;
+    }
+
+    .status-pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.6);
+      color:#0f172a;
+    }
+
+    .preview{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed rgba(15,23,42,.18);
+    }
+    .cardimg{
+      width: 92px;
+      height: 128px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.65);
+      object-fit: cover;
+    }
+    .preview h3{ margin: 0 0 6px; }
+    .preview ul{ margin:0; padding-left: 18px; color:#334155; }
+    .muted{ color:#64748b; font-size: 13px; }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="bar">
+      <div class="brand">OP Wrapped</div>
+      <button class="btn" onclick="location.href='index.html'">← Volver al visor</button>
+      <div class="hint" id="apiStatus">Cargando cartas…</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1>Tu “Wrapped” del mazo</h1>
+    <p>Elige cartas para cada pregunta. (De momento solo formulario + carga desde API.)</p>
+
+    <div class="grid" id="questions"></div>
+
+    <div class="row">
+      <button class="btn" id="btnPreview" onclick="buildPreview()" disabled>Ver preview</button>
+      <span class="status-pill" id="countPill">0 cartas cargadas</span>
+      <span class="status-pill" id="pickedPill">0/0 respondidas</span>
+    </div>
+
+    <div class="preview" id="preview" style="display:none;">
+      <img class="cardimg" id="previewImg" alt="Carta" />
+      <div>
+        <h3>Resumen (preview)</h3>
+        <div class="muted">Luego aquí generaremos el “Wrapped” (pantallas, stats, etc.).</div>
+        <ul id="previewList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="cardsList"></datalist>
+
+  <script>
+    const API_URL = "https://www.optcgapi.com/api/allSetCards/";
+
+    // Preguntas (puedes cambiar textos/IDs)
+    const QUESTIONS = [
+      { id: "fav_leader", title: "Tu líder favorito", hint: "El líder que más te representa." },
+      { id: "most_played", title: "La carta más jugada", hint: "La que no sale nunca del deck." },
+      { id: "mvp", title: "MVP del mazo", hint: "La que te gana partidas." },
+      { id: "guilty_pleasure", title: "Guilty pleasure", hint: "Esa carta que metes aunque no sea óptima." },
+      { id: "nemesis", title: "Tu némesis", hint: "La carta que más odias ver enfrente." },
+      { id: "best_art", title: "Mejor artwork", hint: "Elegida por puro arte." },
+      { id: "clutch", title: "La más clutch", hint: "La que salva a última hora." },
+      { id: "tech", title: "Tech del meta", hint: "La carta “respuesta” para el entorno." }
+    ];
+
+    let cards = [];              // [{name, id, image, ...}]
+    let cardsByName = new Map(); // name -> card
+    let cardsByAnyKey = new Map();
+
+    function normalize(s){
+      return String(s || "").trim();
+    }
+
+    function guessImageUrl(card){
+      // No sé el shape exacto del payload; probamos campos típicos.
+      return card.image || card.imageUrl || card.cardImage || card.img || card.art || "";
+    }
+
+    function guessName(card){
+      return card.name || card.cardName || card.card_name || card.title || "";
+    }
+
+    function guessId(card){
+      return card.cardId || card.id || card.card_id || card.code || "";
+    }
+
+    function setStatus(text){
+      document.getElementById("apiStatus").textContent = text;
+    }
+
+    function renderQuestions(){
+      const root = document.getElementById("questions");
+      root.innerHTML = "";
+
+      const total = QUESTIONS.length;
+      document.getElementById("pickedPill").textContent = `0/${total} respondidas`;
+
+      for (const q of QUESTIONS){
+        const div = document.createElement("div");
+        div.className = "q";
+
+        div.innerHTML = `
+          <label for="${q.id}">${q.title}</label>
+          <input type="text"
+                 id="${q.id}"
+                 list="cardsList"
+                 placeholder="Escribe para buscar…"
+                 oninput="onPickChanged()"
+                 autocomplete="off" />
+          <small>${q.hint}</small>
+        `;
+
+        root.appendChild(div);
+      }
+    }
+
+    function fillDatalist(){
+      const dl = document.getElementById("cardsList");
+      dl.innerHTML = "";
+
+      // Ojo: si son demasiadas opciones, esto puede tardar. Aun así suele aguantar.
+      // Si te va lento: en vez de datalist, hacemos dropdown filtrado manual.
+      const frag = document.createDocumentFragment();
+
+      for (const c of cards){
+        const opt = document.createElement("option");
+        opt.value = c.name;
+        frag.appendChild(opt);
+      }
+
+      dl.appendChild(frag);
+    }
+
+    function onPickChanged(){
+      const total = QUESTIONS.length;
+      let picked = 0;
+
+      for (const q of QUESTIONS){
+        const v = normalize(document.getElementById(q.id).value);
+        if (v && cardsByName.has(v)) picked++;
+      }
+
+      document.getElementById("pickedPill").textContent = `${picked}/${total} respondidas`;
+      document.getElementById("btnPreview").disabled = (picked === 0);
+    }
+
+    async function loadCards(){
+      setStatus("Cargando cartas…");
+
+      let data;
+      try{
+        const res = await fetch(API_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        data = await res.json();
+      }catch(e){
+        setStatus("Error cargando API");
+        console.error(e);
+        return;
+      }
+
+      // El API puede devolver array directo o {data:[...]} etc.
+      const arr = Array.isArray(data) ? data
+                : Array.isArray(data?.data) ? data.data
+                : Array.isArray(data?.cards) ? data.cards
+                : [];
+
+      cards = arr
+        .map(raw => {
+          const name = normalize(guessName(raw));
+          if (!name) return null;
+          return {
+            name,
+            id: normalize(guessId(raw)),
+            image: normalize(guessImageUrl(raw)),
+            raw
+          };
+        })
+        .filter(Boolean);
+
+      cardsByName = new Map(cards.map(c => [c.name, c]));
+
+      document.getElementById("countPill").textContent = `${cards.length} cartas cargadas`;
+      setStatus(`Cartas listas (${cards.length})`);
+
+      fillDatalist();
+      onPickChanged();
+    }
+
+    function buildPreview(){
+      const list = document.getElementById("previewList");
+      list.innerHTML = "";
+
+      // intenta coger primera respuesta válida para la imagen
+      let firstCard = null;
+
+      for (const q of QUESTIONS){
+        const name = normalize(document.getElementById(q.id).value);
+        const card = cardsByName.get(name);
+        if (!card) continue;
+
+        if (!firstCard) firstCard = card;
+
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${q.title}:</strong> ${escapeHtml(card.name)}`;
+        list.appendChild(li);
+      }
+
+      const img = document.getElementById("previewImg");
+      if (firstCard && firstCard.image){
+        img.src = firstCard.image;
+        img.style.opacity = "1";
+      }else{
+        img.removeAttribute("src");
+        img.style.opacity = ".35";
+      }
+
+      document.getElementById("preview").style.display = "flex";
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    // init
+    renderQuestions();
+    loadCards();
+  </script>
+</body>
+</html>
