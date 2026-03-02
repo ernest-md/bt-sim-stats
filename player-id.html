@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>OP Wrapped (Form)</title>
 
+  <!-- ✅ Captura a PNG -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
   <style>
     :root{
       --bg1:#0b1220;
@@ -96,12 +99,16 @@
       border-radius: 12px;
       cursor:pointer;
       transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
     }
     .btn:hover{
       background: rgba(255,255,255,.16);
       border-color: rgba(255,255,255,.28);
     }
     .btn:active{ transform: translateY(1px); }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; transform:none; }
 
     .hint{
       margin-left:auto;
@@ -385,7 +392,9 @@
         OP WRAPPED
         <small>tu año en el TCG</small>
       </div>
-      <button class="btn" onclick="location.href='index.html'">← Volver al visor</button>
+
+      <button class="btn" onclick="location.href='index.html'">← Volver</button>
+      <button class="btn" id="btnDownload" onclick="downloadPreviewPng()">⬇️ Descargar PNG</button>
 
       <div class="hint">
         <span class="pill" id="apiStatus">Cargando cartas…</span>
@@ -407,6 +416,7 @@
     <div class="sectionTitle">Cartas individuales</div>
     <div class="grid" id="cardQuestions"></div>
 
+    <!-- ✅ esto es lo que se captura -->
     <div class="preview" id="preview">
       <div class="previewHero" id="previewHero"></div>
       <div class="previewRail">
@@ -566,6 +576,7 @@
     async function loadCards(){
       try{
         setStatus("Cargando cartas…");
+        document.getElementById("btnDownload").disabled = true;
 
         const all = [];
         for (const url of API_URLS){
@@ -601,6 +612,7 @@
 
         fillDatalists();
         buildPreview();
+        document.getElementById("btnDownload").disabled = false;
       }catch(e){
         console.error(e);
         setStatus("Error API");
@@ -619,7 +631,6 @@
     }
 
     function buildPreview(){
-      // ✅ Hero SOLO con info de jugador (sin cartas / sin progreso)
       const playerName = normalize(document.getElementById("player_name")?.value || "") || "Jugador";
       const startExp = normalize(document.getElementById("start_expansion")?.value || "") || "—";
       const favColor = normalize(document.getElementById("fav_color")?.value || "") || "—";
@@ -639,7 +650,6 @@
         </div>
       `;
 
-      // ✅ Grid SOLO leaders + cards (sin repetir player abajo)
       const grid = document.getElementById("previewGrid");
       grid.innerHTML = "";
 
@@ -647,7 +657,6 @@
 
       const pushCard = ({ title, label, tag, dotClass, img }) => {
         const hasImg = !!img;
-
         const item = document.createElement("div");
         item.className = "pCard";
         item.innerHTML = `
@@ -665,7 +674,6 @@
       for (const q of LEADER_QUESTIONS){
         const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
-
         pushCard({
           title: q.title,
           label: card ? card.label : "—",
@@ -678,7 +686,6 @@
       for (const q of CARD_QUESTIONS){
         const label = normalize(document.getElementById(q.id)?.value || "");
         const card = cardsByLabel.get(label);
-
         pushCard({
           title: q.title,
           label: card ? card.label : "—",
@@ -686,6 +693,55 @@
           dotClass: "c2",
           img: card?.image || ""
         });
+      }
+    }
+
+    // ✅ Descargar la vista previa como PNG
+    async function downloadPreviewPng(){
+      const btn = document.getElementById("btnDownload");
+      if (btn) btn.disabled = true;
+
+      const node = document.getElementById("preview");
+      if (!node) { if (btn) btn.disabled = false; return; }
+
+      // Espera a que carguen imágenes del preview
+      const imgs = Array.from(node.querySelectorAll("img")).filter(i => i.src);
+      await Promise.all(imgs.map(img => new Promise(res => {
+        if (img.complete) return res();
+        img.onload = () => res();
+        img.onerror = () => res();
+      })));
+
+      // Captura
+      try{
+        const canvas = await html2canvas(node, {
+          backgroundColor: null,
+          scale: Math.min(2, window.devicePixelRatio || 1),
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: -window.scrollY
+        });
+
+        const dataUrl = canvas.toDataURL("image/png");
+
+        const playerName = (document.getElementById("player_name")?.value || "op-wrapped")
+          .trim().toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9\-]/g, "");
+
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `${playerName || "op-wrapped"}-wrapped.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }catch(e){
+        console.error(e);
+        alert("No se pudo generar la imagen. Si ves error de CORS en consola, hay que ajustar cómo cargamos las imágenes.");
+      }finally{
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -698,7 +754,6 @@
       return String(s).replace(/"/g, "&quot;");
     }
 
-    // init
     renderPlayerQuestions();
     renderCardQuestionBlock("leaderQuestions", LEADER_QUESTIONS, "leadersList");
     renderCardQuestionBlock("cardQuestions", CARD_QUESTIONS, "nonLeadersList");
