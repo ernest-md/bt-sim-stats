@@ -1,47 +1,69 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>BARATEAM - SIM STATS</title>
+  <title>Visor Excel · Team Hub</title>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
-      --bg1:#0b1220;
-      --card: rgba(255,255,255,.90);
+      --bg:#0b1220;
+      --card: rgba(255,255,255,.92);
       --card-border: rgba(255,255,255,.20);
-      --shadow: 0 10px 30px rgba(0,0,0,.25);
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+
+      --glass: rgba(255,255,255,.10);
+      --glass2: rgba(255,255,255,.14);
+      --line: rgba(255,255,255,.14);
+
+      --p1:#7c3aed;
+      --p2:#06b6d4;
+      --p3:#22c55e;
+      --p4:#f59e0b;
     }
 
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg1);
+      background: var(--bg);
       color:#0f172a;
     }
 
-    /* Fondo con imagen (sutil) */
+    /* Fondo tipo “home” */
     body::before{
       content:"";
       position: fixed;
       inset:0;
       background:
-        linear-gradient(180deg, rgba(11,18,32,.72), rgba(11,18,32,.72)),
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
         url("bg.png");
       background-size: cover;
       background-position: center;
-      filter: saturate(1.08);
+      filter: saturate(1.1);
+      z-index:-2;
+    }
+    body::after{
+      content:"";
+      position: fixed;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode: overlay;
+      pointer-events:none;
       z-index:-1;
     }
 
+    /* ===== Topbar / Navegación ===== */
     .topbar{
       position: sticky;
       top:0;
       z-index:10;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(14px);
       background: rgba(15, 23, 42, .55);
       border-bottom: 1px solid rgba(255,255,255,.12);
       padding: 12px 14px;
@@ -57,10 +79,26 @@
     }
 
     .brand{
+      display:flex;
+      flex-direction: column;
+      gap:2px;
       color:#fff;
-      font-weight:800;
-      letter-spacing:.3px;
+      font-weight:900;
+      letter-spacing:.4px;
       margin-right: 6px;
+      line-height: 1.1;
+    }
+    .brand small{
+      font-weight:700;
+      color: rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+
+    .nav{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
     }
 
     .btn{
@@ -72,118 +110,191 @@
       border-radius: 12px;
       cursor:pointer;
       transition: transform .08s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+      user-select:none;
+      white-space: nowrap;
     }
     .btn:hover{
       background: rgba(255,255,255,.16);
       border-color: rgba(255,255,255,.28);
     }
     .btn:active{ transform: translateY(1px); }
+
+    .btn.primary{
+      border-color: rgba(255,255,255,.22);
+      background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22));
+    }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, rgba(124,58,237,.52), rgba(6,182,212,.30));
+    }
+
     .btn.active{
       background: rgba(255,255,255,.22);
       border-color: rgba(255,255,255,.35);
       box-shadow: 0 6px 18px rgba(0,0,0,.22);
     }
 
-    select{
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.12);
-      color:#fff;
-      padding: 9px 12px;
-      outline:none;
-    }
-    select:disabled{ opacity:.55; }
+    .spacer{ flex:1; }
 
-    .hint{
-      color: rgba(255,255,255,.82);
-      font-size: 13px;
-      margin-left:auto;
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.86);
+      white-space: nowrap;
+    }
+
+    /* ===== Layout ===== */
+    .wrap{
+      max-width: 1500px;
+      margin: 14px auto 28px;
+      padding: 0 14px;
     }
 
     .sheetwrap{
-      max-width: 1500px;
-      margin: 14px 15px 28px;
       padding: 12px;
       background: var(--card);
       border: 1px solid var(--card-border);
-      border-radius: 18px;
+      border-radius: 22px;
       box-shadow: var(--shadow);
       overflow:auto;
     }
 
-    /* Tabla */
-    table { border-collapse: collapse; width: 100%; margin-top: 0; }
+    /* ===== Controls inside content ===== */
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-bottom: 10px;
+    }
+
+    .controls .label{
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing:.9px;
+      text-transform: uppercase;
+      color:#0f172a;
+      opacity:.85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    select{
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+      background: rgba(255,255,255,.95);
+      color:#0f172a;
+      padding: 9px 12px;
+      outline:none;
+      color-scheme: light;
+    }
+    select:disabled{ opacity:.55; }
+
+    .status{
+      margin-left:auto;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.65);
+      color:#0f172a;
+      white-space: nowrap;
+    }
+
+    /* ===== Tabla ===== */
+    table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ddd; padding: 6px 8px; vertical-align: middle; }
     tr:nth-child(even) td:not(.wr-ok):not(.wr-bad):not(.head-win):not(.head-lose) { background: #f7f7f7; }
+
     thead th { position: sticky; top: 0; background: #fff; z-index: 2; }
-    th { font-weight: 800; background:#f2f2f2; }
+    th { font-weight: 900; background:#f2f2f2; }
 
     .imgcell img { display:block; max-height: 70px; max-width: 90px; object-fit: contain; }
 
-    .wr-ok { background:#A6FFB3 !important; color:#00690D; font-weight:600; }
-    .wr-bad { background:#fee2e2 !important; color:#991b1b; font-weight:600; }
+    .wr-ok { background:#A6FFB3 !important; color:#00690D; font-weight:800; }
+    .wr-bad { background:#fee2e2 !important; color:#991b1b; font-weight:800; }
 
     .box-win { border: 2px solid #8bcf95; }
     .box-lose { border: 2px solid #f1a3a3; }
 
-    .head-win { background:#dff1df !important; font-weight:700; }
-    .head-lose { background:#f6d2d2 !important; font-weight:700; }
+    .head-win { background:#dff1df !important; font-weight:900; }
+    .head-lose { background:#f6d2d2 !important; font-weight:900; }
 
-    .t-win { color:#2e7d32; font-weight:700; }
-    .t-lose { color:#c62828; font-weight:700; }
-
-    select{
-  color-scheme: dark;
-  background: rgba(255,255,255,.12);
-  color:#fff;
-  border: 1px solid rgba(255,255,255,.18);
-}
-
-select option{
-  background: #0f172a; /* oscuro */
-  color: #fff;
-}
+    .t-win { color:#2e7d32; font-weight:900; }
+    .t-lose { color:#c62828; font-weight:900; }
   </style>
 </head>
 
 <body>
-
   <div class="topbar">
     <div class="bar">
-      <div class="brand">Visor</div>
+      <div class="brand">
+        TEAM HUB
+        <small>visor excel</small>
+      </div>
 
-      <button class="btn" onclick="loadExcel('COQUITO.xlsx', this)">COQUITO</button>
-      <button class="btn" onclick="loadExcel('ESTEREO.xlsx', this)">ESTEREO</button>
-      <button class="btn" onclick="loadExcel('OSHIN.xlsx', this)">OSHIN</button>
-      <button class="btn" onclick="loadExcel('KELDAS.xlsx', this)">KELDAS</button>
-      <button class="btn" onclick="loadExcel('EZELPRO.xlsx', this)">EZELPRO</button>
-      <button class="btn" onclick="loadExcel('DILIX.xlsx', this)">DILIX</button>
-      <button class="btn" onclick="loadExcel('JOSELU.xlsx', this)">JOSELU</button>
-      
-      <span style="color:rgba(255,255,255,.8); margin-left:10px;">Hoja:</span>
-      <select id="sheets" onchange="renderSheet()" disabled></select>
+      <div class="nav">
+        <a class="btn" href="index.html">🏠 Home</a>
+        <a class="btn primary active" href="visor.html">📊 Visor Excel</a>
+        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
+        <a class="btn" href="#" onclick="alert('Próximamente')">➕ Más</a>
+      </div>
 
-      <div class="hint" id="status">Selecciona un Excel.</div>
+      <div class="spacer"></div>
+      <span class="pill" id="today"></span>
     </div>
   </div>
 
-  <div class="sheetwrap">
-    <div id="output"></div>
+  <div class="wrap">
+    <div class="sheetwrap">
+      <div class="controls">
+        <span class="label">Excels</span>
+
+        <button class="btn" onclick="loadExcel('COQUITO.xlsx', this)">COQUITO</button>
+        <button class="btn" onclick="loadExcel('ESTEREO.xlsx', this)">ESTEREO</button>
+        <button class="btn" onclick="loadExcel('OSHIN.xlsx', this)">OSHIN</button>
+        <button class="btn" onclick="loadExcel('KELDAS.xlsx', this)">KELDAS</button>
+        <button class="btn" onclick="loadExcel('EZELPRO.xlsx', this)">EZELPRO</button>
+        <button class="btn" onclick="loadExcel('DILIX.xlsx', this)">DILIX</button>
+        <button class="btn" onclick="loadExcel('JOSELU.xlsx', this)">JOSELU</button>
+
+        <span class="label" style="margin-left:6px;">Hoja</span>
+        <select id="sheets" onchange="renderSheet()" disabled></select>
+
+        <div class="status" id="status">Selecciona un Excel.</div>
+      </div>
+
+      <div id="output"></div>
+    </div>
   </div>
 
-  <button class="btn" onclick="location.href='player-id.html'">
-  🎧 OP Wrapped
-</button>
   <script>
+    // Fecha en topbar
+    (function(){
+      const el = document.getElementById("today");
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      el.textContent = `📅 ${y}-${m}-${da}`;
+    })();
+
     let workbook = null;
 
-    function setActiveButton(btn){
-      document.querySelectorAll(".btn").forEach(b => b.classList.remove("active"));
+    function setActiveExcelButton(btn){
+      document.querySelectorAll(".controls .btn").forEach(b => b.classList.remove("active"));
       if (btn) btn.classList.add("active");
     }
 
     async function loadExcel(file, btn) {
-      setActiveButton(btn);
+      setActiveExcelButton(btn);
 
       document.getElementById('status').textContent = `Cargando ${file}...`;
       document.getElementById('output').innerHTML = '';
@@ -208,7 +319,6 @@ select option{
         select.appendChild(opt);
       });
 
-      // ✅ Seleccionar "RESUMEN" por defecto
       const target = workbook.SheetNames.find(n => n.toLowerCase() === "resumen");
       select.value = target ?? workbook.SheetNames[0];
 
@@ -224,7 +334,6 @@ select option{
       const sheet = workbook.Sheets[sheetName];
       const range = XLSX.utils.decode_range(sheet['!ref'] || "A1:A1");
 
-      // Helpers
       const getCellText = (r, c) => {
         const addr = XLSX.utils.encode_cell({ r, c });
         const cell = sheet[addr];
@@ -261,7 +370,6 @@ select option{
       const winEnd = winAnchor ? blockEndRow(winAnchor) : null;
       const loseEnd = loseAnchor ? blockEndRow(loseAnchor) : null;
 
-      // Cabeceras (fila 0)
       const headers = [];
       for (let C = range.s.c; C <= range.e.c; C++) {
         const a = XLSX.utils.encode_cell({ r: range.s.r, c: C });
