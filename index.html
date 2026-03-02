@@ -566,13 +566,13 @@
             </div>
           </div>
 
-          <!-- ✅ NUEVO: imagen URL -->
+          <!-- ✅ CAMBIO: imagen por archivo (Supabase Storage: post-images) -->
           <div class="row">
             <div>
-              <label for="post_image_url">Imagen (URL)</label>
-              <input id="post_image_url" placeholder="https://..." />
+              <label for="post_image_file">Imagen</label>
+              <input id="post_image_file" type="file" accept="image/*" />
               <div class="muted" style="margin-top:6px;">
-                Sube la imagen a un sitio público (o luego lo haremos con Supabase Storage).
+                Se subirá a Supabase Storage (bucket: <strong>post-images</strong>).
               </div>
             </div>
           </div>
@@ -766,24 +766,50 @@
       return data || [];
     }
 
+    // ✅ Subida de imagen a Supabase Storage (bucket: post-images)
+    async function uploadPostImage(file, userId){
+      if (!file) return null;
+
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "jpg";
+      const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
+      const path = `${userId}/${fileName}`;
+
+      const { error: upErr } = await sb
+        .storage
+        .from("post-images")
+        .upload(path, file, { upsert: false, contentType: file.type });
+
+      if (upErr) throw upErr;
+
+      // Bucket PUBLIC:
+      const { data } = sb.storage.from("post-images").getPublicUrl(path);
+      return data?.publicUrl || null;
+    }
+
     async function publishPost(user){
       const title = $("post_title").value.trim();
       const tag = $("post_tag").value.trim();
       const body = $("post_body").value.trim();
-      const image_url = $("post_image_url").value.trim();
+      const file = $("post_image_file").files?.[0] || null;
 
       if (!title || !body) return showPostMsg("Pon título y contenido.", "err");
 
       try{
         if (USE_MOCK){
-          showPostMsg("Mock: post publicado ✅ (cuando USE_MOCK=false se guardará en Supabase).", "ok");
+          showPostMsg("Mock: post publicado ✅ (cuando USE_MOCK=false se subirá a Storage y se guardará en Supabase).", "ok");
           $("post_title").value = "";
           $("post_tag").value = "";
           $("post_body").value = "";
-          $("post_image_url").value = "";
+          $("post_image_file").value = "";
           const posts = await fetchPosts();
           renderPosts(posts);
           return;
+        }
+
+        let image_url = null;
+        if (file){
+          image_url = await uploadPostImage(file, user.id);
         }
 
         const payload = {
@@ -801,7 +827,7 @@
         $("post_title").value = "";
         $("post_tag").value = "";
         $("post_body").value = "";
-        $("post_image_url").value = "";
+        $("post_image_file").value = "";
 
         const posts = await fetchPosts();
         renderPosts(posts);
