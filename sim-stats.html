@@ -105,7 +105,7 @@
       appearance:none;
       border: 1px solid rgba(255,255,255,.18);
       background: rgba(255,255,255,.10);
-      color: black;
+      color: #fff;
       padding: 9px 12px;
       border-radius: 12px;
       cursor:pointer;
@@ -257,13 +257,13 @@
       <div class="controls">
         <span class="label">Excels</span>
 
-        <button class="btn" onclick="loadExcel('COQUITO.xlsx', this)">COQUITO</button>
-        <button class="btn" onclick="loadExcel('ESTEREO.xlsx', this)">ESTEREO</button>
-        <button class="btn" onclick="loadExcel('OSHIN.xlsx', this)">OSHIN</button>
-        <button class="btn" onclick="loadExcel('KELDAS.xlsx', this)">KELDAS</button>
-        <button class="btn" onclick="loadExcel('EZELPRO.xlsx', this)">EZELPRO</button>
-        <button class="btn" onclick="loadExcel('DILIX.xlsx', this)">DILIX</button>
-        <button class="btn" onclick="loadExcel('JOSELU.xlsx', this)">JOSELU</button>
+        <button class="btn" style="color: black !important" onclick="loadExcel('COQUITO.xlsx', this)">COQUITO</button>
+        <button class="btn" style="color: black !important" onclick="loadExcel('ESTEREO.xlsx', this)">ESTEREO</button>
+        <button class="btn" style="color: black !important" onclick="loadExcel('OSHIN.xlsx', this)">OSHIN</button>
+        <button class="btn" style="color: black !important" onclick="loadExcel('KELDAS.xlsx', this)">KELDAS</button>
+        <button class="btn" style="color: black !important" onclick="loadExcel('EZELPRO.xlsx', this)">EZELPRO</button>
+        <button class="btn" style="color: black !important" onclick="loadExcel('DILIX.xlsx', this)">DILIX</button>
+        <button class="btn" style="color: black !important" onclick="loadExcel('JOSELU.xlsx', this)">JOSELU</button>
 
         <span class="label" style="margin-left:6px;">Hoja</span>
         <select id="sheets" onchange="renderSheet()" disabled></select>
