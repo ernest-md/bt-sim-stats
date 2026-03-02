@@ -110,6 +110,8 @@
       gap:8px;
       text-decoration:none;
       user-select:none;
+      white-space: nowrap;
+      font: inherit;
     }
     .btn:hover{
       background: rgba(255,255,255,.16);
@@ -124,6 +126,11 @@
     .btn.primary:hover{
       background: linear-gradient(135deg, rgba(124,58,237,.52), rgba(6,182,212,.30));
     }
+    .btn.active{
+      background: rgba(255,255,255,.22);
+      border-color: rgba(255,255,255,.35);
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
 
     .spacer{ flex:1; }
 
@@ -136,6 +143,64 @@
       color: rgba(255,255,255,.86);
       white-space: nowrap;
     }
+
+    /* ===== User menu (derecha) ===== */
+    .userwrap{ position: relative; display:flex; align-items:center; }
+    .userbtn{
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.12);
+    }
+    .userbtn .avatar{
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.6));
+      box-shadow: 0 8px 18px rgba(0,0,0,.18);
+      display:inline-block;
+    }
+    .userbtn .chev{ opacity:.85; font-size: 12px; margin-left: 2px; }
+
+    .menu{
+      position:absolute;
+      right:0;
+      top: calc(100% + 10px);
+      min-width: 220px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15, 23, 42, .85);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+      overflow:hidden;
+      display:none;
+      z-index: 999;
+    }
+    .menu.open{ display:block; }
+    .menu .head{
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.9);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    .menu .head strong{ display:block; font-size: 13px; }
+    .menu a, .menu button{
+      width:100%;
+      text-align:left;
+      background: transparent;
+      border:0;
+      color: rgba(255,255,255,.92);
+      padding: 10px 12px;
+      cursor:pointer;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      font: inherit;
+    }
+    .menu a{ text-decoration:none; }
+    .menu a:hover, .menu button:hover{
+      background: rgba(255,255,255,.10);
+    }
+    .menu .danger{ color: #fecaca; }
+    .menu .sep{ height:1px; background: rgba(255,255,255,.10); }
 
     .wrap{
       max-width: 1100px;
@@ -317,6 +382,8 @@
       padding: 8px 0 2px;
     }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -328,15 +395,36 @@
       </div>
 
       <div class="nav">
-        <a class="btn primary" href="index.html">🏠 Home</a>
-        <a class="btn" href="sim-stats.html">📊 Visor Excel</a>
+        <a class="btn primary active" href="index.html">🏠 Home</a>
+        <a class="btn" href="sim_stats.html">📊 Visor Excel</a>
         <a class="btn" href="player-id.html">🎴 OP Wrapped</a>
-        <a class="btn" href="login.html">🔐 Login</a>
         <a class="btn" href="#" onclick="alert('Próximamente')">➕ Más</a>
       </div>
 
       <div class="spacer"></div>
+
       <span class="pill" id="today"></span>
+
+      <!-- ✅ Derecha del todo: Login O Usuario -->
+      <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+
+      <div class="userwrap" id="navUser" style="display:none;">
+        <button class="btn userbtn" id="userBtn" type="button">
+          <span class="avatar"></span>
+          <span id="userLabel">Usuario</span>
+          <span class="chev">▾</span>
+        </button>
+
+        <div class="menu" id="userMenu">
+          <div class="head">
+            <strong id="userEmail">—</strong>
+            <span>Sesión iniciada</span>
+          </div>
+          <a href="#" id="goProfile">👤 Ver perfil</a>
+          <div class="sep"></div>
+          <button class="danger" id="menuLogout" type="button">🚪 Cerrar sesión</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -350,7 +438,7 @@
 
       <div class="heroRow">
         <div class="heroActions">
-          <a class="btn primary" href="sim-stats.html">Abrir Visor Excel</a>
+          <a class="btn primary" href="sim_stats.html">Abrir Visor Excel</a>
           <a class="btn" href="player-id.html">Abrir OP Wrapped</a>
         </div>
         <span class="pill">📌 Tip: añade posts editando este HTML</span>
@@ -362,7 +450,6 @@
       <div class="card">
         <div class="sectionTitle">Novedades</div>
 
-        <!-- ✅ Copia/pega este bloque para añadir más entradas -->
         <div class="post">
           <h3>🚀 Nueva home + navegación</h3>
           <div class="meta">
@@ -403,7 +490,7 @@
         <div class="sectionTitle">Accesos rápidos</div>
 
         <div class="tiles">
-          <a class="tile" href="sim-stats.html">
+          <a class="tile" href="sim_stats.html">
             <div class="k">Tool</div>
             <div class="t">Visor Excel</div>
             <div class="d">Navega entre excels y hojas, con estilos y previews.</div>
@@ -434,6 +521,72 @@
   </div>
 
   <script>
+    // ===== Supabase (solo para mostrar estado login/logout en navbar) =====
+    const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const $ = (id) => document.getElementById(id);
+
+    function closeUserMenu(){ $("userMenu").classList.remove("open"); }
+    function toggleUserMenu(){ $("userMenu").classList.toggle("open"); }
+
+    function setNavAuthUI(user){
+      const navLogin = $("navLogin");
+      const navUser  = $("navUser");
+
+      if (user){
+        navLogin.style.display = "none";
+        navUser.style.display = "flex";
+
+        const email = user.email || "user";
+        $("userEmail").textContent = email;
+        $("userLabel").textContent = (email.split("@")[0] || "Usuario");
+      } else {
+        navLogin.style.display = "inline-flex";
+        navUser.style.display = "none";
+        closeUserMenu();
+      }
+    }
+
+    async function refreshSession(){
+      const { data } = await sb.auth.getSession();
+      setNavAuthUI(data?.session?.user || null);
+    }
+
+    async function doLogout(){
+      await sb.auth.signOut();
+      await refreshSession();
+    }
+
+    // Dropdown events
+    $("userBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      toggleUserMenu();
+    });
+
+    $("menuLogout").addEventListener("click", async (e) => {
+      e.preventDefault();
+      closeUserMenu();
+      await doLogout();
+    });
+
+    $("goProfile").addEventListener("click", (e) => {
+      e.preventDefault();
+      closeUserMenu();
+      alert("Perfil: pendiente 🙂");
+      // futuro: location.href = "profile.html";
+    });
+
+    document.addEventListener("click", (e) => {
+      const wrap = $("navUser");
+      if (!wrap || wrap.style.display === "none") return;
+      if (!wrap.contains(e.target)) closeUserMenu();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeUserMenu();
+    });
+
     // Fecha simple en la topbar
     (function(){
       const el = document.getElementById("today");
@@ -442,6 +595,14 @@
       const m = String(d.getMonth()+1).padStart(2,"0");
       const da = String(d.getDate()).padStart(2,"0");
       el.textContent = `📅 ${y}-${m}-${da}`;
+    })();
+
+    // init auth
+    (async function(){
+      await refreshSession();
+      sb.auth.onAuthStateChange((_event, session) => {
+        setNavAuthUI(session?.user || null);
+      });
     })();
   </script>
 </body>
