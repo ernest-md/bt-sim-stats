@@ -1014,13 +1014,8 @@
     }
 
     $("btnPublish").addEventListener("click", async () => {
-      //const { data } = await sb.auth.getSession();
-      const user = data?.session?.user || null;
-
-      if (!user) {
-        showPostMsg("Tienes que estar logueado.", "err");
-        return;
-      }
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { showPostMsg("Tienes que estar logueado.", "err"); return; }
       await publishPost(user);
     });
 
