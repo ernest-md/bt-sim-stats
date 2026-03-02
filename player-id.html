@@ -478,6 +478,14 @@
       document.getElementById("apiStatus").textContent = text;
     }
 
+    // ✅ Proxy para evitar CORS al exportar con html2canvas
+    // Nota: proxy público. Si un día falla, conviene montarlo propio (Cloudflare Worker).
+    function proxifyImageUrl(url){
+      const u = String(url || "").trim();
+      if (!u) return "";
+      return "https://images.weserv.nl/?url=" + encodeURIComponent(u.replace(/^https?:\/\//, ""));
+    }
+
     function renderPlayerQuestions(){
       const root = document.getElementById("playerQuestions");
       root.innerHTML = "";
@@ -656,12 +664,16 @@
       let n = 1;
 
       const pushCard = ({ title, label, tag, dotClass, img }) => {
-        const hasImg = !!img;
+        const safeImg = img ? proxifyImageUrl(img) : "";
+
         const item = document.createElement("div");
         item.className = "pCard";
         item.innerHTML = `
           <div class="pNum">#${n++}</div>
-          <img class="pImg" ${hasImg ? `src="${escapeAttr(img)}"` : ""} alt="" style="opacity:${hasImg ? 1 : .25}">
+          <img class="pImg"
+               ${safeImg ? `src="${escapeAttr(safeImg)}" crossorigin="anonymous"` : ""}
+               alt=""
+               style="opacity:${safeImg ? 1 : .25}">
           <div class="pMeta">
             <div class="pTitle">${escapeHtml(title)}</div>
             <div class="pLabel">${escapeHtml(label || "—")}</div>
@@ -696,7 +708,6 @@
       }
     }
 
-    // ✅ Descargar la vista previa como PNG
     async function downloadPreviewPng(){
       const btn = document.getElementById("btnDownload");
       if (btn) btn.disabled = true;
@@ -704,7 +715,7 @@
       const node = document.getElementById("preview");
       if (!node) { if (btn) btn.disabled = false; return; }
 
-      // Espera a que carguen imágenes del preview
+      // Espera a que carguen imágenes (ya van por proxy)
       const imgs = Array.from(node.querySelectorAll("img")).filter(i => i.src);
       await Promise.all(imgs.map(img => new Promise(res => {
         if (img.complete) return res();
@@ -712,13 +723,12 @@
         img.onerror = () => res();
       })));
 
-      // Captura
       try{
         const canvas = await html2canvas(node, {
           backgroundColor: null,
           scale: Math.min(2, window.devicePixelRatio || 1),
           useCORS: true,
-          allowTaint: true,
+          allowTaint: false,
           logging: false,
           scrollX: 0,
           scrollY: -window.scrollY
@@ -739,7 +749,7 @@
         a.remove();
       }catch(e){
         console.error(e);
-        alert("No se pudo generar la imagen. Si ves error de CORS en consola, hay que ajustar cómo cargamos las imágenes.");
+        alert("No se pudo generar la imagen. Si ves error de CORS en consola, habría que montar un proxy propio.");
       }finally{
         if (btn) btn.disabled = false;
       }
@@ -747,7 +757,7 @@
 
     function escapeHtml(s){
       return String(s)
-        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&lt;")
         .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
     }
     function escapeAttr(s){
