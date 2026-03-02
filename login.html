@@ -294,7 +294,7 @@
     const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
 
-    const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const $ = (id) => document.getElementById(id);
 
@@ -319,7 +319,7 @@
     }
 
     async function refreshSession(){
-      const { data } = await supabase.auth.getSession();
+      const { data } = await sb.auth.getSession();
       const user = data?.session?.user || null;
       setSessionUI(user);
       return user;
@@ -331,7 +331,7 @@
       if (!email || !password) return showMsg("Pon email y contraseña.", "err");
 
       try{
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await sb.auth.signUp({ email, password });
         if (error) throw error;
 
         // si confirm email está activado, no tendrás sesión inmediatamente
@@ -354,7 +354,7 @@
       if (!email || !password) return showMsg("Pon email y contraseña.", "err");
 
       try{
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
         showMsg("Login OK ✅", "ok");
@@ -370,7 +370,7 @@
 
     async function doLogout(){
       try{
-        const { error } = await supabase.auth.signOut();
+        const { error } = await sb.auth.signOut();
         if (error) throw error;
         showMsg("Sesión cerrada.", "ok");
         await refreshSession();
@@ -388,7 +388,7 @@
       await refreshSession();
 
       // escuchar cambios de sesión (multi-tab)
-      supabase.auth.onAuthStateChange((_event, session) => {
+      sb.auth.onAuthStateChange((_event, session) => {
         setSessionUI(session?.user || null);
       });
     })();
