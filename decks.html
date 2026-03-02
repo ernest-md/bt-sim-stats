@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Decks · Team Hub</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card: rgba(255,255,255,.92);
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --p1:#7c3aed;
+      --p2:#06b6d4;
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color:#0f172a;
+    }
+
+    body::before{
+      content:"";
+      position: fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.1);
+      z-index:-2;
+    }
+    body::after{
+      content:"";
+      position: fixed;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode: overlay;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    /* ===== Topbar ===== */
+    .topbar{
+      position: sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(14px);
+      background: rgba(15, 23, 42, .55);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      padding: 12px 14px;
+    }
+    .bar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .brand{
+      display:flex;
+      flex-direction: column;
+      gap:2px;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right: 6px;
+      line-height: 1.1;
+    }
+    .brand small{
+      font-weight:700;
+      color: rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+    .nav{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .btn{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color:#fff;
+      padding: 9px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+      user-select:none;
+      white-space: nowrap;
+      font: inherit;
+    }
+    .btn:hover{ background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.28); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: rgba(255,255,255,.22);
+      background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22));
+    }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, rgba(124,58,237,.52), rgba(6,182,212,.30));
+    }
+    .btn.active{
+      background: rgba(255,255,255,.22);
+      border-color: rgba(255,255,255,.35);
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
+    .spacer{ flex:1; }
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.86);
+      white-space: nowrap;
+    }
+
+    /* ===== User menu ===== */
+    .userwrap{ position: relative; display:flex; align-items:center; }
+    .userbtn{ border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.12); }
+    .userbtn .avatar{
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.6));
+      box-shadow: 0 8px 18px rgba(0,0,0,.18);
+      display:inline-block;
+    }
+    .userbtn .chev{ opacity:.85; font-size: 12px; margin-left: 2px; }
+    .menu{
+      position:absolute;
+      right:0;
+      top: calc(100% + 10px);
+      min-width: 220px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15, 23, 42, .85);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+      overflow:hidden;
+      display:none;
+      z-index: 999;
+    }
+    .menu.open{ display:block; }
+    .menu .head{
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.9);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    .menu .head strong{ display:block; font-size: 13px; }
+    .menu a, .menu button{
+      width:100%;
+      text-align:left;
+      background: transparent;
+      border:0;
+      color: rgba(255,255,255,.92);
+      padding: 10px 12px;
+      cursor:pointer;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      font: inherit;
+    }
+    .menu a{ text-decoration:none; }
+    .menu a:hover, .menu button:hover{ background: rgba(255,255,255,.10); }
+    .menu .danger{ color: #fecaca; }
+    .menu .sep{ height:1px; background: rgba(255,255,255,.10); }
+
+    /* ===== Layout ===== */
+    .wrap{
+      max-width: 1100px;
+      margin: 16px auto 28px;
+      padding: 0 14px;
+    }
+
+    .hero{
+      border-radius: 24px;
+      padding: 18px 16px;
+      color:#fff;
+      border: 1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
+    }
+    .hero h1{ margin:0; font-size: 24px; font-weight: 1000; }
+    .hero p{ margin: 8px 0 0; color: rgba(255,255,255,.82); font-size: 13px; max-width: 80ch; }
+
+    .card{
+      margin-top: 14px;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .sectionTitle{
+      margin: 2px 0 12px;
+      font-weight: 1000;
+      color:#0f172a;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .9px;
+      opacity: .85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .sectionTitle::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background: linear-gradient(90deg, rgba(15,23,42,.25), transparent);
+    }
+
+    /* Form */
+    .formGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 820px){
+      .formGrid{ grid-template-columns: 1fr 1fr; }
+      .span2{ grid-column: 1 / -1; }
+    }
+    label{
+      display:block;
+      font-weight: 900;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color:#0f172a;
+    }
+    input, textarea{
+      width:100%;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+      padding: 10px 12px;
+      outline:none;
+      background:#fff;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    textarea{ min-height: 90px; resize: vertical; }
+    input:focus, textarea:focus{
+      border-color: rgba(124,58,237,.55);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.15);
+    }
+    .actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content: space-between;
+      flex-wrap:wrap;
+      margin-top: 8px;
+    }
+    .btnDark{
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(15,23,42,.06);
+      color:#0f172a;
+    }
+    .btnDark:hover{
+      background: rgba(15,23,42,.10);
+      border-color: rgba(15,23,42,.14);
+    }
+    .muted{ color:#64748b; font-size: 12px; }
+
+    .msg{
+      margin-top: 10px;
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.70);
+      color:#0f172a;
+      display:none;
+    }
+    .msg.ok{
+      border-color: rgba(34,197,94,.35);
+      background: rgba(34,197,94,.10);
+      color:#166534;
+      display:block;
+    }
+    .msg.err{
+      border-color: rgba(239,68,68,.35);
+      background: rgba(239,68,68,.10);
+      color:#991b1b;
+      display:block;
+    }
+
+    /* List */
+    .deckRow{
+      border-radius: 18px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.70);
+      padding: 12px;
+      margin-bottom: 12px;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      cursor: pointer;
+    }
+    .deckRow:hover{
+      border-color: rgba(124,58,237,.22);
+      box-shadow: 0 10px 26px rgba(0,0,0,.10);
+    }
+    .thumb{
+      width: 120px;
+      height: 76px;
+      border-radius: 14px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(15,23,42,.06);
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+    .deckMeta{ min-width:0; flex:1; }
+    .deckTitle{
+      margin:0;
+      font-size: 15px;
+      font-weight: 1000;
+      color:#0f172a;
+      line-height: 1.2;
+    }
+    .deckSub{
+      margin: 6px 0 8px;
+      font-size: 12px;
+      color:#64748b;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .deckDesc{
+      margin:0;
+      font-size: 13px;
+      color:#334155;
+      line-height: 1.45;
+      white-space: pre-line; /* respeta saltos */
+    }
+    .pillMini{
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.65);
+      color:#0f172a;
+      width: fit-content;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="bar">
+      <div class="brand">
+        TEAM HUB
+        <small>decks · listado</small>
+      </div>
+
+      <div class="nav">
+        <a class="btn" href="index.html">🏠 Home</a>
+        <a class="btn" href="sim-stats.html">📊 Visor Excel</a>
+        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
+        <a class="btn primary active" href="decks.html">🧩 Decks</a>
+      </div>
+
+      <div class="spacer"></div>
+
+      <span class="pill" id="today"></span>
+
+      <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+
+      <div class="userwrap" id="navUser" style="display:none;">
+        <button class="btn userbtn" id="userBtn" type="button">
+          <span class="avatar"></span>
+          <span id="userLabel">Usuario</span>
+          <span class="chev">▾</span>
+        </button>
+
+        <div class="menu" id="userMenu">
+          <div class="head">
+            <strong id="userEmail">—</strong>
+            <span>Sesión iniciada</span>
+          </div>
+          <a href="profile.html">👤 Ver perfil</a>
+          <div class="sep"></div>
+          <button class="danger" id="menuLogout" type="button">🚪 Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>Decks del equipo</h1>
+      <p>
+        Crea un deck (se guardará <strong>author</strong> como tu <strong>uuid</strong>) y consulta el listado.
+        Próximo paso: al clicar un deck, ir al detalle.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Crear deck</div>
+
+      <div class="formGrid">
+        <div>
+          <label for="name">Nombre</label>
+          <input id="name" placeholder="Ej: Zoro Rush v2" />
+        </div>
+
+        <div>
+          <label for="leader">Leader</label>
+          <input id="leader" placeholder="Ej: Roronoa Zoro (OP01-001)" />
+        </div>
+
+        <div class="span2">
+          <label for="image_url">Imagen (URL)</label>
+          <input id="image_url" placeholder="https://..." />
+          <div class="muted" style="margin-top:6px;">(Luego lo cambiamos a Storage si quieres)</div>
+        </div>
+
+        <div class="span2">
+          <label for="description">Descripción</label>
+          <textarea id="description" placeholder="Plan de juego, matchups, notas..."></textarea>
+        </div>
+
+        <div class="span2">
+          <label for="sim_paste">Sim paste</label>
+          <textarea id="sim_paste" placeholder="Pega aquí la lista/código del simulador..."></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <span class="muted">Necesitas estar logueado para crear (para tener author).</span>
+        <button class="btn btnDark" id="btnCreate" type="button">Guardar deck</button>
+      </div>
+
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Listado</div>
+      <div id="decksList"></div>
+      <div class="muted" id="emptyHint" style="display:none;">No hay decks todavía.</div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CONFIG =====
+    const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
+    const SUPABASE_ANON_KEY = "TU_ANON_KEY_AQUI"; // <-- pon tu key
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const $ = (id) => document.getElementById(id);
+
+    // Fecha topbar
+    (function(){
+      const el = $("today");
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      el.textContent = `📅 ${y}-${m}-${da}`;
+    })();
+
+    // ===== NAV auth =====
+    function closeUserMenu(){ $("userMenu").classList.remove("open"); }
+    function toggleUserMenu(){ $("userMenu").classList.toggle("open"); }
+
+    function setNavAuthUI(user){
+      const navLogin = $("navLogin");
+      const navUser  = $("navUser");
+
+      if (user){
+        navLogin.style.display = "none";
+        navUser.style.display = "flex";
+
+        const email = user.email || "user";
+        $("userEmail").textContent = email;
+        $("userLabel").textContent = (email.split("@")[0] || "Usuario");
+      } else {
+        navLogin.style.display = "inline-flex";
+        navUser.style.display = "none";
+        closeUserMenu();
+      }
+    }
+
+    async function refreshSession(){
+      const { data } = await sb.auth.getSession();
+      const user = data?.session?.user || null;
+      setNavAuthUI(user);
+      return user;
+    }
+
+    async function doLogout(){
+      await sb.auth.signOut();
+      await refreshSession();
+    }
+
+    $("userBtn").addEventListener("click", (e) => { e.preventDefault(); toggleUserMenu(); });
+    $("menuLogout").addEventListener("click", async (e) => {
+      e.preventDefault();
+      closeUserMenu();
+      await doLogout();
+    });
+    document.addEventListener("click", (e) => {
+      const wrap = $("navUser");
+      if (!wrap || wrap.style.display === "none") return;
+      if (!wrap.contains(e.target)) closeUserMenu();
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeUserMenu(); });
+
+    // ===== UI helpers =====
+    function show(text, type){
+      const m = $("msg");
+      m.className = "msg " + (type || "");
+      m.textContent = text;
+      m.style.display = "block";
+    }
+    function clearMsg(){
+      const m = $("msg");
+      m.style.display = "none";
+      m.textContent = "";
+      m.className = "msg";
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+    function escapeAttr(s){
+      return String(s ?? "").replace(/"/g, "&quot;");
+    }
+
+    // ===== Data =====
+    async function fetchDecks(){
+      const { data, error } = await sb
+        .from("decks")
+        .select("id, created_at, name, autor, leader, description, image_url, sim_paste")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.warn("fetchDecks:", error.message);
+        return [];
+      }
+      return data || [];
+    }
+
+    function renderDecks(decks){
+      const root = $("decksList");
+      root.innerHTML = "";
+
+      $("emptyHint").style.display = (!decks || decks.length === 0) ? "block" : "none";
+      if (!decks || decks.length === 0) return;
+
+      for (const d of decks){
+        const date = (d.created_at || "").slice(0,10) || "—";
+        const name = d.name || "Sin nombre";
+        const leader = d.leader || "—";
+        const desc = d.description || "";
+        const img = d.image_url || "";
+
+        const row = document.createElement("div");
+        row.className = "deckRow";
+        row.dataset.id = d.id;
+
+        row.innerHTML = `
+          ${img ? `<img class="thumb" src="${escapeAttr(img)}" alt="">` : `<div class="thumb"></div>`}
+          <div class="deckMeta">
+            <p class="deckTitle">${escapeHtml(name)}</p>
+            <div class="deckSub">
+              <span class="pillMini">📅 ${escapeHtml(date)}</span>
+              <span class="pillMini">👑 ${escapeHtml(leader)}</span>
+            </div>
+            ${desc ? `<p class="deckDesc">${escapeHtml(desc)}</p>` : `<p class="deckDesc" style="opacity:.55;">(Sin descripción)</p>`}
+          </div>
+        `;
+
+        row.addEventListener("click", () => {
+          // Próximo paso:
+          // location.href = `deck.html?id=${encodeURIComponent(d.id)}`;
+          alert("Próximo paso: detalle del deck (id: " + d.id + ")");
+        });
+
+        root.appendChild(row);
+      }
+    }
+
+    async function createDeck(){
+      clearMsg();
+
+      const { data } = await sb.auth.getSession();
+      const user = data?.session?.user || null;
+      if (!user) return show("Tienes que estar logueado para crear un deck.", "err");
+
+      const payload = {
+        name: $("name").value.trim() || null,
+        leader: $("leader").value.trim() || null,
+        description: $("description").value.trim() || null,
+        image_url: $("image_url").value.trim() || null,
+        sim_paste: $("sim_paste").value.trim() || null,
+        autor: user.id // uuid del user
+      };
+
+      if (!payload.name) return show("Pon al menos el nombre del deck.", "err");
+
+      const { error } = await sb.from("decks").insert(payload);
+      if (error) return show("Error guardando deck: " + error.message, "err");
+
+      show("Deck guardado ✅", "ok");
+
+      // reset
+      $("name").value = "";
+      $("leader").value = "";
+      $("description").value = "";
+      $("image_url").value = "";
+      $("sim_paste").value = "";
+
+      const decks = await fetchDecks();
+      renderDecks(decks);
+    }
+
+    $("btnCreate").addEventListener("click", createDeck);
+
+    // ===== Init =====
+    (async function(){
+      await refreshSession();
+
+      sb.auth.onAuthStateChange(async (_event, session) => {
+        setNavAuthUI(session?.user || null);
+      });
+
+      const decks = await fetchDecks();
+      renderDecks(decks);
+    })();
+  </script>
+</body>
+</html>
