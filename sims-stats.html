@@ -1,1 +1,359 @@
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BARATEAM - SIM STATS</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg1:#0b1220;
+      --card: rgba(255,255,255,.90);
+      --card-border: rgba(255,255,255,.20);
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg1);
+      color:#0f172a;
+    }
+
+    /* Fondo con imagen (sutil) */
+    body::before{
+      content:"";
+      position: fixed;
+      inset:0;
+      background:
+        linear-gradient(180deg, rgba(11,18,32,.72), rgba(11,18,32,.72)),
+        url("bg.png");
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.08);
+      z-index:-1;
+    }
+
+    .topbar{
+      position: sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, .55);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      padding: 12px 14px;
+    }
+
+    .bar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .brand{
+      color:#fff;
+      font-weight:800;
+      letter-spacing:.3px;
+      margin-right: 6px;
+    }
+
+    .btn{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color:#fff;
+      padding: 9px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .btn:hover{
+      background: rgba(255,255,255,.16);
+      border-color: rgba(255,255,255,.28);
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.active{
+      background: rgba(255,255,255,.22);
+      border-color: rgba(255,255,255,.35);
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
+
+    select{
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.12);
+      color:#fff;
+      padding: 9px 12px;
+      outline:none;
+    }
+    select:disabled{ opacity:.55; }
+
+    .hint{
+      color: rgba(255,255,255,.82);
+      font-size: 13px;
+      margin-left:auto;
+    }
+
+    .sheetwrap{
+      max-width: 1500px;
+      margin: 14px 15px 28px;
+      padding: 12px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:auto;
+    }
+
+    /* Tabla */
+    table { border-collapse: collapse; width: 100%; margin-top: 0; }
+    th, td { border: 1px solid #ddd; padding: 6px 8px; vertical-align: middle; }
+    tr:nth-child(even) td:not(.wr-ok):not(.wr-bad):not(.head-win):not(.head-lose) { background: #f7f7f7; }
+    thead th { position: sticky; top: 0; background: #fff; z-index: 2; }
+    th { font-weight: 800; background:#f2f2f2; }
+
+    .imgcell img { display:block; max-height: 70px; max-width: 90px; object-fit: contain; }
+
+    .wr-ok { background:#A6FFB3 !important; color:#00690D; font-weight:600; }
+    .wr-bad { background:#fee2e2 !important; color:#991b1b; font-weight:600; }
+
+    .box-win { border: 2px solid #8bcf95; }
+    .box-lose { border: 2px solid #f1a3a3; }
+
+    .head-win { background:#dff1df !important; font-weight:700; }
+    .head-lose { background:#f6d2d2 !important; font-weight:700; }
+
+    .t-win { color:#2e7d32; font-weight:700; }
+    .t-lose { color:#c62828; font-weight:700; }
+
+    select{
+  color-scheme: dark;
+  background: rgba(255,255,255,.12);
+  color:#fff;
+  border: 1px solid rgba(255,255,255,.18);
+}
+
+select option{
+  background: #0f172a; /* oscuro */
+  color: #fff;
+}
+  </style>
+</head>
+
+<body>
+
+  <div class="topbar">
+    <div class="bar">
+      <div class="brand">Visor</div>
+
+      <button class="btn" onclick="loadExcel('COQUITO.xlsx', this)">COQUITO</button>
+      <button class="btn" onclick="loadExcel('ESTEREO.xlsx', this)">ESTEREO</button>
+      <button class="btn" onclick="loadExcel('OSHIN.xlsx', this)">OSHIN</button>
+      <button class="btn" onclick="loadExcel('KELDAS.xlsx', this)">KELDAS</button>
+      <button class="btn" onclick="loadExcel('EZELPRO.xlsx', this)">EZELPRO</button>
+      <button class="btn" onclick="loadExcel('DILIX.xlsx', this)">DILIX</button>
+      <button class="btn" onclick="loadExcel('JOSELU.xlsx', this)">JOSELU</button>
+      
+      <span style="color:rgba(255,255,255,.8); margin-left:10px;">Hoja:</span>
+      <select id="sheets" onchange="renderSheet()" disabled></select>
+
+      <div class="hint" id="status">Selecciona un Excel.</div>
+    </div>
+  </div>
+
+  <div class="sheetwrap">
+    <div id="output"></div>
+  </div>
+
+  <button class="btn" onclick="location.href='player-id.html'">
+  🎧 OP Wrapped
+</button>
+  <script>
+    let workbook = null;
+
+    function setActiveButton(btn){
+      document.querySelectorAll(".btn").forEach(b => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+    }
+
+    async function loadExcel(file, btn) {
+      setActiveButton(btn);
+
+      document.getElementById('status').textContent = `Cargando ${file}...`;
+      document.getElementById('output').innerHTML = '';
+      workbook = null;
+
+      const res = await fetch(file, { cache: "no-store" });
+      if (!res.ok) {
+        document.getElementById('status').textContent = `No se pudo cargar ${file}`;
+        return;
+      }
+
+      const data = await res.arrayBuffer();
+      workbook = XLSX.read(data, { cellFormula: true });
+
+      const select = document.getElementById('sheets');
+      select.innerHTML = "";
+
+      workbook.SheetNames.forEach((name) => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+
+      // ✅ Seleccionar "RESUMEN" por defecto
+      const target = workbook.SheetNames.find(n => n.toLowerCase() === "resumen");
+      select.value = target ?? workbook.SheetNames[0];
+
+      select.disabled = false;
+      document.getElementById('status').textContent = `${file} cargado.`;
+      renderSheet();
+    }
+
+    function renderSheet() {
+      if (!workbook) return;
+
+      const sheetName = document.getElementById('sheets').value;
+      const sheet = workbook.Sheets[sheetName];
+      const range = XLSX.utils.decode_range(sheet['!ref'] || "A1:A1");
+
+      // Helpers
+      const getCellText = (r, c) => {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        const cell = sheet[addr];
+        if (!cell) return "";
+        if (cell.w != null) return String(cell.w);
+        if (cell.v != null) return String(cell.v);
+        return "";
+      };
+
+      const findCell = (predicate) => {
+        for (let r = range.s.r; r <= range.e.r; r++) {
+          for (let c = range.s.c; c <= range.e.c; c++) {
+            const t = getCellText(r, c).trim();
+            if (t && predicate(t)) return { r, c, t };
+          }
+        }
+        return null;
+      };
+
+      const blockEndRow = (anchor) => {
+        if (!anchor) return null;
+        const c0 = anchor.c;
+        const c1 = anchor.c + 1;
+        for (let r = anchor.r + 1; r <= range.e.r; r++) {
+          const a = getCellText(r, c0).trim();
+          const b = getCellText(r, c1).trim();
+          if (!a && !b) return r - 1;
+        }
+        return range.e.r;
+      };
+
+      const winAnchor = findCell(t => t.toLowerCase() === "más victorias contra");
+      const loseAnchor = findCell(t => t.toLowerCase() === "más derrotas contra");
+      const winEnd = winAnchor ? blockEndRow(winAnchor) : null;
+      const loseEnd = loseAnchor ? blockEndRow(loseAnchor) : null;
+
+      // Cabeceras (fila 0)
+      const headers = [];
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const a = XLSX.utils.encode_cell({ r: range.s.r, c: C });
+        headers.push(sheet[a]?.w ?? sheet[a]?.v ?? "");
+      }
+
+      const html = ['<table><thead><tr>'];
+      headers.forEach(h => html.push(`<th>${escapeHtml(h)}</th>`));
+      html.push('</tr></thead><tbody>');
+
+      for (let R = range.s.r + 1; R <= range.e.r; R++) {
+        html.push('<tr>');
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = sheet[addr];
+
+          const formula = cell?.f ? ("=" + String(cell.f)) : "";
+          let v = "";
+          if (cell) {
+            if (cell.w != null) v = String(cell.w);
+            else if (cell.v != null) v = String(cell.v);
+          }
+
+          const imgUrl = extractImageUrl(formula || v);
+          if (imgUrl) {
+            let cls = "imgcell";
+            if (winAnchor && R >= winAnchor.r && R <= winEnd && C >= winAnchor.c && C <= winAnchor.c + 1) cls += " box-win";
+            if (loseAnchor && R >= loseAnchor.r && R <= loseEnd && C >= loseAnchor.c && C <= loseAnchor.c + 1) cls += " box-lose";
+            if (winAnchor && R === winAnchor.r && C >= winAnchor.c && C <= winAnchor.c + 1) cls += " head-win";
+            if (loseAnchor && R === loseAnchor.r && C >= loseAnchor.c && C <= loseAnchor.c + 1) cls += " head-lose";
+
+            html.push(`<td class="${cls}"><img src="${escapeAttr(imgUrl)}"></td>`);
+            continue;
+          }
+
+          let extraClass = "";
+
+          if (winAnchor && R >= winAnchor.r && R <= winEnd && C >= winAnchor.c && C <= winAnchor.c + 1) {
+            extraClass += " box-win";
+            if (R === winAnchor.r) extraClass += " head-win";
+          }
+
+          if (loseAnchor && R >= loseAnchor.r && R <= loseEnd && C >= loseAnchor.c && C <= loseAnchor.c + 1) {
+            extraClass += " box-lose";
+            if (R === loseAnchor.r) extraClass += " head-lose";
+          }
+
+          let cellHtml = escapeHtml(v)
+            .replace(/VICTORIAS:/g, '<span class="t-win">VICTORIAS:</span>')
+            .replace(/DERROTAS:/g, '<span class="t-lose">DERROTAS:</span>');
+
+          const header = String(headers[C - range.s.c] ?? "").trim().toUpperCase();
+          const isWR = header === "WR";
+          const pm = String(v).match(/(-?\d+(?:[.,]\d+)?)\s*%/);
+
+          if (isWR && pm) {
+            const n = parseFloat(pm[1].replace(',', '.'));
+            const cls = (n >= 50 ? 'wr-ok' : 'wr-bad') + (extraClass ? (" " + extraClass.trim()) : "");
+            html.push(`<td class="${cls}">${cellHtml}</td>`);
+          } else {
+            html.push(`<td class="${extraClass.trim()}">${cellHtml}</td>`);
+          }
+        }
+        html.push('</tr>');
+      }
+
+      html.push('</tbody></table>');
+      document.getElementById('output').innerHTML = html.join('');
+    }
+
+    function extractImageUrl(s) {
+      if (typeof s !== "string") return null;
+      const t = s.trim();
+
+      let m = t.match(/^=IMAGE\(\s*"([^"]+)"\s*[,;)]/i);
+      if (m) return m[1];
+
+      m = t.match(/^=IMAGE\(\s*(https?:\/\/[^,;\)]+)\s*[,;)]/i);
+      if (m) return m[1];
+
+      return null;
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    function escapeAttr(s){
+      return String(s).replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
