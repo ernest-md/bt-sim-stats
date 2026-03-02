@@ -286,6 +286,16 @@
       line-height: 1.45;
       font-size: 13px;
     }
+    /* ✅ Imagen del post (debajo del título) */
+    .postImg{
+      width:100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid rgba(15,23,42,.10);
+      margin: 10px 0 10px;
+      display:block;
+    }
 
     /* Admin editor */
     .editor{
@@ -378,15 +388,8 @@
       justify-content: space-between;
       margin-bottom: 10px;
     }
-    .calNav{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-    .calTitle{
-      font-weight: 1000;
-      color:#0f172a;
-    }
+    .calNav{ display:flex; gap:8px; align-items:center; }
+    .calTitle{ font-weight: 1000; color:#0f172a; }
     .calGrid{
       display:grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -416,10 +419,7 @@
       cursor: default;
       user-select:none;
     }
-    .day.muted{
-      opacity:.45;
-      background: rgba(255,255,255,.55);
-    }
+    .day.muted{ opacity:.45; background: rgba(255,255,255,.55); }
     .day.today{
       border-color: rgba(124,58,237,.35);
       box-shadow: 0 0 0 4px rgba(124,58,237,.10);
@@ -566,6 +566,17 @@
             </div>
           </div>
 
+          <!-- ✅ NUEVO: imagen URL -->
+          <div class="row">
+            <div>
+              <label for="post_image_url">Imagen (URL)</label>
+              <input id="post_image_url" placeholder="https://..." />
+              <div class="muted" style="margin-top:6px;">
+                Sube la imagen a un sitio público (o luego lo haremos con Supabase Storage).
+              </div>
+            </div>
+          </div>
+
           <div class="row">
             <div>
               <label for="post_body">Contenido</label>
@@ -701,6 +712,10 @@
         const title = p.title || "Sin título";
         const body = p.body || "";
 
+        const imgHtml = p.image_url
+          ? `<img class="postImg" src="${escapeAttr(p.image_url)}" alt="">`
+          : "";
+
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
@@ -709,6 +724,7 @@
             <span>📅 ${escapeHtml(date)}</span>
             <span>🏷️ ${escapeHtml(tag)}</span>
           </div>
+          ${imgHtml}
           <p>${escapeHtml(body)}</p>
         `;
         root.appendChild(div);
@@ -718,14 +734,28 @@
     async function fetchPosts(){
       if (USE_MOCK){
         return [
-          { id: 1, title: "🚀 Nuevo hub con login", tag: "Web", body: "Ya tenemos auth y perfil. Próximo: posts/eventos en BBDD.", created_at: new Date().toISOString() },
-          { id: 2, title: "📅 Calendario de eventos", tag: "Tool", body: "Calendario mensual con hover y lista de próximos eventos.", created_at: new Date(Date.now()-86400000).toISOString() },
+          {
+            id: 1,
+            title: "🚀 Nuevo hub con login",
+            tag: "Web",
+            body: "Ya tenemos auth y perfil. Próximo: posts/eventos en BBDD.",
+            image_url: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=60",
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 2,
+            title: "📅 Calendario de eventos",
+            tag: "Tool",
+            body: "Calendario mensual con hover y lista de próximos eventos.",
+            image_url: "",
+            created_at: new Date(Date.now()-86400000).toISOString()
+          },
         ].sort((a,b)=> (b.created_at||"").localeCompare(a.created_at||""));
       }
 
       const { data, error } = await sb
         .from("posts")
-        .select("id,title,tag,body,created_at,author_id")
+        .select("id,title,tag,body,image_url,created_at,author_id")
         .order("created_at", { ascending:false })
         .limit(30);
 
@@ -740,6 +770,7 @@
       const title = $("post_title").value.trim();
       const tag = $("post_tag").value.trim();
       const body = $("post_body").value.trim();
+      const image_url = $("post_image_url").value.trim();
 
       if (!title || !body) return showPostMsg("Pon título y contenido.", "err");
 
@@ -749,12 +780,20 @@
           $("post_title").value = "";
           $("post_tag").value = "";
           $("post_body").value = "";
+          $("post_image_url").value = "";
           const posts = await fetchPosts();
           renderPosts(posts);
           return;
         }
 
-        const payload = { title, tag, body, author_id: user.id };
+        const payload = {
+          title,
+          tag: tag || null,
+          body,
+          image_url: image_url || null,
+          author_id: user.id
+        };
+
         const { error } = await sb.from("posts").insert(payload);
         if (error) throw error;
 
@@ -762,6 +801,7 @@
         $("post_title").value = "";
         $("post_tag").value = "";
         $("post_body").value = "";
+        $("post_image_url").value = "";
 
         const posts = await fetchPosts();
         renderPosts(posts);
@@ -777,10 +817,6 @@
       const m = String(d.getMonth()+1).padStart(2,"0");
       const da = String(d.getDate()).padStart(2,"0");
       return `${y}-${m}-${da}`;
-    }
-
-    function monthKey(d){
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
     }
 
     async function fetchEventsForMonth(viewDate){
@@ -823,7 +859,6 @@
         if (!map.has(key)) map.set(key, []);
         map.get(key).push(e);
       }
-      // ordenar por hora
       for (const [k, arr] of map.entries()){
         arr.sort((a,b)=> (a.start_at||"").localeCompare(b.start_at||""));
       }
@@ -853,11 +888,9 @@
       const first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
       const last = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0);
 
-      // JS: domingo=0.. sábado=6. Queremos lunes=0..domingo=6
-      const firstDow = (first.getDay() + 6) % 7;
+      const firstDow = (first.getDay() + 6) % 7; // lunes=0
       const totalDays = last.getDate();
 
-      // leading blanks (mes anterior)
       for (let i=0;i<firstDow;i++){
         const blank = document.createElement("div");
         blank.className = "day muted";
@@ -934,25 +967,28 @@
     }
 
     // ===== Admin check (username) =====
-    async function getProfileUsername(user){
+    async function getProfileUsername(){
       const { data: { session } } = await sb.auth.getSession();
-  if (!session) return null;
+      if (!session) return null;
 
-  const { data, error } = await sb
-    .from("profiles")
-    .select("username")
-    .eq("id", session.user.id)
-    .single();
+      const { data, error } = await sb
+        .from("profiles")
+        .select("username")
+        .eq("id", session.user.id)
+        .single();
 
-  if (error) return null;
-  return (data?.username || "").toLowerCase();
-  }
+      if (error) return null;
+      return (data?.username || "").toLowerCase();
+    }
 
     // ===== Utils =====
     function escapeHtml(s){
       return String(s ?? "")
         .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
         .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+    function escapeAttr(s){
+      return String(s ?? "").replace(/"/g, "&quot;");
     }
 
     // ===== Init =====
@@ -964,7 +1000,7 @@
       const user = await refreshSession();
 
       // posts
-      const username = await getProfileUsername(user);
+      const username = await getProfileUsername();
       const isAdmin = (username === "estereo");
       $("postEditor").style.display = isAdmin ? "block" : "none";
 
@@ -976,20 +1012,23 @@
       monthEventsMap = groupEventsByDay(monthEvents);
 
       renderCalendar(viewDate, monthEventsMap);
-
-      // upcoming: usamos eventos del mes visible + (si quieres, puedes luego traer "siguientes 30 días")
       renderUpcoming(monthEvents);
     }
 
     $("btnPublish").addEventListener("click", async () => {
       const { data } = await sb.auth.getSession();
       const user = data?.session?.user || null;
-      const username = await getProfileUsername(user);
 
+      const username = await getProfileUsername();
       if (username !== "estereo") {
         showPostMsg("No autorizado.", "err");
         return;
       }
+      if (!user) {
+        showPostMsg("Tienes que estar logueado.", "err");
+        return;
+      }
+
       await publishPost(user);
     });
 
@@ -1002,13 +1041,12 @@
       await refreshHome();
     });
     $("btnToday").addEventListener("click", async () => {
-      viewDate = new Date();
-      viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+      const d = new Date();
+      viewDate = new Date(d.getFullYear(), d.getMonth(), 1);
       await refreshHome();
     });
 
     (async function(){
-      // auth listener
       sb.auth.onAuthStateChange(async (_event, session) => {
         setNavAuthUI(session?.user || null);
         await refreshHome();
