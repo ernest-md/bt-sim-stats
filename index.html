@@ -1013,11 +1013,30 @@
       renderUpcoming(monthEvents);
     }
 
-    $("btnPublish").addEventListener("click", async () => {
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) { showPostMsg("Tienes que estar logueado.", "err"); return; }
+    function withTimeout(promise, ms = 6000) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout auth")), ms))
+    ]);
+  }
+
+  $("btnPublish").addEventListener("click", async () => {
+    try {
+      // NO uses getUser aquí (puede quedarse pending). Mejor getSession (sin red).
+      const { data } = await withTimeout(sb.auth.getSession());
+      const user = data?.session?.user || null;
+
+      if (!user) {
+        showPostMsg("Tienes que estar logueado.", "err");
+        return;
+      }
+
       await publishPost(user);
-    });
+    } catch (e) {
+      console.error("Auth error:", e);
+      showPostMsg("Auth error: " + (e.message || "unknown"), "err");
+    }
+  });
 
     $("btnPrev").addEventListener("click", async () => {
       viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1);
