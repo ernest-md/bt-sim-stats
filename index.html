@@ -935,26 +935,19 @@
 
     // ===== Admin check (username) =====
     async function getProfileUsername(user){
-      if (!user) return null;
+      const { data: { session } } = await sb.auth.getSession();
+  if (!session) return null;
 
-      if (USE_MOCK){
-        // simula que el usuario logueado es "estereo" si su email empieza por estereo@
-        const guess = (user.email || "").split("@")[0] || "";
-        return guess === "estereo" ? "estereo" : guess;
-      }
+  const { data, error } = await sb
+    .from("profiles")
+    .select("username")
+    .eq("id", session.user.id)
+    .single();
 
-      const { data, error } = await sb
-        .from("profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single();
-
-      if (error){
-        console.warn("profile username:", error.message);
-        return null;
-      }
-      return data?.username || null;
-    }
+  if (error) return null;
+  return (data?.username || "").toLowerCase();
+}
+();
 
     // ===== Utils =====
     function escapeHtml(s){
