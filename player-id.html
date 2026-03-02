@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>OP Wrapped (Form)</title>
+  <title>OP Wrapped · Team Hub</title>
 
   <style>
     :root{
@@ -52,6 +52,7 @@
       z-index:-1;
     }
 
+    /* ===== Topbar / Navegación (como Home/Visor) ===== */
     .topbar{
       position: sticky;
       top:0;
@@ -87,6 +88,13 @@
       letter-spacing:.2px;
     }
 
+    .nav{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
     .btn{
       appearance:none;
       border: 1px solid rgba(255,255,255,.18);
@@ -96,6 +104,12 @@
       border-radius: 12px;
       cursor:pointer;
       transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+      user-select:none;
+      white-space: nowrap;
     }
     .btn:hover{
       background: rgba(255,255,255,.16);
@@ -103,13 +117,21 @@
     }
     .btn:active{ transform: translateY(1px); }
 
-    .hint{
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
+    .btn.primary{
+      border-color: rgba(255,255,255,.22);
+      background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22));
     }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, rgba(124,58,237,.52), rgba(6,182,212,.30));
+    }
+
+    .btn.active{
+      background: rgba(255,255,255,.22);
+      border-color: rgba(255,255,255,.35);
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
+
+    .spacer{ flex:1; }
 
     .pill{
       font-size: 12px;
@@ -118,8 +140,10 @@
       border: 1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.08);
       color: rgba(255,255,255,.86);
+      white-space: nowrap;
     }
 
+    /* ===== Contenido ===== */
     .wrap{
       max-width: 1100px;
       margin: 14px auto 28px;
@@ -382,14 +406,23 @@
   <div class="topbar">
     <div class="bar">
       <div class="brand">
-        OP WRAPPED
-        <small>tu año en el TCG</small>
+        TEAM HUB
+        <small>op wrapped</small>
       </div>
-      <button class="btn" onclick="location.href='index.html'">← Volver al visor</button>
+
+      <div class="nav">
+        <a class="btn" href="index.html">🏠 Home</a>
+        <a class="btn" href="visor.html">📊 Visor Excel</a>
+        <a class="btn primary active" href="op-wrapped.html">🎴 OP Wrapped</a>
+        <a class="btn" href="#" onclick="alert('Próximamente')">➕ Más</a>
+      </div>
+
+      <div class="spacer"></div>
 
       <div class="hint">
         <span class="pill" id="apiStatus">Cargando cartas…</span>
         <span class="pill" id="countPill">0 cartas</span>
+        <span class="pill" id="today"></span>
       </div>
     </div>
   </div>
@@ -419,6 +452,16 @@
   <datalist id="nonLeadersList"></datalist>
 
   <script>
+    // Fecha en topbar
+    (function(){
+      const el = document.getElementById("today");
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      el.textContent = `📅 ${y}-${m}-${da}`;
+    })();
+
     const API_URLS = [
       "https://www.optcgapi.com/api/allSetCards/",
       "https://www.optcgapi.com/api/allSTCards/",
@@ -619,7 +662,6 @@
     }
 
     function buildPreview(){
-      // ✅ Hero SOLO con info de jugador (sin cartas / sin progreso)
       const playerName = normalize(document.getElementById("player_name")?.value || "") || "Jugador";
       const startExp = normalize(document.getElementById("start_expansion")?.value || "") || "—";
       const favColor = normalize(document.getElementById("fav_color")?.value || "") || "—";
@@ -639,7 +681,6 @@
         </div>
       `;
 
-      // ✅ Grid SOLO leaders + cards (sin repetir player abajo)
       const grid = document.getElementById("previewGrid");
       grid.innerHTML = "";
 
@@ -698,7 +739,6 @@
       return String(s).replace(/"/g, "&quot;");
     }
 
-    // init
     renderPlayerQuestions();
     renderCardQuestionBlock("leaderQuestions", LEADER_QUESTIONS, "leadersList");
     renderCardQuestionBlock("cardQuestions", CARD_QUESTIONS, "nonLeadersList");
