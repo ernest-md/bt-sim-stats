@@ -5,39 +5,97 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Stats · Team Hub</title>
 
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
 
-    .statsCard{
-      background: rgba(255,255,255,.92);
-      border-radius: 22px;
-      padding: 18px;
-      box-shadow: 0 18px 50px rgba(0,0,0,.25);
-      margin-bottom: 25px;
+    /* ===== FONDO GENERAL ===== */
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:#0f172a; /* oscuro elegante */
+      color:#111;
     }
 
-    .statsRow{
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
+    /* ===== CONTENEDOR CENTRAL ===== */
+    .page{
+      width:80%;
+      margin:40px auto;
     }
 
-    .statBox{
-      flex:1;
-      min-width:150px;
-      background:#fff;
-      border-radius:14px;
-      padding:12px;
+    /* ===== CARD PRINCIPAL ===== */
+    .card{
+      background:#ffffff;
+      border-radius:16px;
+      padding:25px;
+      box-shadow:0 15px 40px rgba(0,0,0,.35);
       border:1px solid rgba(0,0,0,.08);
-      text-align:center;
     }
 
+    /* ===== HEADER SUPERIOR ===== */
+    .headerRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+    }
+
+    .title{
+      font-size:22px;
+      font-weight:700;
+      color:#111;
+    }
+
+    .filters{
+      display:flex;
+      gap:20px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .filterBlock{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:600;
+      font-size:14px;
+    }
+
+    select{
+      padding:6px 10px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      font-size:14px;
+      cursor:pointer;
+    }
+
+    /* ===== RESUMEN ===== */
+    .summary{
+      display:flex;
+      gap:15px;
+      margin-bottom:25px;
+      flex-wrap:wrap;
+    }
+
+    .summaryBox{
+      flex:1;
+      min-width:120px;
+      background:#f8fafc;
+      border-radius:12px;
+      padding:12px;
+      text-align:center;
+      border:1px solid #e5e7eb;
+    }
+
+    .summaryBox strong{
+      display:block;
+      font-size:18px;
+      margin-top:4px;
+    }
+
+    /* ===== TABLAS ===== */
     table{
       width:100%;
-      border-collapse: collapse;
-      margin-top:10px;
+      border-collapse:collapse;
       font-size:13px;
     }
 
@@ -45,35 +103,51 @@
       text-align:left;
       padding:8px;
       border-bottom:2px solid #ddd;
-      background:#f8fafc;
-      font-size:13px;
+      background:#f1f5f9;
+      font-weight:600;
     }
 
     td{
-      padding:6px 6px;
+      padding:6px;
       border-bottom:1px solid #eee;
       vertical-align:middle;
-      font-size:13px;
     }
 
     tr:hover{
-      background:#f1f5f9;
+      background:#f8fafc;
     }
 
-    td strong{
-      font-size:14px;
-    }
-
-    .matchupsRow{
+    .mainLayout{
       display:flex;
       gap:40px;
+      align-items:flex-start;
       flex-wrap:wrap;
-      margin-top:10px;
     }
 
-    .matchupCol{
+    .leaders{
+      flex:3;
+      min-width:600px;
+    }
+
+    .matchups{
       flex:1;
-      min-width:300px;
+      min-width:280px;
+      padding-left:25px;
+      border-left:2px solid #e5e7eb;
+    }
+
+    .matchups h4{
+      margin-top:20px;
+      margin-bottom:10px;
+    }
+
+    .matchups table th,
+    .matchups table td{
+      text-align:center;
+    }
+
+    .matchups img{
+      width:50px;
     }
 
   </style>
@@ -81,112 +155,110 @@
 
 <body>
 
-  <div class="wrap">
+  <div class="page">
 
-    <!-- ===================== -->
-    <!-- RESUMEN SUPERIOR -->
-    <!-- ===================== -->
-    <div class="statsCard">
+    <div class="card">
 
-      <h2>Barateam Stats</h2>
+      <!-- HEADER -->
+      <div class="headerRow">
+        <div class="title">Barateam Stats</div>
 
-      <div style="margin-bottom:15px;">
-        <label>Jugador:</label>
-        <select id="playerSelect"></select>
+        <div class="filters">
+          <div class="filterBlock">
+            Jugador:
+            <select id="playerSelect"></select>
+          </div>
 
-        <label style="margin-left:20px;">Expansión:</label>
-        <select id="expansionSelect"></select>
+          <div class="filterBlock">
+            Expansión:
+            <select id="expansionSelect"></select>
+          </div>
+        </div>
       </div>
 
-      <div class="statsRow">
-        <div class="statBox">
-          <div>Total</div>
+
+      <!-- RESUMEN -->
+      <div class="summary">
+        <div class="summaryBox">
+          Total
           <strong id="total">-</strong>
         </div>
-        <div class="statBox">
-          <div>Victorias</div>
+
+        <div class="summaryBox">
+          Victorias
           <strong id="wins">-</strong>
         </div>
-        <div class="statBox">
-          <div>Derrotas</div>
+
+        <div class="summaryBox">
+          Derrotas
           <strong id="losses">-</strong>
         </div>
-        <div class="statBox">
-          <div>WR</div>
+
+        <div class="summaryBox">
+          WR
           <strong id="wr">-</strong>
         </div>
       </div>
 
-    </div>
 
+      <!-- TABLAS -->
+      <div class="mainLayout">
 
-    <!-- ===================== -->
-    <!-- ESTADÍSTICAS POR LÍDER -->
-    <!-- ===================== -->
-    <div class="statsCard">
+        <!-- TABLA PRINCIPAL -->
+        <div class="leaders">
 
-      <h3>Estadísticas por líder</h3>
-
-      <table>
-        <thead>
-          <tr>
-            <th style="width:90px;">Img</th>
-            <th>Líder</th>
-            <th style="width:60px;">P</th>
-            <th style="width:60px;">W</th>
-            <th style="width:60px;">L</th>
-            <th style="width:70px;">WR</th>
-            <th style="width:110px;">Fav</th>
-            <th style="width:110px;">Desf</th>
-          </tr>
-        </thead>
-        <tbody id="leaderStats"></tbody>
-      </table>
-
-      <div id="leaderDetail" style="margin-top:25px;"></div>
-
-    </div>
-
-
-    <!-- ===================== -->
-    <!-- MATCHUPS GLOBALES -->
-    <!-- ===================== -->
-    <div class="statsCard">
-
-      <h3>Matchups Globales</h3>
-
-      <div class="matchupsRow">
-
-        <!-- MÁS VICTORIAS -->
-        <div class="matchupCol">
-          <h4>Más victorias</h4>
+          <h3>Estadísticas por líder</h3>
 
           <table>
             <thead>
               <tr>
-                <th style="width:90px;">Img</th>
-                <th style="width:70px;">Victorias</th>
-                <th style="width:70px;">Partidas</th>
+                <th style="width:80px;">Img</th>
+                <th style="width:90px;">Carta</th>
+                <th>Partidas</th>
+                <th>Victorias</th>
+                <th>Derrotas</th>
+                <th>WR</th>
+                <th>Fav</th>
+                <th>Desf</th>
+              </tr>
+            </thead>
+            <tbody id="leaderStats"></tbody>
+          </table>
+
+          <div id="leaderDetail" style="margin-top:30px;"></div>
+
+        </div>
+
+
+        <!-- MATCHUPS -->
+        <div class="matchups">
+
+          <h3>Matchups Globales</h3>
+
+          <h4>Más victorias</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Líder</th>
+                <th>W</th>
+                <th>P</th>
               </tr>
             </thead>
             <tbody id="topWins"></tbody>
           </table>
-        </div>
 
-        <!-- MÁS DERROTAS -->
-        <div class="matchupCol">
           <h4>Más derrotas</h4>
-
           <table>
             <thead>
               <tr>
-                <th style="width:90px;">Img</th>
-                <th style="width:70px;">Derrotas</th>
-                <th style="width:70px;">Partidas</th>
+                <th>Líder</th>
+                <th>L</th>
+                <th>P</th>
               </tr>
             </thead>
             <tbody id="topLosses"></tbody>
           </table>
+
         </div>
 
       </div>
