@@ -1,4 +1,621 @@
-<script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Home · Team Hub</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card: rgba(255,255,255,.92);
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+
+      --p1:#7c3aed;
+      --p2:#06b6d4;
+      --p3:#22c55e;
+      --p4:#f59e0b;
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color:#0f172a;
+    }
+
+    body::before{
+      content:"";
+      position: fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.1);
+      z-index:-2;
+    }
+    body::after{
+      content:"";
+      position: fixed;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode: overlay;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    /* ===== Topbar ===== */
+    .topbar{
+      position: sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(14px);
+      background: rgba(15, 23, 42, .55);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      padding: 12px 14px;
+    }
+    .bar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .brand{
+      display:flex;
+      flex-direction: column;
+      gap:2px;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right: 6px;
+      line-height: 1.1;
+    }
+    .brand small{
+      font-weight:700;
+      color: rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+    .nav{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .btn{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color:#fff;
+      padding: 9px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+      user-select:none;
+      white-space: nowrap;
+      font: inherit;
+    }
+    .btn:hover{
+      background: rgba(255,255,255,.16);
+      border-color: rgba(255,255,255,.28);
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: rgba(255,255,255,.22);
+      background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22));
+    }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, rgba(124,58,237,.52), rgba(6,182,212,.30));
+    }
+    .btn.active{
+      background: rgba(255,255,255,.22);
+      border-color: rgba(255,255,255,.35);
+      box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
+    .spacer{ flex:1; }
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.86);
+      white-space: nowrap;
+    }
+
+    /* ===== User menu (derecha) ===== */
+    .userwrap{ position: relative; display:flex; align-items:center; }
+    .userbtn{
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.12);
+    }
+    .userbtn .avatar{
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.6));
+      box-shadow: 0 8px 18px rgba(0,0,0,.18);
+      display:inline-block;
+    }
+    .userbtn .chev{ opacity:.85; font-size: 12px; margin-left: 2px; }
+
+    .menu{
+      position:absolute;
+      right:0;
+      top: calc(100% + 10px);
+      min-width: 220px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15, 23, 42, .85);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+      overflow:hidden;
+      display:none;
+      z-index: 999;
+    }
+    .menu.open{ display:block; }
+    .menu .head{
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.9);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    .menu .head strong{ display:block; font-size: 13px; }
+    .menu a, .menu button{
+      width:100%;
+      text-align:left;
+      background: transparent;
+      border:0;
+      color: rgba(255,255,255,.92);
+      padding: 10px 12px;
+      cursor:pointer;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      font: inherit;
+    }
+    .menu a{ text-decoration:none; }
+    .menu a:hover, .menu button:hover{ background: rgba(255,255,255,.10); }
+    .menu .danger{ color: #fecaca; }
+    .menu .sep{ height:1px; background: rgba(255,255,255,.10); }
+
+    /* ===== Content ===== */
+    .wrap{
+      max-width: 1100px;
+      margin: 16px auto 28px;
+      padding: 0 14px;
+    }
+
+    .hero{
+      border-radius: 24px;
+      padding: 18px 16px;
+      color:#fff;
+      border: 1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
+      overflow:hidden;
+      position: relative;
+    }
+    .hero h1{
+      margin:0;
+      font-size: 26px;
+      font-weight: 1000;
+      letter-spacing:.2px;
+      line-height: 1.08;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    @media (min-width: 880px){
+      .grid{ grid-template-columns: 1.2fr .8fr; }
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .sectionTitle{
+      margin: 2px 0 12px;
+      font-weight: 1000;
+      color:#0f172a;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .9px;
+      opacity: .85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .sectionTitle::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background: linear-gradient(90deg, rgba(15,23,42,.25), transparent);
+    }
+
+    /* Posts */
+    .post{
+      border-radius: 18px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.70);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .post h3{
+      margin:0 0 6px;
+      font-size: 15px;
+      font-weight: 1000;
+      color:#0f172a;
+    }
+    .meta{
+      font-size: 12px;
+      color:#64748b;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-bottom: 8px;
+    }
+    .post p{
+      margin:0;
+      color:#334155;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+    .postImg{
+      width:100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid rgba(15,23,42,.10);
+      margin: 10px 0 10px;
+      display:block;
+    }
+
+    /* Editor (manual enable) */
+    .editor{
+      border-radius: 18px;
+      border: 1px dashed rgba(15,23,42,.18);
+      background: rgba(255,255,255,.75);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .editor .row{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    @media (min-width: 720px){
+      .editor .row.two{ grid-template-columns: 1fr 1fr; }
+    }
+    label{
+      display:block;
+      font-weight: 900;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color:#0f172a;
+    }
+    input, textarea{
+      width:100%;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+      padding: 10px 12px;
+      outline:none;
+      background:#fff;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    textarea{ min-height: 90px; resize: vertical; }
+    input:focus, textarea:focus{
+      border-color: rgba(124,58,237,.55);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.15);
+    }
+    .editorActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content: space-between;
+    }
+    .muted{
+      color:#64748b;
+      font-size: 12px;
+    }
+    .btnDark{
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(15,23,42,.06);
+      color:#0f172a;
+    }
+    .btnDark:hover{
+      background: rgba(15,23,42,.10);
+      border-color: rgba(15,23,42,.14);
+    }
+
+    .msg{
+      margin-top: 10px;
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.70);
+      color:#0f172a;
+      display:none;
+    }
+    .msg.ok{
+      border-color: rgba(34,197,94,.35);
+      background: rgba(34,197,94,.10);
+      color:#166534;
+      display:block;
+    }
+    .msg.err{
+      border-color: rgba(239,68,68,.35);
+      background: rgba(239,68,68,.10);
+      color:#991b1b;
+      display:block;
+    }
+
+    /* Calendar */
+    .calendarHead{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .calNav{ display:flex; gap:8px; align-items:center; }
+    .calTitle{ font-weight: 1000; color:#0f172a; }
+    .calGrid{
+      display:grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .dow{
+      font-size: 11px;
+      font-weight: 1000;
+      text-transform: uppercase;
+      letter-spacing: .9px;
+      color:#475569;
+      opacity:.85;
+      text-align:center;
+      padding: 4px 0;
+    }
+    .day{
+      position: relative;
+      border-radius: 14px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.70);
+      min-height: 44px;
+      padding: 8px 10px;
+      box-sizing: border-box;
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-end;
+      cursor: default;
+      user-select:none;
+    }
+    .day.muted{ opacity:.45; background: rgba(255,255,255,.55); }
+    .day.today{
+      border-color: rgba(124,58,237,.35);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.10);
+    }
+    .dot{
+      position:absolute;
+      left:10px;
+      bottom:10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(6,182,212,.95);
+      box-shadow: 0 10px 16px rgba(0,0,0,.12);
+      display:none;
+    }
+    .day.hasEvents .dot{ display:block; }
+
+    .tooltip{
+      position:absolute;
+      left: 10px;
+      top: calc(100% + 8px);
+      width: 260px;
+      border-radius: 14px;
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.95);
+      box-shadow: 0 18px 40px rgba(0,0,0,.22);
+      padding: 10px 10px;
+      z-index: 50;
+      display:none;
+    }
+    .day:hover .tooltip{ display:block; }
+    .tipTitle{
+      font-weight: 1000;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color:#0f172a;
+    }
+    .tipItem{
+      font-size: 12px;
+      color:#334155;
+      border-top: 1px solid rgba(15,23,42,.08);
+      padding-top: 6px;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+    .tipItem:first-of-type{ border-top:0; padding-top:0; margin-top:0; }
+
+    /* Upcoming list */
+    .event{
+      border-radius: 16px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.70);
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .event .t{
+      font-weight: 1000;
+      color:#0f172a;
+      font-size: 13px;
+      margin:0 0 4px;
+    }
+    .event .s{
+      font-size: 12px;
+      color:#64748b;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin:0;
+    }
+
+    .foot{
+      margin-top: 14px;
+      color: rgba(255,255,255,.72);
+      font-size: 12px;
+      text-align:center;
+      padding: 8px 0 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="bar">
+      <div class="brand">
+        TEAM HUB
+        <small>home · tools · novedades</small>
+      </div>
+
+      <div class="nav">
+        <a class="btn primary active" href="index.html">🏠 Home</a>
+        <a class="btn" href="sim-stats.html">📊 Visor Excel</a>
+        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
+        <a class="btn" href="#" onclick="alert('Próximamente')">➕ Más</a>
+      </div>
+
+      <div class="spacer"></div>
+
+      <span class="pill" id="today"></span>
+
+      <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+
+      <div class="userwrap" id="navUser" style="display:none;">
+        <button class="btn userbtn" id="userBtn" type="button">
+          <span class="avatar"></span>
+          <span id="userLabel">Usuario</span>
+          <span class="chev">▾</span>
+        </button>
+
+        <div class="menu" id="userMenu">
+          <div class="head">
+            <strong id="userEmail">—</strong>
+            <span>Sesión iniciada</span>
+          </div>
+          <a href="profile.html">👤 Ver perfil</a>
+          <div class="sep"></div>
+          <button class="danger" id="menuLogout" type="button">🚪 Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>Bienvenidos al hub del equipo</h1>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="sectionTitle">Posts</div>
+
+        <!-- ✅ CHAPUZA TEMPORAL: editor oculto por CSS inline -->
+        <div class="editor" id="postEditor" style="display:none;">
+          <div class="row two">
+            <div>
+              <label for="post_title">Título</label>
+              <input id="post_title" placeholder="Ej: Nueva sección de decks" />
+            </div>
+            <div>
+              <label for="post_tag">Tag</label>
+              <input id="post_tag" placeholder="Ej: Web / Tool / Torneo" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="post_image_file">Imagen</label>
+              <input id="post_image_file" type="file" accept="image/*" />
+              <div class="muted" style="margin-top:6px;">
+                Se subirá a Supabase Storage (bucket: <strong>post-images</strong>).
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="post_body">Contenido</label>
+              <textarea id="post_body" placeholder="Escribe el post…"></textarea>
+            </div>
+          </div>
+
+          <div class="editorActions">
+            <span class="muted">Editor oculto por defecto.</span>
+            <button class="btn btnDark" id="btnPublish" type="button">Publicar</button>
+          </div>
+
+          <div class="msg" id="postMsg"></div>
+        </div>
+
+        <div id="postsList"></div>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">Eventos</div>
+
+        <div class="calendarHead">
+          <div class="calNav">
+            <button class="btn btnDark" id="btnPrev" type="button">←</button>
+            <button class="btn btnDark" id="btnToday" type="button">Hoy</button>
+            <button class="btn btnDark" id="btnNext" type="button">→</button>
+          </div>
+          <div class="calTitle" id="calTitle">—</div>
+        </div>
+
+        <div class="calGrid" id="calDow"></div>
+        <div class="calGrid" id="calGrid"></div>
+
+        <div style="height:12px;"></div>
+        <div class="sectionTitle">Próximos eventos</div>
+        <div id="upcomingList"></div>
+      </div>
+    </div>
+
+    <div class="foot">Hecho con ❤️ para el team · GitHub Pages</div>
+  </div>
+
+  <script>
   // ===== CONFIG =====
   const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
@@ -453,3 +1070,5 @@
     await refreshHome();
   })();
 </script>
+</body>
+</html>
