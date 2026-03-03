@@ -431,6 +431,20 @@
         .trim();
     }
 
+    async function resolveLeaderImageUrl(raw){
+      const v = String(raw || "").trim();
+      if (!v) return "";
+      if (/^https?:\/\//i.test(v)) return v;
+      const m = v.match(/^([^\/]+)\/(.+)$/);
+      if (!m) return "";
+      try{
+        const { data } = sb.storage.from(m[1]).getPublicUrl(m[2]);
+        return data?.publicUrl || "";
+      } catch (_e){
+        return "";
+      }
+    }
+
     async function loadLeaders(){
       if (leadersCache) return leadersCache;
       try{
@@ -447,12 +461,18 @@
           throw new Error(`leaders fetch ${res.status}: ${errText}`);
         }
         const data = await res.json();
-        leadersCache = (data || []).map((x) => ({
-          name: x?.name || x?.leader || "",
-          code: x?.code || x?.expansion || "",
-          alias: x?.leader_alias || x?.alias || "",
-          image: x?.image || x?.image_url || x?.leader_image_url || x?.img_url || x?.photo_url || ""
-        })).filter((x) => x.image);
+        const out = [];
+        for (const x of (data || [])){
+          const raw = x?.image || x?.image_url || x?.leader_image_url || x?.img_url || x?.photo_url || "";
+          const image = await resolveLeaderImageUrl(raw);
+          out.push({
+            name: x?.name || x?.leader || "",
+            code: x?.code || x?.expansion || "",
+            alias: x?.leader_alias || x?.alias || "",
+            image
+          });
+        }
+        leadersCache = out.filter((x) => x.image);
       } catch (_e){
         leadersCache = [];
       }
@@ -646,10 +666,29 @@
               const img = images[i];
               if (!img) return;
               const p = arc.getProps(["x", "y", "startAngle", "endAngle", "innerRadius", "outerRadius"], true);
-              const side = p.outerRadius * 2;
-              const s = Math.max(img.width, img.height) || 1;
-              const sx = (img.width - s) / 2;
-              const sy = (img.height - s) / 2;
+              const midAngle = (p.startAngle + p.endAngle) / 2;
+              const midRadius = (p.innerRadius + p.outerRadius) / 2;
+              const centerX = p.x + Math.cos(midAngle) * midRadius;
+              const centerY = p.y + Math.sin(midAngle) * midRadius;
+              const p1x = p.x + Math.cos(p.startAngle) * p.outerRadius;
+              const p1y = p.y + Math.sin(p.startAngle) * p.outerRadius;
+              const p2x = p.x + Math.cos(p.endAngle) * p.outerRadius;
+              const p2y = p.y + Math.sin(p.endAngle) * p.outerRadius;
+              const p3x = p.x + Math.cos(p.startAngle) * p.innerRadius;
+              const p3y = p.y + Math.sin(p.startAngle) * p.innerRadius;
+              const p4x = p.x + Math.cos(p.endAngle) * p.innerRadius;
+              const p4y = p.y + Math.sin(p.endAngle) * p.innerRadius;
+              const minX = Math.min(p1x, p2x, p3x, p4x);
+              const maxX = Math.max(p1x, p2x, p3x, p4x);
+              const minY = Math.min(p1y, p2y, p3y, p4y);
+              const maxY = Math.max(p1y, p2y, p3y, p4y);
+              const boxW = Math.max(22, maxX - minX);
+              const boxH = Math.max(22, maxY - minY);
+              const scale = Math.max(boxW / img.width, boxH / img.height);
+              const drawW = img.width * scale;
+              const drawH = img.height * scale;
+              const drawX = centerX - (drawW / 2);
+              const drawY = centerY - (drawH / 2);
 
               ctx.save();
               ctx.beginPath();
@@ -662,9 +701,9 @@
               }
               ctx.closePath();
               ctx.clip();
-              ctx.drawImage(img, sx, sy, s, s, p.x - p.outerRadius, p.y - p.outerRadius, side, side);
+              ctx.drawImage(img, drawX, drawY, drawW, drawH);
               ctx.fillStyle = "rgba(0,0,0,.10)";
-              ctx.fillRect(p.x - p.outerRadius, p.y - p.outerRadius, side, side);
+              ctx.fillRect(minX, minY, boxW, boxH);
 
               // Redibujamos un borde fino para separar quesitos tras pintar la imagen
               ctx.beginPath();
