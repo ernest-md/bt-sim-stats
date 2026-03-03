@@ -984,7 +984,6 @@
   }
 
   async function publishPost(){
-    console.log('test_publish');
     const title = $("post_title").value.trim();
     const tag = $("post_tag").value.trim();
     const body = $("post_body").value.trim();
@@ -992,6 +991,7 @@
     const btn = $("btnPublish");
 
     if (!title || !body) return showPostMsg("Pon titulo y contenido.", "err");
+    if (!currentUser?.id) return showPostMsg("Inicia sesion para publicar.", "err");
 
     try{
       if (btn) btn.disabled = true;
@@ -999,14 +999,7 @@
         showPostMsg("Mock: post publicado", "ok");
         return;
       }
-
-      const { data: authData, error: authErr } = await sb.auth.getUser();
-      if (authErr) throw authErr;
-      const authorId = authData?.user?.id || null;
-      if (!authorId){
-        showPostMsg("Inicia sesion para publicar.", "err");
-        return;
-      }
+      const authorId = currentUser.id;
 
       let image_url = null;
       if (file){
@@ -1074,13 +1067,9 @@
       ];
     }
 
-    const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1, 0, 0, 0, 0);
-    const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1, 0, 0, 0, 0);
     const { data, error } = await sb
       .from("events")
       .select("id,title,start_at,location")
-      .gte("start_at", monthStart.toISOString())
-      .lt("start_at", monthEnd.toISOString())
       .order("start_at", { ascending: true })
       .limit(1000);
 
@@ -1088,7 +1077,13 @@
       console.warn("events:", error.message);
       return [];
     }
-    return (data || []).filter((e) => !!eventDateObj(e));
+    const all = (data || []).filter((e) => !!eventDateObj(e));
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    return all.filter((e) => {
+      const d = eventDateObj(e);
+      return !!d && d.getFullYear() === y && d.getMonth() === m;
+    });
   }
 
   function groupEventsByDay(events){
