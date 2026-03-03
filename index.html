@@ -983,6 +983,30 @@
     return data?.publicUrl || null;
   }
 
+async function getSafeSession(){
+  // 1) intenta sesión (local)
+  try{
+    const { data } = await withTimeout(sb.auth.getSession(), 8000);
+    if (data?.session) return data.session;
+  }catch(e){
+    console.warn("getSession timeout:", e.message);
+  }
+
+  // 2) intenta getUser (puede forzar refresh interno)
+  try{
+    const { data: udata, error: uerr } = await withTimeout(sb.auth.getUser(), 8000);
+    if (uerr) console.warn("getUser:", uerr.message);
+    if (udata?.user){
+      const { data } = await withTimeout(sb.auth.getSession(), 8000);
+      if (data?.session) return data.session;
+    }
+  }catch(e){
+    console.warn("getUser timeout:", e.message);
+  }
+
+  return null;
+}
+
 async function publishPost(){
     const title = $("post_title").value.trim();
     const tag = $("post_tag").value.trim();
