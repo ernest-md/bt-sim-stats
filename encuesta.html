@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Encuesta · Barateam Hub</title>
   <link rel="stylesheet" href="app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
@@ -107,6 +108,13 @@
       font-weight:1000;
       color:#131b3e;
       line-height:1;
+    }
+    .stat .v.text{
+      font-size:15px;
+      line-height:1.2;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .layout{
       margin-top:14px;
@@ -257,9 +265,9 @@
       <p>Visualizacion automatica desde CSV: ranking, barras y distribuciones para detectar tendencias de meta.</p>
       <div class="stats">
         <div class="stat"><div class="k">Respuestas</div><div class="v" id="responses">0</div></div>
-        <div class="stat"><div class="k">Columnas</div><div class="v" id="columns">0</div></div>
-        <div class="stat"><div class="k">Preguntas utiles</div><div class="v" id="usableQuestions">0</div></div>
-        <div class="stat"><div class="k">Categorias top</div><div class="v" id="topCats">0</div></div>
+        <div class="stat"><div class="k">Votos pregunta multiple</div><div class="v" id="votesQ1">0</div></div>
+        <div class="stat"><div class="k">Votos pregunta unitaria</div><div class="v" id="votesQ2">0</div></div>
+        <div class="stat"><div class="k">Top deck global</div><div class="v" id="topDeck">-</div></div>
       </div>
     </section>
 
@@ -308,6 +316,9 @@
     const forcedQ = (qs.get("q") || "").trim();
     const forcedQ2 = (qs.get("q2") || "").trim();
     const charts = [];
+    const sb = window.BarateamApp.createClient();
+    let leadersCache = null;
+    const patternCache = new Map();
 
     const $ = window.BarateamApp.byId;
     const showError = (txt) => window.BarateamApp.showMessage("msg", txt);
@@ -411,15 +422,116 @@
       return COLORS[i % COLORS.length];
     }
 
-    function makeBarChart(canvasId, labels, values){
+    function normalizeLabel(txt){
+      return String(txt || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    }
+
+    async function loadLeaders(){
+      if (leadersCache) return leadersCache;
+      try{
+        const { data, error } = await sb
+          .from("leaders")
+          .select("name,code,leader_alias,image,image_url,leader_image_url");
+        if (error) throw error;
+        leadersCache = (data || []).map((x) => ({
+          name: x?.name || "",
+          code: x?.code || "",
+          alias: x?.leader_alias || "",
+          image: x?.image || x?.image_url || x?.leader_image_url || ""
+        })).filter((x) => x.image);
+      } catch (_e){
+        leadersCache = [];
+      }
+      return leadersCache;
+    }
+
+    function findLeaderImageForLabel(label, leaders){
+      const q = normalizeLabel(label);
+      if (!q) return "";
+      for (const l of leaders){
+        const alias = normalizeLabel(l.alias);
+        if (alias && q === alias){
+          return l.image;
+        }
+      }
+      let best = "";
+      for (const l of leaders){
+        const name = normalizeLabel(l.name);
+        const code = normalizeLabel(l.code);
+        const full = normalizeLabel(`${l.name} ${l.code}`);
+        if (q === name || q === code || q === full || q.includes(full) || full.includes(q)){
+          best = l.image;
+          break;
+        }
+      }
+      return best;
+    }
+
+    async function loadImage(url){
+      return await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    async function buildPattern(imageUrl, color){
+      const key = `${imageUrl}|${color}`;
+      if (patternCache.has(key)) return patternCache.get(key);
+      try{
+        const img = await loadImage(imageUrl);
+        const c = document.createElement("canvas");
+        c.width = 120;
+        c.height = 120;
+        const ctx = c.getContext("2d");
+        if (!ctx) return color;
+        const s = Math.max(img.width, img.height) || 1;
+        const sx = (img.width - s) / 2;
+        const sy = (img.height - s) / 2;
+        ctx.drawImage(img, sx, sy, s, s, 0, 0, 120, 120);
+        ctx.fillStyle = "rgba(0,0,0,.12)";
+        ctx.fillRect(0, 0, 120, 120);
+        const pattern = ctx.createPattern(c, "repeat") || color;
+        patternCache.set(key, pattern);
+        return pattern;
+      } catch (_e){
+        return color;
+      }
+    }
+
+    async function buildFills(labels){
+      const leaders = await loadLeaders();
+      const fills = [];
+      for (let i = 0; i < labels.length; i++){
+        const base = colorFor(i);
+        const url = findLeaderImageForLabel(labels[i], leaders);
+        if (!url){
+          fills.push(base);
+          continue;
+        }
+        const pat = await buildPattern(url, base);
+        fills.push(pat);
+      }
+      return fills;
+    }
+
+    async function makeBarChart(canvasId, labels, values){
       const c = $(canvasId);
+      const fills = await buildFills(labels);
       const ch = new Chart(c, {
         type: "bar",
         data: {
           labels,
           datasets: [{
             data: values,
-            backgroundColor: labels.map((_, i) => colorFor(i)),
+            backgroundColor: fills,
             borderRadius: 4,
             borderSkipped: false
           }]
@@ -460,15 +572,16 @@
       charts.push(ch);
     }
 
-    function makePieChart(canvasId, labels, values){
+    async function makePieChart(canvasId, labels, values){
       const c = $(canvasId);
+      const fills = await buildFills(labels);
       const ch = new Chart(c, {
         type: "doughnut",
         data: {
           labels,
           datasets: [{
             data: values,
-            backgroundColor: labels.map((_, i) => colorFor(i)),
+            backgroundColor: fills,
             borderWidth: 0,
             hoverOffset: 6
           }]
@@ -530,7 +643,6 @@
         const { headers, rows } = parseCsv(text);
 
         $("responses").textContent = String(rows.length);
-        $("columns").textContent = String(headers.length);
 
         if (!headers.length || !rows.length){
           showError("CSV vacio o sin cabeceras validas.");
@@ -555,7 +667,6 @@
 
         const main = scoreQuestion(mainHeader, rows);
         const second = scoreQuestion(secondHeader, rows);
-        $("usableQuestions").textContent = "2";
 
         if (!main.counts.length || !second.counts.length){
           showError("No hay respuestas validas en una de las dos preguntas.");
@@ -564,18 +675,25 @@
 
         const mainFilteredForDonut = main.counts.filter((x) => x[1] > 2);
         const secondFilteredForDonut = second.counts.filter((x) => x[1] > 2);
-        const allCats = new Set([...main.counts.map((x) => x[0]), ...second.counts.map((x) => x[0])]);
+        const globalMap = new Map();
+        for (const [name, votes] of main.counts) globalMap.set(name, (globalMap.get(name) || 0) + votes);
+        for (const [name, votes] of second.counts) globalMap.set(name, (globalMap.get(name) || 0) + votes);
+        const globalTop = Array.from(globalMap.entries()).sort((a,b) => b[1] - a[1])[0] || null;
 
         $("qPill").textContent = `Preguntas: ${main.header} | ${second.header}`;
         $("mainQuestion").textContent = main.header;
         $("mainSub").textContent = `${main.total} votos en ${main.unique} categorias (barras: todo).`;
         $("pieQuestion").textContent = main.header;
         $("pieSub").textContent = "Donut sin mazos de 2 votos o menos.";
-        $("topCats").textContent = String(allCats.size);
+        $("votesQ1").textContent = String(main.total);
+        $("votesQ2").textContent = String(second.total);
+        const topDeckEl = $("topDeck");
+        topDeckEl.classList.add("text");
+        topDeckEl.textContent = globalTop ? `${globalTop[0]} (${globalTop[1]})` : "-";
 
-        makeBarChart("barMain", main.counts.map((x) => x[0]), main.counts.map((x) => x[1]));
+        await makeBarChart("barMain", main.counts.map((x) => x[0]), main.counts.map((x) => x[1]));
         if (mainFilteredForDonut.length){
-          makePieChart("pieMain", mainFilteredForDonut.map((x) => x[0]), mainFilteredForDonut.map((x) => x[1]));
+          await makePieChart("pieMain", mainFilteredForDonut.map((x) => x[0]), mainFilteredForDonut.map((x) => x[1]));
           renderLegend("legendMain", mainFilteredForDonut.map((x) => x[0]), mainFilteredForDonut.map((x) => x[1]));
         } else {
           showError("Pregunta 1: no hay mazos con mas de 2 votos para donut.");
@@ -584,12 +702,12 @@
         $("secondaryPanel").style.display = "";
         $("secondaryQuestion").textContent = second.header;
         $("secondarySub").textContent = `${second.total} votos en ${second.unique} categorias (barras: todo).`;
-        makeBarChart("barSecondary", second.counts.map((x) => x[0]), second.counts.map((x) => x[1]));
+        await makeBarChart("barSecondary", second.counts.map((x) => x[0]), second.counts.map((x) => x[1]));
 
         $("pieSecondaryPanel").style.display = "";
         $("pieSecondaryQuestion").textContent = second.header;
         if (secondFilteredForDonut.length){
-          makePieChart("pieSecondary", secondFilteredForDonut.map((x) => x[0]), secondFilteredForDonut.map((x) => x[1]));
+          await makePieChart("pieSecondary", secondFilteredForDonut.map((x) => x[0]), secondFilteredForDonut.map((x) => x[1]));
         } else {
           showError("Pregunta 2: no hay mazos con mas de 2 votos para donut.");
         }
