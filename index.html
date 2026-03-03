@@ -675,7 +675,7 @@
 
   async function refreshSession(){
     try{
-      const { data } = await sb.auth.getSession();
+      const { data } = await withTimeout(sb.auth.getSession(), 8000);
       const user = data?.session?.user || null;
       currentUser = user;
       window.__barateamCurrentUser = user;
@@ -1022,7 +1022,7 @@
 
     try{
       if (btn) btn.disabled = true;
-      const { data } = await sb.auth.getSession();
+      const { data } = await withTimeout(sb.auth.getSession(), 8000);
       const user = data?.session?.user || null;
       if (!user){
         showPostMsg("No hay sesion activa.", "err");
@@ -1072,7 +1072,7 @@
     const start_at = startLocal ? new Date(startLocal).toISOString() : null;
 
     try{
-      const { data } = await sb.auth.getSession();
+      const { data } = await withTimeout(sb.auth.getSession(), 8000);
       const user = data?.session?.user || null;
       if (!user){
         showEventMsg("No hay sesion activa.", "err");
@@ -1345,13 +1345,17 @@
     // Pintamos base del calendario de inmediato, aunque falle la carga remota.
     renderCalendar(viewDate, new Map());
 
+    let first = true;
     sb.auth.onAuthStateChange(async (_event, session) => {
       currentUser = session?.user || null;
       window.__barateamCurrentUser = currentUser;
-      setNavAuthUI(session?.user || null);
-      await refreshPostsSection();
+      setNavAuthUI(currentUser);
+
+      if (first) return;           // evita el doble disparo inicial
+      await refreshPostsSection();  // o refresca solo lo mínimo
     });
     await refreshHome();
+    first = false;
   })();
 </script>
 </body>
