@@ -1025,8 +1025,7 @@
 
       let image_url = null;
       if (file){
-        const { data: { session } } = await sb.auth.getSession();
-        image_url = await uploadPostImage(file, session?.user?.id || "anon");
+        image_url = await uploadPostImage(file, currentUser?.id || "anon");
       }
 
       const payload = {
@@ -1067,13 +1066,12 @@
     const start_at = startLocal ? new Date(startLocal).toISOString() : null;
 
     try{
-      const { data: { session } } = await sb.auth.getSession();
       const payload = {
         title,
         start_at,
         location,
         description,
-        author_id: session?.user?.id || null
+        author_id: currentUser?.id || null
       };
       const { error } = await sb.from("events").insert(payload);
       if (error) throw error;
@@ -1138,13 +1136,24 @@
       console.warn("events:", error.message);
       return [];
     }
+    console.log("[calendar] query", {
+      user: currentUser?.id || null,
+      month: `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}`,
+      totalRows: (data || []).length
+    });
     const all = (data || []).filter((e) => !!eventDateObj(e));
     const y = viewDate.getFullYear();
     const m = viewDate.getMonth();
-    return all.filter((e) => {
+    const filtered = all.filter((e) => {
       const d = eventDateObj(e);
       return !!d && d.getFullYear() === y && d.getMonth() === m;
     });
+    console.log("[calendar] filtered", {
+      parseableRows: all.length,
+      monthRows: filtered.length,
+      sample: filtered.slice(0, 3).map((e) => ({ id: e.id, title: e.title, start_at: e.start_at }))
+    });
+    return filtered;
   }
 
   function groupEventsByDay(events){
@@ -1279,6 +1288,7 @@
   let monthEvents = [];
 
   async function refreshCalendarOnly(){
+    await refreshSession();
     // Navegacion instantanea aunque Supabase tarde/falle.
     renderCalendar(viewDate, new Map());
     renderUpcoming([]);
