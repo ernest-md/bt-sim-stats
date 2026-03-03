@@ -535,6 +535,25 @@
       return fills;
     }
 
+    async function buildPieImages(labels){
+      const leaders = await loadLeaders();
+      const images = [];
+      for (let i = 0; i < labels.length; i++){
+        const url = findLeaderImageForLabel(labels[i], leaders);
+        if (!url){
+          images.push(null);
+          continue;
+        }
+        try{
+          const img = await loadImage(url);
+          images.push(img);
+        } catch (_e){
+          images.push(null);
+        }
+      }
+      return images;
+    }
+
     async function makeBarChart(canvasId, labels, values){
       const c = $(canvasId);
       const fills = await buildFills(labels, "bar");
@@ -587,7 +606,8 @@
 
     async function makePieChart(canvasId, labels, values){
       const c = $(canvasId);
-      const fills = await buildFills(labels, "pie");
+      const fills = labels.map((_, i) => colorFor(i));
+      const pieImages = await buildPieImages(labels);
       const ch = new Chart(c, {
         type: "doughnut",
         data: {
@@ -606,6 +626,7 @@
           cutout: "18%",
           animation: { duration: 420 },
           plugins: {
+            imageArcFill: { images: pieImages },
             legend: { display: false },
             tooltip: {
               callbacks: {
@@ -613,7 +634,41 @@
               }
             }
           }
-        }
+        },
+        plugins: [{
+          id: "imageArcFill",
+          beforeDatasetDraw(chart, args, pluginOptions){
+            if (args.index !== 0) return;
+            const images = pluginOptions?.images || [];
+            const meta = chart.getDatasetMeta(0);
+            const ctx = chart.ctx;
+            meta.data.forEach((arc, i) => {
+              const img = images[i];
+              if (!img) return;
+              const p = arc.getProps(["x", "y", "startAngle", "endAngle", "innerRadius", "outerRadius"], true);
+              const side = p.outerRadius * 2;
+              const s = Math.max(img.width, img.height) || 1;
+              const sx = (img.width - s) / 2;
+              const sy = (img.height - s) / 2;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.arc(p.x, p.y, p.outerRadius, p.startAngle, p.endAngle);
+              if (p.innerRadius > 0){
+                ctx.arc(p.x, p.y, p.innerRadius, p.endAngle, p.startAngle, true);
+              } else {
+                ctx.lineTo(p.x, p.y);
+              }
+              ctx.closePath();
+              ctx.clip();
+              ctx.drawImage(img, sx, sy, s, s, p.x - p.outerRadius, p.y - p.outerRadius, side, side);
+              ctx.fillStyle = "rgba(0,0,0,.10)";
+              ctx.fillRect(p.x - p.outerRadius, p.y - p.outerRadius, side, side);
+              ctx.restore();
+            });
+          }
+        }]
       });
       charts.push(ch);
     }
