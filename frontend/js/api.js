@@ -30,14 +30,28 @@ export async function getExpansions() {
 
 export async function getMatchesByPlayer(playerId) {
   const { data, error } = await supabase
-    .from('matches')
-    .select('*')
-    .eq('player_id', playerId)
+    .from("matches")
+    .select(`
+      *,
+      player:leaders!matches_player_leader_fkey (
+        code,
+        name,
+        image_url,
+        color_primary,
+        color_secondary
+      ),
+      opponent:leaders!matches_opponent_leader_fkey (
+        code,
+        name,
+        image_url
+      )
+    `)
+    .eq("player_id", playerId);
 
   if (error) {
-    console.error('Error cargando partidas:', error)
-    return []
+    console.error("Error cargando matches:", error);
+    return [];
   }
 
-  return data
+  return data;
 }

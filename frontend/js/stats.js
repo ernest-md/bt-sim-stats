@@ -1,11 +1,20 @@
 import { getPlayers, getMatchesByPlayer, getExpansions } from './api.js'
+import { supabase } from './supabaseClient.js'
 
 const playerSelect = document.getElementById("playerSelect")
 const expansionSelect = document.getElementById("expansionSelect")
+const syncButton = document.getElementById("syncMatchesBtn")
+const summaryView = document.getElementById("summaryView")
+const leaderView = document.getElementById("leaderView")
+const backButton = document.getElementById("backToSummary")
 
 let allMatches = []
 let allExpansions = []
 let currentFilteredMatches = []
+let selectedLeaderCode = null
+
+/* ================= INIT ================= */
+
 
 async function init() {
 
@@ -38,10 +47,14 @@ async function init() {
   }
 }
 
+/* ================= LOAD PLAYER ================= */
+
 async function loadPlayer(playerId) {
   allMatches = await getMatchesByPlayer(playerId)
   calculateStats()
 }
+
+/* ================= CALCULATE STATS ================= */
 
 function calculateStats() {
 
@@ -64,7 +77,6 @@ function calculateStats() {
   }
 
   currentFilteredMatches = filteredMatches
-  document.getElementById("leaderDetail").innerHTML = ""
 
   const total = filteredMatches.length
   const wins = filteredMatches.filter(m => m.result === "Won").length
@@ -80,6 +92,8 @@ function calculateStats() {
   buildGlobalMatchups(filteredMatches)
 }
 
+/* ================= BUILD LEADER TABLE ================= */
+
 function buildLeaderStats(matches) {
 
   const container = document.getElementById("leaderStats")
@@ -89,90 +103,109 @@ function buildLeaderStats(matches) {
 
   matches.forEach(m => {
 
-    if (!leaderMap[m.player_leader]) {
-      leaderMap[m.player_leader] = {
+    const leaderCode = m.player.code
+
+    if (!leaderMap[leaderCode]) {
+      leaderMap[leaderCode] = {
+        name: m.player.name,
+        image: m.player.image_url,
         games: 0,
         wins: 0,
         matchups: {}
       }
     }
 
-    const leader = leaderMap[m.player_leader]
+    const leader = leaderMap[leaderCode]
 
     leader.games++
     if (m.result === "Won") leader.wins++
 
-    if (!leader.matchups[m.opponent_leader]) {
-      leader.matchups[m.opponent_leader] = { games: 0, wins: 0 }
+    const oppCode = m.opponent.code
+
+    if (!leader.matchups[oppCode]) {
+      leader.matchups[oppCode] = {
+        name: m.opponent.name,
+        image: m.opponent.image_url,
+        games: 0,
+        wins: 0
+      }
     }
 
-    leader.matchups[m.opponent_leader].games++
+    leader.matchups[oppCode].games++
     if (m.result === "Won") {
-      leader.matchups[m.opponent_leader].wins++
+      leader.matchups[oppCode].wins++
     }
   })
 
-  Object.entries(leaderMap).forEach(([leaderCode, data]) => {
+  Object.entries(leaderMap)
+  .sort((a, b) => b[1].games - a[1].games)
+  .forEach(([leaderCode, data]) => {
 
     const losses = data.games - data.wins
     const wr = data.games > 0
       ? ((data.wins / data.games) * 100).toFixed(1)
       : 0
 
-    const validMatchups = Object.entries(data.matchups)
-      .filter(([_, m]) => m.games >= 3)
-      .map(([opp, m]) => ({
-        opp,
-        wr: m.wins / m.games
+    const wrClass = wr >= 50 ? "wr-positive" : "wr-negative"
+
+    // ========================
+    // CALCULAR FAV / DESF
+    // ========================
+
+    const validMatchups = Object.values(data.matchups)
+      .filter(m => m.games >= 3)
+      .map(m => ({
+        ...m,
+        wr: (m.wins / m.games) * 100
       }))
 
-    let fav = "-"
-    let desf = "-"
+    let favHtml = "-"
+    let desfHtml = "-"
 
     if (validMatchups.length > 0) {
 
-    validMatchups.sort((a,b) => b.wr - a.wr)
-    const best = validMatchups[0]
+      const fav = [...validMatchups].sort((a,b) => b.wr - a.wr)[0]
+      const desf = [...validMatchups].sort((a,b) => a.wr - b.wr)[0]
 
-    validMatchups.sort((a,b) => a.wr - b.wr)
-    const worst = validMatchups[0]
-
-    fav = `
-        <div style="display:flex; flex-direction:column; align-items:center;">
-        <img src="https://res.cloudinary.com/dlbhgbxbf/image/upload/v1767894619/${best.opp}_jp.png" width="40">
-        <span style="font-size:12px;">${(best.wr * 100).toFixed(1)}%</span>
+      favHtml = `
+        <div class="miniMatchup">
+          <img src="${fav.image}">
+          <span class="${fav.wr >= 50 ? 'wr-positive' : 'wr-negative'}">
+            ${fav.wr.toFixed(1)}%
+          </span>
         </div>
-    `
+      `
 
-    desf = `
-        <div style="display:flex; flex-direction:column; align-items:center;">
-        <img src="https://res.cloudinary.com/dlbhgbxbf/image/upload/v1767894619/${worst.opp}_jp.png" width="40">
-        <span style="font-size:12px;">${(worst.wr * 100).toFixed(1)}%</span>
+      desfHtml = `
+        <div class="miniMatchup">
+          <img src="${desf.image}">
+          <span class="${desf.wr >= 50 ? 'wr-positive' : 'wr-negative'}">
+            ${desf.wr.toFixed(1)}%
+          </span>
         </div>
-    `
+      `
     }
 
     const row = document.createElement("tr")
     row.style.cursor = "pointer"
-    row.style.borderBottom = "1px solid #eee"
-    row.onclick = () => window.selectLeader(leaderCode)
+    row.onclick = () => showLeaderView(leaderCode)
 
     row.innerHTML = `
-      <td>
-        <img src="https://res.cloudinary.com/dlbhgbxbf/image/upload/v1767894619/${leaderCode}_jp.png" width="45">
-      </td>
-      <td><strong>${leaderCode}</strong></td>
+      <td><img src="${data.image}" width="45"></td>
+      <td><strong>${data.name}</strong></td>
       <td>${data.games}</td>
       <td>${data.wins}</td>
       <td>${losses}</td>
-      <td>${wr}%</td>
-      <td>${fav}</td>
-      <td>${desf}</td>
+      <td class="${wrClass}">${wr}%</td>
+      <td>${favHtml}</td>
+      <td>${desfHtml}</td>
     `
 
     container.appendChild(row)
   })
 }
+
+/* ================= BUILD GLOBAL MATCHUPS ================= */
 
 function buildGlobalMatchups(matches) {
 
@@ -186,97 +219,132 @@ function buildGlobalMatchups(matches) {
 
   matches.forEach(m => {
 
-    if (!globalMap[m.opponent_leader]) {
-      globalMap[m.opponent_leader] = { games: 0, wins: 0 }
+    const oppCode = m.opponent.code
+
+    if (!globalMap[oppCode]) {
+      globalMap[oppCode] = {
+        name: m.opponent.name,
+        image: m.opponent.image_url,
+        games: 0,
+        wins: 0
+      }
     }
 
-    globalMap[m.opponent_leader].games++
-    if (m.result === "Won") globalMap[m.opponent_leader].wins++
+    globalMap[oppCode].games++
+    if (m.result === "Won") globalMap[oppCode].wins++
   })
 
-  const array = Object.entries(globalMap).map(([code, data]) => ({
-    code,
-    games: data.games,
-    wins: data.wins,
-    losses: data.games - data.wins
+  const array = Object.values(globalMap).map(data => ({
+    ...data,
+    losses: data.games - data.wins,
+    wr: data.games > 0 ? ((data.wins / data.games) * 100).toFixed(1) : 0
   }))
 
-  const topWins = [...array]
-    .sort((a,b) => b.wins - a.wins)
-    .slice(0,4)
+  const topWins = [...array].sort((a,b) => b.wins - a.wins).slice(0,4)
+  const topLosses = [...array].sort((a,b) => b.losses - a.losses).slice(0,4)
 
-  const topLosses = [...array]
-    .sort((a,b) => b.losses - a.losses)
-    .slice(0,4)
-
-  // 🔹 TABLA VICTORIAS
   topWins.forEach(item => {
 
-    const tr = document.createElement("tr")
+    const wrClass = item.wr >= 50 ? "wr-positive" : "wr-negative"
 
+    const tr = document.createElement("tr")
     tr.innerHTML = `
-      <td>
-        <img src="https://res.cloudinary.com/dlbhgbxbf/image/upload/v1767894619/${item.code}_jp.png" width="50">
+      <td class="matchupLeader">
+        <img src="${item.image}">
+        <span>${item.name}</span>
       </td>
       <td>${item.wins}</td>
       <td>${item.games}</td>
+      <td class="${wrClass}">${item.wr}%</td>
     `
-
     winContainer.appendChild(tr)
   })
 
-  // 🔹 TABLA DERROTAS
   topLosses.forEach(item => {
 
-    const tr = document.createElement("tr")
+    const wrClass = item.wr >= 50 ? "wr-positive" : "wr-negative"
 
+    const tr = document.createElement("tr")
     tr.innerHTML = `
-      <td>
-        <img src="https://res.cloudinary.com/dlbhgbxbf/image/upload/v1767894619/${item.code}_jp.png" width="50">
+      <td class="matchupLeader">
+        <img src="${item.image}">
+        <span>${item.name}</span>
       </td>
       <td>${item.losses}</td>
       <td>${item.games}</td>
+      <td class="${wrClass}">${item.wr}%</td>
     `
-
     lossContainer.appendChild(tr)
   })
 }
 
-window.selectLeader = function(leaderCode) {
+/* ================= LEADER VIEW ================= */
+
+function showLeaderView(leaderCode) {
+  selectedLeaderCode = leaderCode
+  summaryView.style.display = "none"
+  leaderView.style.display = "block"
   buildLeaderDetail(leaderCode)
 }
 
+backButton.addEventListener("click", () => {
+  leaderView.style.display = "none"
+  summaryView.style.display = "block"
+  selectedLeaderCode = null
+})
+
+/* ================= BUILD LEADER DETAIL ================= */
+
 function buildLeaderDetail(leaderCode) {
 
-  const container = document.getElementById("leaderDetail")
-  container.innerHTML = ""
+  const summaryContainer = document.getElementById("leaderSummary")
+  const matchupContainer = document.getElementById("leaderMatchups")
 
-  const matches = currentFilteredMatches.filter(m => m.player_leader === leaderCode)
+  summaryContainer.innerHTML = ""
+  matchupContainer.innerHTML = ""
 
+  const matches = currentFilteredMatches.filter(m => m.player && m.player.code === leaderCode)
   if (matches.length === 0) return
+
+  const leaderInfo = matches[0].player
 
   const total = matches.length
   const wins = matches.filter(m => m.result === "Won").length
   const losses = total - wins
   const wr = ((wins / total) * 100).toFixed(1)
+  const wrClass = wr >= 50 ? "wr-positive" : "wr-negative"
 
-  const firstMatches = matches.filter(m => m.turn_order === 1)
-  const secondMatches = matches.filter(m => m.turn_order === 2)
-
-  const wrFirst = firstMatches.length > 0
-    ? ((firstMatches.filter(m => m.result === "Won").length / firstMatches.length) * 100).toFixed(1)
-    : "-"
-
-  const wrSecond = secondMatches.length > 0
-    ? ((secondMatches.filter(m => m.result === "Won").length / secondMatches.length) * 100).toFixed(1)
-    : "-"
+summaryContainer.innerHTML = `
+  <img src="${leaderInfo.image_url}" class="leaderImage">
+  <div class="leaderSummaryStats">
+    <div>
+      <strong>${total}</strong>
+      Partidas
+    </div>
+    <div>
+      <strong>${wins}</strong>
+      Victorias
+    </div>
+    <div>
+      <strong>${losses}</strong>
+      Derrotas
+    </div>
+    <div class="${wrClass}">
+      <strong>${wr}%</strong>
+      WR
+    </div>
+  </div>
+`
 
   const matchupMap = {}
 
   matches.forEach(m => {
 
-    if (!matchupMap[m.opponent_leader]) {
-      matchupMap[m.opponent_leader] = {
+    const opp = m.opponent.code
+
+    if (!matchupMap[opp]) {
+      matchupMap[opp] = {
+        info: m.opponent,
         games: 0,
         wins: 0,
         firstGames: 0,
@@ -286,7 +354,7 @@ function buildLeaderDetail(leaderCode) {
       }
     }
 
-    const entry = matchupMap[m.opponent_leader]
+    const entry = matchupMap[opp]
 
     entry.games++
     if (m.result === "Won") entry.wins++
@@ -302,80 +370,128 @@ function buildLeaderDetail(leaderCode) {
     }
   })
 
-  const matchupArray = Object.entries(matchupMap)
-    .map(([code, data]) => {
-
-      const wr = (data.wins / data.games) * 100
-
-      const wrFirst = data.firstGames > 0
-        ? (data.firstWins / data.firstGames) * 100
-        : null
-
-      const wrSecond = data.secondGames > 0
-        ? (data.secondWins / data.secondGames) * 100
-        : null
-
-      return {
-        code,
-        games: data.games,
-        wins: data.wins,
-        losses: data.games - data.wins,
-        wr: wr.toFixed(1),
-        firstGames: data.firstGames,
-        wrFirst: wrFirst !== null ? wrFirst.toFixed(1) : "-",
-        secondGames: data.secondGames,
-        wrSecond: wrSecond !== null ? wrSecond.toFixed(1) : "-"
-      }
-    })
+  Object.values(matchupMap)
     .sort((a,b) => b.games - a.games)
+    .forEach(m => {
 
-  let matchupsHTML = ""
+      const wr = ((m.wins / m.games) * 100).toFixed(1)
 
-  matchupArray.forEach(m => {
-    matchupsHTML += `
-      <div style="margin-bottom:15px;">
-        <img src="https://res.cloudinary.com/dlbhgbxbf/image/upload/v1767894619/${m.code}_jp.png" width="50">
-        <div>
-          Partidas: ${m.games} |
-          Victorias: ${m.wins} |
-          Derrotas: ${m.losses} |
-          WR: ${m.wr}%
-          <br>
-          First: ${m.firstGames} | WR: ${m.wrFirst}%
-          <br>
-          Second: ${m.secondGames} | WR: ${m.wrSecond}%
-        </div>
-      </div>
-    `
-  })
+      const wrFirst = m.firstGames > 0
+        ? ((m.firstWins / m.firstGames) * 100).toFixed(1)
+        : null
 
-  container.innerHTML = `
-    <h3>Detalle líder ${leaderCode}</h3>
+      const wrSecond = m.secondGames > 0
+        ? ((m.secondWins / m.secondGames) * 100).toFixed(1)
+        : null
 
-    <div style="display:flex; align-items:center; gap:15px;">
-      <img src="https://res.cloudinary.com/dlbhgbxbf/image/upload/v1767894619/${leaderCode}_jp.png" width="80">
-      <div>
-        Partidas: ${total} <br>
-        Victorias: ${wins} <br>
-        Derrotas: ${losses} <br>
-        WR: ${wr}% <br>
-        WR First: ${wrFirst}% <br>
-        WR Second: ${wrSecond}%
-      </div>
-    </div>
+      const tr = document.createElement("tr")
 
-    <hr>
-    <h4>Matchups</h4>
-    ${matchupsHTML}
-  `
+      tr.innerHTML = `
+        <td><img src="${m.info.image_url}" width="60"></td>
+        <td>${m.info.name}</td>
+        <td>${m.games}</td>
+        <td>${m.wins}</td>
+        <td>${m.games - m.wins}</td>
+        <td class="${wr >= 50 ? 'wr-positive' : 'wr-negative'}">${wr}%</td>
+        <td>${m.firstGames}</td>
+        <td class="${wrFirst !== null ? (wrFirst >= 50 ? 'wr-positive' : 'wr-negative') : ''}">
+          ${wrFirst !== null ? wrFirst + '%' : '-'}
+        </td>
+        <td>${m.secondGames}</td>
+        <td class="${wrSecond !== null ? (wrSecond >= 50 ? 'wr-positive' : 'wr-negative') : ''}">
+          ${wrSecond !== null ? wrSecond + '%' : '-'}
+        </td>
+      `
+
+      matchupContainer.appendChild(tr)
+    })
 }
+
+/* ================= EVENTS ================= */
 
 playerSelect.addEventListener("change", (e) => {
   loadPlayer(e.target.value)
 })
 
 expansionSelect.addEventListener("change", () => {
+
   calculateStats()
+
+  if (selectedLeaderCode) {
+    buildLeaderDetail(selectedLeaderCode)
+  }
 })
+
+syncButton.addEventListener("click", async () => {
+  await syncMatchesForSelectedPlayer()
+})
+
+async function syncMatchesForSelectedPlayer() {
+
+  const playerId = playerSelect.value
+
+  console.log("Player ID seleccionado:", playerId)
+
+  const { data: devices, error } = await supabase
+    .from("devices")
+    .select("*")
+    .eq("player_id", playerId)
+
+  console.log("Devices encontrados:", devices)
+  console.log("Error de supabase:", error)
+
+  if (!devices || devices.length === 0) {
+    alert("No hay device asociado")
+    return
+  }
+
+  const deviceData = devices[0]
+
+  console.log("Device que se usará:", deviceData)
+
+  const deviceId = deviceData.device_id
+  const lastMatchDate = deviceData.last_match_date
+
+  // 2️⃣ Fetch CardKaizoku
+  const response = await fetch(
+    `https://api.cardkaizoku.com/matches?deviceId=${deviceId}`
+  )
+
+  const matches = await response.json()
+
+  // 3️⃣ Filtrar nuevas
+  let newMatches = matches
+
+  if (lastMatchDate) {
+    newMatches = matches.filter(m =>
+      new Date(m.match_date) > new Date(lastMatchDate)
+    )
+  }
+
+  if (newMatches.length === 0) {
+    alert("No hay partidas nuevas")
+    return
+  }
+
+  // 4️⃣ Insertar nuevas partidas
+  await supabase
+    .from("matches")
+    .insert(newMatches)
+
+  // 5️⃣ Actualizar última fecha
+  const newestDate = newMatches
+    .map(m => new Date(m.match_date))
+    .sort((a,b) => b - a)[0]
+
+  await supabase
+    .from("devices")
+    .update({ last_match_date: newestDate })
+    .eq("id", deviceData.id)
+
+  alert(`${newMatches.length} partidas nuevas importadas`)
+
+  // 6️⃣ Recargar stats
+  await loadPlayer(playerId)
+}
 
 init()
