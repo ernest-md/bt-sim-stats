@@ -991,15 +991,12 @@
     const btn = $("btnPublish");
 
     if (!title || !body) return showPostMsg("Pon titulo y contenido.", "err");
-    if (!currentUser?.id) return showPostMsg("Inicia sesion para publicar.", "err");
 
     try{
       if (btn) btn.disabled = true;
-      if (USE_MOCK){
-        showPostMsg("Mock: post publicado", "ok");
-        return;
-      }
-      const authorId = currentUser.id;
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const authorId = session.user.id;
 
       let image_url = null;
       if (file){
@@ -1013,7 +1010,17 @@
         image_url: image_url || null
       };
 
-      const { error } = await sb.from("posts").insert(payload);
+      let { error } = await sb.from("posts").insert(payload);
+      if (error){
+        const msg = String(error.message || "").toLowerCase();
+        if (msg.includes("author_id")){
+          const retry = await sb.from("posts").insert({ ...payload, author_id: authorId });
+          error = retry.error || null;
+        } else if (msg.includes("autor")){
+          const retry = await sb.from("posts").insert({ ...payload, autor: authorId });
+          error = retry.error || null;
+        }
+      }
       if (error) throw error;
 
       showPostMsg("Post publicado", "ok");
@@ -1051,7 +1058,10 @@
   function eventDateObj(e){
     const raw = eventRawDate(e);
     if (!raw) return null;
-    const d = new Date(raw);
+    let normalized = raw.trim();
+    normalized = normalized.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) normalized += "T00:00:00";
+    const d = new Date(normalized);
     if (Number.isNaN(d.getTime())) return null;
     return d;
   }
