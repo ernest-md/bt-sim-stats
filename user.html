@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Perfil publico · Barateam Hub</title>
+
+  <link rel="stylesheet" href="app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+
+  <style>
+    body{ margin:0; }
+    .wrap{ max-width:1100px; margin:16px auto 26px; padding:0 14px; box-sizing:border-box; }
+    .grid{ display:grid; grid-template-columns: 1fr; gap:12px; }
+    @media (min-width: 980px){ .grid{ grid-template-columns: 360px 1fr; } }
+    .card{
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.22);
+      padding: 14px;
+    }
+    .profileHead{ display:flex; gap:12px; align-items:center; }
+    .profileAvatar{
+      width:84px; height:84px; border-radius:16px; object-fit:cover;
+      border:1px solid rgba(15,23,42,.14); background:#fff;
+      display:block;
+    }
+    .avatarFallback{
+      width:84px; height:84px; border-radius:16px;
+      border:1px solid rgba(15,23,42,.14);
+      display:none; align-items:center; justify-content:center;
+      font-size:28px; font-weight:900; color:#334155; background:#fff;
+    }
+    .name{ margin:0; font-size:22px; font-weight:1000; color:#0f172a; }
+    .muted{ color:#64748b; font-size:13px; }
+    .bio{
+      margin-top:10px; white-space:pre-wrap; word-break:break-word;
+      color:#334155; font-size:14px; line-height:1.45;
+    }
+    .sectionTitle{
+      margin:0 0 10px; font-size:12px; text-transform:uppercase;
+      letter-spacing:.9px; color:#334155; font-weight:1000;
+    }
+    .list{ display:grid; grid-template-columns:1fr; gap:8px; }
+    .item{
+      border-radius:12px; border:1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.7); padding:10px 12px;
+      display:flex; justify-content:space-between; gap:10px; align-items:center;
+      text-decoration:none; color:inherit;
+    }
+    .item:hover{ border-color: rgba(15,23,42,.24); }
+    .itemTitle{ font-weight:900; color:#0f172a; font-size:14px; }
+    .itemMeta{ color:#64748b; font-size:12px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; }
+    .score{ font-weight:900; white-space:nowrap; }
+    .wins{ color:#166534; }
+    .loses{ color:#991b1b; }
+    .msg{
+      border-radius:12px; padding:10px 12px;
+      border:1px solid rgba(239,68,68,.35); background: rgba(239,68,68,.10);
+      color:#991b1b; display:none;
+    }
+    .msg.ok{
+      border-color: rgba(34,197,94,.35);
+      background: rgba(34,197,94,.10);
+      color:#166534;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar">
+      <div class="brand">
+        BARATEAM HUB
+        <small>perfil publico</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="index.html">Home</a>
+        <a class="btn" href="decks.html">DeckLists</a>
+        <a class="btn" href="results.html" data-requires-auth="1">Results</a>
+      </div>
+      <div class="spacer"></div>
+      <a class="btn" id="navLogin" href="login.html">Login</a>
+      <div class="userwrap" id="navUser" style="display:none;">
+        <button class="btn userbtn" id="userBtn" type="button">
+          <span class="avatar"></span>
+          <span id="userLabel">Usuario</span>
+          <span class="chev">▾</span>
+        </button>
+        <div class="menu" id="userMenu">
+          <div class="head">
+            <strong id="userEmail">—</strong>
+            <span>Sesion iniciada</span>
+          </div>
+          <a href="profile.html">Ver perfil</a>
+          <div class="sep"></div>
+          <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="msg" id="msg"></div>
+    <div class="grid">
+      <div class="card">
+        <div class="profileHead">
+          <img id="avatar" class="profileAvatar" alt="Avatar" />
+          <div id="avatarFallback" class="avatarFallback">?</div>
+          <div>
+            <h1 class="name" id="name">Perfil</h1>
+            <div class="muted" id="username">@usuario</div>
+          </div>
+        </div>
+        <div class="bio" id="bio">Sin bio.</div>
+      </div>
+
+      <div class="card">
+        <h2 class="sectionTitle">Decks recientes</h2>
+        <div class="list" id="decksList"></div>
+      </div>
+
+      <div class="card" style="grid-column: 1 / -1;">
+        <h2 class="sectionTitle">Resultados recientes</h2>
+        <div class="list" id="resultsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+    const formatDate = window.BarateamApp.formatDate;
+
+    window.BarateamApp.bindProtectedNavLinks(sb);
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    function show(text, type){
+      window.BarateamApp.showMessage("msg", text, { baseClass: "msg", type });
+    }
+
+    function readParams(){
+      const params = new URLSearchParams(location.search);
+      const byUsername = (params.get("u") || "").trim();
+      const byId = (params.get("id") || "").trim();
+      return { byUsername, byId };
+    }
+
+    function renderProfile(profile){
+      const displayName = profile.display_name || profile.username || ("user-" + String(profile.id).slice(0,8));
+      $("name").textContent = displayName;
+      $("username").textContent = profile.username ? ("@" + profile.username) : ("id: " + String(profile.id).slice(0,8));
+      $("bio").textContent = profile.bio || "Sin bio.";
+
+      if (profile.avatar_url){
+        $("avatar").src = profile.avatar_url;
+        $("avatar").style.display = "block";
+        $("avatarFallback").style.display = "none";
+      } else {
+        $("avatar").removeAttribute("src");
+        $("avatar").style.display = "none";
+        $("avatarFallback").style.display = "flex";
+        $("avatarFallback").textContent = String(displayName).slice(0,1).toUpperCase() || "?";
+      }
+      document.title = `${displayName} · Perfil publico`;
+    }
+
+    function renderDecks(decks){
+      if (!decks.length){
+        $("decksList").innerHTML = `<div class="muted">Este usuario no ha publicado decks.</div>`;
+        return;
+      }
+      $("decksList").innerHTML = decks.map((d) => `
+        <a class="item" href="deck.html?id=${escapeAttr(d.id)}">
+          <div>
+            <div class="itemTitle">${escapeHtml(d.name || "Deck")}</div>
+            <div class="itemMeta">
+              <span>${escapeHtml(d.leader || "-")}</span>
+              <span>${escapeHtml(formatDate(d.created_at))}</span>
+            </div>
+          </div>
+          <div class="muted">Ver</div>
+        </a>
+      `).join("");
+    }
+
+    function resultLabel(result, eventMap, leaderMap){
+      const eventTitle = eventMap.get(result.event)?.title || eventMap.get(result.event)?.name || "Evento";
+      const leader = leaderMap.get(result.leader);
+      const leaderText = leader ? [leader.name || "", leader.code || ""].filter(Boolean).join(" ").trim() : "-";
+      return { eventTitle, leaderText };
+    }
+
+    function renderResults(results, eventMap, leaderMap){
+      if (!results.length){
+        $("resultsList").innerHTML = `<div class="muted">Este usuario no tiene resultados cargados.</div>`;
+        return;
+      }
+      $("resultsList").innerHTML = results.map((r) => {
+        const info = resultLabel(r, eventMap, leaderMap);
+        return `
+          <a class="item" href="result.html?id=${escapeAttr(r.id)}">
+            <div>
+              <div class="itemTitle">${escapeHtml(info.eventTitle)}</div>
+              <div class="itemMeta">
+                <span>${escapeHtml(formatDate(r.created_at))}</span>
+                <span>${escapeHtml(info.leaderText)}</span>
+              </div>
+            </div>
+            <div class="score">
+              <span class="wins">${escapeHtml(String(r.wins ?? 0))}</span>
+              -
+              <span class="loses">${escapeHtml(String(r.loses ?? 0))}</span>
+            </div>
+          </a>
+        `;
+      }).join("");
+    }
+
+    async function loadPublicProfile(){
+      const { byUsername, byId } = readParams();
+      if (!byUsername && !byId){
+        show("Falta ?u=username o ?id=uuid en la URL.", "");
+        return;
+      }
+
+      let query = sb.from("profiles").select("id,username,display_name,bio,avatar_url");
+      query = byUsername ? query.eq("username", byUsername) : query.eq("id", byId);
+      const { data: profile, error } = await query.maybeSingle();
+      if (error){
+        show("Error cargando perfil: " + error.message, "");
+        return;
+      }
+      if (!profile){
+        show("No se encontro el perfil publico.", "");
+        return;
+      }
+
+      renderProfile(profile);
+
+      const [decksRes, resultsRes] = await Promise.all([
+        sb.from("decks")
+          .select("id,name,leader,created_at")
+          .eq("autor", profile.id)
+          .order("created_at", { ascending: false })
+          .limit(10),
+        sb.from("results")
+          .select("id,created_at,wins,loses,event,leader")
+          .eq("autor", profile.id)
+          .order("created_at", { ascending: false })
+          .limit(10)
+      ]);
+
+      if (decksRes.error) console.warn("decks:", decksRes.error.message);
+      if (resultsRes.error) console.warn("results:", resultsRes.error.message);
+
+      const decks = decksRes.data || [];
+      const results = resultsRes.data || [];
+      renderDecks(decks);
+
+      const eventIds = Array.from(new Set(results.map((r) => r.event).filter(Boolean)));
+      const leaderIds = Array.from(new Set(results.map((r) => r.leader).filter(Boolean)));
+
+      const [eventsRes, leadersRes] = await Promise.all([
+        eventIds.length ? sb.from("events").select("id,title,name,start_at,date").in("id", eventIds) : Promise.resolve({ data: [], error: null }),
+        leaderIds.length ? sb.from("leaders").select("id,name,code").in("id", leaderIds) : Promise.resolve({ data: [], error: null })
+      ]);
+
+      if (eventsRes.error) console.warn("events:", eventsRes.error.message);
+      if (leadersRes.error) console.warn("leaders:", leadersRes.error.message);
+
+      const eventMap = new Map((eventsRes.data || []).map((e) => [e.id, e]));
+      const leaderMap = new Map((leadersRes.data || []).map((l) => [l.id, l]));
+      renderResults(results, eventMap, leaderMap);
+    }
+
+    (async function init(){
+      const { data } = await sb.auth.getSession();
+      navController.setUser(data?.session?.user || null);
+      sb.auth.onAuthStateChange((_event, session) => {
+        navController.setUser(session?.user || null);
+      });
+      await loadPublicProfile();
+    })();
+  </script>
+</body>
+</html>

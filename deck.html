@@ -105,6 +105,49 @@
       display:none;
       white-space: pre-line;
     }
+    .msg.ok{
+      border-color: rgba(34,197,94,.35);
+      background: rgba(34,197,94,.10);
+      color:#166534;
+      display:block;
+    }
+    .actionsRow{
+      margin-top:10px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .editPanel{ margin-top:12px; display:none; }
+    .editPanel.open{ display:block; }
+    .editGrid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    .editGrid label{
+      display:block;
+      font-size:12px;
+      font-weight:900;
+      color:#334155;
+      margin-bottom:6px;
+      letter-spacing:.4px;
+    }
+    .editGrid input, .editGrid textarea{
+      width:100%;
+      border-radius:12px;
+      border:1px solid rgba(15,23,42,.18);
+      padding:10px 12px;
+      font:inherit;
+      box-sizing:border-box;
+      background:#fff;
+    }
+    .editGrid textarea{ min-height:90px; resize:vertical; }
+    .editActions{ display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+    .btnLight{
+      border:1px solid rgba(15,23,42,.16);
+      background: rgba(15,23,42,.06);
+      color:#0f172a;
+    }
 
     .socialCard{ margin-top:14px; }
     .socialRow{
@@ -199,6 +242,15 @@
       margin-bottom:4px;
     }
     .commentUser{ font-weight: 900; color:#0f172a; }
+    .userLink{
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: rgba(15,23,42,.28);
+      text-underline-offset: 2px;
+    }
+    .userLink:hover{
+      text-decoration-color: rgba(15,23,42,.60);
+    }
     .commentBody{
       margin:0;
       white-space: pre-wrap;
@@ -235,6 +287,9 @@
         <span id="deckAuthor">Autor: -</span>
         <span id="deckCreated">Creado: -</span>
       </div>
+      <div class="actionsRow">
+        <button class="btn btnLight" id="btnEditDeck" type="button" style="display:none;">Editar deck</button>
+      </div>
 
       <div class="grid">
         <div class="panel">
@@ -261,6 +316,39 @@
         <div class="panel">
           <h3>Sim paste</h3>
           <pre id="simPaste">-</pre>
+        </div>
+      </div>
+      <div class="panel editPanel" id="editPanel">
+        <h3>Editar deck</h3>
+        <div class="editGrid">
+          <div>
+            <label for="editName">Nombre</label>
+            <input id="editName" type="text" />
+          </div>
+          <div>
+            <label for="editLeader">Lider</label>
+            <input id="editLeader" type="text" />
+          </div>
+          <div>
+            <label for="editLeaderImageUrl">Leader image URL</label>
+            <input id="editLeaderImageUrl" type="text" />
+          </div>
+          <div>
+            <label for="editImageUrl">Deck image URL</label>
+            <input id="editImageUrl" type="text" />
+          </div>
+          <div>
+            <label for="editDescription">Descripcion</label>
+            <textarea id="editDescription"></textarea>
+          </div>
+          <div>
+            <label for="editSimPaste">Sim paste</label>
+            <textarea id="editSimPaste"></textarea>
+          </div>
+        </div>
+        <div class="editActions">
+          <button class="btn btnLight" id="btnCancelEditDeck" type="button">Cancelar</button>
+          <button class="btn btnLight" id="btnSaveEditDeck" type="button">Guardar cambios</button>
         </div>
       </div>
 
@@ -290,11 +378,14 @@
 
     let currentUser = null;
     let deckId = null;
+    let currentDeck = null;
+    let isDeckOwner = false;
     let profileCache = new Map();
     let socialState = { comments: [], likes: [], likedByMe: false };
 
     const escapeHtml = window.BarateamApp.escapeHtml;
-    const showError = (text) => window.BarateamApp.showMessage("msg", text);
+    const escapeAttr = window.BarateamApp.escapeAttr;
+    const showError = (text) => window.BarateamApp.showMessage("msg", text, { baseClass: "msg" });
     const formatDate = window.BarateamApp.formatDate;
     const formatDateTime = window.BarateamApp.formatDateTime;
 
@@ -312,6 +403,17 @@
       if (!userId) return "Usuario";
       if (profileCache.has(userId)) return profileCache.get(userId);
       return "user-" + String(userId).slice(0,8);
+    }
+
+    function profileHref(userId){
+      if (!userId) return "";
+      return `user.html?id=${encodeURIComponent(userId)}`;
+    }
+
+    function profileLink(userId, label){
+      const safeLabel = label || "Usuario";
+      if (!userId) return escapeHtml(safeLabel);
+      return `<a class="userLink" href="${escapeAttr(profileHref(userId))}">${escapeHtml(safeLabel)}</a>`;
     }
 
     async function fillProfiles(userIds){
@@ -344,7 +446,8 @@
 
     function renderDeck(deck){
       $("deckName").textContent = deck.name || "Deck";
-      $("deckAuthor").textContent = `Autor: ${deck.autor || "-"}`;
+      const authorLabel = userLabel(deck.autor);
+      $("deckAuthor").innerHTML = `Autor: ${profileLink(deck.autor, authorLabel)}`;
       $("deckCreated").textContent = `Creado: ${formatDate(deck.created_at)}`;
 
       $("leaderName").textContent = deck.leader || "-";
@@ -361,6 +464,76 @@
 
       $("description").textContent = deck.description || "-";
       $("simPaste").textContent = deck.sim_paste || "-";
+    }
+
+    function computeDeckOwner(){
+      isDeckOwner = !!(currentUser && currentDeck && currentDeck.autor === currentUser.id);
+    }
+
+    function renderDeckOwnerUI(){
+      const btn = $("btnEditDeck");
+      if (!btn) return;
+      btn.style.display = isDeckOwner ? "inline-flex" : "none";
+      if (!isDeckOwner){
+        $("editPanel").classList.remove("open");
+      }
+    }
+
+    function fillEditForm(deck){
+      $("editName").value = deck?.name || "";
+      $("editLeader").value = deck?.leader || "";
+      $("editLeaderImageUrl").value = deck?.leader_image_url || "";
+      $("editImageUrl").value = deck?.image_url || "";
+      $("editDescription").value = deck?.description || "";
+      $("editSimPaste").value = deck?.sim_paste || "";
+    }
+
+    function openEditPanel(){
+      if (!isDeckOwner || !currentDeck) return;
+      fillEditForm(currentDeck);
+      $("editPanel").classList.add("open");
+    }
+
+    function closeEditPanel(){
+      $("editPanel").classList.remove("open");
+    }
+
+    async function saveDeckEdits(){
+      if (!isDeckOwner || !currentDeck || !deckId){
+        showError("No tienes permisos para editar este deck.");
+        return;
+      }
+
+      const payload = {
+        name: $("editName").value.trim() || null,
+        leader: $("editLeader").value.trim() || null,
+        leader_image_url: $("editLeaderImageUrl").value.trim() || null,
+        image_url: $("editImageUrl").value.trim() || null,
+        description: $("editDescription").value.trim() || null,
+        sim_paste: $("editSimPaste").value.trim() || null
+      };
+
+      const { data, error } = await sb
+        .from("decks")
+        .update(payload)
+        .eq("id", deckId)
+        .eq("autor", currentUser.id)
+        .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+        .maybeSingle();
+
+      if (error){
+        showError("No pude guardar los cambios: " + error.message);
+        return;
+      }
+      if (!data){
+        showError("No se pudo actualizar el deck (permisos o registro).");
+        return;
+      }
+
+      currentDeck = data;
+      renderDeck(currentDeck);
+      closeEditPanel();
+      window.BarateamApp.showMessage("msg", "Deck actualizado ✅", { baseClass: "msg", type: "ok" });
     }
 
     async function loadDeck(){
@@ -385,7 +558,10 @@
           return false;
         }
 
-        renderDeck(data);
+        currentDeck = data;
+        renderDeck(currentDeck);
+        computeDeckOwner();
+        renderDeckOwnerUI();
         return true;
       }catch(e){
         console.error(e);
@@ -437,7 +613,7 @@
 
       const likeUsersHover = $("likeUsersHover");
       likeUsersHover.innerHTML = likes.length
-        ? likes.map(l => `<div class="u">${escapeHtml(userLabel(l.autor))}</div>`).join("")
+        ? likes.map(l => `<div class="u">${profileLink(l.autor, userLabel(l.autor))}</div>`).join("")
         : `<div class="u">Sin likes todavia.</div>`;
 
       $("btnToggleComments").textContent = `Comentarios (${comments.length})`;
@@ -462,7 +638,7 @@
       list.innerHTML = comments.map(c => `
         <div class="commentItem">
           <div class="commentHead">
-            <span class="commentUser">${escapeHtml(userLabel(c.autor))}</span>
+            <span class="commentUser">${profileLink(c.autor, userLabel(c.autor))}</span>
             <span>${escapeHtml(formatDateTime(c.created_at))}</span>
           </div>
           <p class="commentBody">${escapeHtml(c.body || "")}</p>
@@ -531,6 +707,9 @@
     $("btnToggleComments").addEventListener("click", () => {
       $("commentsPanel").classList.toggle("open");
     });
+    $("btnEditDeck").addEventListener("click", openEditPanel);
+    $("btnCancelEditDeck").addEventListener("click", closeEditPanel);
+    $("btnSaveEditDeck").addEventListener("click", saveDeckEdits);
 
     (async function init(){
       await refreshSession();
@@ -540,6 +719,8 @@
 
       sb.auth.onAuthStateChange(async (_event, session) => {
         currentUser = session?.user || null;
+        computeDeckOwner();
+        renderDeckOwnerUI();
         await loadDeckSocial();
       });
     })();

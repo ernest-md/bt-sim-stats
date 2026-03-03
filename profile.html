@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Perfil · Barateam Hub</title>
+  <title>Perfil Â· Barateam Hub</title>
 
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -53,7 +53,7 @@
       z-index:-1;
     }
 
-    /* ===== Topbar / navegación ===== */
+    /* ===== Topbar / navegaciÃ³n ===== */
 
     .brand{
       display:flex;
@@ -184,26 +184,26 @@
       </div>
 
       <div class="nav">
-        <a class="btn" href="index.html">🏠 Home</a>
-        <a class="btn" href="sim-stats.html" data-requires-auth="1">📊 SIM Stats</a>
-        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
-        <a class="btn" href="decks.html">🃏 DeckLists</a>
-        <a class="btn" href="results.html" data-requires-auth="1">🏆 Results</a>
-        <a class="btn" href="encuestas.html">🗳️ Encuestas</a>
-        <a class="btn" href="#" onclick="alert('Próximamente')">➕ Más</a>
+        <a class="btn" href="index.html">ðŸ  Home</a>
+        <a class="btn" href="sim-stats.html" data-requires-auth="1">ðŸ“Š SIM Stats</a>
+        <a class="btn" href="op-wrapped.html">ðŸŽ´ OP Wrapped</a>
+        <a class="btn" href="decks.html">ðŸƒ DeckLists</a>
+        <a class="btn" href="results.html" data-requires-auth="1">ðŸ† Results</a>
+        <a class="btn" href="encuestas.html">ðŸ—³ï¸ Encuestas</a>
+        <a class="btn" href="#" onclick="alert('PrÃ³ximamente')">âž• MÃ¡s</a>
       </div>
 
       <div class="spacer"></div>
 
-      <!-- ✅ derecha del todo: login o usuario -->
-      <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+      <!-- âœ… derecha del todo: login o usuario -->
+      <a class="btn" id="navLogin" href="login.html">ðŸ” Login</a>
 
       <div class="userwrap" id="userWrap" style="display:none;">
-        <button class="btn primary" id="userBtn" type="button">👤 Usuario</button>
+        <button class="btn primary" id="userBtn" type="button">ðŸ‘¤ Usuario</button>
         <div class="menu profile" id="userMenu">
-          <a href="profile.html">👁️ Ver perfil</a>
+          <a href="profile.html">ðŸ‘ï¸ Ver perfil</a>
           <div class="sep"></div>
-          <button type="button" onclick="doLogout()">🚪 Cerrar sesión</button>
+          <button type="button" onclick="doLogout()">ðŸšª Cerrar sesiÃ³n</button>
         </div>
       </div>
     </div>
@@ -212,7 +212,7 @@
   <div class="wrap">
     <div class="panel">
       <h1>Tu perfil</h1>
-      <p>Edita cómo apareces en el Barateam Hub.</p>
+      <p>Edita cÃ³mo apareces en el Barateam Hub.</p>
 
       <label>Email</label>
       <input id="email" disabled>
@@ -224,7 +224,13 @@
       <input id="display_name" placeholder="Ej: Ernest">
 
       <label>Bio</label>
-      <textarea id="bio" placeholder="Jugador de OP, main X…"></textarea>
+      <textarea id="bio" placeholder="Jugador de OP, main Xâ€¦"></textarea>
+
+      <label>Avatar URL</label>
+      <input id="avatar_url" placeholder="https://...">
+
+      <label>Perfil pÃºblico</label>
+      <input id="public_link" readonly>
 
       <button class="saveBtn" onclick="saveProfile()">Guardar cambios</button>
 
@@ -239,6 +245,17 @@
     window.BarateamApp.bindProtectedNavLinks(sb);
 
     const show = (text, type) => window.BarateamApp.showMessage("msg", text, { baseClass: "msg", type });
+    const publicProfileUrl = (username, userId) => {
+      const trimmed = (username || "").trim();
+      const base = `${location.origin}${location.pathname.replace(/[^/]*$/, "")}`;
+      if (trimmed) return `${base}user.html?u=${encodeURIComponent(trimmed)}`;
+      if (userId) return `${base}user.html?id=${encodeURIComponent(userId)}`;
+      return "";
+    };
+
+    const updatePublicLink = (username, userId) => {
+      $("public_link").value = publicProfileUrl(username, userId);
+    };
 
     /* ===== Nav auth UI ===== */
     const navController = window.BarateamApp.initUserNav({
@@ -248,7 +265,7 @@
       userEmailId: null,
       logoutBtnId: null,
       stopPropagationOnToggle: true,
-      formatLabel: (user) => "👤 " + (user?.email || "Usuario")
+      formatLabel: (user) => "ðŸ‘¤ " + (user?.email || "Usuario")
     });
 
     function setNavUser(user){
@@ -281,7 +298,7 @@
         .eq("id", user.id)
         .single();
 
-      // PGRST116 = no rows (depende de versión), lo tratamos como "no existe"
+      // PGRST116 = no rows (depende de versiÃ³n), lo tratamos como "no existe"
       if (error && error.code !== "PGRST116"){
         show("Error cargando perfil: " + error.message, "err");
         return;
@@ -290,12 +307,15 @@
       if (!data){
         const { error: insErr } = await sb.from("profiles").insert({ id: user.id });
         if (insErr) show("No pude crear tu perfil: " + insErr.message, "err");
+        updatePublicLink("", user.id);
         return;
       }
 
       $("username").value = data.username || "";
       $("display_name").value = data.display_name || "";
       $("bio").value = data.bio || "";
+      $("avatar_url").value = data.avatar_url || "";
+      updatePublicLink(data.username || "", user.id);
     }
 
     async function saveProfile(){
@@ -307,6 +327,7 @@
         username: $("username").value.trim(),
         display_name: $("display_name").value.trim(),
         bio: $("bio").value.trim(),
+        avatar_url: $("avatar_url").value.trim() || null,
         updated_at: new Date().toISOString()
       };
 
@@ -315,7 +336,8 @@
       if (error){
         show("Error guardando perfil: " + error.message, "err");
       } else {
-        show("Perfil guardado ✅", "ok");
+        show("Perfil guardado", "ok");
+        updatePublicLink(payload.username || "", session.user.id);
       }
     }
 
@@ -328,8 +350,14 @@
         setNavUser(session2?.user || null);
       });
 
+      $("username").addEventListener("input", async () => {
+        const { data: { session: usernameSession } } = await sb.auth.getSession();
+        updatePublicLink($("username").value, usernameSession?.user?.id || "");
+      });
+
       await loadProfile();
     })();
   </script>
 </body>
 </html>
+

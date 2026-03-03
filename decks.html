@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Decks · Barateam Hub</title>
+  <title>Decks Â· Barateam Hub</title>
 
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -312,39 +312,39 @@
     <div class="bar">
       <div class="brand">
         BARATEAM HUB
-        <small>decks · listado</small>
+        <small>decks Â· listado</small>
       </div>
 
       <div class="nav">
-        <a class="btn" href="index.html">🏠 Home</a>
-        <a class="btn" href="sim-stats.html" data-requires-auth="1">📊 Visor Excel</a>
-        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
-        <a class="btn primary active" href="decks.html">🧩 Decks</a>
-        <a class="btn" href="results.html" data-requires-auth="1">🏆 Results</a>
-        <a class="btn" href="encuestas.html">🗳️ Encuestas</a>
+        <a class="btn" href="index.html">ðŸ  Home</a>
+        <a class="btn" href="sim-stats.html" data-requires-auth="1">ðŸ“Š Visor Excel</a>
+        <a class="btn" href="op-wrapped.html">ðŸŽ´ OP Wrapped</a>
+        <a class="btn primary active" href="decks.html">ðŸ§© Decks</a>
+        <a class="btn" href="results.html" data-requires-auth="1">ðŸ† Results</a>
+        <a class="btn" href="encuestas.html">ðŸ—³ï¸ Encuestas</a>
       </div>
 
       <div class="spacer"></div>
 
       <span class="pill" id="today"></span>
 
-      <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+      <a class="btn" id="navLogin" href="login.html">ðŸ” Login</a>
 
       <div class="userwrap" id="navUser" style="display:none;">
         <button class="btn userbtn" id="userBtn" type="button">
           <span class="avatar"></span>
           <span id="userLabel">Usuario</span>
-          <span class="chev">▾</span>
+          <span class="chev">â–¾</span>
         </button>
 
         <div class="menu" id="userMenu">
           <div class="head">
-            <strong id="userEmail">—</strong>
-            <span>Sesión iniciada</span>
+            <strong id="userEmail">â€”</strong>
+            <span>SesiÃ³n iniciada</span>
           </div>
-          <a href="profile.html">👤 Ver perfil</a>
+          <a href="profile.html">ðŸ‘¤ Ver perfil</a>
           <div class="sep"></div>
-          <button class="danger" id="menuLogout" type="button">🚪 Cerrar sesión</button>
+          <button class="danger" id="menuLogout" type="button">ðŸšª Cerrar sesiÃ³n</button>
         </div>
       </div>
     </div>
@@ -353,7 +353,7 @@
   <div class="wrap">
     <div class="hero">
       <h1>Decks del equipo</h1>
-      <p>Lista de mazos. Próximo paso: click → detalle del deck.</p>
+      <p>Lista de mazos. PrÃ³ximo paso: click â†’ detalle del deck.</p>
     </div>
 
     <!-- ===== Filters + Form (only logged) ===== -->
@@ -362,11 +362,14 @@
 
       <div class="toolbar">
         <div class="grow">
-          <label for="filter_leader">Filtrar por líder</label>
+          <label for="filter_leader">Filtrar por lÃ­der</label>
           <select id="filter_leader">
             <option value="">(Todos)</option>
           </select>
-          <div class="muted" style="margin-top:6px;">(Ahora mismo no filtra nada: lo dejamos listo)</div>
+          <div class="muted" style="margin-top:6px;">Filtra el listado por lider seleccionado.</div>
+        </div>
+        <div>
+          <button class="btn btnDark" id="btnClearDeckFilters" type="button">Limpiar filtros</button>
         </div>
       </div>
 
@@ -374,8 +377,8 @@
         <div class="sectionTitle">Crear deck</div>
 
         <div class="collHead" id="toggleCreate">
-          <div class="t">➕ Nuevo deck</div>
-          <div class="chevSmall" id="toggleChev">▼</div>
+          <div class="t">âž• Nuevo deck</div>
+          <div class="chevSmall" id="toggleChev">â–¼</div>
         </div>
 
         <div class="collBody" id="createBody">
@@ -387,9 +390,9 @@
 
             <div>
               <label for="leader">Leader</label>
-              <!-- ✅ dropdown como wrapped -->
+              <!-- âœ… dropdown como wrapped -->
               <select id="leader">
-                <option value="">(Selecciona líder)</option>
+                <option value="">(Selecciona lÃ­der)</option>
               </select>
             </div>
 
@@ -402,13 +405,13 @@
             </div>
 
             <div class="span2">
-              <label for="description">Descripción</label>
+              <label for="description">DescripciÃ³n</label>
               <textarea id="description" placeholder="Plan de juego, matchups, notas..."></textarea>
             </div>
 
             <div class="span2">
               <label for="sim_paste">Sim paste</label>
-              <textarea id="sim_paste" placeholder="Pega aquí la lista/código del simulador..."></textarea>
+              <textarea id="sim_paste" placeholder="Pega aquÃ­ la lista/cÃ³digo del simulador..."></textarea>
             </div>
           </div>
 
@@ -422,7 +425,7 @@
       </div>
 
       <div id="loginHint" class="muted" style="display:none;">
-        🔐 Inicia sesión para poder crear decks.
+        ðŸ” Inicia sesiÃ³n para poder crear decks.
       </div>
     </div>
 
@@ -434,7 +437,7 @@
         <table>
           <thead>
             <tr>
-              <th>Líder</th>
+              <th>LÃ­der</th>
               <th>Autor</th>
               <th>Creado</th>
             </tr>
@@ -443,7 +446,7 @@
         </table>
       </div>
 
-      <div class="muted" id="emptyHint" style="display:none; margin-top:10px;">No hay decks todavía.</div>
+      <div class="muted" id="emptyHint" style="display:none; margin-top:10px;">No hay decks todavÃ­a.</div>
     </div>
   </div>
 
@@ -456,7 +459,7 @@
     window.BarateamApp.bindProtectedNavLinks(sb);
 
     // Fecha topbar
-    window.BarateamApp.setTopbarDate("today", { prefix: "📅 " });
+    window.BarateamApp.setTopbarDate("today", { prefix: "ðŸ“… " });
 
     // ===== NAV auth =====
     const navController = window.BarateamApp.initUserNav({
@@ -474,7 +477,7 @@
       const user = data?.session?.user || null;
       setNavAuthUI(user);
 
-      // ✅ mostrar/ocultar crear deck
+      // âœ… mostrar/ocultar crear deck
       $("createArea").style.display = user ? "block" : "none";
       $("loginHint").style.display = user ? "none" : "block";
 
@@ -489,7 +492,7 @@
     // ===== Collapsible create =====
     function setCreateOpen(open){
       $("createBody").classList.toggle("open", open);
-      $("toggleChev").textContent = open ? "▲" : "▼";
+      $("toggleChev").textContent = open ? "â–²" : "â–¼";
     }
     $("toggleCreate").addEventListener("click", () => {
       const isOpen = $("createBody").classList.contains("open");
@@ -514,6 +517,7 @@
 
     let leaders = [];
     let leaderByLabel = new Map();
+    let allDecks = [];
 
     function normalize(s){
       return String(s || "").trim();
@@ -619,9 +623,9 @@
 
       for (const d of decks){
         const tr = document.createElement("tr");
-        const date = window.BarateamApp.formatDate(d.created_at, "—");
-        const leader = d.leader || "—";
-        const autor = d.autor || "—";
+        const date = window.BarateamApp.formatDate(d.created_at, "â€”");
+        const leader = d.leader || "â€”";
+        const autor = d.autor || "â€”";
         const leaderImg = d.leader_image_url || "";
         const imgHtml = leaderImg
           ? `<img class="leaderThumb" src="${escapeAttr(leaderImg)}" alt="${escapeAttr(leader)}">`
@@ -641,6 +645,14 @@
       }
     }
 
+    function applyDeckFilters(){
+      const leader = $("filter_leader").value;
+      const filtered = leader
+        ? allDecks.filter(d => (d.leader || "") === leader)
+        : allDecks.slice();
+      renderDecksAsTable(filtered);
+    }
+
     async function createDeck(){
       clearMsg();
 
@@ -657,7 +669,7 @@
       const leader_image_url = leaderData?.image || null;
 
       if (!name) return show("Pon el nombre del deck.", "err");
-      if (!leader) return show("Selecciona un líder.", "err");
+      if (!leader) return show("Selecciona un lÃ­der.", "err");
 
       try{
         let image_url = null;
@@ -665,7 +677,7 @@
           image_url = await uploadDeckImage(file, user.id);
         }
 
-        // ✅ inserta los campos de tu tabla decks
+        // âœ… inserta los campos de tu tabla decks
         const payload = {
           name: name || null,
           autor: user.id,              // uuid del user
@@ -679,7 +691,7 @@
         const { error } = await sb.from("decks").insert(payload);
         if (error) throw error;
 
-        show("Deck guardado ✅", "ok");
+        show("Deck guardado âœ…", "ok");
 
         // reset
         $("name").value = "";
@@ -688,8 +700,8 @@
         $("sim_paste").value = "";
         $("image_file").value = "";
 
-        const decks = await fetchDecks();
-        renderDecksAsTable(decks);
+        allDecks = await fetchDecks();
+        applyDeckFilters();
         setCreateOpen(false);
       }catch(e){
         console.error(e);
@@ -701,11 +713,12 @@
 
     // ===== Filter (ready, still simple) =====
     // Ahora mismo: recarga lista y filtra en frontend (no requiere index en DB)
-    $("filter_leader").addEventListener("change", async () => {
-      const leader = $("filter_leader").value;
-      const decks = await fetchDecks();
-      const filtered = leader ? decks.filter(d => (d.leader || "") === leader) : decks;
-      renderDecksAsTable(filtered);
+    $("filter_leader").addEventListener("change", () => {
+      applyDeckFilters();
+    });
+    $("btnClearDeckFilters").addEventListener("click", () => {
+      $("filter_leader").value = "";
+      applyDeckFilters();
     });
 
     // ===== Init =====
@@ -724,11 +737,12 @@
         $("loginHint").style.display = session?.user ? "none" : "block";
       });
 
-      const decks = await fetchDecks();
-      renderDecksAsTable(decks);
+      allDecks = await fetchDecks();
+      applyDeckFilters();
     })();
   </script>
 </body>
 </html>
+
 
 

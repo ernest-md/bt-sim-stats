@@ -265,6 +265,15 @@
       font-weight: 900;
       color:#0f172a;
     }
+    .userLink{
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: rgba(15,23,42,.28);
+      text-underline-offset: 2px;
+    }
+    .userLink:hover{
+      text-decoration-color: rgba(15,23,42,.60);
+    }
     .commentBody{
       margin:0;
       white-space: pre-wrap;
@@ -696,6 +705,17 @@
     return "user-" + String(userId).slice(0,8);
   }
 
+  function profileHrefById(userId){
+    if (!userId) return "";
+    return `user.html?id=${encodeURIComponent(userId)}`;
+  }
+
+  function profileLinkById(userId, label){
+    const safeLabel = label || "Usuario";
+    if (!userId) return escapeHtml(safeLabel);
+    return `<a class="userLink" href="${escapeAttr(profileHrefById(userId))}">${escapeHtml(safeLabel)}</a>`;
+  }
+
   async function fillProfileCache(userIds){
     const ids = Array.from(new Set((userIds || []).filter(Boolean)));
     const missing = ids.filter(id => !profileNameCache.has(id));
@@ -785,7 +805,7 @@
       const likedByMe = social.likedPostIds.has(p.id);
 
       const likeUsersHtml = likes.length
-        ? likes.map(l => `<div class="u">${escapeHtml(userLabelById(l.autor))}</div>`).join("")
+        ? likes.map(l => `<div class="u">${profileLinkById(l.autor, userLabelById(l.autor))}</div>`).join("")
         : `<div class="u">Sin likes todavia.</div>`;
 
       const commentsHtml = comments.length
@@ -794,7 +814,7 @@
             return `
               <div class="commentItem">
                 <div class="commentHead">
-                  <span class="commentUser">${escapeHtml(userLabelById(c.autor))}</span>
+                  <span class="commentUser">${profileLinkById(c.autor, userLabelById(c.autor))}</span>
                   <span>${escapeHtml(cDate || "-")}</span>
                 </div>
                 <p class="commentBody">${escapeHtml(c.body || "")}</p>

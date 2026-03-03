@@ -103,6 +103,19 @@
 
     <div class="card">
       <div class="sectionTitle">Listado</div>
+      <div class="formGrid" style="margin-bottom:10px;">
+        <div>
+          <label for="filter_from">Fecha desde</label>
+          <input id="filter_from" type="date" />
+        </div>
+        <div>
+          <label for="filter_to">Fecha hasta</label>
+          <input id="filter_to" type="date" />
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <button class="btn btnDark" id="btnClearResultFilters" type="button">Limpiar filtros</button>
+      </div>
       <div class="tableWrap">
         <table>
           <thead>
@@ -131,6 +144,7 @@
     let eventsById = new Map();
     let leaders = [];
     let leadersById = new Map();
+    let allResults = [];
 
     const isNonNegativeNumber = window.BarateamApp.isNonNegativeNumber;
     function esc(s){ return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;"); }
@@ -217,6 +231,30 @@
       return data || [];
     }
 
+    function eventDateForFilter(eventRow){
+      if (!eventRow) return "";
+      const raw = eventRow.start_at || eventRow.date || eventRow.event_date || "";
+      if (!raw) return "";
+      const normalized = String(raw).slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : "";
+    }
+
+    function applyResultsFilters(){
+      const from = $("filter_from").value || "";
+      const to = $("filter_to").value || "";
+
+      const filtered = allResults.filter((r) => {
+        const ev = eventsById.get(r.event) || null;
+        const d = eventDateForFilter(ev);
+        if (!d) return !from && !to;
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+      });
+
+      renderResults(filtered);
+    }
+
     function renderResults(rows){
       const tb = $("tbody");
       tb.innerHTML = "";
@@ -275,10 +313,18 @@
       $("description").value = "";
       show("Resultado guardado ✅", "ok");
 
-      renderResults(await fetchResults());
+      allResults = await fetchResults();
+      applyResultsFilters();
     }
 
     $("btnCreate").addEventListener("click", createResult);
+    $("filter_from").addEventListener("change", applyResultsFilters);
+    $("filter_to").addEventListener("change", applyResultsFilters);
+    $("btnClearResultFilters").addEventListener("click", () => {
+      $("filter_from").value = "";
+      $("filter_to").value = "";
+      applyResultsFilters();
+    });
     $("btnLogout").addEventListener("click", async () => {
       await sb.auth.signOut();
       location.href = "login.html";
@@ -291,9 +337,11 @@
       if (!user) return;
       await loadEvents();
       await loadLeaders();
-      renderResults(await fetchResults());
+      allResults = await fetchResults();
+      applyResultsFilters();
       sb.auth.onAuthStateChange((_e, s) => { if (!s?.user) location.href = "login.html"; });
     })();
   </script>
 </body>
 </html>
+
