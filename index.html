@@ -1116,11 +1116,14 @@
 
   function renderCalendar(viewDate, dayEventsMap){
     const title = $("calTitle");
+    const dowRoot = $("calDow");
+    const grid = $("calGrid");
+    if (!title || !dowRoot || !grid) return;
+
     const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     title.textContent = `${monthNames[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
 
     const dow = ["L","M","X","J","V","S","D"];
-    const dowRoot = $("calDow");
     dowRoot.innerHTML = "";
     for (const d of dow){
       const el = document.createElement("div");
@@ -1129,7 +1132,6 @@
       dowRoot.appendChild(el);
     }
 
-    const grid = $("calGrid");
     grid.innerHTML = "";
 
     const todayKey = ymd(new Date());
@@ -1230,7 +1232,11 @@
       renderUpcoming(monthEvents);
     }catch(e){
       console.warn("calendar:", e.message || e);
-      renderCalendar(viewDate, new Map());
+      try{
+        renderCalendar(viewDate, new Map());
+      }catch(_){
+        // evitamos romper el init por errores puntuales de render
+      }
       renderUpcoming([]);
     }
   }
@@ -1250,6 +1256,9 @@
   });
 
   (async function(){
+    // Pintamos base del calendario de inmediato, aunque falle la carga remota.
+    renderCalendar(viewDate, new Map());
+
     sb.auth.onAuthStateChange(async (_event, session) => {
       currentUser = session?.user || null;
       window.__barateamCurrentUser = currentUser;
