@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Perfil Â· Barateam Hub</title>
+  <title>Perfil - Barateam Hub</title>
 
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -53,7 +53,7 @@
       z-index:-1;
     }
 
-    /* ===== Topbar / navegaciÃ³n ===== */
+    /* ===== Topbar / navegacion ===== */
 
     .brand{
       display:flex;
@@ -194,15 +194,15 @@
 
       <div class="spacer"></div>
 
-      <!-- âœ… derecha del todo: login o usuario -->
-      <a class="btn" id="navLogin" href="login.html">ðŸ” Login</a>
+      <!-- derecha del todo: login o usuario -->
+      <a class="btn" id="navLogin" href="login.html">Login</a>
 
       <div class="userwrap" id="userWrap" style="display:none;">
-        <button class="btn primary" id="userBtn" type="button">ðŸ‘¤ Usuario</button>
+        <button class="btn primary" id="userBtn" type="button">Usuario</button>
         <div class="menu profile" id="userMenu">
-          <a href="profile.html">ðŸ‘ï¸ Ver perfil</a>
+          <a href="profile.html">Ver perfil</a>
           <div class="sep"></div>
-          <button type="button" onclick="doLogout()">ðŸšª Cerrar sesiÃ³n</button>
+          <button type="button" onclick="doLogout()">Cerrar sesion</button>
         </div>
       </div>
     </div>
@@ -211,7 +211,7 @@
   <div class="wrap">
     <div class="panel">
       <h1>Tu perfil</h1>
-      <p>Edita cÃ³mo apareces en el Barateam Hub.</p>
+      <p>Edita como apareces en el Barateam Hub.</p>
 
       <label>Email</label>
       <input id="email" disabled>
@@ -223,12 +223,12 @@
       <input id="display_name" placeholder="Ej: Ernest">
 
       <label>Bio</label>
-      <textarea id="bio" placeholder="Jugador de OP, main Xâ€¦"></textarea>
+      <textarea id="bio" placeholder="Jugador de OP, main X..."></textarea>
 
       <label>Avatar URL</label>
       <input id="avatar_url" placeholder="https://...">
 
-      <label>Perfil pÃºblico</label>
+      <label>Perfil publico</label>
       <input id="public_link" readonly>
 
       <button class="saveBtn" onclick="saveProfile()">Guardar cambios</button>
@@ -264,7 +264,7 @@
       userEmailId: null,
       logoutBtnId: null,
       stopPropagationOnToggle: true,
-      formatLabel: (user) => "ðŸ‘¤ " + (user?.email || "Usuario")
+      formatLabel: (user) => (user?.email || "Usuario")
     });
 
     function setNavUser(user){
@@ -297,7 +297,7 @@
         .eq("id", user.id)
         .single();
 
-      // PGRST116 = no rows (depende de versiÃ³n), lo tratamos como "no existe"
+      // PGRST116 = no rows (depende de version), lo tratamos como "no existe"
       if (error && error.code !== "PGRST116"){
         show("Error cargando perfil: " + error.message, "err");
         return;

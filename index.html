@@ -647,13 +647,12 @@
 
   <script>
   // ===== CONFIG =====
-  const sb = window.BarateamApp.createClient();
 
 
   const USE_MOCK = false;
-
+  
+  const sb = window.BarateamApp.createClient();
   const $ = window.BarateamApp.byId;
-
   window.BarateamApp.bindProtectedNavLinks(sb);
 
   function withTimeout(promise, ms = 8000) {
