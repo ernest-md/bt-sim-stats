@@ -1,0 +1,309 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Resultados · Barateam Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{ --bg:#0b1220; --card: rgba(255,255,255,.92); --shadow: 0 18px 50px rgba(0,0,0,.35); }
+    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:#0f172a; }
+    body::before{ content:""; position:fixed; inset:0; background: radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%), radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%), linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)), url("bg.png"); background-size:cover; background-position:center; z-index:-1; }
+    .topbar{ position:sticky; top:0; z-index:10; backdrop-filter: blur(14px); background: rgba(15,23,42,.55); border-bottom:1px solid rgba(255,255,255,.12); padding:12px 14px; }
+    .bar{ max-width:1100px; margin:0 auto; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .brand{ color:#fff; font-weight:900; letter-spacing:.4px; }
+    .nav{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .btn{ border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.10); color:#fff; padding:9px 12px; border-radius:12px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; font:inherit; }
+    .btn.primary{ background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22)); border-color: rgba(255,255,255,.22); }
+    .spacer{ flex:1; }
+    .pill{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.08); color: rgba(255,255,255,.86); }
+    .wrap{ max-width:1100px; margin:16px auto 28px; padding:0 14px; }
+    .card{ margin-top:14px; background:var(--card); border:1px solid rgba(255,255,255,.20); border-radius:22px; box-shadow:var(--shadow); padding:14px; }
+    .hero{ border-radius:24px; padding:18px 16px; color:#fff; border:1px solid rgba(255,255,255,.14); background: radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%), radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%), linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72)); box-shadow:0 18px 50px rgba(0,0,0,.28); }
+    .hero h1{ margin:0; font-size:24px; font-weight:1000; }
+    .hero p{ margin:8px 0 0; color: rgba(255,255,255,.82); font-size:13px; }
+    .sectionTitle{ margin:2px 0 12px; font-weight:1000; color:#0f172a; font-size:12px; text-transform:uppercase; letter-spacing:.9px; display:flex; align-items:center; gap:10px; }
+    .sectionTitle::after{ content:""; height:1px; flex:1; background: linear-gradient(90deg, rgba(15,23,42,.25), transparent); }
+    .formGrid{ display:grid; grid-template-columns:1fr; gap:10px; }
+    @media (min-width:820px){ .formGrid{ grid-template-columns:1fr 1fr; } .span2{ grid-column:1 / -1; } }
+    label{ display:block; font-weight:900; font-size:12px; margin-bottom:6px; }
+    input, textarea, select{ width:100%; border-radius:12px; border:1px solid rgba(15,23,42,.18); padding:10px 12px; background:#fff; box-sizing:border-box; font-size:14px; font:inherit; }
+    textarea{ min-height:90px; resize:vertical; }
+    .actions{ display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:8px; }
+    .btnDark{ border:1px solid rgba(15,23,42,.10); background: rgba(15,23,42,.06); color:#0f172a; }
+    .muted{ color:#64748b; font-size:12px; }
+    .msg{ margin-top:10px; font-size:13px; padding:10px 12px; border-radius:12px; border:1px solid rgba(15,23,42,.12); background: rgba(255,255,255,.70); color:#0f172a; display:none; white-space: pre-line; }
+    .msg.ok{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); color:#166534; display:block; }
+    .msg.err{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); color:#991b1b; display:block; }
+    .tableWrap{ overflow:auto; border-radius:18px; border:1px solid rgba(15,23,42,.10); background: rgba(255,255,255,.70); }
+    table{ width:100%; border-collapse:collapse; min-width:760px; }
+    th, td{ text-align:left; padding:10px 12px; border-bottom:1px solid rgba(15,23,42,.08); font-size:13px; vertical-align:middle; }
+    th{ font-size:12px; text-transform:uppercase; letter-spacing:.9px; color:#334155; background: rgba(255,255,255,.55); position:sticky; top:0; }
+    tr:hover td{ background: rgba(124,58,237,.06); cursor:pointer; }
+    .win{ color:#166534; font-weight:900; }
+    .lose{ color:#991b1b; font-weight:900; }
+    .emptyHint{ display:none; margin-top:10px; }
+    @media (max-width:760px){
+      .topbar{ padding:10px; }
+      .bar{ gap:8px; }
+      .brand{ width:100%; }
+      .nav{ order:3; width:100%; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .nav .btn{ flex:0 0 auto; }
+      .spacer{ display:none; }
+      .wrap{ padding:0 10px; margin:12px auto 22px; }
+      table{ min-width:620px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar">
+      <div class="brand">BARATEAM HUB · resultados</div>
+      <div class="nav">
+        <a class="btn" href="index.html">Home</a>
+        <a class="btn" href="decks.html">Decks</a>
+        <a class="btn primary" href="results.html">Resultados</a>
+      </div>
+      <div class="spacer"></div>
+      <span class="pill" id="today"></span>
+      <button class="btn" id="btnLogout" type="button">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>Resultados de torneo</h1>
+      <p>Solo verás y editarás tus resultados.</p>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Nuevo resultado</div>
+      <div class="formGrid">
+        <div class="span2">
+          <label for="event">Evento/Torneo</label>
+          <select id="event"><option value="">(Selecciona evento)</option></select>
+        </div>
+        <div class="span2">
+          <label for="leader">Líder jugado</label>
+          <select id="leader"><option value="">(Selecciona líder)</option></select>
+        </div>
+        <div>
+          <label for="wins">Wins</label>
+          <input id="wins" type="number" min="0" step="1" placeholder="Ej: 4" />
+        </div>
+        <div>
+          <label for="loses">Loses</label>
+          <input id="loses" type="number" min="0" step="1" placeholder="Ej: 1" />
+        </div>
+        <div class="span2">
+          <label for="description">Notas / info</label>
+          <textarea id="description" placeholder="Matchups, techs, ronda final, etc."></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="muted">Se vincula automáticamente a tu usuario.</span>
+        <button class="btn btnDark" id="btnCreate" type="button">Guardar resultado</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Listado</div>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Evento</th>
+              <th>Fecha evento</th>
+              <th>Líder jugado</th>
+              <th>Resultado</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="muted emptyHint" id="emptyHint">No tienes resultados todavía.</div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const $ = (id) => document.getElementById(id);
+
+    let currentUser = null;
+    let events = [];
+    let eventsById = new Map();
+    let leaders = [];
+    let leadersById = new Map();
+
+    function fmtDate(v){ return (v || "").slice(0,10) || "—"; }
+    function esc(s){ return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;"); }
+    function show(text, type){ const m=$("msg"); m.className = "msg " + (type || ""); m.textContent=text; m.style.display="block"; }
+    function clearMsg(){ const m=$("msg"); m.className="msg"; m.textContent=""; m.style.display="none"; }
+
+    function eventTitle(ev){ return ev?.title || ev?.name || ev?.event_name || "—"; }
+    function eventDate(ev){ return fmtDate(ev?.start_at || ev?.date || ev?.event_date); }
+    function leaderLabel(l){
+      const name = l?.name || l?.leader || l?.title || "";
+      const code = l?.code || l?.expansion || "";
+      return [name, code].filter(Boolean).join(" ").trim() || "—";
+    }
+
+    async function requireSession(){
+      const { data } = await sb.auth.getSession();
+      const user = data?.session?.user || null;
+      if (!user){
+        location.href = "login.html";
+        return null;
+      }
+      currentUser = user;
+      return user;
+    }
+
+    async function loadEvents(){
+      const { data, error } = await sb
+        .from("events")
+        .select("*")
+        .order("start_at", { ascending: false })
+        .limit(500);
+
+      if (error){
+        console.warn("events:", error.message);
+        events = [];
+      } else {
+        events = data || [];
+      }
+
+      eventsById = new Map(events.map(e => [e.id, e]));
+      const sel = $("event");
+      sel.innerHTML = '<option value="">(Selecciona evento)</option>';
+      for (const e of events){
+        const opt = document.createElement("option");
+        opt.value = e.id;
+        opt.textContent = `${eventTitle(e)} · ${eventDate(e)}`;
+        sel.appendChild(opt);
+      }
+    }
+
+    async function loadLeaders(){
+      const { data, error } = await sb
+        .from("leaders")
+        .select("*")
+        .order("name", { ascending: true })
+        .limit(500);
+
+      if (error){
+        console.warn("leaders:", error.message);
+        leaders = [];
+      } else {
+        leaders = data || [];
+      }
+
+      leadersById = new Map(leaders.map(l => [l.id, l]));
+      const sel = $("leader");
+      sel.innerHTML = '<option value="">(Selecciona líder)</option>';
+      for (const l of leaders){
+        const opt = document.createElement("option");
+        opt.value = l.id;
+        opt.textContent = leaderLabel(l);
+        sel.appendChild(opt);
+      }
+    }
+
+    async function fetchResults(){
+      const { data, error } = await sb
+        .from("results")
+        .select("id,created_at,wins,loses,event,leader,description,autor")
+        .eq("autor", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(300);
+
+      if (error){
+        console.warn("results:", error.message);
+        return [];
+      }
+      return data || [];
+    }
+
+    function renderResults(rows){
+      const tb = $("tbody");
+      tb.innerHTML = "";
+
+      const empty = !rows || rows.length === 0;
+      $("emptyHint").style.display = empty ? "block" : "none";
+      if (empty) return;
+
+      for (const r of rows){
+        const ev = eventsById.get(r.event) || null;
+        const ld = leadersById.get(r.leader) || null;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${esc(eventTitle(ev))}</td>
+          <td>${esc(eventDate(ev))}</td>
+          <td>${esc(leaderLabel(ld))}</td>
+          <td><span class="win">${Number(r.wins || 0)}</span> - <span class="lose">${Number(r.loses || 0)}</span></td>
+        `;
+        tr.addEventListener("click", () => {
+          location.href = `result.html?id=${encodeURIComponent(r.id)}`;
+        });
+        tb.appendChild(tr);
+      }
+    }
+
+    async function createResult(){
+      clearMsg();
+
+      const event = $("event").value;
+      const leader = $("leader").value;
+      const wins = Number($("wins").value);
+      const loses = Number($("loses").value);
+      const description = $("description").value.trim();
+
+      if (!event) return show("Selecciona un evento.", "err");
+      if (!leader) return show("Selecciona un líder.", "err");
+      if (!Number.isFinite(wins) || wins < 0) return show("Wins inválido.", "err");
+      if (!Number.isFinite(loses) || loses < 0) return show("Loses inválido.", "err");
+
+      const payload = {
+        autor: currentUser.id,
+        event,
+        leader,
+        wins,
+        loses,
+        description: description || null
+      };
+
+      const { error } = await sb.from("results").insert(payload);
+      if (error) return show("Error guardando: " + error.message, "err");
+
+      $("event").value = "";
+      $("leader").value = "";
+      $("wins").value = "";
+      $("loses").value = "";
+      $("description").value = "";
+      show("Resultado guardado ✅", "ok");
+
+      renderResults(await fetchResults());
+    }
+
+    $("btnCreate").addEventListener("click", createResult);
+    $("btnLogout").addEventListener("click", async () => {
+      await sb.auth.signOut();
+      location.href = "login.html";
+    });
+
+    (function(){ const d=new Date(); $("today").textContent = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })();
+
+    (async function init(){
+      const user = await requireSession();
+      if (!user) return;
+      await loadEvents();
+      await loadLeaders();
+      renderResults(await fetchResults());
+      sb.auth.onAuthStateChange((_e, s) => { if (!s?.user) location.href = "login.html"; });
+    })();
+  </script>
+</body>
+</html>
