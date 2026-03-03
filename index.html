@@ -991,7 +991,6 @@
     const btn = $("btnPublish");
 
     if (!title || !body) return showPostMsg("Pon titulo y contenido.", "err");
-    if (!currentUser?.id) return showPostMsg("Inicia sesion para publicar.", "err");
 
     try{
       if (btn) btn.disabled = true;
@@ -1000,7 +999,13 @@
         return;
       }
 
-      const authorId = currentUser.id;
+      const { data: authData, error: authErr } = await sb.auth.getUser();
+      if (authErr) throw authErr;
+      const authorId = authData?.user?.id || null;
+      if (!authorId){
+        showPostMsg("Inicia sesion para publicar.", "err");
+        return;
+      }
 
       let image_url = null;
       if (file){
@@ -1240,37 +1245,6 @@
     const d = new Date();
     viewDate = new Date(d.getFullYear(), d.getMonth(), 1);
     await refreshCalendarOnly();
-  });
-
-  // Fallback robusto: si algun listener directo no se engancha por cache/DOM,
-  // seguimos capturando acciones clave por delegacion.
-  document.addEventListener("click", async (ev) => {
-    const btn = ev.target?.closest?.("button");
-    if (!btn) return;
-
-    if (btn.id === "btnPrev"){
-      ev.preventDefault();
-      viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
-      await refreshCalendarOnly();
-      return;
-    }
-    if (btn.id === "btnNext"){
-      ev.preventDefault();
-      viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
-      await refreshCalendarOnly();
-      return;
-    }
-    if (btn.id === "btnToday"){
-      ev.preventDefault();
-      const d = new Date();
-      viewDate = new Date(d.getFullYear(), d.getMonth(), 1);
-      await refreshCalendarOnly();
-      return;
-    }
-    if (btn.id === "btnPublish"){
-      ev.preventDefault();
-      await publishPost();
-    }
   });
 
   (async function(){
