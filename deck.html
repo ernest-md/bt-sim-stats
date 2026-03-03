@@ -6,6 +6,7 @@
   <title>Deck � Barateam Hub</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 
   <style>
     :root{
@@ -283,40 +284,19 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = window.BarateamApp.createClient();
 
-    const $ = (id) => document.getElementById(id);
+    const $ = window.BarateamApp.byId;
 
     let currentUser = null;
     let deckId = null;
     let profileCache = new Map();
     let socialState = { comments: [], likes: [], likedByMe: false };
 
-    function escapeHtml(s){
-      return String(s ?? "")
-        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-    }
-    function showError(text){
-      const m = $("msg");
-      m.style.display = "block";
-      m.textContent = text;
-    }
-    function formatDate(value){
-      if (!value) return "-";
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return String(value).slice(0,10);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const da = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${da}`;
-    }
-    function formatDateTime(value){
-      if (!value) return "-";
-      return String(value).slice(0,16).replace("T", " ");
-    }
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const showError = (text) => window.BarateamApp.showMessage("msg", text);
+    const formatDate = window.BarateamApp.formatDate;
+    const formatDateTime = window.BarateamApp.formatDateTime;
 
     function setImage(el, url){
       if (url){

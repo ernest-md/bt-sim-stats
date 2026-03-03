@@ -51,23 +51,6 @@
     }
 
     /* topbar */
-    .topbar{
-      position: sticky;
-      top:0;
-      z-index:10;
-      backdrop-filter: blur(14px);
-      background: rgba(15, 23, 42, .55);
-      border-bottom: 1px solid rgba(255,255,255,.12);
-      padding: 12px 14px;
-    }
-    .bar{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
     .brand{
       display:flex;
       flex-direction: column;
@@ -83,105 +66,6 @@
       color: rgba(255,255,255,.72);
       letter-spacing:.2px;
     }
-    .nav{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .btn{
-      appearance:none;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.10);
-      color:#fff;
-      padding: 9px 12px;
-      border-radius: 12px;
-      cursor:pointer;
-      transition: transform .08s ease, background .2s ease, border-color .2s ease;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      text-decoration:none;
-      user-select:none;
-      white-space: nowrap;
-      font: inherit;
-    }
-    .btn:hover{
-      background: rgba(255,255,255,.16);
-      border-color: rgba(255,255,255,.28);
-    }
-    .btn:active{ transform: translateY(1px); }
-    .btn.primary{
-      border-color: rgba(255,255,255,.22);
-      background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22));
-    }
-    .btn.primary:hover{
-      background: linear-gradient(135deg, rgba(124,58,237,.52), rgba(6,182,212,.30));
-    }
-    .btn.active{
-      background: rgba(255,255,255,.22);
-      border-color: rgba(255,255,255,.35);
-      box-shadow: 0 6px 18px rgba(0,0,0,.22);
-    }
-
-    .spacer{ flex:1; }
-
-    /* ===== User menu (derecha) ===== */
-    .userwrap{ position: relative; display:flex; align-items:center; }
-    .userbtn{
-      border-color: rgba(255,255,255,.22);
-      background: rgba(255,255,255,.12);
-    }
-    .userbtn .avatar{
-      width: 22px; height: 22px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.6));
-      box-shadow: 0 8px 18px rgba(0,0,0,.18);
-      display:inline-block;
-    }
-    .userbtn .chev{ opacity:.85; font-size: 12px; margin-left: 2px; }
-
-    .menu{
-      position:absolute;
-      right:0;
-      top: calc(100% + 10px);
-      min-width: 220px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(15, 23, 42, .85);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 18px 50px rgba(0,0,0,.35);
-      overflow:hidden;
-      display:none;
-    }
-    .menu.open{ display:block; }
-    .menu .head{
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      color: rgba(255,255,255,.9);
-      font-size: 12px;
-      line-height: 1.2;
-    }
-    .menu .head strong{ display:block; font-size: 13px; }
-    .menu a, .menu button{
-      width:100%;
-      text-align:left;
-      background: transparent;
-      border:0;
-      color: rgba(255,255,255,.92);
-      padding: 10px 12px;
-      cursor:pointer;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      font: inherit;
-    }
-    .menu a{ text-decoration:none; }
-    .menu a:hover, .menu button:hover{
-      background: rgba(255,255,255,.10);
-    }
-    .menu .danger{ color: #fecaca; }
-    .menu .sep{ height:1px; background: rgba(255,255,255,.10); }
 
     /* card */
     .wrap{
@@ -281,28 +165,17 @@
     }
 
     @media (max-width: 760px){
-      .topbar{ padding: 10px; }
-      .bar{ gap:8px; }
       .brand{ width:100%; margin-right:0; }
       .brand small{ font-size: 11px; }
-      .nav{
-        order:3;
-        width:100%;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 2px;
-      }
-      .nav .btn{ flex: 0 0 auto; }
-      .spacer{ display:none; }
-      .menu{ left:0; right:auto; max-width: calc(100vw - 24px); min-width: 200px; }
       .wrap{ padding: 10px; margin: 10px auto 20px; }
       .panel{ margin-top: 10px; padding: 12px; border-radius: 16px; }
       .row .btn{ width: 100%; justify-content: center; }
     }
   </style>
 
+  <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 </head>
 
 <body>
@@ -382,59 +255,22 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = window.BarateamApp.createClient();
 
-    const $ = (id) => document.getElementById(id);
+    const $ = window.BarateamApp.byId;
 
-    async function onProtectedNavClick(e){
-      e.preventDefault();
-      const href = e.currentTarget.getAttribute("href");
-      try{
-        const { data } = await sb.auth.getSession();
-        if (!data?.session?.user){
-          alert("Para acceder a este apartado tienes que registrarte.");
-          return;
-        }
-        location.href = href;
-      }catch(_err){
-        alert("Para acceder a este apartado tienes que registrarte.");
-      }
-    }
-    function bindProtectedNavLinks(){
-      document.querySelectorAll('a[data-requires-auth="1"]').forEach((a) => {
-        a.addEventListener("click", onProtectedNavClick);
-      });
-    }
-    bindProtectedNavLinks();
+    window.BarateamApp.bindProtectedNavLinks(sb);
 
-    function showMsg(text, type){
-      const el = $("msg");
-      el.style.display = "block";
-      el.className = "msg" + (type ? " " + type : "");
-      el.textContent = text;
-    }
+    const showMsg = (text, type) => window.BarateamApp.showMessage("msg", text, { baseClass: "msg", type });
 
-    function closeUserMenu(){ $("userMenu").classList.remove("open"); }
-    function toggleUserMenu(){ $("userMenu").classList.toggle("open"); }
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => { await window.doLogout(); },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
 
     function setNavAuthUI(user){
-      const navLogin = $("navLogin");
-      const navUser  = $("navUser");
-
-      if (user){
-        navLogin.style.display = "none";
-        navUser.style.display = "flex";
-
-        const email = user.email || "user";
-        $("userEmail").textContent = email;
-        $("userLabel").textContent = email.split("@")[0] || "Usuario";
-      } else {
-        navLogin.style.display = "inline-flex";
-        navUser.style.display = "none";
-        closeUserMenu();
-      }
+      navController.setUser(user || null);
     }
 
     async function refreshSession(){
@@ -495,31 +331,7 @@
         console.error(e);
         showMsg("Error: " + (e.message || "logout"), "err");
       }
-    };
-
-    // UI events (dropdown)
-    $("userBtn").addEventListener("click", (e) => {
-      e.preventDefault();
-      toggleUserMenu();
-    });
-
-    $("menuLogout").addEventListener("click", async (e) => {
-      e.preventDefault();
-      closeUserMenu();
-      await window.doLogout();
-    });
-
-    // Cerrar menú al clicar fuera / Escape
-    document.addEventListener("click", (e) => {
-      const wrap = $("navUser");
-      if (!wrap || wrap.style.display === "none") return;
-      if (!wrap.contains(e.target)) closeUserMenu();
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeUserMenu();
-    });
-
-    // init
+    };`r`n`r`n    // init
     (async function(){
       await refreshSession();
 
@@ -530,3 +342,4 @@
   </script>
 </body>
 </html>
+

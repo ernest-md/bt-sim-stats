@@ -1,0 +1,255 @@
+(function(window){
+  "use strict";
+
+  const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
+
+  function createClient(options){
+    if (!window.supabase || typeof window.supabase.createClient !== "function"){
+      throw new Error("Supabase client is not available.");
+    }
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, options || undefined);
+  }
+
+  function byId(id){
+    return document.getElementById(id);
+  }
+
+  function escapeHtml(value){
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeAttr(value){
+    return String(value ?? "").replace(/"/g, "&quot;");
+  }
+
+  function showMessage(target, text, options){
+    const node = typeof target === "string" ? byId(target) : target;
+    if (!node) return;
+    const opts = options || {};
+    const type = opts.type || "";
+    if (opts.baseClass){
+      node.className = type ? `${opts.baseClass} ${type}` : opts.baseClass;
+    }
+    if (opts.display !== false){
+      node.style.display = opts.display || "block";
+    }
+    node.textContent = text;
+  }
+
+  function formatDate(value, fallback){
+    const emptyFallback = fallback === undefined ? "-" : fallback;
+    if (!value) return emptyFallback;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value).slice(0, 10) || emptyFallback;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function formatDateTime(value, fallback){
+    const emptyFallback = fallback === undefined ? "-" : fallback;
+    if (!value) return emptyFallback;
+    const raw = String(value);
+    if (raw.includes("T")) return raw.slice(0, 16).replace("T", " ");
+    return raw.slice(0, 16) || emptyFallback;
+  }
+
+  function isNonNegativeNumber(value){
+    return Number.isFinite(value) && value >= 0;
+  }
+
+  function eventTitle(eventRow){
+    return eventRow?.title || eventRow?.name || eventRow?.event_name || "—";
+  }
+
+  function eventDate(eventRow){
+    return formatDate(eventRow?.start_at || eventRow?.date || eventRow?.event_date, "—");
+  }
+
+  function leaderLabel(leaderRow){
+    const name = leaderRow?.name || leaderRow?.leader || leaderRow?.title || "";
+    const code = leaderRow?.code || leaderRow?.expansion || "";
+    const label = [name, code].filter(Boolean).join(" ").trim();
+    return label || "—";
+  }
+
+  async function getSessionUser(sb){
+    const { data } = await sb.auth.getSession();
+    return data?.session?.user || null;
+  }
+
+  async function protectedNavClick(e, sb, options){
+    if (e.defaultPrevented) return;
+    if (e.button && e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    e.preventDefault();
+
+    const href = e.currentTarget.getAttribute("href");
+    const message = options?.message || "Para acceder a este apartado tienes que registrarte.";
+    if (!href) return;
+
+    try{
+      const user = await getSessionUser(sb);
+      if (!user){
+        window.alert(message);
+        return;
+      }
+      window.location.href = href;
+    }catch(_err){
+      window.alert(message);
+    }
+  }
+
+  function bindProtectedNavLinks(sb, options){
+    if (!sb) return;
+    const selector = options?.selector || 'a[data-requires-auth="1"]';
+    document.querySelectorAll(selector).forEach((a) => {
+      if (a.dataset.authBound === "1") return;
+      a.dataset.authBound = "1";
+      a.addEventListener("click", (e) => protectedNavClick(e, sb, options));
+    });
+  }
+
+  function setTopbarDate(target, options){
+    const node = typeof target === "string" ? document.getElementById(target) : target;
+    if (!node) return;
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const prefix = options?.prefix || "";
+    node.textContent = `${prefix}${y}-${m}-${day}`;
+  }
+
+  function initUserNav(options){
+    const cfg = options || {};
+    const getById = cfg.getById || ((id) => document.getElementById(id));
+
+    const ids = {
+      login: cfg.loginId || "navLogin",
+      userWrap: cfg.userWrapId || "navUser",
+      userBtn: cfg.userBtnId || "userBtn",
+      userMenu: cfg.userMenuId || "userMenu",
+      userEmail: cfg.userEmailId === undefined ? "userEmail" : cfg.userEmailId,
+      userLabel: cfg.userLabelId === undefined ? "userLabel" : cfg.userLabelId,
+      logoutBtn: cfg.logoutBtnId === undefined ? "menuLogout" : cfg.logoutBtnId
+    };
+
+    const navLogin = getById(ids.login);
+    const userWrap = getById(ids.userWrap);
+    const userBtn = getById(ids.userBtn);
+    const userMenu = getById(ids.userMenu);
+    const userEmail = ids.userEmail ? getById(ids.userEmail) : null;
+    const userLabel = ids.userLabel ? getById(ids.userLabel) : null;
+    const logoutBtn = ids.logoutBtn ? getById(ids.logoutBtn) : null;
+    const userDisplay = cfg.userDisplay || "flex";
+
+    const formatLabel = cfg.formatLabel || ((user) => {
+      const email = user?.email || "Usuario";
+      return email.includes("@") ? (email.split("@")[0] || "Usuario") : email;
+    });
+    const formatEmail = cfg.formatEmail || ((user) => user?.email || "user");
+
+    function closeMenu(){
+      if (userMenu) userMenu.classList.remove("open");
+    }
+
+    function toggleMenu(){
+      if (userMenu) userMenu.classList.toggle("open");
+    }
+
+    function setUser(user){
+      if (navLogin){
+        navLogin.style.display = user ? "none" : "inline-flex";
+      }
+      if (userWrap){
+        userWrap.style.display = user ? userDisplay : "none";
+      }
+      if (userEmail && user){
+        userEmail.textContent = formatEmail(user);
+      }
+      if (userLabel && user){
+        userLabel.textContent = formatLabel(user);
+      }
+      if (!user){
+        closeMenu();
+      }
+    }
+
+    if (userBtn && !userBtn.dataset.navBound){
+      userBtn.dataset.navBound = "1";
+      userBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (cfg.stopPropagationOnToggle) e.stopPropagation();
+        toggleMenu();
+      });
+    }
+
+    if (logoutBtn && typeof cfg.onLogout === "function" && !logoutBtn.dataset.navBound){
+      logoutBtn.dataset.navBound = "1";
+      logoutBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        closeMenu();
+        await cfg.onLogout();
+      });
+    }
+
+    if (!document.body.dataset.navDocBound){
+      document.body.dataset.navDocBound = "1";
+      document.addEventListener("click", (e) => {
+        document.querySelectorAll('[data-nav-user-wrap]').forEach((wrapEl) => {
+          const menuEl = document.getElementById(wrapEl.dataset.navUserMenu || "");
+          if (!menuEl) return;
+          if (wrapEl.style.display === "none") return;
+          if (!wrapEl.contains(e.target)) menuEl.classList.remove("open");
+        });
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        document.querySelectorAll('[data-nav-user-menu]').forEach((menuEl) => menuEl.classList.remove("open"));
+      });
+    }
+
+    if (userWrap){
+      userWrap.dataset.navUserWrap = "1";
+      userWrap.dataset.navUserMenu = ids.userMenu || "";
+    }
+    if (userMenu){
+      userMenu.dataset.navUserMenu = "1";
+    }
+
+    return {
+      setUser,
+      closeMenu,
+      toggleMenu
+    };
+  }
+
+  window.BarateamApp = {
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    createClient,
+    byId,
+    escapeHtml,
+    escapeAttr,
+    showMessage,
+    formatDate,
+    formatDateTime,
+    isNonNegativeNumber,
+    eventTitle,
+    eventDate,
+    leaderLabel,
+    getSessionUser,
+    bindProtectedNavLinks,
+    setTopbarDate,
+    initUserNav
+  };
+})(window);

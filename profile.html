@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Perfil · Barateam Hub</title>
 
+  <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 
   <style>
     :root{
@@ -52,24 +54,6 @@
     }
 
     /* ===== Topbar / navegación ===== */
-    .topbar{
-      position: sticky;
-      top:0;
-      z-index:10;
-      backdrop-filter: blur(14px);
-      background: rgba(15, 23, 42, .55);
-      border-bottom: 1px solid rgba(255,255,255,.12);
-      padding: 12px 14px;
-    }
-
-    .bar{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
 
     .brand{
       display:flex;
@@ -87,67 +71,15 @@
       letter-spacing:.2px;
     }
 
-    .nav{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
 
-    .btn{
-      appearance:none;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.10);
-      color:#fff;
-      padding: 9px 12px;
-      border-radius: 12px;
-      cursor:pointer;
-      transition: transform .08s ease, background .2s ease, border-color .2s ease;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      text-decoration:none;
-      user-select:none;
-      white-space: nowrap;
-    }
-    .btn:hover{
-      background: rgba(255,255,255,.16);
-      border-color: rgba(255,255,255,.28);
-    }
-    .btn:active{ transform: translateY(1px); }
-
-    .btn.primary{
-      border-color: rgba(255,255,255,.22);
-      background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22));
-    }
-    .btn.primary:hover{
-      background: linear-gradient(135deg, rgba(124,58,237,.52), rgba(6,182,212,.30));
-    }
-    .btn.active{
-      background: rgba(255,255,255,.22);
-      border-color: rgba(255,255,255,.35);
-      box-shadow: 0 6px 18px rgba(0,0,0,.22);
-    }
-
-    .spacer{ flex:1; }
-
-    /* ===== User dropdown ===== */
-    .userWrap{ position: relative; }
-    .menu{
-      position:absolute;
-      right:0;
-      top: calc(100% + 10px);
-      min-width: 220px;
-      border-radius: 14px;
+    /* ===== User dropdown (perfil override) ===== */
+    .menu.profile{
       border: 1px solid rgba(255,255,255,.16);
       background: rgba(15,23,42,.88);
       backdrop-filter: blur(14px);
-      box-shadow: 0 18px 50px rgba(0,0,0,.35);
       padding: 6px;
-      display:none;
     }
-    .menu.open{ display:block; }
-    .menu a, .menu button{
+    .menu.profile a, .menu.profile button{
       width:100%;
       text-align:left;
       border-radius: 12px;
@@ -163,22 +95,17 @@
       font-size: 13px;
       text-decoration:none;
     }
-    .menu a:hover, .menu button:hover{
+    .menu.profile a:hover, .menu.profile button:hover{
       background: rgba(255,255,255,.08);
       border-color: rgba(255,255,255,.10);
     }
-    .menu .sep{
+    .menu.profile .sep{
       height:1px;
       background: rgba(255,255,255,.10);
       margin: 6px 6px;
     }
 
     /* ===== Contenido perfil ===== */
-    .wrap{
-      max-width: 1100px;
-      margin: 16px auto 28px;
-      padding: 0 14px;
-    }
 
     .panel{
       max-width: 640px;
@@ -240,22 +167,8 @@
     .err{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); color:#991b1b; }
 
     @media (max-width: 760px){
-      .topbar{ padding: 10px; }
-      .bar{ gap:8px; }
       .brand{ width:100%; margin-right:0; }
       .brand small{ font-size: 11px; }
-      .nav{
-        order:3;
-        width:100%;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 2px;
-      }
-      .nav .btn{ flex: 0 0 auto; }
-      .spacer{ display:none; }
-      .menu{ left:0; right:auto; max-width: calc(100vw - 24px); min-width: 200px; }
-      .wrap{ padding: 0 10px; margin: 12px auto 22px; }
       .panel{ margin-top: 10px; padding: 12px; border-radius: 16px; }
       .saveBtn{ width:100%; }
     }
@@ -285,9 +198,9 @@
       <!-- ✅ derecha del todo: login o usuario -->
       <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
 
-      <div class="userWrap" id="userWrap" style="display:none;">
+      <div class="userwrap" id="userWrap" style="display:none;">
         <button class="btn primary" id="userBtn" type="button">👤 Usuario</button>
-        <div class="menu" id="userMenu">
+        <div class="menu profile" id="userMenu">
           <a href="profile.html">👁️ Ver perfil</a>
           <div class="sep"></div>
           <button type="button" onclick="doLogout()">🚪 Cerrar sesión</button>
@@ -320,79 +233,30 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const $ = (id) => document.getElementById(id);
+    window.BarateamApp.bindProtectedNavLinks(sb);
 
-    async function onProtectedNavClick(e){
-      e.preventDefault();
-      const href = e.currentTarget.getAttribute("href");
-      try{
-        const { data } = await sb.auth.getSession();
-        if (!data?.session?.user){
-          alert("Para acceder a este apartado tienes que registrarte.");
-          return;
-        }
-        location.href = href;
-      }catch(_err){
-        alert("Para acceder a este apartado tienes que registrarte.");
-      }
-    }
-    function bindProtectedNavLinks(){
-      document.querySelectorAll('a[data-requires-auth="1"]').forEach((a) => {
-        a.addEventListener("click", onProtectedNavClick);
-      });
-    }
-    bindProtectedNavLinks();
-
-    function show(text, type){
-      const m = $("msg");
-      m.style.display = "block";
-      m.className = "msg " + type;
-      m.textContent = text;
-    }
+    const show = (text, type) => window.BarateamApp.showMessage("msg", text, { baseClass: "msg", type });
 
     /* ===== Nav auth UI ===== */
+    const navController = window.BarateamApp.initUserNav({
+      userWrapId: "userWrap",
+      userDisplay: "flex",
+      userLabelId: "userBtn",
+      userEmailId: null,
+      logoutBtnId: null,
+      stopPropagationOnToggle: true,
+      formatLabel: (user) => "👤 " + (user?.email || "Usuario")
+    });
+
     function setNavUser(user){
-      const navLogin = $("navLogin");
-      const userWrap = $("userWrap");
-      const userBtn = $("userBtn");
-
-      if (user){
-        navLogin.style.display = "none";
-        userWrap.style.display = "block";
-        userBtn.textContent = "👤 " + (user.email || "Usuario");
-      } else {
-        navLogin.style.display = "inline-flex";
-        userWrap.style.display = "none";
-      }
+      navController.setUser(user || null);
     }
-
-    function closeUserMenu(){
-      $("userMenu").classList.remove("open");
-    }
-
-    function toggleUserMenu(){
-      $("userMenu").classList.toggle("open");
-    }
-
-    document.addEventListener("click", (e) => {
-      const wrap = $("userWrap");
-      const menu = $("userMenu");
-      if (!wrap || wrap.style.display === "none") return;
-      if (menu.classList.contains("open") && !wrap.contains(e.target)) closeUserMenu();
-    });
-
-    $("userBtn")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleUserMenu();
-    });
 
     async function doLogout(){
-      closeUserMenu();
+      navController.closeMenu();
       const { error } = await sb.auth.signOut();
       if (error) alert("Error al salir: " + error.message);
       location.href = "index.html";

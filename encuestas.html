@@ -4,18 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Encuestas · Barateam Hub</title>
+  <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
   <style>
     :root{ --bg:#0b1220; --card: rgba(255,255,255,.92); --shadow: 0 18px 50px rgba(0,0,0,.35); }
     body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:#0f172a; }
     body::before{ content:""; position:fixed; inset:0; background: radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%), radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%), linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)), url("bg.png"); background-size:cover; background-position:center; z-index:-1; }
-    .topbar{ position:sticky; top:0; z-index:10; backdrop-filter: blur(14px); background: rgba(15,23,42,.55); border-bottom:1px solid rgba(255,255,255,.12); padding:12px 14px; }
-    .bar{ max-width:1100px; margin:0 auto; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
     .brand{ color:#fff; font-weight:900; letter-spacing:.4px; }
     .nav{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .btn{ border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.10); color:#fff; padding:9px 12px; border-radius:12px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
-    .btn.primary{ background: linear-gradient(135deg, rgba(124,58,237,.40), rgba(6,182,212,.22)); border-color: rgba(255,255,255,.22); }
-    .wrap{ max-width:1100px; margin:16px auto 28px; padding:0 14px; }
     .hero{ border-radius:24px; padding:18px 16px; color:#fff; border:1px solid rgba(255,255,255,.14); background: radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%), radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%), linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72)); box-shadow:0 18px 50px rgba(0,0,0,.28); }
     .hero h1{ margin:0; font-size:24px; font-weight:1000; }
     .hero p{ margin:8px 0 0; color: rgba(255,255,255,.82); font-size:13px; }
@@ -28,7 +25,7 @@
     th{ font-size:12px; text-transform:uppercase; letter-spacing:.9px; color:#334155; background: rgba(255,255,255,.55); position:sticky; top:0; }
     tr:hover td{ background: rgba(124,58,237,.06); cursor:pointer; }
     .muted{ color:#64748b; font-size:12px; }
-    @media (max-width:760px){ .topbar{ padding:10px; } .bar{ gap:8px; } .brand{ width:100%; } .nav{ order:3; width:100%; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; } .nav .btn{ flex:0 0 auto; } .wrap{ padding:0 10px; margin:12px auto 22px; } table{ min-width:620px; } }
+    @media (max-width:760px){ table{ min-width:620px; } }
   </style>
 </head>
 <body>
@@ -75,30 +72,8 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    async function onProtectedNavClick(e){
-      e.preventDefault();
-      const href = e.currentTarget.getAttribute("href");
-      try{
-        const { data } = await sb.auth.getSession();
-        if (!data?.session?.user){
-          alert("Para acceder a este apartado tienes que registrarte.");
-          return;
-        }
-        location.href = href;
-      }catch(_err){
-        alert("Para acceder a este apartado tienes que registrarte.");
-      }
-    }
-    function bindProtectedNavLinks(){
-      document.querySelectorAll('a[data-requires-auth="1"]').forEach((a) => {
-        a.addEventListener("click", onProtectedNavClick);
-      });
-    }
-    bindProtectedNavLinks();
+    const sb = window.BarateamApp.createClient();
+    window.BarateamApp.bindProtectedNavLinks(sb);
 
     document.querySelectorAll("#tbody tr[data-href]").forEach((tr) => {
       tr.addEventListener("click", () => {
