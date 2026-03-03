@@ -30,7 +30,7 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="bar">
+    <div class="bar with-auth-corner">
       <div class="brand">BARATEAM HUB · encuestas</div>
       <div class="nav">
         <a class="btn" href="index.html">🏠 Home</a>
@@ -39,6 +39,26 @@
         <a class="btn" href="decks.html">🃏 DeckLists</a>
         <a class="btn" href="results.html" data-requires-auth="1">🏆 Results</a>
         <a class="btn primary active" href="encuestas.html">🗳️ Encuestas</a>
+      </div>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
       </div>
     </div>
   </div>
@@ -81,6 +101,14 @@
   <script>
     const sb = window.BarateamApp.createClient();
     window.BarateamApp.bindProtectedNavLinks(sb);
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
 
     document.querySelectorAll("#tbody tr[data-href]").forEach((tr) => {
       tr.addEventListener("click", () => {
@@ -88,6 +116,16 @@
         if (href) location.href = href;
       });
     });
+
+    (async function initNav(){
+      const { data } = await sb.auth.getSession();
+      navController.setUser(data?.session?.user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
+      sb.auth.onAuthStateChange((_event, session) => {
+        navController.setUser(session?.user || null);
+        void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
+      });
+    })();
   </script>
 </body>
 </html>

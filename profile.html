@@ -177,7 +177,7 @@
 
 <body>
   <div class="topbar">
-    <div class="bar">
+    <div class="bar with-auth-corner">
       <div class="brand">
         BARATEAM HUB
         <small>perfil</small>
@@ -192,18 +192,21 @@
         <a class="btn" href="encuestas.html">🗳️ Encuestas</a>
       </div>
 
-      <div class="spacer"></div>
-
-      <!-- derecha del todo: login o usuario -->
-      <a class="btn" id="navLogin" href="login.html">Login</a>
-
-      <div class="userwrap" id="userWrap" style="display:none;">
-        <button class="btn primary" id="userBtn" type="button">Usuario</button>
-        <div class="menu profile" id="userMenu">
-          <a href="profile.html">Ver perfil</a>
-          <div class="sep"></div>
-          <button type="button" onclick="doLogout()">Cerrar sesion</button>
-        </div>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu profile" id="userMenu">
+        <a href="profile.html">Ver perfil</a>
+        <div class="sep"></div>
+        <button type="button" onclick="doLogout()">Cerrar sesion</button>
       </div>
     </div>
   </div>
@@ -225,11 +228,12 @@
       <label>Bio</label>
       <textarea id="bio" placeholder="Jugador de OP, main X..."></textarea>
 
-      <label>Avatar URL</label>
-      <input id="avatar_url" placeholder="https://...">
+      <label>Avatar</label>
+      <input id="avatar_file" type="file" accept="image/*">
+      <div class="muted" id="avatarCurrent" style="margin-top:6px;">Sin avatar actual.</div>
 
       <label>Perfil publico</label>
-      <input id="public_link" readonly>
+      <input id="public_link" readonly aria-readonly="true">
 
       <button class="saveBtn" onclick="saveProfile()">Guardar cambios</button>
 
@@ -240,6 +244,7 @@
   <script>
     const sb = window.BarateamApp.createClient();
     const $ = window.BarateamApp.byId;
+    let currentAvatarUrl = null;
 
     window.BarateamApp.bindProtectedNavLinks(sb);
 
@@ -258,9 +263,7 @@
 
     /* ===== Nav auth UI ===== */
     const navController = window.BarateamApp.initUserNav({
-      userWrapId: "userWrap",
       userDisplay: "flex",
-      userLabelId: "userBtn",
       userEmailId: null,
       logoutBtnId: null,
       stopPropagationOnToggle: true,
@@ -269,6 +272,7 @@
 
     function setNavUser(user){
       navController.setUser(user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, user || null);
     }
 
     async function doLogout(){
@@ -313,20 +317,41 @@
       $("username").value = data.username || "";
       $("display_name").value = data.display_name || "";
       $("bio").value = data.bio || "";
-      $("avatar_url").value = data.avatar_url || "";
+      currentAvatarUrl = data.avatar_url || null;
+      $("avatarCurrent").textContent = currentAvatarUrl ? `Avatar actual: ${currentAvatarUrl}` : "Sin avatar actual.";
       updatePublicLink(data.username || "", user.id);
+    }
+
+    async function uploadAvatarImage(file, userId){
+      if (!file) return null;
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "jpg";
+      const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
+      const path = `${userId}/${fileName}`;
+      const { error: upErr } = await sb.storage.from("avatar-images").upload(path, file, {
+        upsert: false,
+        contentType: file.type
+      });
+      if (upErr) throw upErr;
+      const { data } = sb.storage.from("avatar-images").getPublicUrl(path);
+      return data?.publicUrl || null;
     }
 
     async function saveProfile(){
       const { data: { session } } = await sb.auth.getSession();
       if (!session) return;
+      const avatarFile = $("avatar_file").files?.[0] || null;
+      let avatarUrl = currentAvatarUrl;
+      if (avatarFile){
+        avatarUrl = await uploadAvatarImage(avatarFile, session.user.id);
+      }
 
       const payload = {
         id: session.user.id,
         username: $("username").value.trim(),
         display_name: $("display_name").value.trim(),
         bio: $("bio").value.trim(),
-        avatar_url: $("avatar_url").value.trim() || null,
+        avatar_url: avatarUrl || null,
         updated_at: new Date().toISOString()
       };
 
@@ -336,7 +361,11 @@
         show("Error guardando perfil: " + error.message, "err");
       } else {
         show("Perfil guardado", "ok");
+        currentAvatarUrl = payload.avatar_url || null;
+        $("avatar_file").value = "";
+        $("avatarCurrent").textContent = currentAvatarUrl ? `Avatar actual: ${currentAvatarUrl}` : "Sin avatar actual.";
         updatePublicLink(payload.username || "", session.user.id);
+        void window.BarateamApp.syncTopbarAvatar(sb, session.user);
       }
     }
 

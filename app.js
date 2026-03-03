@@ -275,6 +275,48 @@
     };
   }
 
+  const _topbarAvatarCache = new Map();
+  async function syncTopbarAvatar(sb, user, options){
+    const opts = options || {};
+    const img = document.getElementById(opts.imgId || "navAvatarImg");
+    const fallback = document.getElementById(opts.fallbackId || "navAvatarFallback");
+    if (!img || !fallback) return;
+
+    if (!user){
+      img.style.display = "none";
+      img.removeAttribute("src");
+      fallback.style.display = "flex";
+      fallback.textContent = "?";
+      return;
+    }
+
+    const cacheKey = String(user.id || "");
+    let profile = _topbarAvatarCache.get(cacheKey);
+    if (!profile && sb){
+      const { data } = await sb
+        .from("profiles")
+        .select("avatar_url,display_name,username")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = data || {};
+      _topbarAvatarCache.set(cacheKey, profile);
+    }
+    profile = profile || {};
+
+    const name = profile.display_name || profile.username || user.email || "U";
+    const initial = String(name).trim().slice(0,1).toUpperCase() || "U";
+    if (profile.avatar_url){
+      img.src = profile.avatar_url;
+      img.style.display = "block";
+      fallback.style.display = "none";
+    } else {
+      img.style.display = "none";
+      img.removeAttribute("src");
+      fallback.style.display = "flex";
+      fallback.textContent = initial;
+    }
+  }
+
   window.BarateamApp = {
     SUPABASE_URL,
     SUPABASE_ANON_KEY,
@@ -293,6 +335,7 @@
     getSessionUser,
     bindProtectedNavLinks,
     setTopbarDate,
-    initUserNav
+    initUserNav,
+    syncTopbarAvatar
   };
 })(window);

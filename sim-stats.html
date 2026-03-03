@@ -201,7 +201,7 @@
 
 <body>
   <div class="topbar">
-    <div class="bar">
+    <div class="bar with-auth-corner">
       <div class="brand">
         BARATEAM HUB
         <small>SIM Stats</small>
@@ -216,26 +216,25 @@
         <a class="btn" href="encuestas.html">🗳️ Encuestas</a>
       </div>
 
-      <div class="spacer"></div>
-      <!-- ✅ Derecha del todo: Login O Usuario -->
-      <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
-
-      <div class="userwrap" id="navUser" style="display:none;">
-        <button class="btn userbtn" id="userBtn" type="button">
-          <span class="avatar"></span>
-          <span id="userLabel">Usuario</span>
-          <span class="chev">▾</span>
-        </button>
-
-        <div class="menu" id="userMenu">
-          <div class="head">
-            <strong id="userEmail">—</strong>
-            <span>Sesión iniciada</span>
-          </div>
-          <a href="profile.html" id="goProfile">👤 Ver perfil</a>
-          <div class="sep"></div>
-          <button class="danger" id="menuLogout" type="button">🚪 Cerrar sesión</button>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">—</strong>
+          <span>Sesion iniciada</span>
         </div>
+        <a href="profile.html" id="goProfile">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
       </div>
     </div>
   </div>
@@ -281,6 +280,7 @@
 
     function setNavAuthUI(user){
       navController.setUser(user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, user || null);
     }
 
     async function refreshSession(){

@@ -67,6 +67,58 @@
 
 .spacer{ flex: 1; }
 
+.bar.with-auth-corner{
+  padding-right: 96px;
+  box-sizing: border-box;
+}
+
+.authCorner{
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 40;
+  display:flex;
+  align-items:center;
+}
+
+.authCorner .userwrap{ position: relative; }
+
+.authCorner .userbtn{
+  width: 42px;
+  height: 42px;
+  padding: 4px;
+  border-radius: 999px;
+  justify-content: center;
+  gap: 0;
+  border-color: rgba(255,255,255,.30);
+  background: rgba(255,255,255,.16);
+}
+
+.authCorner .userbtn .chev{ display:none; }
+
+.navAvatarImg{
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  display:none;
+  border: 1px solid rgba(255,255,255,.30);
+}
+
+.navAvatarFallback{
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:1000;
+  font-size:13px;
+  color:#fff;
+  background: linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.6));
+  border: 1px solid rgba(255,255,255,.30);
+}
+
 .wrap{
   max-width: 1100px;
   margin: 16px auto 28px;
@@ -141,6 +193,9 @@
 @media (max-width:760px){
   .topbar{ padding: 10px; }
   .bar{ gap: 8px; }
+  .bar.with-auth-corner{ padding-right: 0; }
+  .authCorner{ top: 10px; right: 10px; }
+  .authCorner .btn{ padding: 8px 10px; }
   .wrap{ padding: 0 10px; margin: 12px auto 22px; }
   .brand{ width: 100%; }
   .nav{ order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }

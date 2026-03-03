@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Home · Barateam Hub</title>
+  <title>Home Â· Barateam Hub</title>
 
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -78,6 +78,48 @@
       background: rgba(255,255,255,.08);
       color: rgba(255,255,255,.86);
       white-space: nowrap;
+    }
+    .bar{ padding-right: 96px; box-sizing: border-box; }
+    .authCorner{
+      position: fixed;
+      top: 12px;
+      right: 14px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+    }
+    .authCorner .userwrap{ position: relative; }
+    .authCorner .userbtn{
+      width: 42px;
+      height: 42px;
+      padding: 4px;
+      border-radius: 999px;
+      justify-content: center;
+      gap: 0;
+      border-color: rgba(255,255,255,.30);
+      background: rgba(255,255,255,.16);
+    }
+    .authCorner .userbtn .chev{ display:none; }
+    .navAvatarImg{
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      object-fit: cover;
+      display: none;
+      border: 1px solid rgba(255,255,255,.30);
+    }
+    .navAvatarFallback{
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 1000;
+      font-size: 13px;
+      color:#fff;
+      background: linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.6));
+      border: 1px solid rgba(255,255,255,.30);
     }
 
     /* ===== Content ===== */
@@ -497,6 +539,9 @@
       .hero h1{ font-size: 22px; }
       .tooltip{ width: min(220px, calc(100vw - 60px)); left: 6px; }
       .commentComposer .btn{ width: 100%; justify-content: center; }
+      .bar{ padding-right: 0; }
+      .authCorner{ top: 10px; right: 10px; }
+      .authCorner .btn{ padding: 8px 10px; }
     }
   </style>
 </head>
@@ -506,43 +551,42 @@
     <div class="bar">
       <div class="brand">
         BARATEAM HUB
-        <small>home · tools · novedades</small>
+        <small>home Â· tools Â· novedades</small>
       </div>
 
       <div class="nav">
-        <a class="btn primary active" href="index.html">🏠 Home</a>
-        <a class="btn" href="sim-stats.html" data-requires-auth="1">📊 SIM Stats</a>
-        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
-        <a class="btn" href="decks.html">🃏 DeckLists</a>
-        <a class="btn" href="results.html" data-requires-auth="1">🏆 Results</a>
-        <a class="btn" href="encuestas.html">🗳️ Encuestas</a>
-      </div>
-
-      <div class="spacer"></div>
-
-      <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
-
-      <div class="userwrap" id="navUser" style="display:none;">
-        <button class="btn userbtn" id="userBtn" type="button">
-          <span class="avatar"></span>
-          <span id="userLabel">Usuario</span>
-          <span class="chev">▾</span>
-        </button>
-
-        <div class="menu" id="userMenu">
-          <div class="head">
-            <strong id="userEmail">—</strong>
-            <span>Sesión iniciada</span>
-          </div>
-          <a href="profile.html">👤 Ver perfil</a>
-          <div class="sep"></div>
-          <button class="danger" id="menuLogout" type="button">🚪 Cerrar sesión</button>
-        </div>
+        <a class="btn primary active" href="index.html">ðŸ  Home</a>
+        <a class="btn" href="sim-stats.html" data-requires-auth="1">ðŸ“Š SIM Stats</a>
+        <a class="btn" href="op-wrapped.html">ðŸŽ´ OP Wrapped</a>
+        <a class="btn" href="decks.html">ðŸƒ DeckLists</a>
+        <a class="btn" href="results.html" data-requires-auth="1">ðŸ† Results</a>
+        <a class="btn" href="encuestas.html">ðŸ—³ï¸ Encuestas</a>
       </div>
     </div>
   </div>
 
-  <div class="wrap">
+  <div class="authCorner">
+  <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+  <div class="userwrap" id="navUser" style="display:none;">
+    <button class="btn userbtn" id="userBtn" type="button">
+      <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+      <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+      <span id="userLabel" style="display:none;">Usuario</span>
+      <span class="chev">v</span>
+    </button>
+    <div class="menu" id="userMenu">
+      <div class="head">
+        <strong id="userEmail">—</strong>
+        <span>Sesion iniciada</span>
+      </div>
+      <a href="profile.html">Ver perfil</a>
+      <div class="sep"></div>
+      <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+    </div>
+  </div>
+  </div>
+
+<div class="wrap">
     <div class="hero">
       <h1>Bienvenidos al hub del equipo</h1>
     </div>
@@ -551,12 +595,12 @@
       <div class="card">
         <div class="sectionTitle">Posts</div>
 
-        <!-- ✅ CHAPUZA TEMPORAL: editor oculto por CSS inline -->
+        <!-- âœ… CHAPUZA TEMPORAL: editor oculto por CSS inline -->
         <div class="editor" id="postEditor" style="display:none;">
           <div class="row two">
             <div>
-              <label for="post_title">Título</label>
-              <input id="post_title" placeholder="Ej: Nueva sección de decks" />
+              <label for="post_title">TÃ­tulo</label>
+              <input id="post_title" placeholder="Ej: Nueva secciÃ³n de decks" />
             </div>
             <div>
               <label for="post_tag">Tag</label>
@@ -569,7 +613,7 @@
               <label for="post_image_file">Imagen</label>
               <input id="post_image_file" type="file" accept="image/*" />
               <div class="muted" style="margin-top:6px;">
-                Se subirá a Supabase Storage (bucket: <strong>post-images</strong>).
+                Se subirÃ¡ a Supabase Storage (bucket: <strong>post-images</strong>).
               </div>
             </div>
           </div>
@@ -577,7 +621,7 @@
           <div class="row">
             <div>
               <label for="post_body">Contenido</label>
-              <textarea id="post_body" placeholder="Escribe el post…"></textarea>
+              <textarea id="post_body" placeholder="Escribe el postâ€¦"></textarea>
             </div>
           </div>
 
@@ -597,18 +641,18 @@
 
         <div class="calendarHead">
           <div class="calNav">
-            <button class="btn btnDark" id="btnPrev" type="button">←</button>
+            <button class="btn btnDark" id="btnPrev" type="button">â†</button>
             <button class="btn btnDark" id="btnToday" type="button">Hoy</button>
-            <button class="btn btnDark" id="btnNext" type="button">→</button>
+            <button class="btn btnDark" id="btnNext" type="button">â†’</button>
           </div>
-          <div class="calTitle" id="calTitle">—</div>
+          <div class="calTitle" id="calTitle">â€”</div>
         </div>
 
         <div class="calGrid" id="calDow"></div>
         <div class="calGrid" id="calGrid"></div>
 
         <div style="height:12px;"></div>
-        <div class="sectionTitle">Próximos eventos</div>
+        <div class="sectionTitle">PrÃ³ximos eventos</div>
         <div id="upcomingList"></div>
         <div class="editor" id="eventEditor" style="display:none; margin-top:12px;">
           <div class="row">
@@ -642,7 +686,7 @@
       </div>
     </div>
 
-    <div class="foot">Hecho con ❤️ para el team · GitHub Pages</div>
+    <div class="foot">Hecho con â¤ï¸ para el team Â· GitHub Pages</div>
   </div>
 
   <script>
@@ -671,6 +715,7 @@
 
   function setNavAuthUI(user){
     navController.setUser(user || null);
+    void syncNavAvatar(user || null);
   }
 
   async function refreshSession(){
@@ -693,7 +738,7 @@
       await withTimeout(sb.auth.signOut(), 8000);
     }catch(e){
       console.warn("signOut:", e.message);
-      // aunque falle, redirigimos para “salir” visualmente
+      // aunque falle, redirigimos para â€œsalirâ€ visualmente
     }finally{
       setNavAuthUI(null);
       navController.closeMenu();
@@ -704,6 +749,45 @@
   // ===== POSTS =====
   let currentUser = null;
   const profileNameCache = new Map();
+  const navProfileCache = new Map();
+
+  async function syncNavAvatar(user){
+    const img = $("navAvatarImg");
+    const fb = $("navAvatarFallback");
+    if (!img || !fb) return;
+
+    if (!user){
+      img.style.display = "none";
+      img.removeAttribute("src");
+      fb.style.display = "flex";
+      fb.textContent = "?";
+      return;
+    }
+
+    let profile = navProfileCache.get(user.id);
+    if (!profile){
+      const { data } = await sb
+        .from("profiles")
+        .select("avatar_url,display_name,username")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = data || {};
+      navProfileCache.set(user.id, profile);
+    }
+
+    const name = profile.display_name || profile.username || user.email || "U";
+    const initial = String(name).trim().slice(0, 1).toUpperCase() || "U";
+    if (profile.avatar_url){
+      img.src = profile.avatar_url;
+      img.style.display = "block";
+      fb.style.display = "none";
+    } else {
+      img.style.display = "none";
+      img.removeAttribute("src");
+      fb.style.display = "flex";
+      fb.textContent = initial;
+    }
+  }
 
   function showPostMsg(text, type){
     const el = $("postMsg");
@@ -1104,7 +1188,7 @@
     await createEvent();
   });
 
-  // ===== EVENTS (lo dejamos como lo tenías, mock/real) =====
+  // ===== EVENTS (lo dejamos como lo tenÃ­as, mock/real) =====
   function ymd(d){
     const y = d.getFullYear();
     const m = String(d.getMonth()+1).padStart(2,"0");
@@ -1235,8 +1319,8 @@
               if (!dt) return "";
               const hh = String(dt.getHours()).padStart(2,"0");
               const mm = String(dt.getMinutes()).padStart(2,"0");
-              const loc = ev.location ? ` · ${escapeHtml(ev.location)}` : "";
-              return `<div class="tipItem">🕒 ${hh}:${mm} · <strong>${escapeHtml(ev.title)}</strong>${loc}</div>`;
+              const loc = ev.location ? ` Â· ${escapeHtml(ev.location)}` : "";
+              return `<div class="tipItem">ðŸ•’ ${hh}:${mm} Â· <strong>${escapeHtml(ev.title)}</strong>${loc}</div>`;
             }).join("")}
           </div>
         ` : ""}
@@ -1265,7 +1349,7 @@
       .slice(0, 6);
 
     if (!upcoming.length){
-      root.innerHTML = `<div class="muted">No hay eventos próximos.</div>`;
+      root.innerHTML = `<div class="muted">No hay eventos prÃ³ximos.</div>`;
       return;
     }
 
@@ -1281,9 +1365,9 @@
       div.innerHTML = `
         <p class="t">${escapeHtml(e.title || "Evento")}</p>
         <p class="s">
-          <span>📅 ${escapeHtml(d)}</span>
-          <span>🕒 ${hh}:${mm}</span>
-          ${e.location ? `<span>📍 ${escapeHtml(e.location)}</span>` : ``}
+          <span>ðŸ“… ${escapeHtml(d)}</span>
+          <span>ðŸ•’ ${hh}:${mm}</span>
+          ${e.location ? `<span>ðŸ“ ${escapeHtml(e.location)}</span>` : ``}
         </p>
       `;
       root.appendChild(div);
@@ -1352,7 +1436,7 @@
       setNavAuthUI(currentUser);
 
       if (first) return;           // evita el doble disparo inicial
-      await refreshPostsSection();  // o refresca solo lo mínimo
+      await refreshPostsSection();  // o refresca solo lo mÃ­nimo
     });
     await refreshHome();
     first = false;
@@ -1360,4 +1444,5 @@
 </script>
 </body>
 </html>
+
 

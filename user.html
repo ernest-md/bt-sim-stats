@@ -149,7 +149,7 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="bar">
+    <div class="bar with-auth-corner">
       <div class="brand">
         BARATEAM HUB
         <small>perfil publico</small>
@@ -159,23 +159,25 @@
         <a class="btn" href="decks.html">DeckLists</a>
         <a class="btn" href="results.html" data-requires-auth="1">Results</a>
       </div>
-      <div class="spacer"></div>
-      <a class="btn" id="navLogin" href="login.html">Login</a>
-      <div class="userwrap" id="navUser" style="display:none;">
-        <button class="btn userbtn" id="userBtn" type="button">
-          <span class="avatar"></span>
-          <span id="userLabel">Usuario</span>
-          <span class="chev">▾</span>
-        </button>
-        <div class="menu" id="userMenu">
-          <div class="head">
-            <strong id="userEmail">—</strong>
-            <span>Sesion iniciada</span>
-          </div>
-          <a href="profile.html">Ver perfil</a>
-          <div class="sep"></div>
-          <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">—</strong>
+          <span>Sesion iniciada</span>
         </div>
+        <a href="profile.html">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
       </div>
     </div>
   </div>
@@ -392,8 +394,10 @@
     (async function init(){
       const { data } = await sb.auth.getSession();
       navController.setUser(data?.session?.user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
       sb.auth.onAuthStateChange((_event, session) => {
         navController.setUser(session?.user || null);
+        void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
       });
       await loadPublicProfile();
     })();
