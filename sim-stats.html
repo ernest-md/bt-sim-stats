@@ -297,6 +297,34 @@
 
     .t-win { color:#2e7d32; font-weight:900; }
     .t-lose { color:#c62828; font-weight:900; }
+
+    @media (max-width: 760px){
+      .topbar{ padding: 10px; }
+      .bar{ gap:8px; }
+      .brand{ width:100%; margin-right:0; }
+      .brand small{ font-size: 11px; }
+      .nav{
+        order:3;
+        width:100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .nav .btn{ flex: 0 0 auto; }
+      .spacer{ display:none; }
+      .pill{ font-size: 11px; padding: 5px 8px; }
+      .menu{ left:0; right:auto; max-width: calc(100vw - 24px); min-width: 200px; }
+      .wrap{ padding: 0 10px; margin: 12px auto 22px; }
+      .sheetwrap{ padding: 8px; border-radius: 14px; }
+      .controls{ gap:8px; }
+      .controls .label{ width:100%; }
+      .status{ margin-left: 0; width: 100%; }
+      select{ width: 100%; }
+      table{ font-size: 12px; }
+      th, td{ padding: 4px 6px; }
+      .imgcell img{ max-height: 54px; max-width: 68px; }
+    }
   </style>
 </head>
 

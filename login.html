@@ -279,6 +279,27 @@
       padding: 1px 6px;
       border-radius: 8px;
     }
+
+    @media (max-width: 760px){
+      .topbar{ padding: 10px; }
+      .bar{ gap:8px; }
+      .brand{ width:100%; margin-right:0; }
+      .brand small{ font-size: 11px; }
+      .nav{
+        order:3;
+        width:100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .nav .btn{ flex: 0 0 auto; }
+      .spacer{ display:none; }
+      .menu{ left:0; right:auto; max-width: calc(100vw - 24px); min-width: 200px; }
+      .wrap{ padding: 10px; margin: 10px auto 20px; }
+      .panel{ margin-top: 10px; padding: 12px; border-radius: 16px; }
+      .row .btn{ width: 100%; justify-content: center; }
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

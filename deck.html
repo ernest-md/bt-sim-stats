@@ -52,6 +52,8 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
+      cursor:pointer;
+      font: inherit;
     }
     .wrap{ max-width:1100px; margin:16px auto 28px; padding:0 14px; }
     .card{
@@ -102,6 +104,120 @@
       display:none;
       white-space: pre-line;
     }
+
+    .socialCard{ margin-top:14px; }
+    .socialRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .iconBtn{
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.78);
+      color:#0f172a;
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 13px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .iconBtn.active{
+      background: rgba(234,179,8,.22);
+      border-color: rgba(234,179,8,.45);
+    }
+    .likeWrap{ position:relative; display:inline-flex; align-items:center; }
+    .hoverUsers{
+      position:absolute;
+      left:0;
+      top: calc(100% + 6px);
+      width: 230px;
+      max-height: 200px;
+      overflow:auto;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.98);
+      box-shadow: 0 16px 32px rgba(0,0,0,.20);
+      padding: 8px;
+      display:none;
+      z-index: 12;
+    }
+    .likeWrap:hover .hoverUsers{ display:block; }
+    .hoverUsers .u{
+      font-size: 12px;
+      color:#0f172a;
+      line-height: 1.35;
+      padding: 3px 0;
+      border-top: 1px solid rgba(15,23,42,.08);
+    }
+    .hoverUsers .u:first-child{ border-top:0; }
+
+    .commentsPanel{
+      margin-top:10px;
+      border-top: 1px solid rgba(15,23,42,.10);
+      padding-top:10px;
+      display:none;
+    }
+    .commentsPanel.open{ display:block; }
+    .commentComposer{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-bottom:8px;
+    }
+    .commentComposer textarea{
+      width:100%;
+      min-height:86px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+      padding: 10px 12px;
+      box-sizing: border-box;
+      resize: vertical;
+      font: inherit;
+    }
+    .commentList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:8px;
+    }
+    .commentItem{
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.72);
+      padding: 8px 10px;
+    }
+    .commentHead{
+      font-size: 12px;
+      color:#64748b;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:4px;
+    }
+    .commentUser{ font-weight: 900; color:#0f172a; }
+    .commentBody{
+      margin:0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+      color:#334155;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 760px){
+      .topbar{ padding: 10px; }
+      .bar{ gap:8px; }
+      .wrap{ padding: 0 10px; margin: 12px auto 22px; }
+      .title{ font-size: 22px; }
+      .card{ padding: 12px; border-radius: 16px; }
+      .panel{ border-radius: 12px; }
+      .leaderImg{ width: 62px; height: 62px; }
+      .hoverUsers{ width: min(220px, calc(100vw - 40px)); }
+      .socialRow .iconBtn{ flex: 1 1 auto; justify-content: center; }
+    }
   </style>
 </head>
 <body>
@@ -147,6 +263,21 @@
         </div>
       </div>
 
+      <div class="card socialCard">
+        <div class="socialRow">
+          <div class="likeWrap">
+            <button class="iconBtn" id="btnLike" type="button">&#128077; 0</button>
+            <div class="hoverUsers" id="likeUsersHover"></div>
+          </div>
+          <button class="iconBtn" id="btnToggleComments" type="button">Comentarios (0)</button>
+        </div>
+
+        <div class="commentsPanel" id="commentsPanel">
+          <div class="commentComposer" id="commentComposer"></div>
+          <div class="commentList" id="commentsList"></div>
+        </div>
+      </div>
+
       <div class="msg" id="msg"></div>
     </div>
   </div>
@@ -158,12 +289,21 @@
 
     const $ = (id) => document.getElementById(id);
 
+    let currentUser = null;
+    let deckId = null;
+    let profileCache = new Map();
+    let socialState = { comments: [], likes: [], likedByMe: false };
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
     function showError(text){
       const m = $("msg");
       m.style.display = "block";
       m.textContent = text;
     }
-
     function formatDate(value){
       if (!value) return "-";
       const d = new Date(value);
@@ -172,6 +312,10 @@
       const m = String(d.getMonth() + 1).padStart(2, "0");
       const da = String(d.getDate()).padStart(2, "0");
       return `${y}-${m}-${da}`;
+    }
+    function formatDateTime(value){
+      if (!value) return "-";
+      return String(value).slice(0,16).replace("T", " ");
     }
 
     function setImage(el, url){
@@ -182,6 +326,40 @@
         el.removeAttribute("src");
         el.style.display = "none";
       }
+    }
+
+    function userLabel(userId){
+      if (!userId) return "Usuario";
+      if (profileCache.has(userId)) return profileCache.get(userId);
+      return "user-" + String(userId).slice(0,8);
+    }
+
+    async function fillProfiles(userIds){
+      const ids = Array.from(new Set((userIds || []).filter(Boolean)));
+      const missing = ids.filter(id => !profileCache.has(id));
+      if (!missing.length) return;
+
+      const { data, error } = await sb
+        .from("profiles")
+        .select("id,username,display_name")
+        .in("id", missing);
+
+      if (error){
+        console.warn("profiles:", error.message);
+        return;
+      }
+
+      for (const row of (data || [])){
+        profileCache.set(row.id, row.username || row.display_name || ("user-" + String(row.id).slice(0,8)));
+      }
+      for (const id of missing){
+        if (!profileCache.has(id)) profileCache.set(id, "user-" + String(id).slice(0,8));
+      }
+    }
+
+    async function refreshSession(){
+      const { data } = await sb.auth.getSession();
+      currentUser = data?.session?.user || null;
     }
 
     function renderDeck(deck){
@@ -207,34 +385,184 @@
 
     async function loadDeck(){
       const params = new URLSearchParams(window.location.search);
-      const id = params.get("id");
+      deckId = params.get("id");
 
-      if (!id){
+      if (!deckId){
         showError("Falta el id del deck en la URL.");
-        return;
+        return false;
       }
 
       try{
         const { data, error } = await sb
           .from("decks")
           .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
-          .eq("id", id)
+          .eq("id", deckId)
           .maybeSingle();
 
         if (error) throw error;
         if (!data){
           showError("No se encontro el deck solicitado.");
-          return;
+          return false;
         }
 
         renderDeck(data);
+        return true;
       }catch(e){
         console.error(e);
         showError("Error cargando deck: " + (e.message || "unknown"));
+        return false;
       }
     }
 
-    loadDeck();
+    async function loadDeckSocial(){
+      if (!deckId) return;
+
+      const [commentsRes, likesRes] = await Promise.all([
+        sb.from("comments")
+          .select("id,created_at,autor,body,deck")
+          .eq("deck", deckId)
+          .order("created_at", { ascending: false }),
+        sb.from("likes")
+          .select("id,created_at,autor,deck")
+          .eq("deck", deckId)
+      ]);
+
+      if (commentsRes.error) console.warn("comments:", commentsRes.error.message);
+      if (likesRes.error) console.warn("likes:", likesRes.error.message);
+
+      const comments = commentsRes.data || [];
+      const likes = likesRes.data || [];
+
+      await fillProfiles([
+        ...comments.map(c => c.autor),
+        ...likes.map(l => l.autor)
+      ]);
+
+      socialState = {
+        comments,
+        likes,
+        likedByMe: !!(currentUser && likes.some(l => l.autor === currentUser.id))
+      };
+
+      renderSocial();
+    }
+
+    function renderSocial(){
+      const likes = socialState.likes || [];
+      const comments = socialState.comments || [];
+
+      const likeBtn = $("btnLike");
+      likeBtn.innerHTML = `&#128077; ${likes.length}`;
+      likeBtn.classList.toggle("active", !!socialState.likedByMe);
+
+      const likeUsersHover = $("likeUsersHover");
+      likeUsersHover.innerHTML = likes.length
+        ? likes.map(l => `<div class="u">${escapeHtml(userLabel(l.autor))}</div>`).join("")
+        : `<div class="u">Sin likes todavia.</div>`;
+
+      $("btnToggleComments").textContent = `Comentarios (${comments.length})`;
+
+      const composer = $("commentComposer");
+      if (currentUser){
+        composer.innerHTML = `
+          <textarea id="commentInput" placeholder="Escribe un comentario..."></textarea>
+          <div><button class="iconBtn" id="btnSendComment" type="button">Comentar</button></div>
+        `;
+        $("btnSendComment").addEventListener("click", submitDeckComment);
+      } else {
+        composer.innerHTML = `<div class="muted">Inicia sesion para comentar.</div>`;
+      }
+
+      const list = $("commentsList");
+      if (!comments.length){
+        list.innerHTML = `<div class="muted">No hay comentarios.</div>`;
+        return;
+      }
+
+      list.innerHTML = comments.map(c => `
+        <div class="commentItem">
+          <div class="commentHead">
+            <span class="commentUser">${escapeHtml(userLabel(c.autor))}</span>
+            <span>${escapeHtml(formatDateTime(c.created_at))}</span>
+          </div>
+          <p class="commentBody">${escapeHtml(c.body || "")}</p>
+        </div>
+      `).join("");
+    }
+
+    async function toggleDeckLike(){
+      if (!currentUser){
+        showError("Inicia sesion para dar like.");
+        return;
+      }
+      if (!deckId) return;
+
+      const { data: existing, error: exErr } = await sb
+        .from("likes")
+        .select("id")
+        .eq("deck", deckId)
+        .eq("autor", currentUser.id)
+        .limit(1);
+
+      if (exErr){
+        showError("Error en likes: " + exErr.message);
+        return;
+      }
+
+      if (existing && existing.length){
+        const { error } = await sb
+          .from("likes")
+          .delete()
+          .eq("deck", deckId)
+          .eq("autor", currentUser.id);
+        if (error) return showError("No pude quitar el like: " + error.message);
+      } else {
+        const { error } = await sb.from("likes").insert({ autor: currentUser.id, deck: deckId });
+        if (error) return showError("No pude dar like: " + error.message);
+      }
+
+      await loadDeckSocial();
+    }
+
+    async function submitDeckComment(){
+      if (!currentUser){
+        showError("Inicia sesion para comentar.");
+        return;
+      }
+      if (!deckId) return;
+
+      const input = $("commentInput");
+      const body = input?.value?.trim() || "";
+      if (!body) return showError("Escribe un comentario.");
+
+      const { error } = await sb.from("comments").insert({
+        autor: currentUser.id,
+        deck: deckId,
+        body
+      });
+
+      if (error) return showError("No pude guardar el comentario: " + error.message);
+
+      input.value = "";
+      await loadDeckSocial();
+    }
+
+    $("btnLike").addEventListener("click", toggleDeckLike);
+    $("btnToggleComments").addEventListener("click", () => {
+      $("commentsPanel").classList.toggle("open");
+    });
+
+    (async function init(){
+      await refreshSession();
+      const ok = await loadDeck();
+      if (!ok) return;
+      await loadDeckSocial();
+
+      sb.auth.onAuthStateChange(async (_event, session) => {
+        currentUser = session?.user || null;
+        await loadDeckSocial();
+      });
+    })();
   </script>
 </body>
 </html>

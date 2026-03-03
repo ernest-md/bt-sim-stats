@@ -298,6 +298,103 @@
       margin: 10px 0 10px;
       display:block;
     }
+    .socialRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+    .iconBtn{
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.78);
+      color:#0f172a;
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .iconBtn:hover{ background: rgba(255,255,255,.95); }
+    .iconBtn.active{
+      background: rgba(234,179,8,.22);
+      border-color: rgba(234,179,8,.45);
+    }
+    .likeWrap{
+      position: relative;
+      display:inline-flex;
+      align-items:center;
+    }
+    .hoverUsers{
+      position:absolute;
+      left:0;
+      top: calc(100% + 6px);
+      width: 220px;
+      max-height: 180px;
+      overflow:auto;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.98);
+      box-shadow: 0 16px 32px rgba(0,0,0,.20);
+      padding: 8px;
+      display:none;
+      z-index: 12;
+    }
+    .likeWrap:hover .hoverUsers{ display:block; }
+    .hoverUsers .u{
+      font-size: 12px;
+      color:#0f172a;
+      line-height: 1.35;
+      padding: 3px 0;
+      border-top: 1px solid rgba(15,23,42,.08);
+    }
+    .hoverUsers .u:first-child{ border-top:0; }
+    .commentsPanel{
+      margin-top:10px;
+      border-top: 1px solid rgba(15,23,42,.10);
+      padding-top:10px;
+      display:none;
+    }
+    .commentsPanel.open{ display:block; }
+    .commentList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:8px;
+    }
+    .commentItem{
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.72);
+      padding: 8px 10px;
+    }
+    .commentHead{
+      font-size: 12px;
+      color:#64748b;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:4px;
+    }
+    .commentUser{
+      font-weight: 900;
+      color:#0f172a;
+    }
+    .commentBody{
+      margin:0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+      color:#334155;
+      line-height: 1.4;
+    }
+    .commentComposer{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
 
     /* Editor (manual enable) */
     .editor{
@@ -500,6 +597,29 @@
       text-align:center;
       padding: 8px 0 2px;
     }
+
+    @media (max-width: 760px){
+      .topbar{ padding: 10px; }
+      .bar{ gap:8px; }
+      .brand{ width:100%; margin-right:0; }
+      .brand small{ font-size: 11px; }
+      .nav{
+        order:3;
+        width:100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .nav .btn{ flex: 0 0 auto; }
+      .spacer{ display:none; }
+      .pill{ font-size: 11px; padding: 5px 8px; }
+      .menu{ left:0; right:auto; max-width: calc(100vw - 24px); min-width: 200px; }
+      .wrap{ padding: 0 10px; margin: 12px auto 22px; }
+      .hero h1{ font-size: 22px; }
+      .tooltip{ width: min(220px, calc(100vw - 60px)); left: 6px; }
+      .commentComposer .btn{ width: 100%; justify-content: center; }
+    }
   </style>
 </head>
 
@@ -671,10 +791,12 @@
     try{
       const { data } = await withTimeout(sb.auth.getSession());
       const user = data?.session?.user || null;
+      currentUser = user;
       setNavAuthUI(user);
       return user;
     }catch(e){
       console.warn("refreshSession:", e.message);
+      currentUser = null;
       setNavAuthUI(null);
       return null;
     }
@@ -718,6 +840,9 @@
   })();
 
   // ===== POSTS =====
+  let currentUser = null;
+  const profileNameCache = new Map();
+
   function showPostMsg(text, type){
     const el = $("postMsg");
     el.className = "msg " + (type || "");
@@ -734,20 +859,129 @@
     return String(s ?? "").replace(/"/g, "&quot;");
   }
 
-  function renderPosts(posts){
+  function userLabelById(userId){
+    if (!userId) return "Usuario";
+    if (profileNameCache.has(userId)) return profileNameCache.get(userId);
+    return "user-" + String(userId).slice(0,8);
+  }
+
+  async function fillProfileCache(userIds){
+    const ids = Array.from(new Set((userIds || []).filter(Boolean)));
+    const missing = ids.filter(id => !profileNameCache.has(id));
+    if (!missing.length) return;
+
+    const { data, error } = await sb
+      .from("profiles")
+      .select("id,username,display_name")
+      .in("id", missing);
+
+    if (error){
+      console.warn("profiles:", error.message);
+      return;
+    }
+
+    for (const row of (data || [])){
+      const label = row.username || row.display_name || ("user-" + String(row.id).slice(0,8));
+      profileNameCache.set(row.id, label);
+    }
+    for (const id of missing){
+      if (!profileNameCache.has(id)) profileNameCache.set(id, "user-" + String(id).slice(0,8));
+    }
+  }
+
+  async function fetchPostSocial(postIds){
+    const ids = (postIds || []).filter(Boolean);
+    const commentsByPost = new Map();
+    const likesByPost = new Map();
+    const likedPostIds = new Set();
+
+    if (!ids.length) return { commentsByPost, likesByPost, likedPostIds };
+
+    const [commentsRes, likesRes] = await Promise.all([
+      sb.from("comments")
+        .select("id,created_at,autor,body,post")
+        .in("post", ids)
+        .order("created_at", { ascending: false }),
+      sb.from("likes")
+        .select("id,created_at,autor,post")
+        .in("post", ids)
+    ]);
+
+    if (commentsRes.error) console.warn("comments:", commentsRes.error.message);
+    if (likesRes.error) console.warn("likes:", likesRes.error.message);
+
+    const comments = commentsRes.data || [];
+    const likes = likesRes.data || [];
+
+    const authorIds = [
+      ...comments.map(c => c.autor),
+      ...likes.map(l => l.autor)
+    ];
+    await fillProfileCache(authorIds);
+
+    for (const c of comments){
+      const key = c.post;
+      if (!commentsByPost.has(key)) commentsByPost.set(key, []);
+      commentsByPost.get(key).push(c);
+    }
+
+    for (const l of likes){
+      const key = l.post;
+      if (!likesByPost.has(key)) likesByPost.set(key, []);
+      likesByPost.get(key).push(l);
+      if (currentUser && l.autor === currentUser.id) likedPostIds.add(key);
+    }
+
+    return { commentsByPost, likesByPost, likedPostIds };
+  }
+
+  function renderPosts(posts, social){
     const root = $("postsList");
     root.innerHTML = "";
 
     if (!posts || posts.length === 0){
-      root.innerHTML = `<div class="muted">No hay posts todavía.</div>`;
+      root.innerHTML = `<div class="muted">No hay posts todavia.</div>`;
       return;
     }
 
     for (const p of posts){
-      const date = (p.created_at || "").slice(0,10) || "—";
+      const date = (p.created_at || "").slice(0,10) || "-";
       const tag = p.tag || "General";
-      const title = p.title || "Sin título";
+      const title = p.title || "Sin titulo";
       const body = p.body || "";
+      const comments = social.commentsByPost.get(p.id) || [];
+      const likes = social.likesByPost.get(p.id) || [];
+      const likedByMe = social.likedPostIds.has(p.id);
+
+      const likeUsersHtml = likes.length
+        ? likes.map(l => `<div class="u">${escapeHtml(userLabelById(l.autor))}</div>`).join("")
+        : `<div class="u">Sin likes todavia.</div>`;
+
+      const commentsHtml = comments.length
+        ? comments.map(c => {
+            const cDate = (c.created_at || "").slice(0,16).replace("T", " ");
+            return `
+              <div class="commentItem">
+                <div class="commentHead">
+                  <span class="commentUser">${escapeHtml(userLabelById(c.autor))}</span>
+                  <span>${escapeHtml(cDate || "-")}</span>
+                </div>
+                <p class="commentBody">${escapeHtml(c.body || "")}</p>
+              </div>
+            `;
+          }).join("")
+        : `<div class="muted">No hay comentarios.</div>`;
+
+      const composerHtml = currentUser
+        ? `
+          <div class="commentComposer">
+            <textarea class="commentInput" data-post-id="${escapeAttr(p.id)}" placeholder="Escribe un comentario..."></textarea>
+            <div>
+              <button class="btn btnDark btnSendComment" data-post-id="${escapeAttr(p.id)}" type="button">Comentar</button>
+            </div>
+          </div>
+        `
+        : `<div class="muted">Inicia sesion para comentar.</div>`;
 
       const imgHtml = p.image_url
         ? `<img class="postImg" src="${escapeAttr(p.image_url)}" alt="">`
@@ -758,13 +992,49 @@
       div.innerHTML = `
         <h3>${escapeHtml(title)}</h3>
         <div class="meta">
-          <span>📅 ${escapeHtml(date)}</span>
-          <span>🏷️ ${escapeHtml(tag)}</span>
+          <span>${escapeHtml(date)}</span>
+          <span>${escapeHtml(tag)}</span>
         </div>
         ${imgHtml}
         <p>${escapeHtml(body)}</p>
+
+        <div class="socialRow">
+          <div class="likeWrap">
+            <button class="iconBtn btnLikePost ${likedByMe ? "active" : ""}" data-post-id="${escapeAttr(p.id)}" type="button">&#128077; ${likes.length}</button>
+            <div class="hoverUsers">${likeUsersHtml}</div>
+          </div>
+          <button class="iconBtn btnToggleComments" data-post-id="${escapeAttr(p.id)}" type="button">Comentarios (${comments.length})</button>
+        </div>
+
+        <div class="commentsPanel" data-post-id="${escapeAttr(p.id)}">
+          ${composerHtml}
+          <div class="commentList">${commentsHtml}</div>
+        </div>
       `;
       root.appendChild(div);
+    }
+
+    for (const btn of root.querySelectorAll(".btnToggleComments")){
+      btn.addEventListener("click", () => {
+        const postId = btn.getAttribute("data-post-id");
+        const panel = root.querySelector(`.commentsPanel[data-post-id="${postId}"]`);
+        if (!panel) return;
+        panel.classList.toggle("open");
+      });
+    }
+
+    for (const btn of root.querySelectorAll(".btnLikePost")){
+      btn.addEventListener("click", async () => {
+        const postId = btn.getAttribute("data-post-id");
+        await togglePostLike(postId);
+      });
+    }
+
+    for (const btn of root.querySelectorAll(".btnSendComment")){
+      btn.addEventListener("click", async () => {
+        const postId = btn.getAttribute("data-post-id");
+        await submitPostComment(postId);
+      });
     }
   }
 
@@ -773,9 +1043,9 @@
       return [
         {
           id: 1,
-          title: "🚀 Nuevo hub con login",
+          title: "Nuevo hub con login",
           tag: "Web",
-          body: "Ya tenemos auth y perfil. Próximo: posts/eventos en BBDD.",
+          body: "Ya tenemos auth y perfil. Proximo: posts/eventos en BBDD.",
           image_url: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=60",
           created_at: new Date().toISOString()
         },
@@ -793,6 +1063,60 @@
       return [];
     }
     return data || [];
+  }
+
+  async function refreshPostsSection(){
+    const posts = await fetchPosts();
+    const social = await fetchPostSocial(posts.map(p => p.id));
+    renderPosts(posts, social);
+  }
+
+  async function togglePostLike(postId){
+    if (!currentUser) return showPostMsg("Inicia sesion para dar like.", "err");
+    if (!postId) return;
+
+    const { data: existing, error: exErr } = await sb
+      .from("likes")
+      .select("id")
+      .eq("post", postId)
+      .eq("autor", currentUser.id)
+      .limit(1);
+
+    if (exErr) return showPostMsg("Error en likes: " + exErr.message, "err");
+
+    if (existing && existing.length){
+      const { error } = await sb
+        .from("likes")
+        .delete()
+        .eq("post", postId)
+        .eq("autor", currentUser.id);
+      if (error) return showPostMsg("No pude quitar el like: " + error.message, "err");
+    } else {
+      const { error } = await sb.from("likes").insert({ autor: currentUser.id, post: postId });
+      if (error) return showPostMsg("No pude dar like: " + error.message, "err");
+    }
+
+    await refreshPostsSection();
+  }
+
+  async function submitPostComment(postId){
+    if (!currentUser) return showPostMsg("Inicia sesion para comentar.", "err");
+    if (!postId) return;
+
+    const input = document.querySelector(`.commentInput[data-post-id="${postId}"]`);
+    const body = input?.value?.trim() || "";
+    if (!body) return showPostMsg("Escribe un comentario.", "err");
+
+    const { error } = await sb.from("comments").insert({
+      autor: currentUser.id,
+      post: postId,
+      body
+    });
+
+    if (error) return showPostMsg("No pude guardar el comentario: " + error.message, "err");
+
+    if (input) input.value = "";
+    await refreshPostsSection();
   }
 
   async function uploadPostImage(file, userId){
@@ -815,7 +1139,6 @@
   }
 
   async function getSafeSession(){
-    // 1) intenta sesión (local)
     try{
       const { data } = await withTimeout(sb.auth.getSession(), 8000);
       if (data?.session) return data.session;
@@ -823,7 +1146,6 @@
       console.warn("getSession timeout:", e.message);
     }
 
-    // 2) intenta getUser (puede forzar refresh interno)
     try{
       const { data: udata, error: uerr } = await withTimeout(sb.auth.getUser(), 8000);
       if (uerr) console.warn("getUser:", uerr.message);
@@ -844,17 +1166,17 @@
     const body = $("post_body").value.trim();
     const file = $("post_image_file").files?.[0] || null;
 
-    if (!title || !body) return showPostMsg("Pon título y contenido.", "err");
+    if (!title || !body) return showPostMsg("Pon titulo y contenido.", "err");
 
     try{
       if (USE_MOCK){
-        showPostMsg("Mock: post publicado ✅", "ok");
+        showPostMsg("Mock: post publicado", "ok");
         return;
       }
 
       const session = await getSafeSession();
       if (!session){
-        showPostMsg("No hay sesión (reloguea en login.html).", "err");
+        showPostMsg("No hay sesion (reloguea en login.html).", "err");
         return;
       }
 
@@ -863,7 +1185,6 @@
         image_url = await uploadPostImage(file, session.user.id);
       }
 
-      // ✅ SOLO 4 CAMPOS
       const payload = {
         title,
         tag: tag || null,
@@ -874,14 +1195,14 @@
       const { error } = await sb.from("posts").insert(payload);
       if (error) throw error;
 
-      showPostMsg("Post publicado ✅", "ok");
+      showPostMsg("Post publicado", "ok");
 
       $("post_title").value = "";
       $("post_tag").value = "";
       $("post_body").value = "";
       $("post_image_file").value = "";
 
-      renderPosts(await fetchPosts());
+      await refreshPostsSection();
     }catch(e){
       console.error(e);
       showPostMsg("Error publicando: " + (e.message || "unknown"), "err");
@@ -1044,7 +1365,7 @@
 
   async function refreshHome(){
     await refreshSession();
-    renderPosts(await fetchPosts());
+    await refreshPostsSection();
 
     monthEvents = await fetchEventsForMonth(viewDate);
     const map = groupEventsByDay(monthEvents);
@@ -1069,10 +1390,13 @@
 
   (async function(){
     sb.auth.onAuthStateChange(async (_event, session) => {
+      currentUser = session?.user || null;
       setNavAuthUI(session?.user || null);
+      await refreshPostsSection();
     });
     await refreshHome();
   })();
 </script>
 </body>
 </html>
+

@@ -405,6 +405,29 @@
       background: rgba(255,255,255,.75);
       flex: 0 0 auto;
     }
+
+    @media (max-width: 760px){
+      .topbar{ padding: 10px; }
+      .bar{ gap:8px; }
+      .brand{ width:100%; margin-right:0; }
+      .brand small{ font-size: 11px; }
+      .nav{
+        order:3;
+        width:100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .nav .btn{ flex: 0 0 auto; }
+      .spacer{ display:none; }
+      .pill{ font-size: 11px; padding: 5px 8px; }
+      .menu{ left:0; right:auto; max-width: calc(100vw - 24px); min-width: 200px; }
+      .wrap{ padding: 0 10px; margin: 12px auto 22px; }
+      .hero h1{ font-size: 22px; }
+      .tableWrap{ border-radius: 14px; }
+      table{ min-width: 560px; }
+    }
   </style>
 </head>
 
