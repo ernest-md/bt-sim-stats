@@ -491,23 +491,24 @@
       });
     }
 
-    async function buildPattern(imageUrl, color){
-      const key = `${imageUrl}|${color}`;
+    async function buildPattern(imageUrl, color, kind){
+      const key = `${imageUrl}|${color}|${kind}`;
       if (patternCache.has(key)) return patternCache.get(key);
       try{
         const img = await loadImage(imageUrl);
         const c = document.createElement("canvas");
-        c.width = 120;
-        c.height = 120;
+        const size = kind === "pie" ? 420 : 120;
+        c.width = size;
+        c.height = size;
         const ctx = c.getContext("2d");
         if (!ctx) return color;
         const s = Math.max(img.width, img.height) || 1;
         const sx = (img.width - s) / 2;
         const sy = (img.height - s) / 2;
-        ctx.drawImage(img, sx, sy, s, s, 0, 0, 120, 120);
+        ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
         ctx.fillStyle = "rgba(0,0,0,.12)";
-        ctx.fillRect(0, 0, 120, 120);
-        const pattern = ctx.createPattern(c, "repeat") || color;
+        ctx.fillRect(0, 0, size, size);
+        const pattern = ctx.createPattern(c, kind === "pie" ? "no-repeat" : "repeat") || color;
         patternCache.set(key, pattern);
         return pattern;
       } catch (_e){
@@ -515,7 +516,10 @@
       }
     }
 
-    async function buildFills(labels){
+    async function buildFills(labels, kind){
+      if (kind !== "pie"){
+        return labels.map((_, i) => colorFor(i));
+      }
       const leaders = await loadLeaders();
       const fills = [];
       for (let i = 0; i < labels.length; i++){
@@ -525,7 +529,7 @@
           fills.push(base);
           continue;
         }
-        const pat = await buildPattern(url, base);
+        const pat = await buildPattern(url, base, kind);
         fills.push(pat);
       }
       return fills;
@@ -533,7 +537,7 @@
 
     async function makeBarChart(canvasId, labels, values){
       const c = $(canvasId);
-      const fills = await buildFills(labels);
+      const fills = await buildFills(labels, "bar");
       const ch = new Chart(c, {
         type: "bar",
         data: {
@@ -583,7 +587,7 @@
 
     async function makePieChart(canvasId, labels, values){
       const c = $(canvasId);
-      const fills = await buildFills(labels);
+      const fills = await buildFills(labels, "pie");
       const ch = new Chart(c, {
         type: "doughnut",
         data: {
@@ -591,7 +595,8 @@
           datasets: [{
             data: values,
             backgroundColor: fills,
-            borderWidth: 0,
+            borderColor: "rgba(247,243,246,.95)",
+            borderWidth: 2,
             hoverOffset: 6
           }]
         },
