@@ -426,41 +426,42 @@ syncButton.addEventListener("click", async () => {
   await syncMatchesForSelectedPlayer()
 })
 
-async function syncMatchesForSelectedPlayer() {
+async function syncMatchesForSelectedPlayer(playerId) {
 
-  const playerId = playerSelect.value
+  const statusDiv = document.getElementById("syncStatus")
+
+  statusDiv.textContent = "Cargando partidas..."
+  statusDiv.className = "sync-status sync-loading"
 
   try {
 
-    const response = await fetch(
-      "https://ceunhkqhskwnsoqyunze.supabase.co/functions/v1/sync-matches",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o",
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o"
-        },
-        body: JSON.stringify({ playerId })
-      }
-    )
+    const res = await fetch("https://ceunhkqhskwnsoqyunze.supabase.co/functions/v1/sync-matches", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o"
+      },
+      body: JSON.stringify({ playerId })
+    })
 
-    if (!response.ok) {
-      const text = await response.text()
-      console.error("Respuesta error:", text)
-      throw new Error("Error HTTP " + response.status)
+    const data = await res.json()
+
+    if (data.inserted > 0) {
+      statusDiv.textContent = `Se han añadido ${data.inserted} partidas nuevas`
+      statusDiv.className = "sync-status sync-success"
+    } else {
+      statusDiv.textContent = "No se han encontrado partidas nuevas"
+      statusDiv.className = "sync-status sync-info"
     }
 
-    const data = await response.json()
-
-    alert(`Se han añadido ${data.inserted} partidas nuevas`)
-
-    await loadPlayer(playerId)
-
   } catch (err) {
-    console.error(err)
-    alert("Error al sincronizar partidas")
+
+    statusDiv.textContent = "Error al sincronizar partidas"
+    statusDiv.className = "sync-status sync-error"
+
   }
 }
+
 
 init()

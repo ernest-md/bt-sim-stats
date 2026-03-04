@@ -420,3 +420,24 @@ select:focus {
   background: #1d4ed8;
   transform: translateY(-1px);
 }
+
+.sync-status {
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.sync-loading {
+  color: #888;
+}
+
+.sync-success {
+  color: #2ecc71;
+}
+
+.sync-info {
+  color: #3498db;
+}
+
+.sync-error {
+  color: #e74c3c;
+}
