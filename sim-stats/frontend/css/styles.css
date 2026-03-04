@@ -445,3 +445,131 @@ select:focus {
 .sync-error {
   color: #e74c3c;
 }
+
+/* ============================= */
+/*          RESPONSIVE           */
+/* ============================= */
+
+@media (max-width: 1024px) {
+  .headerRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .filters {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .mainLayout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding: 0;
+  }
+
+  .title {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .filterBlock {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .filterBlock select {
+    width: 100%;
+  }
+
+  .sync-btn {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .sync-status {
+    margin-top: 2px;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .summaryBox {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .summaryBox strong {
+    font-size: 24px;
+    margin-top: 4px;
+  }
+
+  .leaders,
+  .matchups,
+  #leaderView {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .leaders table,
+  #leaderView table {
+    min-width: 760px;
+  }
+
+  .matchups table {
+    min-width: 360px;
+  }
+
+  .leaders,
+  .matchups,
+  #leaderView {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .leaders table,
+  .matchups table,
+  #leaderView table {
+    border-radius: 10px;
+  }
+
+  #leaderSummary {
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .leaderSummaryStats {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    max-width: none;
+  }
+
+  .leaderSummaryStats div {
+    padding: 14px 8px;
+    font-size: 13px;
+  }
+
+  .leaderSummaryStats strong {
+    font-size: 22px;
+    margin-bottom: 5px;
+  }
+}
