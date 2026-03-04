@@ -191,10 +191,17 @@
 .menu .sep{ height:1px; background: rgba(255,255,255,.10); }
 
 @media (max-width:760px){
-  .topbar{ padding: 10px; }
-  .bar{ gap: 8px; }
-  .bar.with-auth-corner{ padding-right: 92px; }
-  .authCorner{ top: 10px; right: 10px; }
+  .topbar{ padding: 10px 0; }
+  .bar{
+    gap: 8px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 10px;
+    box-sizing: border-box;
+  }
+  .bar.with-auth-corner{ padding-right: 10px; }
+  .authCorner{ top: 8px; right: 8px; }
   .authCorner .btn{ padding: 8px 10px; }
   .authCorner .userbtn{
     width: 46px;
@@ -211,6 +218,8 @@
   .topbar .nav{
     order: 3;
     width: 100%;
+    padding-right: 72px;
+    box-sizing: border-box;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     overflow-y: hidden;
@@ -223,10 +232,10 @@
   .menu{ max-width: calc(100vw - 24px); min-width: 200px; }
   .authCorner .menu{
     position: fixed;
-    top: 68px;
-    right: 10px;
+    top: 64px;
+    right: 8px;
     left: auto;
-    width: min(290px, calc(100vw - 20px));
+    width: min(290px, calc(100vw - 16px));
     min-width: 0;
     max-height: calc(100vh - 80px);
     overflow: auto;
