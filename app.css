@@ -201,5 +201,16 @@
   .nav{ order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .nav .btn{ flex: 0 0 auto; }
   .spacer{ display:none; }
-  .menu{ left:0; right:auto; max-width: calc(100vw - 24px); min-width: 200px; }
+  .menu{ max-width: calc(100vw - 24px); min-width: 200px; }
+  .authCorner .menu{
+    position: fixed;
+    top: 64px;
+    right: 10px;
+    left: auto;
+    width: min(290px, calc(100vw - 20px));
+    min-width: 0;
+    max-height: calc(100vh - 80px);
+    overflow: auto;
+    z-index: 1200;
+  }
 }
