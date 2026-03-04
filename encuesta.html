@@ -595,24 +595,29 @@
 
     const _barPatternCache = new Map();
     function dualColorBarPattern(ctx, c1, c2){
-      const key = `${c1}|${c2}`;
+      const key = `v2|${c1}|${c2}`;
       if (_barPatternCache.has(key)) return _barPatternCache.get(key);
       const p = document.createElement("canvas");
-      p.width = 48;
-      p.height = 48;
+      p.width = 64;
+      p.height = 64;
       const pctx = p.getContext("2d");
       if (!pctx) return c1;
       pctx.fillStyle = c1;
       pctx.fillRect(0, 0, p.width, p.height);
-      pctx.strokeStyle = c2;
-      pctx.lineWidth = 12;
-      pctx.lineCap = "butt";
-      pctx.beginPath();
-      for (let x = -p.width; x <= p.width * 2; x += 18){
-        pctx.moveTo(x, p.height);
-        pctx.lineTo(x + p.height, 0);
+
+      // Franjas diagonales rectas y uniformes
+      const stripe = 14;
+      const gap = 10;
+      pctx.save();
+      pctx.translate(p.width / 2, p.height / 2);
+      pctx.rotate(-Math.PI / 4);
+      pctx.translate(-p.width / 2, -p.height / 2);
+      pctx.fillStyle = c2;
+      for (let y = -p.height; y < p.height * 2; y += stripe + gap){
+        pctx.fillRect(-p.width, y, p.width * 3, stripe);
       }
-      pctx.stroke();
+      pctx.restore();
+
       const pattern = ctx.createPattern(p, "repeat") || c1;
       _barPatternCache.set(key, pattern);
       return pattern;
