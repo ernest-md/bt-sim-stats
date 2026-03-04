@@ -294,7 +294,6 @@
       <a class="btn" href="encuestas.html">&#8592; Volver a encuestas</a>
       <div class="spacer"></div>
       <div class="topActions">
-        <span class="pill" id="csvPill">CSV: -</span>
         <span class="pill" id="qPill">Pregunta principal: auto</span>
       </div>
     </div>
@@ -595,19 +594,19 @@
 
     const _barPatternCache = new Map();
     function dualColorBarPattern(ctx, c1, c2){
-      const key = `v2|${c1}|${c2}`;
+      const key = `v3|${c1}|${c2}`;
       if (_barPatternCache.has(key)) return _barPatternCache.get(key);
       const p = document.createElement("canvas");
-      p.width = 64;
-      p.height = 64;
+      p.width = 96;
+      p.height = 96;
       const pctx = p.getContext("2d");
       if (!pctx) return c1;
       pctx.fillStyle = c1;
       pctx.fillRect(0, 0, p.width, p.height);
 
       // Franjas diagonales rectas y uniformes
-      const stripe = 14;
-      const gap = 10;
+      const stripe = 20;
+      const gap = 14;
       pctx.save();
       pctx.translate(p.width / 2, p.height / 2);
       pctx.rotate(-Math.PI / 4);
@@ -914,7 +913,6 @@
         return;
       }
 
-      $("csvPill").textContent = `CSV: ${csvFile}`;
       $("title").textContent = customTitle || `Resultados de encuesta Â· ${csvFile}`;
 
       try{
