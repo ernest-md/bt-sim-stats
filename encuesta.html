@@ -760,7 +760,30 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: (ctx) => ` ${ctx.parsed.y} votos`
+                label: (ctx) => ` ${ctx.parsed.y} votos`,
+                labelColor: (ctx) => {
+                  const label = String(ctx.label || "");
+                  const leader = findLeaderForLabel(label, leaders);
+                  const c1 = colorTokenToHex(leader?.colorPrimary) || colorFor(ctx.dataIndex || 0);
+                  const c2 = colorTokenToHex(leader?.colorSecondary);
+                  if (c1 && c2){
+                    const g = c.getContext("2d").createLinearGradient(0, 0, 16, 16);
+                    g.addColorStop(0, c1);
+                    g.addColorStop(1, c2);
+                    return {
+                      borderColor: c2,
+                      backgroundColor: g,
+                      borderWidth: 1,
+                      borderRadius: 2
+                    };
+                  }
+                  return {
+                    borderColor: c1,
+                    backgroundColor: c1,
+                    borderWidth: 1,
+                    borderRadius: 2
+                  };
+                }
               }
             }
           }
