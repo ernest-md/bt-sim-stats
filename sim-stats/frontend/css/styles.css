@@ -23,7 +23,7 @@
 
 body {
   font-family: "Inter", "Segoe UI", sans-serif;
-  background-image: url("../bg.png");
+  background-image: url("../../../frontend/bg.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
