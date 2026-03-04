@@ -348,6 +348,7 @@
         <article class="panel" id="pieSecondaryPanel" style="display:none;">
           <h2 class="sectionTitle">Mazo unico</h2>
           <h3 class="question" id="pieSecondaryQuestion">Distribucion secundaria</h3>
+          <p class="sub" id="pieSecondarySub">Se ocultan mazos con 2 votos o menos.</p>
           <div class="chartSmall"><canvas id="pieSecondary"></canvas></div>
         </article>
       </div>
@@ -1006,6 +1007,7 @@
 
         $("secondaryPanel").style.display = "";
         $("secondaryQuestion").textContent = second.header;
+        $("pieSecondarySub").textContent = "Donut sin mazos de 2 votos o menos.";
         $("secondarySub").textContent = `${second.total} votos en ${second.unique} categorias (barras: todo).`;
         await makeBarChart("barSecondary", second.counts.map((x) => x[0]), second.counts.map((x) => x[1]));
 
