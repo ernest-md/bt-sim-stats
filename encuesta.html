@@ -594,6 +594,32 @@
       return map[t] || (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(t) ? t : "");
     }
 
+    const _barPatternCache = new Map();
+    function dualColorBarPattern(ctx, c1, c2){
+      const key = `${c1}|${c2}`;
+      if (_barPatternCache.has(key)) return _barPatternCache.get(key);
+      const p = document.createElement("canvas");
+      p.width = 28;
+      p.height = 28;
+      const pctx = p.getContext("2d");
+      if (!pctx) return c1;
+      pctx.fillStyle = c1;
+      pctx.fillRect(0, 0, 28, 28);
+      pctx.strokeStyle = c2;
+      pctx.lineWidth = 8;
+      pctx.beginPath();
+      pctx.moveTo(-4, 24);
+      pctx.lineTo(24, -4);
+      pctx.stroke();
+      pctx.beginPath();
+      pctx.moveTo(10, 32);
+      pctx.lineTo(32, 10);
+      pctx.stroke();
+      const pattern = ctx.createPattern(p, "repeat") || c1;
+      _barPatternCache.set(key, pattern);
+      return pattern;
+    }
+
     function barFillForLabel(label, leaders, fallbackColor, canvasEl){
       const leader = findLeaderForLabel(label, leaders);
       if (!leader) return fallbackColor;
@@ -604,11 +630,7 @@
       if (!c1 && c2) return c2;
       const ctx = canvasEl?.getContext?.("2d");
       if (!ctx) return c1;
-      const h = Math.max(120, canvasEl.height || 300);
-      const g = ctx.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(0, c1);
-      g.addColorStop(1, c2);
-      return g;
+      return dualColorBarPattern(ctx, c1, c2);
     }
 
     async function loadImage(url){
