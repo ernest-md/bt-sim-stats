@@ -464,7 +464,10 @@
         const data = await res.json();
         const out = [];
         for (const x of (data || [])){
-          const raw = x?.image || x?.image_url || x?.leader_image_url || x?.img_url || x?.photo_url || "";
+          const raw =
+            x?.parallel_image_url ||
+            x?.image_url ||
+            "";
           const image = await resolveLeaderImageUrl(raw);
           out.push({
             name: x?.name || x?.leader || "",
