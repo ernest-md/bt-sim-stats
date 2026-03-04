@@ -154,6 +154,22 @@
       background: linear-gradient(135deg, rgba(124,58,237,.92), rgba(6,182,212,.72));
       color:#fff;
     }
+    .ghostBtn{
+      border:1px solid rgba(15,23,42,.2);
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      background:#fff;
+      color:#0f172a;
+      margin-bottom:12px;
+    }
+    .fieldHint{
+      margin: 2px 0 10px;
+      color:#64748b;
+      font-size:12px;
+      min-height: 16px;
+    }
 
     .msg{
       margin-top:12px;
@@ -233,7 +249,8 @@
       <div class="muted" id="avatarCurrent" style="margin-top:6px;">Sin avatar actual.</div>
 
       <label>Perfil publico</label>
-      <input id="public_link" readonly aria-readonly="true">
+      <button class="ghostBtn" id="btnCopyPublicLink" type="button">Copiar enlace publico</button>
+      <div class="fieldHint" id="publicLinkHint"></div>
 
       <button class="saveBtn" onclick="saveProfile()">Guardar cambios</button>
 
@@ -245,6 +262,7 @@
     const sb = window.BarateamApp.createClient();
     const $ = window.BarateamApp.byId;
     let currentAvatarUrl = null;
+    let currentPublicLink = "";
 
     window.BarateamApp.bindProtectedNavLinks(sb);
 
@@ -258,7 +276,10 @@
     };
 
     const updatePublicLink = (username, userId) => {
-      $("public_link").value = publicProfileUrl(username, userId);
+      currentPublicLink = publicProfileUrl(username, userId);
+      $("publicLinkHint").textContent = currentPublicLink
+        ? "Tu perfil publico estara disponible para otros usuarios."
+        : "Define username para generar enlace bonito.";
     };
 
     /* ===== Nav auth UI ===== */
@@ -318,7 +339,7 @@
       $("display_name").value = data.display_name || "";
       $("bio").value = data.bio || "";
       currentAvatarUrl = data.avatar_url || null;
-      $("avatarCurrent").textContent = currentAvatarUrl ? `Avatar actual: ${currentAvatarUrl}` : "Sin avatar actual.";
+      $("avatarCurrent").textContent = currentAvatarUrl ? "Avatar actual cargado." : "Sin avatar actual.";
       updatePublicLink(data.username || "", user.id);
     }
 
@@ -363,9 +384,31 @@
         show("Perfil guardado", "ok");
         currentAvatarUrl = payload.avatar_url || null;
         $("avatar_file").value = "";
-        $("avatarCurrent").textContent = currentAvatarUrl ? `Avatar actual: ${currentAvatarUrl}` : "Sin avatar actual.";
+        $("avatarCurrent").textContent = currentAvatarUrl ? "Avatar actual cargado." : "Sin avatar actual.";
         updatePublicLink(payload.username || "", session.user.id);
         void window.BarateamApp.syncTopbarAvatar(sb, session.user);
+      }
+    }
+
+    async function copyPublicLink(){
+      if (!currentPublicLink){
+        show("No hay enlace publico disponible todavia.", "err");
+        return;
+      }
+      try{
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(currentPublicLink);
+        } else {
+          const tmp = document.createElement("textarea");
+          tmp.value = currentPublicLink;
+          document.body.appendChild(tmp);
+          tmp.select();
+          document.execCommand("copy");
+          document.body.removeChild(tmp);
+        }
+        show("Enlace publico copiado al portapapeles.", "ok");
+      } catch (e){
+        show("No pude copiar el enlace. Copialo manualmente: " + currentPublicLink, "err");
       }
     }
 
@@ -382,6 +425,7 @@
         const { data: { session: usernameSession } } = await sb.auth.getSession();
         updatePublicLink($("username").value, usernameSession?.user?.id || "");
       });
+      $("btnCopyPublicLink").addEventListener("click", copyPublicLink);
 
       await loadProfile();
     })();
