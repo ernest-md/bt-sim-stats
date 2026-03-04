@@ -666,33 +666,38 @@
               const img = images[i];
               if (!img) return;
               const p = arc.getProps(["x", "y", "startAngle", "endAngle", "innerRadius", "outerRadius"], true);
-              const midAngle = (p.startAngle + p.endAngle) / 2;
-              const midRadius = (p.innerRadius + p.outerRadius) / 2;
-              const centerX = p.x + Math.cos(midAngle) * midRadius;
-              const centerY = p.y + Math.sin(midAngle) * midRadius;
-              const p1x = p.x + Math.cos(p.startAngle) * p.outerRadius;
-              const p1y = p.y + Math.sin(p.startAngle) * p.outerRadius;
-              const p2x = p.x + Math.cos(p.endAngle) * p.outerRadius;
-              const p2y = p.y + Math.sin(p.endAngle) * p.outerRadius;
-              const p3x = p.x + Math.cos(p.startAngle) * p.innerRadius;
-              const p3y = p.y + Math.sin(p.startAngle) * p.innerRadius;
-              const p4x = p.x + Math.cos(p.endAngle) * p.innerRadius;
-              const p4y = p.y + Math.sin(p.endAngle) * p.innerRadius;
-              const minX = Math.min(p1x, p2x, p3x, p4x);
-              const maxX = Math.max(p1x, p2x, p3x, p4x);
-              const minY = Math.min(p1y, p2y, p3y, p4y);
-              const maxY = Math.max(p1y, p2y, p3y, p4y);
+              const start = Math.min(p.startAngle, p.endAngle);
+              const end = Math.max(p.startAngle, p.endAngle);
+              const points = [];
+              const steps = 24;
+              for (let s = 0; s <= steps; s++){
+                const a = start + ((end - start) * (s / steps));
+                points.push([p.x + (Math.cos(a) * p.outerRadius), p.y + (Math.sin(a) * p.outerRadius)]);
+                if (p.innerRadius > 0){
+                  points.push([p.x + (Math.cos(a) * p.innerRadius), p.y + (Math.sin(a) * p.innerRadius)]);
+                }
+              }
+              const xs = points.map((pt) => pt[0]);
+              const ys = points.map((pt) => pt[1]);
+              const minX = Math.min(...xs);
+              const maxX = Math.max(...xs);
+              const minY = Math.min(...ys);
+              const maxY = Math.max(...ys);
               const boxW = Math.max(22, maxX - minX);
               const boxH = Math.max(22, maxY - minY);
               const scale = Math.max(boxW / img.width, boxH / img.height);
               const drawW = img.width * scale;
               const drawH = img.height * scale;
+              const centerX = minX + (boxW / 2);
+              const centerY = minY + (boxH / 2);
               const drawX = centerX - (drawW / 2);
               const drawY = centerY - (drawH / 2);
+              const outerStartX = p.x + (Math.cos(p.startAngle) * p.outerRadius);
+              const outerStartY = p.y + (Math.sin(p.startAngle) * p.outerRadius);
 
               ctx.save();
               ctx.beginPath();
-              ctx.moveTo(p.x, p.y);
+              ctx.moveTo(outerStartX, outerStartY);
               ctx.arc(p.x, p.y, p.outerRadius, p.startAngle, p.endAngle);
               if (p.innerRadius > 0){
                 ctx.arc(p.x, p.y, p.innerRadius, p.endAngle, p.startAngle, true);
@@ -702,8 +707,6 @@
               ctx.closePath();
               ctx.clip();
               ctx.drawImage(img, drawX, drawY, drawW, drawH);
-              ctx.fillStyle = "rgba(0,0,0,.10)";
-              ctx.fillRect(minX, minY, boxW, boxH);
 
               // Redibujamos un borde fino para separar quesitos tras pintar la imagen
               ctx.beginPath();
