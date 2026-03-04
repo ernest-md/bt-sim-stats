@@ -179,6 +179,31 @@
       display:flex;
       justify-content:flex-end;
       gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .downloadBtn{
+      border: 1px solid rgba(15,23,42,.22);
+      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(6,182,212,.78));
+      color:#fff;
+      font-weight:1000;
+      box-shadow: 0 10px 24px rgba(37,99,235,.28);
+    }
+    .downloadBtn:hover{
+      border-color: rgba(255,255,255,.32);
+      box-shadow: 0 14px 26px rgba(37,99,235,.34);
+      transform: translateY(-1px);
+    }
+    .downloadBtn:disabled{
+      opacity:.72;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:none;
+    }
+    .downloadHint{
+      font-size: 12px;
+      color:#64748b;
+      margin-right:auto;
     }
 
     .previewHero{
@@ -187,10 +212,7 @@
       margin-bottom: 14px;
       color: #fff;
       background:
-        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.75), transparent 60%),
-        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.60), transparent 60%),
-        radial-gradient(700px 250px at 40% 90%, rgba(245,158,11,.45), transparent 60%),
-        linear-gradient(135deg, rgba(15,23,42,.95), rgba(15,23,42,.75));
+        linear-gradient(180deg, rgba(15,23,42,.45), rgba(15,23,42,.35));
       border: 1px solid rgba(255,255,255,.16);
       box-shadow: 0 18px 50px rgba(0,0,0,.28);
       position: relative;
@@ -198,13 +220,11 @@
     }
     .previewHero.withLeaderBg{
       background:
-        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.75), transparent 60%),
-        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.60), transparent 60%),
-        radial-gradient(700px 250px at 40% 90%, rgba(245,158,11,.45), transparent 60%),
-        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72)),
+        linear-gradient(180deg, rgba(var(--accent-rgb, 124,58,237), .24), rgba(var(--accent-rgb, 124,58,237), .12)),
+        radial-gradient(120% 100% at 50% 45%, rgba(15,23,42,.18), rgba(15,23,42,.30)),
         var(--hero-bg-image);
-      background-size: auto, auto, auto, auto, cover;
-      background-position: center, center, center, center, center;
+      background-size: auto, auto, cover;
+      background-position: center, center, center var(--hero-bg-y, 50%);
     }
     .previewHero::after{
       content:"";
@@ -274,6 +294,28 @@
       border: 1px solid rgba(15,23,42,.10);
       background: rgba(255,255,255,.55);
       padding: 12px;
+      position: relative;
+      overflow:hidden;
+    }
+    .previewRail.withArtworkBg{
+      background:
+        linear-gradient(180deg, rgba(var(--accent-rgb, 124,58,237), .14), rgba(var(--accent-rgb, 124,58,237), .08)),
+        radial-gradient(130% 110% at 50% 50%, rgba(15,23,42,.12), rgba(15,23,42,.22)),
+        var(--rail-bg-image);
+      background-size: auto, auto, cover;
+      background-position: center, center, center center;
+    }
+    .previewRail.withArtworkBg::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: rgba(255,255,255,.18);
+      pointer-events:none;
+      z-index:0;
+    }
+    .previewRail.withArtworkBg .previewGrid{
+      position:relative;
+      z-index:1;
     }
 
     .previewGrid{
@@ -289,7 +331,7 @@
       border-radius: 18px;
       padding: 10px;
       border: 1px solid rgba(15,23,42,.10);
-      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.62));
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.76));
       display:flex;
       gap:10px;
       align-items:flex-start;
@@ -326,7 +368,7 @@
       width: 100px;
       height: 139px;
       border-radius: 6px;
-      border: 1px solid rgba(15,23,42,.14);
+      border: 7px solid rgba(15,23,42,.14);
       background: rgba(255,255,255,.7);
       object-fit: cover;
       flex: 0 0 auto;
@@ -368,6 +410,13 @@
       color:#0f172a;
       width: fit-content;
     }
+
+    .moveBtns{
+      display:flex;
+      gap:8px;
+      margin-right:auto;
+      flex-wrap:wrap;
+    }
     .dot{ width:8px; height:8px; border-radius:999px; background: var(--p1); display:inline-block; }
     .dot.c2{ background: var(--p2); }
 
@@ -382,6 +431,8 @@
       .pCard{ min-height: 120px; }
       .pImg{ width: 92px;
         height: 129px; }
+      .downloadBtn{ width:100%; justify-content:center; }
+      .downloadHint{ width:100%; }
     }
   </style>
 </head>
@@ -452,7 +503,12 @@
       </div>
     </div>
     <div class="previewActions">
-      <button class="btn" id="btnDownloadPreview" type="button">Descargar resultados</button>
+      <div class="moveBtns">
+        <button class="btn" id="btnBgUp" type="button">Fondo arriba</button>
+        <button class="btn" id="btnBgDown" type="button">Fondo abajo</button>
+      </div>
+      <span class="downloadHint" id="downloadHint"></span>
+      <button class="btn downloadBtn" id="btnDownloadPreview" type="button">Descargar resultados</button>
     </div>
   </div>
 
@@ -690,15 +746,36 @@
       return "#94a3b8";
     }
 
+    function hexToRgbString(hex){
+      const h = String(hex || "").replace("#", "");
+      if (h.length !== 6) return "124,58,237";
+      const n = parseInt(h, 16);
+      const r = (n >> 16) & 255;
+      const g = (n >> 8) & 255;
+      const b = n & 255;
+      return `${r},${g},${b}`;
+    }
+
+    let heroBgPosY = 50;
+    function moveHeroBg(delta){
+      heroBgPosY = Math.max(0, Math.min(100, heroBgPosY + delta));
+      buildPreview();
+    }
+
     function buildPreview(){
       const playerName = normalize($("player_name")?.value || "") || "Jugador";
       const startExp = normalize($("start_expansion")?.value || "") || "-";
       const favColor = normalize($("fav_color")?.value || "") || "-";
       const sw = colorToHex(favColor);
+      const accentRgb = hexToRgbString(sw);
       const favLeaderLabel = normalize($("fav_leader")?.value || "");
       const favLeaderCard = cardsByLabel.get(favLeaderLabel);
       const favLeaderImg = favLeaderCard?.image || "";
       const hero = $("previewHero");
+      const rail = document.querySelector(".previewRail");
+      const bestArtLabel = normalize($("best_art")?.value || "");
+      const bestArtCard = cardsByLabel.get(bestArtLabel);
+      const bestArtImg = bestArtCard?.image || "";
 
       if (favLeaderImg){
         hero.classList.add("withLeaderBg");
@@ -707,8 +784,21 @@
         hero.classList.remove("withLeaderBg");
         hero.style.removeProperty("--hero-bg-image");
       }
+      hero.style.setProperty("--hero-bg-y", `${heroBgPosY}%`);
+      hero.style.setProperty("--accent-rgb", accentRgb);
       hero.style.borderColor = sw;
       hero.style.boxShadow = `0 18px 50px rgba(0,0,0,.28), 0 0 0 1px ${sw}55 inset`;
+
+      if (rail){
+        if (bestArtImg){
+          rail.classList.add("withArtworkBg");
+          rail.style.setProperty("--rail-bg-image", `url("${String(bestArtImg).replace(/"/g, '%22')}")`);
+        } else {
+          rail.classList.remove("withArtworkBg");
+          rail.style.removeProperty("--rail-bg-image");
+        }
+        rail.style.setProperty("--accent-rgb", accentRgb);
+      }
 
       $("previewHero").innerHTML = `
         <div class="heroRow">
@@ -777,21 +867,41 @@
       const prevText = btn.textContent;
       btn.disabled = true;
       btn.textContent = "Generando...";
+      $("downloadHint").textContent = "";
       try{
         const canvas = await window.html2canvas(node, {
           backgroundColor: null,
           scale: 2,
           useCORS: true,
-          logging: false
+          logging: false,
+          onclone: (doc) => {
+            // Evitamos recursos externos sin CORS para que la exportacion no falle.
+            doc.querySelectorAll(".pImg").forEach((img) => {
+              img.removeAttribute("src");
+              img.style.opacity = "0.12";
+            });
+            const hero = doc.getElementById("previewHero");
+            if (hero){
+              hero.classList.remove("withLeaderBg");
+              hero.style.removeProperty("--hero-bg-image");
+            }
+            const rail = doc.querySelector(".previewRail");
+            if (rail){
+              rail.classList.remove("withArtworkBg");
+              rail.style.removeProperty("--rail-bg-image");
+            }
+          }
         });
         const link = document.createElement("a");
         const date = new Date().toISOString().slice(0, 10);
         link.download = `op-wrapped-${date}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
+        $("downloadHint").textContent = "Descarga lista. Nota: la exportacion omite artes externos por CORS.";
       }catch(e){
         console.error("downloadPreviewImage:", e);
-        alert("No se pudo generar la imagen. Revisa si hay imagenes externas bloqueadas.");
+        alert("No se pudo generar la imagen.");
+        $("downloadHint").textContent = "Error exportando. Si persiste, revisa la consola.";
       }finally{
         btn.disabled = false;
         btn.textContent = prevText;
@@ -804,6 +914,8 @@
     renderCardQuestionBlock("cardQuestions", CARD_QUESTIONS, "nonLeadersList");
     buildPreview();
     loadCards();
+    $("btnBgUp").addEventListener("click", () => moveHeroBg(-8));
+    $("btnBgDown").addEventListener("click", () => moveHeroBg(8));
     $("btnDownloadPreview").addEventListener("click", downloadPreviewImage);
   </script>
 </body>
