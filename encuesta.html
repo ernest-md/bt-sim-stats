@@ -224,6 +224,16 @@
       display:none;
       white-space:pre-line;
     }
+    .loading{
+      margin-top:12px;
+      border-radius:14px;
+      padding:10px 12px;
+      border:1px solid rgba(59,130,246,.35);
+      background:rgba(59,130,246,.10);
+      color:#1e3a8a;
+      font-size:13px;
+      display:none;
+    }
     .tip{
       margin-top:8px;
       color:#54618b;
@@ -273,6 +283,7 @@
     </section>
 
     <div id="msg" class="msg"></div>
+    <div id="loading" class="loading">Cargando imagenes y generando graficas...</div>
 
     <section class="layout">
       <div class="stack">
@@ -323,6 +334,12 @@
 
     const $ = window.BarateamApp.byId;
     const showError = (txt) => window.BarateamApp.showMessage("msg", txt);
+    const setLoading = (on, text) => {
+      const el = $("loading");
+      if (!el) return;
+      if (text) el.textContent = text;
+      el.style.display = on ? "block" : "none";
+    };
 
     const COLORS = [
       "#f54545", "#47b7d1", "#e7df39", "#03becc", "#f6be73", "#b857b5",
@@ -788,6 +805,7 @@
       $("title").textContent = customTitle || `Resultados de encuesta Â· ${csvFile}`;
 
       try{
+        setLoading(true, "Cargando CSV...");
         const res = await fetch(csvFile, { cache: "no-store" });
         if (!res.ok) throw new Error(`No pude cargar ${csvFile} (HTTP ${res.status})`);
         const text = await res.text();
@@ -842,8 +860,10 @@
         topDeckEl.classList.add("text");
         topDeckEl.textContent = globalTop ? `${globalTop[0]} (${globalTop[1]})` : "-";
 
+        setLoading(true, "Generando graficas...");
         await makeBarChart("barMain", main.counts.map((x) => x[0]), main.counts.map((x) => x[1]));
         if (mainFilteredForDonut.length){
+          setLoading(true, "Cargando imagenes de lideres...");
           await makePieChart("pieMain", mainFilteredForDonut.map((x) => x[0]), mainFilteredForDonut.map((x) => x[1]));
           renderLegend("legendMain", mainFilteredForDonut.map((x) => x[0]), mainFilteredForDonut.map((x) => x[1]));
         } else {
@@ -858,13 +878,16 @@
         $("pieSecondaryPanel").style.display = "";
         $("pieSecondaryQuestion").textContent = second.header;
         if (secondFilteredForDonut.length){
+          setLoading(true, "Aplicando imagenes al segundo donut...");
           await makePieChart("pieSecondary", secondFilteredForDonut.map((x) => x[0]), secondFilteredForDonut.map((x) => x[1]));
         } else {
           showError("Pregunta 2: no hay mazos con mas de 2 votos para donut.");
         }
+        setLoading(false);
       } catch (e){
         console.error(e);
         showError(e.message || "Error procesando CSV.");
+        setLoading(false);
       }
     }
 
