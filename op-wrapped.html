@@ -629,8 +629,7 @@
       const u = normalize(url);
       if (!u) return "";
       if (!/^https?:\/\//i.test(u)) return u;
-      const clean = u.replace(/^https?:\/\//i, "");
-      return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&w=1024&output=jpg`;
+      return `https://corsproxy.io/?${encodeURIComponent(u)}`;
     }
 
     function setStatus(text){ $("apiStatus").textContent = text; }
@@ -861,8 +860,10 @@
         const hasImg = !!img;
         const item = document.createElement("div");
         item.className = "pCard";
+        const safeImg = hasImg ? proxiedImage(img) : "";
+        const rawImg = hasImg ? String(img) : "";
         item.innerHTML = `
-          <img class="pImg" ${hasImg ? `src="${escapeAttr(proxiedImage(img))}" crossorigin="anonymous"` : ""} alt="" style="opacity:${hasImg ? 1 : .25}">
+          <img class="pImg" ${hasImg ? `src="${escapeAttr(safeImg)}" data-raw="${escapeAttr(rawImg)}" crossorigin="anonymous" onerror="if(this.dataset.raw){this.src=this.dataset.raw;this.removeAttribute('crossorigin');}"` : ""} alt="" style="opacity:${hasImg ? 1 : .25}">
           <div class="pMeta">
             <div class="pTitle">${escapeHtml(title)}</div>
             <div class="pLabel">${escapeHtml(label || "-")}</div>
