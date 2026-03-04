@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Barateam Hub Â· Login</title>
+  <title>Barateam Hub &middot; Login</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
   <style>
@@ -188,34 +188,33 @@
       </div>
 
       <div class="nav">
-        <a class="btn" href="index.html">ðŸ  Home</a>
-        <a class="btn" href="sim-stats.html" data-requires-auth="1">ðŸ“Š SIM Stats</a>
-        <a class="btn" href="op-wrapped.html">ðŸŽ´ OP Wrapped</a>
-        <a class="btn" href="decks.html">ðŸƒ DeckLists</a>
-        <a class="btn" href="results.html" data-requires-auth="1">ðŸ† Results</a>
-        <a class="btn" href="encuestas.html">ðŸ—³ï¸ Encuestas</a>
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="op-wrapped.html">&#127956; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="results.html" data-requires-auth="1">&#127942; Results</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
       </div>
 
       <div class="spacer"></div>
 
-      <!-- âœ… Derecha del todo: Login O Usuario -->
-      <a class="btn active" id="navLogin" href="login.html">ðŸ” Login</a>
+      <a class="btn active" id="navLogin" href="login.html">&#128274; Login</a>
 
       <div class="userwrap" id="navUser" style="display:none;">
         <button class="btn userbtn" id="userBtn" type="button">
           <span class="avatar"></span>
           <span id="userLabel">Usuario</span>
-          <span class="chev">â–¾</span>
+          <span class="chev">v</span>
         </button>
 
         <div class="menu" id="userMenu">
           <div class="head">
-            <strong id="userEmail">â€”</strong>
-            <span>SesiÃ³n iniciada</span>
+            <strong id="userEmail">&mdash;</strong>
+            <span>Sesion iniciada</span>
           </div>
-          <a href="profile.html" id="goProfile">ðŸ‘¤ Ver perfil</a>
+          <a href="profile.html" id="goProfile">Ver perfil</a>
           <div class="sep"></div>
-          <button class="danger" id="menuLogout" type="button">ðŸšª Cerrar sesiÃ³n</button>
+          <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
         </div>
       </div>
     </div>
@@ -225,7 +224,7 @@
     <div class="panel">
       <div class="hero">
         <h1>Login / Registro</h1>
-        <p>Entra para poder subir mazos. (Email + contraseÃ±a)</p>
+        <p>Entra para poder subir mazos. (Email + contrasena)</p>
       </div>
 
       <div class="grid">
@@ -235,8 +234,8 @@
         </div>
 
         <div>
-          <label for="password">ContraseÃ±a</label>
-          <input id="password" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password">
+          <label for="password">Contrasena</label>
+          <input id="password" type="password" placeholder="********" autocomplete="current-password">
         </div>
       </div>
 
@@ -248,8 +247,8 @@
       <div id="msg" class="msg"></div>
 
       <div class="muted">
-        Nota: si activas â€œConfirm emailâ€ en Supabase, al registrarse tendrÃ¡n que confirmar por correo.
-        Si quieres evitarlo: Authentication â†’ Providers â†’ Email â†’ desactivar confirmaciÃ³n.
+        Nota: si activas "Confirm email" en Supabase, al registrarse tendran que confirmar por correo.
+        Si quieres evitarlo: Authentication > Providers > Email > desactivar confirmacion.
       </div>
     </div>
   </div>
@@ -284,7 +283,7 @@
     window.doSignup = async function doSignup(){
       const email = $("email").value.trim();
       const password = $("password").value.trim();
-      if (!email || !password) return showMsg("Pon email y contraseÃ±a.", "err");
+      if (!email || !password) return showMsg("Pon email y contrasena.", "err");
 
       try{
         const { data, error } = await sb.auth.signUp({ email, password });
@@ -293,7 +292,7 @@
         if (data?.user && !data?.session){
           showMsg("Cuenta creada. Revisa el email para confirmar.", "ok");
         } else {
-          showMsg("Cuenta creada y sesiÃ³n iniciada âœ…", "ok");
+          showMsg("Cuenta creada y sesion iniciada", "ok");
         }
 
         await refreshSession();
@@ -306,13 +305,13 @@
     window.doLogin = async function doLogin(){
       const email = $("email").value.trim();
       const password = $("password").value.trim();
-      if (!email || !password) return showMsg("Pon email y contraseÃ±a.", "err");
+      if (!email || !password) return showMsg("Pon email y contrasena.", "err");
 
       try{
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        showMsg("Login OK âœ…", "ok");
+        showMsg("Login OK", "ok");
         await refreshSession();
         // opcional: location.href = "index.html";
       }catch(e){
@@ -325,7 +324,7 @@
       try{
         const { error } = await sb.auth.signOut();
         if (error) throw error;
-        showMsg("SesiÃ³n cerrada.", "ok");
+        showMsg("Sesion cerrada.", "ok");
         await refreshSession();
       }catch(e){
         console.error(e);
