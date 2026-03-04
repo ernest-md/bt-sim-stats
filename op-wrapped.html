@@ -8,6 +8,7 @@
 
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="app.js"></script>
 
   <style>
@@ -173,6 +174,12 @@
       padding-top: 14px;
       border-top: 1px dashed rgba(15,23,42,.18);
     }
+    .previewActions{
+      margin-top: 10px;
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+    }
 
     .previewHero{
       border-radius: 22px;
@@ -189,6 +196,16 @@
       position: relative;
       overflow:hidden;
     }
+    .previewHero.withLeaderBg{
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.75), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.60), transparent 60%),
+        radial-gradient(700px 250px at 40% 90%, rgba(245,158,11,.45), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72)),
+        var(--hero-bg-image);
+      background-size: auto, auto, auto, auto, cover;
+      background-position: center, center, center, center, center;
+    }
     .previewHero::after{
       content:"";
       position:absolute;
@@ -202,7 +219,7 @@
       display:flex;
       gap:14px;
       align-items:flex-start;
-      justify-content: space-between;
+      justify-content: center;
       flex-wrap:wrap;
       position:relative;
       z-index:1;
@@ -212,22 +229,26 @@
       flex-direction:column;
       gap:6px;
       min-width: 260px;
+      width:100%;
+      align-items:center;
+      text-align:center;
     }
     .heroTitle{
       font-weight: 1000;
-      font-size: 22px;
+      font-size: 34px;
       letter-spacing:.2px;
-      line-height: 1.05;
+      line-height: 1;
     }
     .heroSub{
       color: rgba(255,255,255,.82);
-      font-size: 13px;
+      font-size: 14px;
     }
     .heroBadges{
       display:flex;
       gap:8px;
       flex-wrap:wrap;
-      margin-top: 8px;
+      margin-top: 10px;
+      justify-content:center;
     }
     .badge{
       display:inline-flex;
@@ -304,7 +325,7 @@
     .pImg{
       width: 100px;
       height: 139px;
-      border-radius: 0px;
+      border-radius: 6px;
       border: 1px solid rgba(15,23,42,.14);
       background: rgba(255,255,255,.7);
       object-fit: cover;
@@ -356,7 +377,7 @@
       .hint{ width:100%; justify-content:flex-start; }
       .wrap{ padding: 10px; margin: 10px auto 22px; border-radius: 16px; }
       .heroLeft{ min-width: 0; }
-      .heroTitle{ font-size: 19px; }
+      .heroTitle{ font-size: 28px; }
       .previewGrid{ /*grid-template-columns: 1fr;*/ }
       .pCard{ min-height: 120px; }
       .pImg{ width: 92px;
@@ -429,6 +450,9 @@
       <div class="previewRail">
         <div class="previewGrid" id="previewGrid"></div>
       </div>
+    </div>
+    <div class="previewActions">
+      <button class="btn" id="btnDownloadPreview" type="button">Descargar resultados</button>
     </div>
   </div>
 
@@ -671,16 +695,28 @@
       const startExp = normalize($("start_expansion")?.value || "") || "-";
       const favColor = normalize($("fav_color")?.value || "") || "-";
       const sw = colorToHex(favColor);
+      const favLeaderLabel = normalize($("fav_leader")?.value || "");
+      const favLeaderCard = cardsByLabel.get(favLeaderLabel);
+      const favLeaderImg = favLeaderCard?.image || "";
+      const hero = $("previewHero");
+
+      if (favLeaderImg){
+        hero.classList.add("withLeaderBg");
+        hero.style.setProperty("--hero-bg-image", `url("${String(favLeaderImg).replace(/"/g, '%22')}")`);
+      } else {
+        hero.classList.remove("withLeaderBg");
+        hero.style.removeProperty("--hero-bg-image");
+      }
+      hero.style.borderColor = sw;
+      hero.style.boxShadow = `0 18px 50px rgba(0,0,0,.28), 0 0 0 1px ${sw}55 inset`;
 
       $("previewHero").innerHTML = `
         <div class="heroRow">
           <div class="heroLeft">
-            <div class="heroTitle">${escapeHtml(playerName)} - OP Wrapped</div>
-            <div class="heroSub">Empece en <strong>${escapeHtml(startExp)}</strong> - Color favorito <strong>${escapeHtml(favColor)}</strong></div>
+            <div class="heroTitle">${escapeHtml(playerName)}</div>
+            <div class="heroSub">Color favorito <strong>${escapeHtml(favColor)}</strong></div>
             <div class="heroBadges">
-              <span class="badge"><span class="swatch" style="background:${sw}"></span>${escapeHtml(favColor)}</span>
-              <span class="badge">Inicio ${escapeHtml(startExp)}</span>
-              <span class="badge">Jugador ${escapeHtml(playerName)}</span>
+              <span class="badge">Jugando desde ${escapeHtml(startExp)}</span>
             </div>
           </div>
         </div>
@@ -731,12 +767,44 @@
       }
     }
 
+    async function downloadPreviewImage(){
+      const node = $("preview");
+      if (!node || !window.html2canvas){
+        alert("No se pudo inicializar la descarga.");
+        return;
+      }
+      const btn = $("btnDownloadPreview");
+      const prevText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Generando...";
+      try{
+        const canvas = await window.html2canvas(node, {
+          backgroundColor: null,
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+        const link = document.createElement("a");
+        const date = new Date().toISOString().slice(0, 10);
+        link.download = `op-wrapped-${date}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }catch(e){
+        console.error("downloadPreviewImage:", e);
+        alert("No se pudo generar la imagen. Revisa si hay imagenes externas bloqueadas.");
+      }finally{
+        btn.disabled = false;
+        btn.textContent = prevText;
+      }
+    }
+
     // init
     renderPlayerQuestions();
     renderCardQuestionBlock("leaderQuestions", LEADER_QUESTIONS, "leadersList");
     renderCardQuestionBlock("cardQuestions", CARD_QUESTIONS, "nonLeadersList");
     buildPreview();
     loadCards();
+    $("btnDownloadPreview").addEventListener("click", downloadPreviewImage);
   </script>
 </body>
 </html>
