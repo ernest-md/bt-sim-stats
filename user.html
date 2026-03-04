@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Perfil publico · Barateam Hub</title>
+  <title>Perfil publico Â· Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -170,12 +171,12 @@
         <small>perfil publico</small>
       </div>
    <div class="nav">
-        <a class="btn primary active" href="index.html">🏠 Home</a>
-        <a class="btn" href="sim-stats.html" data-requires-auth="1">📊 SIM Stats</a>
-        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
-        <a class="btn" href="decks.html">🃏 DeckLists</a>
-        <a class="btn" href="results.html" data-requires-auth="1">🏆 Results</a>
-        <a class="btn" href="encuestas.html">🗳️ Encuestas</a>
+        <a class="btn primary active" href="index.html">ðŸ  Home</a>
+        <a class="btn" href="sim-stats.html" data-requires-auth="1">ðŸ“Š SIM Stats</a>
+        <a class="btn" href="op-wrapped.html">ðŸŽ´ OP Wrapped</a>
+        <a class="btn" href="decks.html">ðŸƒ DeckLists</a>
+        <a class="btn" href="results.html" data-requires-auth="1">ðŸ† Results</a>
+        <a class="btn" href="encuestas.html">ðŸ—³ï¸ Encuestas</a>
       </div>
     </div>
   </div>
@@ -290,7 +291,7 @@
         $("avatarFallback").style.display = "flex";
         $("avatarFallback").textContent = String(displayName).slice(0,1).toUpperCase() || "?";
       }
-      document.title = `${displayName} · Perfil publico`;
+      document.title = `${displayName} Â· Perfil publico`;
     }
 
     function renderDecks(decks){
@@ -334,7 +335,7 @@
       $("resultsList").innerHTML = results.map((r) => {
         const info = resultLabel(r, eventMap, leaderMap);
         return `
-          <a class="item" href="result.html?id=${escapeAttr(r.id)}">
+          <div class="item">
             <div>
               <div class="itemTitle">${escapeHtml(info.eventTitle)}</div>
               <div class="itemMeta">
@@ -347,7 +348,7 @@
               -
               <span class="loses">${escapeHtml(String(r.loses ?? 0))}</span>
             </div>
-          </a>
+          </div>
         `;
       }).join("");
     }
@@ -452,3 +453,4 @@
   </script>
 </body>
 </html>
+

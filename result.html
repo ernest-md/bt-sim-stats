@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Resultado · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
@@ -40,9 +41,6 @@
       <h1 class="title">Detalle de resultado</h1>
       <div class="meta">
         <span id="created">Creado: -</span>
-      </div>
-      <div style="margin-top:10px;">
-        <button class="btn" id="btnCopyResultLink" type="button">Copiar enlace</button>
       </div>
 
       <div class="grid">
@@ -124,22 +122,13 @@
       }
     }
 
-    async function copyResultLink(){
-      try{
-        await navigator.clipboard.writeText(window.location.href);
-        window.BarateamApp.showMessage("msg", "Enlace copiado", { baseClass: "msg", type: "ok" });
-      }catch(_e){
-        showError("No pude copiar el enlace.");
-      }
-    }
-
     (async function init(){
       const user = await requireSession();
       if (!user) return;
-      $("btnCopyResultLink").addEventListener("click", copyResultLink);
       await loadDetail(user);
       sb.auth.onAuthStateChange((_e, s) => { if (!s?.user) location.href = "login.html"; });
     })();
   </script>
 </body>
 </html>
+

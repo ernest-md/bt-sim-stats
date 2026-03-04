@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>SIM Stats · Barateam Hub</title>
+  <title>SIM Stats Â· Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
   <link rel="stylesheet" href="app.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -56,7 +57,7 @@
       z-index:-1;
     }
 
-    /* ===== Topbar / Navegación ===== */
+    /* ===== Topbar / NavegaciÃ³n ===== */
     .bar{ max-width: 1200px; }
 
     .brand{
@@ -123,7 +124,7 @@
       gap:10px;
     }
 
-    /* botones “claros” dentro del card */
+    /* botones â€œclarosâ€ dentro del card */
     .btn.light{
       background: rgba(255,255,255,.75);
       border: 1px solid rgba(15,23,42,.10);
@@ -208,18 +209,18 @@
       </div>
 
       <div class="nav">
-        <a class="btn" href="index.html">🏠 Home</a>
-        <a class="btn primary active" href="sim-stats.html" data-requires-auth="1">📊 SIM Stats</a>
-        <a class="btn" href="op-wrapped.html">🎴 OP Wrapped</a>
-        <a class="btn" href="decks.html">🃏 DeckLists</a>
-        <a class="btn" href="results.html" data-requires-auth="1">🏆 Results</a>
-        <a class="btn" href="encuestas.html">🗳️ Encuestas</a>
+        <a class="btn" href="index.html">ðŸ  Home</a>
+        <a class="btn primary active" href="sim-stats.html" data-requires-auth="1">ðŸ“Š SIM Stats</a>
+        <a class="btn" href="op-wrapped.html">ðŸŽ´ OP Wrapped</a>
+        <a class="btn" href="decks.html">ðŸƒ DeckLists</a>
+        <a class="btn" href="results.html" data-requires-auth="1">ðŸ† Results</a>
+        <a class="btn" href="encuestas.html">ðŸ—³ï¸ Encuestas</a>
       </div>
 
     </div>
   </div>
   <div class="authCorner">
-    <a class="btn" id="navLogin" href="login.html">🔐 Login</a>
+    <a class="btn" id="navLogin" href="login.html">ðŸ” Login</a>
     <div class="userwrap" id="navUser" style="display:none;">
       <button class="btn userbtn" id="userBtn" type="button">
         <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
@@ -229,7 +230,7 @@
       </button>
       <div class="menu" id="userMenu">
         <div class="head">
-          <strong id="userEmail">—</strong>
+          <strong id="userEmail">â€”</strong>
           <span>Sesion iniciada</span>
         </div>
         <a href="profile.html" id="goProfile">Ver perfil</a>
@@ -379,8 +380,8 @@
         return range.e.r;
       };
 
-      const winAnchor = findCell(t => t.toLowerCase() === "más victorias contra");
-      const loseAnchor = findCell(t => t.toLowerCase() === "más derrotas contra");
+      const winAnchor = findCell(t => t.toLowerCase() === "mÃ¡s victorias contra");
+      const loseAnchor = findCell(t => t.toLowerCase() === "mÃ¡s derrotas contra");
       const winEnd = winAnchor ? blockEndRow(winAnchor) : null;
       const loseEnd = loseAnchor ? blockEndRow(loseAnchor) : null;
 
@@ -470,3 +471,4 @@
   </script>
 </body>
 </html>
+
