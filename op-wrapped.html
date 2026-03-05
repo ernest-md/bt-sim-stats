@@ -463,6 +463,10 @@
       height:139px !important;
     }
     .forceDesktopCapture #preview .pTitle{ font-size:13px !important; }
+    .forceDesktopCapture #preview .tag{
+      font-size: 11px !important;
+      padding: 4px 8px !important;
+    }
     .forceDesktopCapture #preview .heroTitle{ font-size:34px !important; }
     .forceDesktopCapture #preview .tagFull{ display:inline !important; }
     .forceDesktopCapture #preview .tagShort{ display:none !important; }
@@ -493,7 +497,7 @@
   <div class="topbar">
     <div class="bar with-auth-corner">
       <div class="brand">
-        BARATEAM HUB
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
         <small>op wrapped</small>
       </div>
 
@@ -949,8 +953,15 @@
           scale: 2,
           useCORS: true,
           logging: false,
+          windowWidth: 1400,
+          windowHeight: Math.max(1200, node.scrollHeight + 120),
+          width: 1080,
+          scrollX: 0,
+          scrollY: 0,
           onclone: (doc) => {
             doc.body.classList.add("forceDesktopCapture");
+            doc.documentElement.style.width = "1400px";
+            doc.body.style.width = "1400px";
             const preview = doc.getElementById("preview");
             if (preview){
               preview.style.width = "1080px";
@@ -988,5 +999,6 @@
   </script>
 </body>
 </html>
+
 
 

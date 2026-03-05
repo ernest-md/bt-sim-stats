@@ -65,6 +65,13 @@
   box-shadow: 0 6px 18px rgba(0,0,0,.22);
 }
 
+.brandLogo{
+  display:block;
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+}
+
 .spacer{ flex: 1; }
 
 .bar.with-auth-corner{
@@ -215,6 +222,7 @@
   }
   .wrap{ padding: 0 10px; margin: 12px auto 22px; }
   .brand{ width: 100%; }
+  .brandLogo{ height: 30px; }
   .topbar .nav{
     order: 3;
     width: 100%;
