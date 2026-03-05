@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Perfil publico � Barateam Hub</title>
+  <title>Perfil publico · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
   <link rel="stylesheet" href="app.css?v=20260305b" />
@@ -52,7 +52,7 @@
     .hero p{ margin:6px 0 0; color: rgba(255,255,255,.82); font-size:13px; }
     .wrap{ max-width:1100px; margin:16px auto 26px; padding:0 14px; box-sizing:border-box; }
     .grid{ display:grid; grid-template-columns: 1fr; gap:12px; }
-    @media (min-width: 980px){ .grid{ grid-template-columns: 380px 1fr; } }
+    @media (min-width: 980px){ .grid{ grid-template-columns: 360px 1fr; } }
     .card{
       background: var(--card);
       border: 1px solid rgba(255,255,255,.18);
@@ -60,26 +60,88 @@
       box-shadow: var(--shadow);
       padding: 14px;
     }
-    .profileHead{ display:flex; gap:12px; align-items:center; }
+    .profileCard,
+    .summaryCard{
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .profileCard.withLeaderBg::before,
+    .summaryCard.withLeaderBg::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-repeat: no-repeat, no-repeat;
+      z-index:-1;
+    }
+    .profileCard.withLeaderBg::before{
+      background:
+        linear-gradient(132deg, rgba(255,255,255,.58) 0%, rgba(255,255,255,.50) 45%, rgba(255,255,255,.44) 100%),
+        var(--leader-bg-image);
+      background-size: cover, cover;
+      background-position: center, center;
+      background-repeat: no-repeat, no-repeat;
+    }
+    .summaryCard.withLeaderBg::before{
+      background:
+        linear-gradient(130deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.56) 40%, rgba(255,255,255,.50) 100%),
+        var(--leader-bg-image);
+      background-size: cover, cover;
+      background-position: center, center;
+      background-repeat: no-repeat, no-repeat;
+    }
+    .profileHead{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      text-align:center;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.45);
+      background: rgba(255,255,255,.62);
+      backdrop-filter: blur(1.5px);
+      padding: 12px 12px 10px;
+    }
     .profileAvatar{
-      width:90px; height:90px; border-radius:18px; object-fit:cover;
+      width:138px; height:138px; border-radius:999px; object-fit:cover;
       border:1px solid rgba(15,23,42,.14); background:#fff;
       display:block;
       box-shadow: 0 10px 22px rgba(0,0,0,.18);
     }
     .avatarFallback{
-      width:90px; height:90px; border-radius:18px;
+      width:138px; height:138px; border-radius:999px;
       border:1px solid rgba(15,23,42,.14);
       display:none; align-items:center; justify-content:center;
-      font-size:30px; font-weight:1000; color:#334155; background:#fff;
+      font-size:46px; font-weight:1000; color:#334155; background:#fff;
     }
     .name{ margin:0; font-size:28px; font-weight:1000; color:#0f172a; line-height:1; }
+    .profileTags{
+      margin-top: 8px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    .profileTag{
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.78);
+      color:#334155;
+      padding:4px 10px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
     .muted{ color:#64748b; font-size:13px; }
     .bio{
       margin-top:12px; white-space:pre-wrap; word-break:break-word;
       color:#334155; font-size:14px; line-height:1.45;
-      border-top: 1px solid rgba(15,23,42,.08);
-      padding-top:10px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.72);
+      border-radius: 12px;
+      padding:10px;
+      text-align:center;
     }
     .stats{
       display:grid;
@@ -124,10 +186,125 @@
       display:flex; justify-content:space-between; gap:10px; align-items:center;
       text-decoration:none; color:inherit;
       transition: border-color .18s ease, transform .08s ease;
+      position: relative;
     }
     .item:hover{ border-color: rgba(15,23,42,.28); transform: translateY(-1px); }
+    .item:hover{ z-index: 6; }
+    .deckRowMain{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+    .deckLeaderThumb{
+      width: calc(56px * 0.72);
+      height: 56px;
+      border-radius: 7px;
+      border: 1px solid rgba(15,23,42,.10);
+      object-fit: contain;
+      background: rgba(255,255,255,.75);
+      flex: 0 0 auto;
+    }
+    .leaderZoom{
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+    }
+    .leaderZoomPreview{
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 8px);
+      transform: translateX(-50%) translateY(-4px) scale(.96);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 120;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(2,6,23,.90);
+      box-shadow: 0 20px 38px rgba(2,6,23,.55);
+      padding: 6px;
+      transition: opacity .14s ease, transform .14s ease;
+    }
+    .leaderZoomPreview img{
+      width: 180px;
+      height: auto;
+      max-height: 280px;
+      object-fit: contain;
+      display:block;
+      border-radius: 8px;
+      background: rgba(2,6,23,.40);
+    }
+    .leaderZoom:hover .leaderZoomPreview{
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
     .itemTitle{ font-weight:900; color:#0f172a; font-size:14px; }
     .itemMeta{ color:#64748b; font-size:12px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; }
+    .pager{
+      margin-top: 10px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .pagerInfo{ font-size:12px; color:#475569; }
+    .pagerBtns{ display:flex; gap:8px; align-items:center; }
+    .btnMini{
+      border:1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.80);
+      color:#0f172a;
+      border-radius:10px;
+      padding:6px 10px;
+      font:inherit;
+      cursor:pointer;
+    }
+    .btnMini:disabled{ opacity:.55; cursor:not-allowed; }
+    .leadersTop{
+      margin-top: 8px;
+      display:grid;
+      gap:8px;
+    }
+    .leaderTopItem{
+      border:1px solid rgba(15,23,42,.10);
+      border-radius:12px;
+      background: rgba(255,255,255,.75);
+      padding:8px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .leaderTopMain{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+    }
+    .leaderTopImg{
+      width: 28px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: contain;
+      border: 1px solid rgba(15,23,42,.14);
+      background:#fff;
+      flex: 0 0 28px;
+    }
+    .leaderTopTxt{
+      font-size: 13px;
+      font-weight: 900;
+      color:#0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .leaderTopMeta{
+      font-size: 12px;
+      color:#475569;
+      white-space: nowrap;
+    }
     .score{ font-weight:900; white-space:nowrap; }
     .wins{ color:#166534; }
     .loses{ color:#991b1b; }
@@ -145,6 +322,8 @@
       .hero h1{ font-size:22px; }
       .name{ font-size:24px; }
       .stats{ grid-template-columns: 1fr; }
+      .profileAvatar, .avatarFallback{ width:112px; height:112px; }
+      .avatarFallback{ font-size:36px; }
     }
         .brand{
       display:flex;
@@ -210,32 +389,69 @@
     <div class="msg" id="msg"></div>
     <div class="hero">
       <h1>Perfil publico</h1>
-      <p>Decks recientes del jugador.</p>
+      <p id="heroSub">Decks recientes y resumen competitivo del jugador.</p>
     </div>
     <div class="grid">
-      <div class="card">
+      <div class="card profileCard" id="profileCard">
         <div class="profileHead">
           <img id="avatar" class="profileAvatar" alt="Avatar" />
           <div id="avatarFallback" class="avatarFallback">?</div>
           <div>
             <h1 class="name" id="name">Perfil</h1>
             <div class="muted" id="username">@usuario</div>
+            <div class="profileTags">
+              <span class="profileTag" id="teamTag">Equipo: SIN EQUIPO</span>
+            </div>
           </div>
         </div>
         <div class="bio" id="bio">Sin bio.</div>
-        <div class="stats">
+      </div>
+
+      <div class="card summaryCard" id="summaryCard">
+        <h2 class="sectionTitle">Resumen expansion actual</h2>
+        <div class="stats" style="margin-top:0; margin-bottom:12px;">
+          <div class="stat">
+            <div class="k">Expansion</div>
+            <div class="v" id="statExpansion" style="font-size:16px;">-</div>
+          </div>
+          <div class="stat">
+            <div class="k">Partidas</div>
+            <div class="v" id="statMatches">0</div>
+          </div>
+          <div class="stat">
+            <div class="k">WR</div>
+            <div class="v" id="statWr">0.0%</div>
+          </div>
+          <div class="stat">
+            <div class="k">W/L</div>
+            <div class="v" id="statWl">0-0</div>
+          </div>
           <div class="stat">
             <div class="k">Decks</div>
             <div class="v" id="statDecks">0</div>
           </div>
+          <div class="stat">
+            <div class="k">Lider mas usado</div>
+            <div class="v" id="statTopLeader" style="font-size:16px;">-</div>
+          </div>
         </div>
-      </div>
-
-      <div class="card">
-        <h2 class="sectionTitle">Decks recientes</h2>
-        <div class="list" id="decksList"></div>
+        <h2 class="sectionTitle">Lideres mas usados</h2>
+        <div id="leadersTop" class="leadersTop"></div>
       </div>
     </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2 class="sectionTitle">Decks del usuario</h2>
+        <div class="list" id="decksList"></div>
+        <div class="pager">
+          <div class="pagerInfo" id="decksPagerInfo">Mostrando 0-0 de 0</div>
+          <div class="pagerBtns">
+            <button class="btnMini" id="decksPrevPage" type="button">Anterior</button>
+            <span class="pagerInfo" id="decksPageLabel">Pagina 1/1</span>
+            <button class="btnMini" id="decksNextPage" type="button">Siguiente</button>
+          </div>
+        </div>
+      </div>
   </div>
 
   <script>
@@ -244,6 +460,10 @@
     const escapeHtml = window.BarateamApp.escapeHtml;
     const escapeAttr = window.BarateamApp.escapeAttr;
     const formatDate = window.BarateamApp.formatDate;
+    const DECKS_PAGE_SIZE = 10;
+    const MAX_TOP_LEADERS = 5;
+    let allDecks = [];
+    let decksPage = 1;
 
     window.BarateamApp.bindProtectedNavLinks(sb);
 
@@ -269,8 +489,12 @@
 
     function renderProfile(profile){
       const displayName = profile.display_name || profile.username || "Usuario";
+      const username = profile.username ? ("@" + profile.username) : "@usuario";
+      const team = profile.team || "SIN EQUIPO";
       $("name").textContent = displayName;
-      $("username").textContent = profile.username ? ("@" + profile.username) : "@usuario";
+      $("username").textContent = username;
+      $("teamTag").textContent = `Equipo: ${team}`;
+      $("heroSub").textContent = `Perfil publico de ${username} · ${team}`;
       $("bio").textContent = profile.bio || "Sin bio.";
 
       if (profile.avatar_url){
@@ -283,27 +507,225 @@
         $("avatarFallback").style.display = "flex";
         $("avatarFallback").textContent = String(displayName).slice(0,1).toUpperCase() || "?";
       }
-      document.title = `${displayName} � Perfil publico`;
+      document.title = `${displayName} · Perfil publico`;
     }
 
-    function renderDecks(decks){
-      $("statDecks").textContent = String(decks.length || 0);
-      if (!decks.length){
-        $("decksList").innerHTML = `<div class="muted">Este usuario no ha publicado decks.</div>`;
+    async function fetchCurrentExpansion(){
+      const today = new Date();
+      const isoDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const { data, error } = await sb
+        .from("expansions")
+        .select("id,name,start_date,end_date")
+        .lte("start_date", isoDay)
+        .gte("end_date", isoDay)
+        .order("start_date", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data && data[0]) || null;
+    }
+
+    async function fetchPlayerByProfileId(profileId){
+      const { data, error } = await sb
+        .from("players")
+        .select("id,name,profile_id")
+        .eq("profile_id", profileId)
+        .limit(1)
+        .maybeSingle();
+      if (error){
+        console.warn("player by profile:", error.message);
+        return null;
+      }
+      return data || null;
+    }
+
+    async function fetchMatchesByPlayerInExpansion(playerId, expansion){
+      if (!playerId || !expansion) return [];
+      const startIso = `${expansion.start_date}T00:00:00`;
+      const endIso = `${expansion.end_date}T23:59:59.999`;
+      const pageSize = 1000;
+      const maxRows = 6000;
+      let from = 0;
+      const rows = [];
+      while (from < maxRows){
+        const to = from + pageSize - 1;
+        const { data, error } = await sb
+          .from("matches")
+          .select(`
+            id,
+            result,
+            match_date,
+            player_leader,
+            player:leaders!matches_player_leader_fkey (
+              code,
+              name,
+              image_url,
+              parallel_image_url
+            )
+          `)
+          .eq("player_id", playerId)
+          .gte("match_date", startIso)
+          .lte("match_date", endIso)
+          .order("match_date", { ascending: false })
+          .range(from, to);
+        if (error){
+          console.warn("matches public summary:", error.message);
+          break;
+        }
+        const batch = data || [];
+        rows.push(...batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      return rows;
+    }
+
+    function renderLeadersTop(matches){
+      const root = $("leadersTop");
+      if (!root) return;
+
+      const leaderImage = (leader) => String(leader?.parallel_image_url || leader?.image_url || "").trim();
+      const map = new Map();
+      for (const row of (matches || [])){
+        const code = String(row?.player_leader || row?.player?.code || "").trim();
+        if (!code) continue;
+        if (!map.has(code)){
+          map.set(code, {
+            code,
+            name: row?.player?.name || code,
+            image_url: leaderImage(row?.player),
+            games: 0
+          });
+        }
+        const entry = map.get(code);
+        entry.games += 1;
+        if (!entry.name && row?.player?.name) entry.name = row.player.name;
+        if (!entry.image_url) entry.image_url = leaderImage(row?.player);
+      }
+
+      const top = Array.from(map.values())
+        .sort((a, b) => b.games - a.games)
+        .slice(0, MAX_TOP_LEADERS);
+
+      if (!top.length){
+        root.innerHTML = `<div class="muted">Sin datos de lideres en esta expansion.</div>`;
         return;
       }
-      $("decksList").innerHTML = decks.map((d) => `
+
+      root.innerHTML = top.map((l, idx) => `
+        <div class="leaderTopItem">
+          <div class="leaderTopMain">
+            ${l.image_url
+              ? `<img class="leaderTopImg" src="${escapeAttr(l.image_url)}" alt="${escapeAttr(l.name || l.code)}" />`
+              : `<div class="leaderTopImg" aria-hidden="true"></div>`}
+            <span class="leaderTopTxt">#${idx + 1} ${escapeHtml(l.name || l.code)}</span>
+          </div>
+          <span class="leaderTopMeta">${l.games} partidas</span>
+        </div>
+      `).join("");
+    }
+
+    function applyTopLeaderBackground(imageUrl){
+      const cards = [$("profileCard"), $("summaryCard")].filter(Boolean);
+      for (const card of cards){
+        if (imageUrl){
+          card.classList.add("withLeaderBg");
+          card.style.setProperty("--leader-bg-image", `url("${String(imageUrl).replace(/"/g, '\\"')}")`);
+        } else {
+          card.classList.remove("withLeaderBg");
+          card.style.removeProperty("--leader-bg-image");
+        }
+      }
+    }
+
+    function renderCurrentExpansionSummary(expansion, matches){
+      if (!expansion){
+        $("statExpansion").textContent = "Sin expansion activa";
+        $("statMatches").textContent = "0";
+        $("statWr").textContent = "0.0%";
+        $("statWl").textContent = "0-0";
+        $("statTopLeader").textContent = "-";
+        applyTopLeaderBackground("");
+        renderLeadersTop([]);
+        return;
+      }
+      const leaderImage = (leader) => String(leader?.parallel_image_url || leader?.image_url || "").trim();
+      const total = matches.length;
+      const wins = matches.filter((m) => {
+        const v = String(m?.result || "").trim().toLowerCase();
+        return v === "won" || v === "win" || v === "victoria" || v === "w";
+      }).length;
+      const losses = Math.max(0, total - wins);
+      const wr = total ? ((wins / total) * 100).toFixed(1) : "0.0";
+      const leaderCount = new Map();
+      for (const row of (matches || [])){
+        const key = String(row?.player?.name || row?.player_leader || "").trim();
+        if (!key) continue;
+        if (!leaderCount.has(key)){
+          leaderCount.set(key, { name: key, games: 0, image_url: leaderImage(row?.player) });
+        }
+        const entry = leaderCount.get(key);
+        entry.games += 1;
+        if (!entry.image_url) entry.image_url = leaderImage(row?.player);
+      }
+      const topLeader = Array.from(leaderCount.values()).sort((a, b) => b.games - a.games)[0] || null;
+      $("statExpansion").textContent = expansion.name || "-";
+      $("statMatches").textContent = String(total);
+      $("statWr").textContent = `${wr}%`;
+      $("statWl").textContent = `${wins}-${losses}`;
+      $("statTopLeader").textContent = topLeader ? `${topLeader.name} (${topLeader.games})` : "-";
+      applyTopLeaderBackground(topLeader?.image_url || "");
+      renderLeadersTop(matches);
+    }
+
+    function renderDecksPage(){
+      const total = allDecks.length;
+      const totalPages = Math.max(1, Math.ceil(total / DECKS_PAGE_SIZE));
+      if (decksPage > totalPages) decksPage = totalPages;
+      if (decksPage < 1) decksPage = 1;
+
+      $("statDecks").textContent = String(total || 0);
+
+      if (!total){
+        $("decksList").innerHTML = `<div class="muted">Este usuario no ha publicado decks.</div>`;
+        $("decksPagerInfo").textContent = "Mostrando 0-0 de 0";
+        $("decksPageLabel").textContent = "Pagina 1/1";
+        $("decksPrevPage").disabled = true;
+        $("decksNextPage").disabled = true;
+        return;
+      }
+
+      const start = (decksPage - 1) * DECKS_PAGE_SIZE;
+      const pageRows = allDecks.slice(start, start + DECKS_PAGE_SIZE);
+      $("decksList").innerHTML = pageRows.map((d) => `
         <a class="item" href="deck.html?id=${escapeAttr(d.id)}">
-          <div>
+          <div class="deckRowMain">
+            ${d.leader_image_url
+              ? `
+                <span class="leaderZoom">
+                  <img class="deckLeaderThumb" src="${escapeAttr(d.leader_image_url)}" alt="${escapeAttr(d.leader || "Lider")}" />
+                  <span class="leaderZoomPreview">
+                    <img src="${escapeAttr(d.leader_image_url)}" alt="${escapeAttr(d.leader || "Lider")}" />
+                  </span>
+                </span>
+              `
+              : `<div class="deckLeaderThumb" aria-hidden="true"></div>`}
+            <div>
             <div class="itemTitle">${escapeHtml(d.name || "Deck")}</div>
             <div class="itemMeta">
               <span>${escapeHtml(d.leader || "-")}</span>
               <span>${escapeHtml(formatDate(d.created_at))}</span>
             </div>
+            </div>
           </div>
           <div class="muted">Ver</div>
         </a>
       `).join("");
+
+      const end = Math.min(start + pageRows.length, total);
+      $("decksPagerInfo").textContent = `Mostrando ${start + 1}-${end} de ${total}`;
+      $("decksPageLabel").textContent = `Pagina ${decksPage}/${totalPages}`;
+      $("decksPrevPage").disabled = decksPage <= 1;
+      $("decksNextPage").disabled = decksPage >= totalPages;
     }
 
     async function loadPublicProfile(){
@@ -319,7 +741,7 @@
       if (byUsername){
         const { data, error } = await sb
           .from("profiles")
-          .select("id,username,display_name,bio,avatar_url")
+          .select("id,username,display_name,bio,avatar_url,team")
           .eq("username", byUsername)
           .maybeSingle();
         if (error){
@@ -335,7 +757,7 @@
       } else {
         const { data, error } = await sb
           .from("profiles")
-          .select("id,username,display_name,bio,avatar_url")
+          .select("id,username,display_name,bio,avatar_url,team")
           .eq("id", byId)
           .maybeSingle();
         if (error){
@@ -346,7 +768,8 @@
           username: "",
           display_name: "Usuario",
           bio: "",
-          avatar_url: ""
+          avatar_url: "",
+          team: "SIN EQUIPO"
         };
       }
 
@@ -358,15 +781,28 @@
       renderProfile(profile);
 
       const decksRes = await sb.from("decks")
-        .select("id,name,leader,created_at")
+        .select("id,name,leader,leader_image_url,created_at")
         .eq("autor", targetUserId)
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .order("created_at", { ascending: false });
 
       if (decksRes.error) console.warn("decks:", decksRes.error.message);
 
-      const decks = decksRes.data || [];
-      renderDecks(decks);
+      allDecks = decksRes.data || [];
+      decksPage = 1;
+      renderDecksPage();
+
+      const expansion = await fetchCurrentExpansion().catch(() => null);
+      if (!expansion){
+        renderCurrentExpansionSummary(null, []);
+        return;
+      }
+      const player = await fetchPlayerByProfileId(targetUserId);
+      if (!player){
+        renderCurrentExpansionSummary(expansion, []);
+        return;
+      }
+      const matches = await fetchMatchesByPlayerInExpansion(player.id, expansion);
+      renderCurrentExpansionSummary(expansion, matches);
     }
 
     (async function init(){
@@ -379,9 +815,22 @@
       });
       await loadPublicProfile();
     })();
+
+    $("decksPrevPage").addEventListener("click", () => {
+      decksPage -= 1;
+      renderDecksPage();
+    });
+    $("decksNextPage").addEventListener("click", () => {
+      decksPage += 1;
+      renderDecksPage();
+    });
   </script>
 </body>
 </html>
+
+
+
+
 
 
 
