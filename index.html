@@ -1,9 +1,9 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Home Â· Barateam Hub</title>
+  <title>Home · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
   <link rel="stylesheet" href="app.css?v=20260305b" />
@@ -852,12 +852,13 @@
     <div class="bar with-auth-corner">
       <div class="brand">
         <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
-        <small>home Â· tools Â· novedades</small>
+        <small>home · tools · novedades</small>
       </div>
 
       <div class="nav">
         <a class="btn primary active" href="index.html">&#127968; Home</a>
         <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
         <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
         <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
         <a class="btn" href="decks.html">&#127183; DeckLists</a>
@@ -877,7 +878,7 @@
     </button>
     <div class="menu" id="userMenu">
       <div class="head">
-        <strong id="userEmail">â€”</strong>
+        <strong id="userEmail">—</strong>
         <span>Sesion iniciada</span>
       </div>
       <a href="profile.html">Ver perfil</a>
@@ -945,7 +946,7 @@
       </div>
     </div>
 
-    <div class="foot">Hecho con &#10084;&#65039; para el team Â· GitHub Pages</div>
+    <div class="foot">Hecho con &#10084;&#65039; para el team · GitHub Pages</div>
   </div>
 
   <script>
@@ -1589,7 +1590,7 @@
 
   function matchupHtml(item, cls){
     if (!item){
-      return `<div class="lrMu ${cls}"><span class="featuredMuted">â€”</span></div>`;
+      return `<div class="lrMu ${cls}"><span class="featuredMuted">—</span></div>`;
     }
     return `
       <div class="lrMu ${cls}" title="${escapeAttr(item.name || item.code || "-")}">
@@ -1660,7 +1661,7 @@
         const profile = profileMap.get(p.playerId);
         const playerRow = playersMap.get(p.playerId);
         const label = playerLabel(profile, playerRow, p.playerId);
-        return `<li><strong>#${idx + 1} ${escapeHtml(label)}</strong> Â· WR ${percentText(p.wins, p.games)} Â· ${p.games} partidas</li>`;
+        return `<li><strong>#${idx + 1} ${escapeHtml(label)}</strong> · WR ${percentText(p.wins, p.games)} · ${p.games} partidas</li>`;
       })
       .join("");
 
@@ -1697,7 +1698,7 @@
             <div class="leaderLine">
               ${leaderImageHtml(topGamesLeader)}
               <div>
-                <p class="leaderName">${escapeHtml(topGamesLeader?.name || "â€”")}</p>
+                <p class="leaderName">${escapeHtml(topGamesLeader?.name || "—")}</p>
                 <p class="leaderMeta">${topGamesLeader ? `${topGamesLeader.games} partidas` : "Sin datos"}</p>
               </div>
             </div>
@@ -1707,7 +1708,7 @@
             <div class="leaderLine">
               ${leaderImageHtml(topWrLeader)}
               <div>
-                <p class="leaderName">${escapeHtml(topWrLeader?.name || "â€”")}</p>
+                <p class="leaderName">${escapeHtml(topWrLeader?.name || "—")}</p>
                 <p class="leaderMeta">${topWrLeader ? `${percentText(topWrLeader.wins, topWrLeader.games)} en ${topWrLeader.games} partidas` : "Sin datos"}</p>
               </div>
             </div>
@@ -2044,8 +2045,8 @@
               if (!dt) return "";
               const hh = String(dt.getHours()).padStart(2,"0");
               const mm = String(dt.getMinutes()).padStart(2,"0");
-              const loc = ev.location ? ` Â· ${escapeHtml(ev.location)}` : "";
-              return `<div class="tipItem">&#128197; ${hh}:${mm} Â· <strong>${escapeHtml(ev.title)}</strong>${loc}</div>`;
+              const loc = ev.location ? ` · ${escapeHtml(ev.location)}` : "";
+              return `<div class="tipItem">&#128197; ${hh}:${mm} · <strong>${escapeHtml(ev.title)}</strong>${loc}</div>`;
             }).join("")}
           </div>
         ` : ""}
@@ -2174,6 +2175,7 @@
 </script>
 </body>
 </html>
+
 
 
 

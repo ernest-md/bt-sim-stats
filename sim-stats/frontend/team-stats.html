@@ -1,15 +1,14 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Stats · Barateam Hub</title>
+  <title>Team Stats · Barateam Hub</title>
   <link rel="icon" href="../../favicon.ico" type="image/x-icon" />
   <link rel="stylesheet" href="../../app.css?v=20260305b" />
   <link rel="stylesheet" href="css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../app.js?v=20260305c"></script>
-
   <style>
     body{
       margin:0;
@@ -48,7 +47,6 @@
     .brand{
       display:flex;
       flex-direction: column;
-
       align-items: center;
       color:#fff;
       font-weight:900;
@@ -86,19 +84,18 @@
     }
   </style>
 </head>
-
-<body>
+<body class="team-page">
   <div class="topbar">
     <div class="bar with-auth-corner">
       <div class="brand">
         <img class="brandLogo" src="../../BT_LOGO.png" alt="BARATEAM HUB" />
-        <small>stats</small>
+        <small>team stats</small>
       </div>
 
       <div class="nav">
         <a class="btn" href="../../index.html">&#127968; Home</a>
-        <a class="btn primary active" href="../../sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
-        <a class="btn" href="../../sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="../../sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn primary active" href="../../sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
         <a class="btn" href="../../ranking.html" data-requires-auth="1">&#127942; Ranking</a>
         <a class="btn" href="../../op-wrapped.html">&#127873; OP Wrapped</a>
         <a class="btn" href="../../decks.html">&#127183; DeckLists</a>
@@ -130,127 +127,20 @@
 
   <div class="page">
     <div class="card">
-
       <div class="headerRow">
-        <div class="title">Barateam Stats</div>
-
+        <div class="title" id="teamPageTitle">Estadisticas del equipo</div>
         <div class="filters">
           <div class="filterBlock">
-            Jugador:
-            <select id="playerSelect"></select>
-          </div>
-
-          <div class="filterBlock">
             Expansion:
-            <select id="expansionSelect"></select>
-          </div>
-          <button id="syncMatchesBtn" class="sync-btn">
-            Cargar nuevas partidas
-          </button>
-          <div id="syncStatus" class="sync-status"></div>
-        </div>
-      </div>
-
-      <div id="summaryView">
-        <div class="summary">
-          <div class="summaryBox">
-            Total
-            <strong id="total">-</strong>
-          </div>
-
-          <div class="summaryBox">
-            Victorias
-            <strong id="wins">-</strong>
-          </div>
-
-          <div class="summaryBox">
-            Derrotas
-            <strong id="losses">-</strong>
-          </div>
-
-          <div class="summaryBox">
-            WR
-            <strong id="wr">-</strong>
-          </div>
-        </div>
-
-        <div class="mainLayout">
-          <div class="leaders">
-            <h3>Estadisticas por lider</h3>
-
-            <table>
-              <thead>
-                <tr>
-                  <th style="width:80px;">Img</th>
-                  <th style="width:120px;">Carta</th>
-                  <th>Partidas</th>
-                  <th>Victorias</th>
-                  <th>Derrotas</th>
-                  <th>WR</th>
-                  <th>Fav</th>
-                  <th>Desf</th>
-                </tr>
-              </thead>
-              <tbody id="leaderStats"></tbody>
-            </table>
-          </div>
-
-          <div class="matchups">
-            <h3>Matchups Globales</h3>
-
-            <h4>Mas victorias</h4>
-            <table>
-              <thead>
-                <tr>
-                  <th>Lider</th>
-                  <th>W</th>
-                  <th>P</th>
-                  <th>WR</th>
-                </tr>
-              </thead>
-              <tbody id="topWins"></tbody>
-            </table>
-
-            <h4>Mas derrotas</h4>
-            <table>
-              <thead>
-                <tr>
-                  <th>Lider</th>
-                  <th>L</th>
-                  <th>P</th>
-                  <th>WR</th>
-                </tr>
-              </thead>
-              <tbody id="topLosses"></tbody>
-            </table>
+            <select id="teamExpansionSelect"></select>
           </div>
         </div>
       </div>
 
-      <div id="leaderView" style="display:none; margin-top:20px;">
-        <button id="backToSummary">Volver</button>
-
-        <div id="leaderSummary" class="leaderSummary"></div>
-
-        <table style="margin-top:20px;">
-          <thead>
-            <tr>
-              <th>Img</th>
-              <th>Lider</th>
-              <th>Partidas</th>
-              <th>Victorias</th>
-              <th>Derrotas</th>
-              <th>WR</th>
-              <th>First</th>
-              <th>WR First</th>
-              <th>Second</th>
-              <th>WR Second</th>
-            </tr>
-          </thead>
-          <tbody id="leaderMatchups"></tbody>
-        </table>
+      <div class="teamSummaryWrap">
+        <h3 id="teamSummaryTitle">Resumen del equipo</h3>
+        <div id="teamSummaryBody" class="teamSummaryBody"></div>
       </div>
-
     </div>
   </div>
 
@@ -278,14 +168,6 @@
     })();
   </script>
 
-  <script type="module" src="./js/stats.js"></script>
+  <script type="module" src="./js/team-stats.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
