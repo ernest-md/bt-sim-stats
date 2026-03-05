@@ -321,7 +321,9 @@
     .previewRail{
       border-radius: 0px;
       border: 1px solid rgba(15,23,42,.10);
-      background: rgba(255,255,255,.55);
+      background:
+        linear-gradient(180deg, rgba(var(--accent-rgb, 124,58,237), .10), rgba(var(--accent-rgb, 124,58,237), .06)),
+        rgba(255,255,255,.55);
       padding: 12px;
       position: relative;
       overflow:hidden;
@@ -453,6 +455,14 @@
     .forceDesktopCapture #preview{
       width:1080px !important;
       max-width:1080px !important;
+    }
+    .forceDesktopCapture #preview .previewHero{
+      min-height: 138px !important;
+    }
+    .forceDesktopCapture #preview .heroSub{ font-size:14px !important; }
+    .forceDesktopCapture #preview .badge{
+      font-size:12px !important;
+      padding:7px 10px !important;
     }
     .forceDesktopCapture #preview .previewGrid{
       grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -944,10 +954,16 @@
       }
       const btn = $("btnDownloadPreview");
       const prevText = btn.textContent;
+      const prevStyle = node.getAttribute("style") || "";
       btn.disabled = true;
       btn.textContent = "Generando...";
       $("downloadHint").textContent = "";
       try{
+        document.body.classList.add("forceDesktopCapture");
+        node.style.width = "1080px";
+        node.style.maxWidth = "1080px";
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
         const canvas = await window.html2canvas(node, {
           backgroundColor: null,
           scale: 2,
@@ -980,6 +996,9 @@
         alert("No se pudo generar la imagen.");
         $("downloadHint").textContent = "Error exportando. Si persiste, revisa la consola.";
       }finally{
+        if (prevStyle) node.setAttribute("style", prevStyle);
+        else node.removeAttribute("style");
+        document.body.classList.remove("forceDesktopCapture");
         btn.disabled = false;
         btn.textContent = prevText;
       }
