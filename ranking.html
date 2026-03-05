@@ -162,6 +162,15 @@
       color:#0f172a;
       white-space: nowrap;
     }
+    .userLink{
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: rgba(15,23,42,.28);
+      text-underline-offset: 2px;
+    }
+    .userLink:hover{
+      text-decoration-color: rgba(15,23,42,.58);
+    }
     .statStrong{
       font-weight: 1000;
       color:#0f172a;
@@ -400,7 +409,7 @@
     async function fetchPlayersMap(playerIds){
       const ids = Array.from(new Set((playerIds || []).filter(Boolean)));
       if (!ids.length) return new Map();
-      const { data, error } = await sb.from("players").select("id,name").in("id", ids);
+      const { data, error } = await sb.from("players").select("id,name,profile_id").in("id", ids);
       if (error){
         console.warn("players:", error.message);
         return new Map();
@@ -408,7 +417,23 @@
       return new Map((data || []).map((p) => [p.id, p]));
     }
 
-    function buildRanking(matches, playersMap){
+    async function fetchProfilesMap(profileIds){
+      const ids = Array.from(new Set((profileIds || []).filter(Boolean)));
+      if (!ids.length) return new Map();
+      const { data, error } = await sb.from("profiles").select("id,username,display_name").in("id", ids);
+      if (error){
+        console.warn("profiles:", error.message);
+        return new Map();
+      }
+      return new Map((data || []).map((p) => [p.id, p]));
+    }
+
+    function profileHrefById(userId){
+      if (!userId) return "";
+      return `user.html?id=${encodeURIComponent(userId)}`;
+    }
+
+    function buildRanking(matches, playersMap, profilesMap){
       const players = new Map();
 
       for (const row of (matches || [])){
@@ -447,8 +472,13 @@
       }
 
       const ranking = Array.from(players.values()).map((p) => ({
+        profileId: playersMap.get(p.playerId)?.profile_id || null,
         ...p,
-        name: playersMap.get(p.playerId)?.name || `user-${String(p.playerId).slice(0, 8)}`,
+        name:
+          profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.username ||
+          profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.display_name ||
+          playersMap.get(p.playerId)?.name ||
+          `user-${String(p.playerId).slice(0, 8)}`,
         wr: p.games ? (p.wins / p.games) : 0,
         topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
         topLeaderByWr: chooseLeaderBestWr(p.leaders)
@@ -475,7 +505,7 @@
       body.innerHTML = rows.map((r, idx) => `
         <tr class="rankRow rank-${idx + 1}">
           <td class="rankPos">${idx + 1}</td>
-          <td class="playerName">${escapeHtml(r.name)}</td>
+          <td class="playerName">${r.profileId ? `<a class="userLink" href="${escapeAttr(profileHrefById(r.profileId))}">${escapeHtml(r.name)}</a>` : escapeHtml(r.name)}</td>
           <td class="statStrong">${r.games}</td>
           <td class="statStrong">${wrText(r.wins, r.games)}</td>
           <td>${r.wins}</td>
@@ -499,7 +529,9 @@
         const matches = await fetchMatches(expansion);
         const playerIds = matches.map((m) => m.player_id);
         const playersMap = await fetchPlayersMap(playerIds);
-        const ranking = buildRanking(matches, playersMap);
+        const profileIds = Array.from(new Set(Array.from(playersMap.values()).map((p) => p?.profile_id).filter(Boolean)));
+        const profilesMap = await fetchProfilesMap(profileIds);
+        const ranking = buildRanking(matches, playersMap, profilesMap);
         renderRanking(ranking);
       }catch(e){
         console.warn("ranking:", e.message || e);

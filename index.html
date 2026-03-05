@@ -1303,11 +1303,21 @@
   }
 
   function playerLabel(profile, playerRow, playerId){
-    if (playerRow?.name) return playerRow.name;
     if (profile?.username) return profile.username;
     if (profile?.display_name) return profile.display_name;
+    if (playerRow?.name) return playerRow.name;
     if (!playerId) return "usuario";
     return `user-${String(playerId).slice(0, 8)}`;
+  }
+
+  function featuredPlayerProfileId(playersMap, playerId){
+    return playersMap?.get(playerId)?.profile_id || null;
+  }
+
+  function featuredPlayerLabelHtml(playersMap, playerId, label){
+    const profileId = featuredPlayerProfileId(playersMap, playerId);
+    if (profileId) return profileLinkById(profileId, label);
+    return escapeHtml(label);
   }
 
   function leaderImageHtml(leader){
@@ -1415,8 +1425,8 @@
     return rows;
   }
 
-  async function fetchProfileMap(playerIds){
-    const ids = Array.from(new Set((playerIds || []).filter(Boolean)));
+  async function fetchProfileMap(profileIds){
+    const ids = Array.from(new Set((profileIds || []).filter(Boolean)));
     if (!ids.length) return new Map();
 
     const { data, error } = await sb
@@ -1437,7 +1447,7 @@
 
     const { data, error } = await sb
       .from("players")
-      .select("id,name")
+      .select("id,name,profile_id")
       .in("id", ids);
 
     if (error){
@@ -1643,8 +1653,8 @@
     }
 
     const main = topPlayers[0];
-    const mainProfile = profileMap.get(main.playerId);
     const mainPlayer = playersMap.get(main.playerId);
+    const mainProfile = profileMap.get(featuredPlayerProfileId(playersMap, main.playerId));
     const mainLabel = playerLabel(mainProfile, mainPlayer, main.playerId);
     const topGamesLeader = main.topLeaderByGames;
     const topWrLeader = main.topLeaderByWr;
@@ -1657,10 +1667,10 @@
 
     const topListHtml = topPlayers
       .map((p, idx) => {
-        const profile = profileMap.get(p.playerId);
+        const profile = profileMap.get(featuredPlayerProfileId(playersMap, p.playerId));
         const playerRow = playersMap.get(p.playerId);
         const label = playerLabel(profile, playerRow, p.playerId);
-        return `<li><strong>#${idx + 1} ${escapeHtml(label)}</strong> · WR ${percentText(p.wins, p.games)} · ${p.games} partidas</li>`;
+        return `<li><strong>#${idx + 1} ${featuredPlayerLabelHtml(playersMap, p.playerId, label)}</strong> · WR ${percentText(p.wins, p.games)} · ${p.games} partidas</li>`;
       })
       .join("");
 
@@ -1670,7 +1680,7 @@
           <div class="featuredHero">
             <span class="champTag">Jugador #1</span>
           </div>
-          <h3 class="featuredTitle">${escapeHtml(mainLabel)}</h3>
+          <h3 class="featuredTitle">${featuredPlayerLabelHtml(playersMap, main.playerId, mainLabel)}</h3>
           <p class="featuredSub">Mejor winrate con volumen de partidas</p>
           <div class="featuredStats">
             <div class="featuredStat">
@@ -1739,10 +1749,15 @@
       const topPlayers = buildFeaturedRanking(matches);
       const leaderRankings = buildLeaderRankings(matches);
       const playerIds = topPlayers.map((p) => p.playerId);
-      const [profileMap, playersMap] = await Promise.all([
-        fetchProfileMap(playerIds),
-        fetchPlayersMap(playerIds)
-      ]);
+      const playersMap = await fetchPlayersMap(playerIds);
+      const profileIds = Array.from(
+        new Set(
+          Array.from(playersMap.values())
+            .map((row) => row?.profile_id)
+            .filter(Boolean)
+        )
+      );
+      const profileMap = await fetchProfileMap(profileIds);
       renderFeaturedPlayer(topPlayers, profileMap, playersMap, expansion, leaderRankings);
     }catch(e){
       console.warn("featured:", e.message || e);

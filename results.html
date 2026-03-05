@@ -74,6 +74,15 @@
     .msg{ margin-top:10px; font-size:13px; padding:10px 12px; border-radius:12px; border:1px solid rgba(15,23,42,.12); background: rgba(255,255,255,.70); color:#0f172a; display:none; white-space: pre-line; }
     .msg.ok{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); color:#166534; display:block; }
     .msg.err{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); color:#991b1b; display:block; }
+    .userLink{
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,.38);
+      text-underline-offset: 2px;
+    }
+    .userLink:hover{
+      text-decoration-color: rgba(255,255,255,.72);
+    }
     .tableWrap{ overflow:auto; border-radius:18px; border:1px solid rgba(15,23,42,.10); background: rgba(255,255,255,.70); }
     table{ width:100%; border-collapse:collapse; min-width:760px; }
     th, td{ text-align:left; padding:10px 12px; border-bottom:1px solid rgba(15,23,42,.08); font-size:13px; vertical-align:middle; }
@@ -314,6 +323,10 @@
       }
       return "";
     }
+    function profileHrefById(userId){
+      if (!userId) return "";
+      return `user.html?id=${encodeURIComponent(userId)}`;
+    }
 
     function eventDateKey(row){
       const raw = String(row?.start_at || row?.date || row?.event_date || "").trim();
@@ -333,7 +346,13 @@
         return;
       }
       const username = data?.username || (currentUser.email ? currentUser.email.split("@")[0] : "usuario");
-      $("currentUsernameHint").textContent = `Usuario: @${username}`;
+      const hint = $("currentUsernameHint");
+      const href = profileHrefById(currentUser.id);
+      if (href){
+        hint.innerHTML = `Usuario: <a class="userLink" href="${esc(href)}">@${esc(username)}</a>`;
+      } else {
+        hint.textContent = `Usuario: @${username}`;
+      }
     }
 
     async function requireSession(){
