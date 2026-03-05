@@ -65,12 +65,6 @@ as $$
           where pr.id = p_viewer_id
             and pr.app_role in ('admin', 'staff')
         )
-        or exists (
-          select 1
-          from public.sim_stats_access_grants g
-          where g.viewer_profile_id = p_viewer_id
-            and g.player_id = p_player_id
-        )
       )
   );
 $$;
