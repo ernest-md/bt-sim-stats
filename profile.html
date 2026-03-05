@@ -361,6 +361,7 @@
     const $ = window.BarateamApp.byId;
     let currentAvatarUrl = null;
     let currentPublicLink = "";
+    let loadedSimProfileUrl = "";
 
     window.BarateamApp.bindProtectedNavLinks(sb);
 
@@ -379,6 +380,75 @@
         ? "Tu perfil publico estara disponible para otros usuarios."
         : "Define username para generar enlace bonito.";
     };
+
+    function extractDeviceIdFromSimUrl(rawUrl){
+      const raw = (rawUrl || "").trim();
+      if (!raw) return null;
+      try{
+        const parsed = new URL(raw);
+        const fromParam = parsed.searchParams.get("deviceId");
+        return fromParam ? fromParam.trim() : null;
+      } catch (_e){
+        const match = raw.match(/[?&]deviceId=([^&]+)/i);
+        return match ? decodeURIComponent(match[1]).trim() : null;
+      }
+    }
+
+    function isLikelyDeviceId(value){
+      return /^[a-f0-9]{24,80}$/i.test((value || "").trim());
+    }
+
+    async function linkSimDeviceToPlayer(profileId, playerName, simProfileUrl){
+      const deviceId = extractDeviceIdFromSimUrl(simProfileUrl);
+      if (!deviceId) return { ok: true, skipped: true };
+
+      if (!isLikelyDeviceId(deviceId)) {
+        return { ok: false, message: "Formato de deviceId invalido en la URL del SIM." };
+      }
+
+      const { data, error } = await sb.rpc("link_sim_profile_device", {
+        p_profile_id: profileId,
+        p_player_name: playerName,
+        p_device_id: deviceId
+      });
+
+      if (error){
+        return { ok: false, message: error.message || "No se pudo vincular el perfil SIM." };
+      }
+
+      const playerId = typeof data === "string"
+        ? data
+        : Array.isArray(data)
+          ? (data[0] || null)
+          : (data?.player_id || data?.id || null);
+
+      return { ok: true, skipped: false, playerId };
+    }
+
+    async function runInitialSimSync(playerId){
+      if (!playerId) return { ok: false, message: "No se pudo resolver el playerId para sincronizar." };
+
+      try{
+        const res = await fetch(`${window.BarateamApp.SUPABASE_URL}/functions/v1/sync-matches`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": window.BarateamApp.SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${window.BarateamApp.SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ playerId })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          return { ok: false, message: data?.error || `Error HTTP ${res.status}` };
+        }
+
+        return { ok: true, inserted: Number(data?.inserted || 0) };
+      } catch (err){
+        return { ok: false, message: err?.message || "Error de red al sincronizar partidas." };
+      }
+    }
 
     /* ===== Nav auth UI ===== */
     const navController = window.BarateamApp.initUserNav({
@@ -435,6 +505,7 @@
 
       $("username").value = data.username || "";
       $("sim_profile_url").value = data.sim_profile_url || "";
+      loadedSimProfileUrl = (data.sim_profile_url || "").trim();
       $("display_name").value = data.display_name || "";
       $("bio").value = data.bio || "";
       currentAvatarUrl = data.avatar_url || null;
@@ -460,6 +531,13 @@
     async function saveProfile(){
       const { data: { session } } = await sb.auth.getSession();
       if (!session) return;
+
+      const usernameValue = $("username").value.trim();
+      if (!usernameValue){
+        show("El username es obligatorio para vincular los stats del simulador.", "err");
+        return;
+      }
+
       const avatarFile = $("avatar_file").files?.[0] || null;
       let avatarUrl = currentAvatarUrl;
       if (avatarFile){
@@ -468,7 +546,7 @@
 
       const payload = {
         id: session.user.id,
-        username: $("username").value.trim(),
+        username: usernameValue,
         sim_profile_url: $("sim_profile_url").value.trim(),
         display_name: $("display_name").value.trim(),
         bio: $("bio").value.trim(),
@@ -481,10 +559,35 @@
       if (error){
         show("Error guardando perfil: " + error.message, "err");
       } else {
-        show("Perfil guardado", "ok");
+        const preferredPlayerName = payload.username || payload.display_name || (session.user.email || "Jugador");
+        const hasSimUrlNow = !!payload.sim_profile_url;
+        const simUrlChanged = payload.sim_profile_url !== loadedSimProfileUrl;
+        let linkResult = { ok: true, skipped: true };
+
+        if (hasSimUrlNow) {
+          linkResult = await linkSimDeviceToPlayer(session.user.id, preferredPlayerName, payload.sim_profile_url);
+        }
+
+        if (!linkResult.ok){
+          show("Perfil guardado, pero fallo la vinculacion SIM: " + linkResult.message, "err");
+          return;
+        }
+
+        if (!linkResult.skipped && simUrlChanged) {
+          const syncResult = await runInitialSimSync(linkResult.playerId);
+          if (!syncResult.ok){
+            show("Perfil guardado y SIM vinculado, pero fallo la primera sincronizacion: " + syncResult.message, "err");
+            return;
+          }
+          show(`Perfil guardado, SIM vinculado y primera sincronizacion completada (${syncResult.inserted} partidas nuevas).`, "ok");
+        } else {
+          show("Perfil guardado" + (linkResult.skipped ? "" : " y SIM vinculado"), "ok");
+        }
+
         currentAvatarUrl = payload.avatar_url || null;
         $("avatar_file").value = "";
         $("avatarCurrent").textContent = currentAvatarUrl ? "Avatar actual cargado." : "Sin avatar actual.";
+        loadedSimProfileUrl = payload.sim_profile_url;
         updatePublicLink(payload.username || "", session.user.id);
         void window.BarateamApp.syncTopbarAvatar(sb, session.user);
       }

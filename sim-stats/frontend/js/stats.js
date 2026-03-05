@@ -20,12 +20,22 @@ async function init() {
 
   const players = await getPlayers()
 
+  if (players.length === 0) {
+    showStatsAccessMessage("No tienes ningun perfil SIM vinculado o acceso concedido.")
+    playerSelect.disabled = true
+    syncButton.disabled = true
+  }
+
   players.forEach(player => {
     const option = document.createElement("option")
     option.value = player.id
     option.textContent = player.name
     playerSelect.appendChild(option)
   })
+
+  if (players.length === 1) {
+    playerSelect.disabled = true
+  }
 
   const expansions = await getExpansions()
   allExpansions = expansions
@@ -45,6 +55,13 @@ async function init() {
   if (players.length > 0) {
     await loadPlayer(players[0].id)
   }
+}
+
+function showStatsAccessMessage(message) {
+  const statusDiv = document.getElementById("syncStatus")
+  if (!statusDiv) return
+  statusDiv.textContent = message
+  statusDiv.className = "sync-status sync-info"
 }
 
 /* ================= LOAD PLAYER ================= */
