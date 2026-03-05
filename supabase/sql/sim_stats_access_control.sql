@@ -9,11 +9,21 @@ alter table public.profiles
   add column if not exists app_role text not null default 'user';
 
 alter table public.profiles
+  add column if not exists team text not null default 'SIN EQUIPO';
+
+alter table public.profiles
   drop constraint if exists profiles_app_role_check;
 
 alter table public.profiles
   add constraint profiles_app_role_check
   check (app_role in ('user', 'staff', 'admin'));
+
+alter table public.profiles
+  drop constraint if exists profiles_team_check;
+
+alter table public.profiles
+  add constraint profiles_team_check
+  check (team in ('SIN EQUIPO', 'BARATEAM', 'LABOOMERS', 'YONKOJOS', 'CARDGUILD'));
 
 -- 2) Optional delegated access table
 create table if not exists public.sim_stats_access_grants (
@@ -40,20 +50,20 @@ as $$
   select exists (
     select 1
     from public.players p
+    left join public.profiles owner_pr on owner_pr.id = p.profile_id
+    left join public.profiles viewer_pr on viewer_pr.id = p_viewer_id
     where p.id = p_player_id
       and (
         p.profile_id = p_viewer_id
+        or (
+          viewer_pr.team <> 'SIN EQUIPO'
+          and owner_pr.team = viewer_pr.team
+        )
         or exists (
           select 1
           from public.profiles pr
           where pr.id = p_viewer_id
             and pr.app_role in ('admin', 'staff')
-        )
-        or exists (
-          select 1
-          from public.sim_stats_access_grants g
-          where g.viewer_profile_id = p_viewer_id
-            and g.player_id = p_player_id
         )
       )
   );

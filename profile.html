@@ -132,7 +132,7 @@
       font-size:13px;
     }
 
-    input, textarea{
+    input, textarea, select{
       width:100%;
       padding:10px 12px;
       border-radius:12px;
@@ -143,7 +143,7 @@
       background:#fff;
       outline:none;
     }
-    input:focus, textarea:focus{
+    input:focus, textarea:focus, select:focus{
       border-color: rgba(124,58,237,.55);
       box-shadow: 0 0 0 4px rgba(124,58,237,.15);
     }
@@ -360,6 +360,15 @@
       <input id="username" placeholder="ej: coquito">
       <div class="usernameHint">Este username se utilizara para realizar la conexion con los stats del simulador.</div>
 
+      <label>Equipo</label>
+      <select id="team">
+        <option value="SIN EQUIPO">SIN EQUIPO</option>
+        <option value="BARATEAM">BARATEAM</option>
+        <option value="LABOOMERS">LABOOMERS</option>
+        <option value="YONKOJOS">YONKOJOS</option>
+        <option value="CARDGUILD">CARDGUILD</option>
+      </select>
+
       <div class="simConnect">
         <div class="simConnectHead">Conexion SIM</div>
         <label>SIM profile URL</label>
@@ -564,6 +573,7 @@
       }
 
       $("username").value = data.username || "";
+      $("team").value = data.team || "SIN EQUIPO";
       $("sim_profile_url").value = data.sim_profile_url || "";
       loadedSimProfileUrl = (data.sim_profile_url || "").trim();
       $("display_name").value = data.display_name || "";
@@ -614,6 +624,7 @@
         const payload = {
           id: session.user.id,
           username: usernameValue,
+          team: $("team").value || "SIN EQUIPO",
           sim_profile_url: $("sim_profile_url").value.trim(),
           display_name: $("display_name").value.trim(),
           bio: $("bio").value.trim(),
