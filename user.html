@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Perfil publico · Barateam Hub</title>
+  <title>Perfil publico Â· Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
-  <link rel="stylesheet" href="app.css" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=20260305c"></script>
 
   <style>
     :root{
@@ -177,9 +177,9 @@
    <div class="nav">
         <a class="btn primary active" href="index.html">&#127968; Home</a>
         <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
-        <a class="btn" href="op-wrapped.html">&#127956; OP Wrapped</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
         <a class="btn" href="decks.html">&#127183; DeckLists</a>
-        <a class="btn" href="results.html" data-requires-auth="1">&#127942; Results</a>
         <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
       </div>
     </div>
@@ -209,7 +209,7 @@
     <div class="msg" id="msg"></div>
     <div class="hero">
       <h1>Perfil publico</h1>
-      <p>Decks y resultados recientes del jugador.</p>
+      <p>Decks recientes del jugador.</p>
     </div>
     <div class="grid">
       <div class="card">
@@ -227,25 +227,12 @@
             <div class="k">Decks</div>
             <div class="v" id="statDecks">0</div>
           </div>
-          <div class="stat">
-            <div class="k">Resultados</div>
-            <div class="v" id="statResults">0</div>
-          </div>
-          <div class="stat">
-            <div class="k">Winrate</div>
-            <div class="v" id="statWr">0%</div>
-          </div>
         </div>
       </div>
 
       <div class="card">
         <h2 class="sectionTitle">Decks recientes</h2>
         <div class="list" id="decksList"></div>
-      </div>
-
-      <div class="card" style="grid-column: 1 / -1;">
-        <h2 class="sectionTitle">Resultados recientes</h2>
-        <div class="list" id="resultsList"></div>
       </div>
     </div>
   </div>
@@ -295,7 +282,7 @@
         $("avatarFallback").style.display = "flex";
         $("avatarFallback").textContent = String(displayName).slice(0,1).toUpperCase() || "?";
       }
-      document.title = `${displayName} · Perfil publico`;
+      document.title = `${displayName} Â· Perfil publico`;
     }
 
     function renderDecks(decks){
@@ -316,45 +303,6 @@
           <div class="muted">Ver</div>
         </a>
       `).join("");
-    }
-
-    function resultLabel(result, eventMap, leaderMap){
-      const eventTitle = eventMap.get(result.event)?.title || eventMap.get(result.event)?.name || "Evento";
-      const leader = leaderMap.get(result.leader);
-      const leaderText = leader ? [leader.name || "", leader.code || ""].filter(Boolean).join(" ").trim() : "-";
-      return { eventTitle, leaderText };
-    }
-
-    function renderResults(results, eventMap, leaderMap){
-      const wins = (results || []).reduce((acc, r) => acc + Number(r.wins || 0), 0);
-      const loses = (results || []).reduce((acc, r) => acc + Number(r.loses || 0), 0);
-      const total = wins + loses;
-      const wr = total > 0 ? ((wins / total) * 100) : 0;
-      $("statResults").textContent = String(results.length || 0);
-      $("statWr").textContent = `${wr.toFixed(1)}%`;
-      if (!results.length){
-        $("resultsList").innerHTML = `<div class="muted">Este usuario no tiene resultados cargados.</div>`;
-        return;
-      }
-      $("resultsList").innerHTML = results.map((r) => {
-        const info = resultLabel(r, eventMap, leaderMap);
-        return `
-          <div class="item">
-            <div>
-              <div class="itemTitle">${escapeHtml(info.eventTitle)}</div>
-              <div class="itemMeta">
-                <span>${escapeHtml(formatDate(r.created_at))}</span>
-                <span>${escapeHtml(info.leaderText)}</span>
-              </div>
-            </div>
-            <div class="score">
-              <span class="wins">${escapeHtml(String(r.wins ?? 0))}</span>
-              -
-              <span class="loses">${escapeHtml(String(r.loses ?? 0))}</span>
-            </div>
-          </div>
-        `;
-      }).join("");
     }
 
     async function loadPublicProfile(){
@@ -408,40 +356,16 @@
 
       renderProfile(profile);
 
-      const [decksRes, resultsRes] = await Promise.all([
-        sb.from("decks")
-          .select("id,name,leader,created_at")
-          .eq("autor", targetUserId)
-          .order("created_at", { ascending: false })
-          .limit(10),
-        sb.from("results")
-          .select("id,created_at,wins,loses,event,leader")
-          .eq("autor", targetUserId)
-          .order("created_at", { ascending: false })
-          .limit(10)
-      ]);
+      const decksRes = await sb.from("decks")
+        .select("id,name,leader,created_at")
+        .eq("autor", targetUserId)
+        .order("created_at", { ascending: false })
+        .limit(10);
 
       if (decksRes.error) console.warn("decks:", decksRes.error.message);
-      if (resultsRes.error) console.warn("results:", resultsRes.error.message);
 
       const decks = decksRes.data || [];
-      const results = resultsRes.data || [];
       renderDecks(decks);
-
-      const eventIds = Array.from(new Set(results.map((r) => r.event).filter(Boolean)));
-      const leaderIds = Array.from(new Set(results.map((r) => r.leader).filter(Boolean)));
-
-      const [eventsRes, leadersRes] = await Promise.all([
-        eventIds.length ? sb.from("events").select("id,title,name,start_at,date").in("id", eventIds) : Promise.resolve({ data: [], error: null }),
-        leaderIds.length ? sb.from("leaders").select("id,name,code").in("id", leaderIds) : Promise.resolve({ data: [], error: null })
-      ]);
-
-      if (eventsRes.error) console.warn("events:", eventsRes.error.message);
-      if (leadersRes.error) console.warn("leaders:", leadersRes.error.message);
-
-      const eventMap = new Map((eventsRes.data || []).map((e) => [e.id, e]));
-      const leaderMap = new Map((leadersRes.data || []).map((l) => [l.id, l]));
-      renderResults(results, eventMap, leaderMap);
     }
 
     (async function init(){
@@ -457,6 +381,11 @@
   </script>
 </body>
 </html>
+
+
+
+
+
 
 
 

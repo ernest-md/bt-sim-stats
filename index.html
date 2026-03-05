@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -6,9 +6,9 @@
   <title>Home · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
-  <link rel="stylesheet" href="app.css" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=20260305c"></script>
 
   <style>
     :root{
@@ -89,7 +89,7 @@
       position: fixed;
       top: 12px;
       right: 14px;
-      z-index: 40;
+      z-index: 200000;
       display: flex;
       align-items: center;
     }
@@ -122,9 +122,12 @@
       grid-template-columns: 1fr;
       gap: 12px;
       margin-top: 14px;
+      width: 100%;
+      max-width: 100%;
     }
+    .grid > *{ min-width: 0; }
     @media (min-width: 880px){
-      .grid{ grid-template-columns: 1.2fr .8fr; }
+      .grid{ grid-template-columns: 1.08fr .92fr; }
     }
 
     .card{
@@ -133,6 +136,9 @@
       border-radius: 22px;
       box-shadow: var(--shadow);
       padding: 14px;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .sectionTitle{
@@ -385,6 +391,331 @@
       display:block;
     }
 
+    /* Featured player */
+    .featuredBody{
+      --leader-card-ratio: 0.72;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.28);
+      background:
+        radial-gradient(460px 220px at 6% 0%, rgba(124,58,237,.30), transparent 70%),
+        radial-gradient(420px 220px at 100% 0%, rgba(6,182,212,.22), transparent 72%),
+        linear-gradient(160deg, rgba(15,23,42,.80), rgba(30,41,59,.68));
+      color: #e2e8f0;
+      padding: 14px;
+      position: relative;
+      overflow: visible;
+      box-shadow: 0 18px 34px rgba(15,23,42,.24);
+    }
+    .featuredMain{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 560px){
+      .featuredMain{ grid-template-columns: 1.2fr .8fr; }
+    }
+    .featuredTitle{
+      margin:0;
+      font-size: 24px;
+      font-weight: 1000;
+      color:#f8fafc;
+      line-height: 1.05;
+    }
+    .featuredSub{
+      margin:4px 0 0;
+      font-size: 12px;
+      color: rgba(226,232,240,.82);
+    }
+    .featuredHero{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .champTag{
+      font-size: 10px;
+      letter-spacing: .9px;
+      text-transform: uppercase;
+      font-weight: 1000;
+      color:#fef3c7;
+      border: 1px solid rgba(254,243,199,.45);
+      background: rgba(245,158,11,.22);
+      border-radius: 999px;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+    .featuredStats{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .featuredStat{
+      border: 1px solid rgba(255,255,255,.20);
+      background: rgba(15,23,42,.28);
+      border-radius: 12px;
+      padding: 8px 10px;
+    }
+    .featuredStat .k{
+      font-size: 11px;
+      color: rgba(226,232,240,.72);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      font-weight: 900;
+    }
+    .featuredStat .v{
+      font-size: 18px;
+      font-weight: 1000;
+      color:#fff;
+      line-height: 1.1;
+      margin-top: 3px;
+    }
+    .featuredLeaders{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .leaderBox{
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15,23,42,.26);
+      border-radius: 12px;
+      padding: 8px;
+    }
+    .leaderLbl{
+      font-size: 11px;
+      color: rgba(226,232,240,.72);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+    .leaderLine{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      min-height: 42px;
+    }
+    .leaderImg{
+      width: calc(42px * var(--leader-card-ratio));
+      height: 42px;
+      border-radius: 6px;
+      object-fit: contain;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(2,6,23,.20);
+      flex: 0 0 calc(42px * var(--leader-card-ratio));
+    }
+    .leaderZoom{
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+    }
+    .leaderZoomPreview{
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%) translateY(4px) scale(.96);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 120;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(2,6,23,.90);
+      box-shadow: 0 20px 38px rgba(2,6,23,.55);
+      padding: 6px;
+      transition: opacity .14s ease, transform .14s ease;
+    }
+    .leaderZoomPreview img{
+      width: 180px;
+      height: auto;
+      max-height: 280px;
+      object-fit: contain;
+      display:block;
+      border-radius: 8px;
+      background: rgba(2,6,23,.40);
+    }
+    .leaderZoom:hover .leaderZoomPreview{
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+    .leaderFallback{
+      width: calc(42px * var(--leader-card-ratio));
+      height: 42px;
+      border-radius: 6px;
+      border: 1px dashed rgba(15,23,42,.18);
+      background: rgba(15,23,42,.04);
+      color:#64748b;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 11px;
+      font-weight: 900;
+      flex: 0 0 calc(42px * var(--leader-card-ratio));
+    }
+    .leaderName{
+      margin:0;
+      font-size: 13px;
+      font-weight: 1000;
+      color:#fff;
+      line-height: 1.2;
+    }
+    .leaderMeta{
+      margin:2px 0 0;
+      font-size: 12px;
+      color: rgba(226,232,240,.76);
+      line-height: 1.2;
+    }
+    .topList{
+      margin: 12px 0 0;
+      padding-left: 18px;
+      display:grid;
+      gap: 6px;
+    }
+    .topList li{
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .topList li strong{
+      color:#fff;
+      font-weight: 1000;
+    }
+    .featuredMuted{
+      font-size: 12px;
+      color: rgba(226,232,240,.86);
+    }
+    .leaderRanks{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .leaderRankCard{
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 12px;
+      background: rgba(15,23,42,.28);
+      overflow: visible;
+    }
+    .leaderRankTitle{
+      margin:0;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 1000;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color:#f8fafc;
+      border-bottom: 1px solid rgba(255,255,255,.16);
+      background: rgba(15,23,42,.35);
+    }
+    .lrHead, .lrRow{
+      display:grid;
+      grid-template-columns: 1.3fr .6fr .6fr 1fr 1fr;
+      gap: 8px;
+      align-items:center;
+      padding: 8px 10px;
+      min-width: 0;
+    }
+    .lrHead{
+      font-size: 11px;
+      color: rgba(226,232,240,.82);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      font-weight: 900;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      background: rgba(15,23,42,.22);
+    }
+    .lrHead span{ text-align: center; }
+    .lrHead span:nth-child(3){
+      justify-self: center;
+      text-align: center;
+    }
+    .lrRow{
+      border-top: 1px solid rgba(255,255,255,.10);
+      color: #e2e8f0;
+      font-size: 12px;
+    }
+    .lrRow:first-of-type{ border-top: 0; }
+    .lrLeader{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .lrLeader .leaderImg,
+    .lrLeader .leaderFallback{
+      width: calc(34px * var(--leader-card-ratio));
+      height: 34px;
+      border-radius: 5px;
+      flex: 0 0 calc(34px * var(--leader-card-ratio));
+    }
+    .lrLeaderName{
+      font-size: 12px;
+      font-weight: 900;
+      color:#fff;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lrVal{
+      color:#f8fafc;
+      font-weight: 900;
+      font-size: 12px;
+      text-align: center;
+    }
+    .lrVal.wr{
+      justify-self: center;
+      text-align: center;
+      width: 100%;
+    }
+    .lrMu{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .lrMu .leaderImg,
+    .lrMu .leaderFallback{
+      width: calc(34px * var(--leader-card-ratio));
+      height: 34px;
+      border-radius: 4px;
+      flex: 0 0 calc(34px * var(--leader-card-ratio));
+    }
+    .lrMuTxt{
+      color: rgba(226,232,240,.90);
+      font-size: 11px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    @media (max-width: 760px){
+      .leaderRankCard{
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+      }
+      .lrHead, .lrRow{
+        min-width: 460px;
+      }
+      .lrHead{ font-size: 10px; }
+      .lrVal{ font-size: 11px; }
+      .lrLeader .leaderImg,
+      .lrLeader .leaderFallback,
+      .lrMu .leaderImg,
+      .lrMu .leaderFallback{
+        width: calc(32px * var(--leader-card-ratio));
+        height: 32px;
+        flex: 0 0 calc(32px * var(--leader-card-ratio));
+      }
+      .leaderZoomPreview{
+        display: none !important;
+      }
+    }
+
     /* Calendar */
     .calendarHead{
       display:flex;
@@ -511,9 +842,6 @@
       .hero h1{ font-size: 22px; }
       .tooltip{ width: min(220px, calc(100vw - 60px)); left: 6px; }
       .commentComposer .btn{ width: 100%; justify-content: center; }
-      .bar{ padding-right: 10px; }
-      .authCorner{ top: 10px; right: 10px; }
-      .authCorner .btn{ padding: 8px 10px; }
     }
   </style>
 </head>
@@ -529,9 +857,9 @@
       <div class="nav">
         <a class="btn primary active" href="index.html">&#127968; Home</a>
         <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
-        <a class="btn" href="op-wrapped.html">&#127956; OP Wrapped</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
         <a class="btn" href="decks.html">&#127183; DeckLists</a>
-        <a class="btn" href="results.html" data-requires-auth="1">&#127942; Results</a>
         <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
       </div>
     </div>
@@ -609,51 +937,9 @@
       </div>
 
       <div class="card">
-        <div class="sectionTitle">Eventos</div>
-
-        <div class="calendarHead">
-          <div class="calNav">
-            <button class="btn btnDark" id="btnPrev" type="button">&#8592;</button>
-            <button class="btn btnDark" id="btnToday" type="button">Hoy</button>
-            <button class="btn btnDark" id="btnNext" type="button">&#8594;</button>
-          </div>
-          <div class="calTitle" id="calTitle">—</div>
-        </div>
-
-        <div class="calGrid" id="calDow"></div>
-        <div class="calGrid" id="calGrid"></div>
-
-        <div style="height:12px;"></div>
-        <div class="sectionTitle">Proximos eventos</div>
-        <div id="upcomingList"></div>
-        <div class="editor" id="eventEditor" style="display:none; margin-top:12px;">
-          <div class="row">
-            <div>
-              <label for="event_title">Titulo</label>
-              <input id="event_title" placeholder="Ej: Liga local" />
-            </div>
-          </div>
-          <div class="row two">
-            <div>
-              <label for="event_start_at">Fecha y hora</label>
-              <input id="event_start_at" type="datetime-local" />
-            </div>
-            <div>
-              <label for="event_location">Location</label>
-              <input id="event_location" placeholder="Ej: Tienda X" />
-            </div>
-          </div>
-          <div class="row">
-            <div>
-              <label for="event_description">Descripcion</label>
-              <textarea id="event_description" placeholder="Notas del evento"></textarea>
-            </div>
-          </div>
-          <div class="editorActions">
-            <span class="muted">Editor oculto por defecto.</span>
-            <button class="btn btnDark" id="btnCreateEvent" type="button">Guardar evento</button>
-          </div>
-          <div class="msg" id="eventMsg"></div>
+        <div class="sectionTitle" id="featuredSectionTitle">Jugador destacado</div>
+        <div class="featuredBody" id="featuredPlayerBody">
+          <div class="featuredMuted">Cargando ranking de jugadores...</div>
         </div>
       </div>
     </div>
@@ -979,7 +1265,7 @@
           id: 1,
           title: "Nuevo hub con login",
           tag: "Web",
-          body: "Ya tenemos auth y perfil. Proximo: posts/eventos en BBDD.",
+          body: "Ya tenemos auth y perfil. Proximo: publicaciones en BBDD.",
           image_url: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=60",
           created_at: new Date().toISOString()
         },
@@ -1003,6 +1289,464 @@
     const posts = await fetchPosts();
     const social = await fetchPostSocial(posts.map(p => p.id));
     renderPosts(posts, social);
+  }
+
+  function parseMatchWin(result){
+    const value = String(result || "").trim().toLowerCase();
+    return value === "won" || value === "win" || value === "victoria" || value === "w";
+  }
+
+  function percentText(wins, games){
+    if (!games) return "0.0%";
+    return `${((wins / games) * 100).toFixed(1)}%`;
+  }
+
+  function playerLabel(profile, playerRow, playerId){
+    if (playerRow?.name) return playerRow.name;
+    if (profile?.username) return profile.username;
+    if (profile?.display_name) return profile.display_name;
+    if (!playerId) return "usuario";
+    return `user-${String(playerId).slice(0, 8)}`;
+  }
+
+  function leaderImageHtml(leader){
+    if (leader?.image_url){
+      const src = escapeAttr(leader.image_url);
+      const alt = escapeAttr(leader.name || "leader");
+      return `
+        <span class="leaderZoom">
+          <img class="leaderImg" src="${src}" alt="${alt}" />
+          <span class="leaderZoomPreview">
+            <img src="${src}" alt="${alt}" />
+          </span>
+        </span>
+      `;
+    }
+    return `<div class="leaderFallback">N/A</div>`;
+  }
+
+  function chooseLeaderMostPlayed(leaderMap){
+    const arr = Array.from(leaderMap.values());
+    if (!arr.length) return null;
+    arr.sort((a, b) => {
+      if (b.games !== a.games) return b.games - a.games;
+      return b.wins - a.wins;
+    });
+    return arr[0];
+  }
+
+  function chooseLeaderBestWr(leaderMap){
+    const arr = Array.from(leaderMap.values());
+    if (!arr.length) return null;
+    const withSample = arr.filter((x) => x.games >= 3);
+    const pool = withSample.length ? withSample : arr;
+    pool.sort((a, b) => {
+      const awr = a.games ? (a.wins / a.games) : 0;
+      const bwr = b.games ? (b.wins / b.games) : 0;
+      if (bwr !== awr) return bwr - awr;
+      if (b.games !== a.games) return b.games - a.games;
+      return b.wins - a.wins;
+    });
+    return pool[0];
+  }
+
+  async function fetchCurrentExpansion(){
+    const today = new Date();
+    const isoDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    const { data, error } = await sb
+      .from("expansions")
+      .select("id,name,start_date,end_date")
+      .lte("start_date", isoDay)
+      .gte("end_date", isoDay)
+      .order("start_date", { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    return (data && data[0]) || null;
+  }
+
+  async function fetchFeaturedMatches(expansion){
+    const pageSize = 1000;
+    const maxRows = 6000;
+    let from = 0;
+    const rows = [];
+    const startIso = expansion?.start_date ? `${expansion.start_date}T00:00:00` : null;
+    const endIso = expansion?.end_date ? `${expansion.end_date}T23:59:59.999` : null;
+
+    while (from < maxRows){
+      const to = from + pageSize - 1;
+      let query = sb
+        .from("matches")
+        .select(`
+          id,
+          player_id,
+          player_leader,
+          opponent_leader,
+          result,
+          match_date,
+          created_at,
+          player:leaders!matches_player_leader_fkey (
+            code,
+            name,
+            image_url
+          ),
+          opponent:leaders!matches_opponent_leader_fkey (
+            code,
+            name,
+            image_url
+          )
+        `)
+        .order("match_date", { ascending: false });
+
+      if (startIso) query = query.gte("match_date", startIso);
+      if (endIso) query = query.lte("match_date", endIso);
+
+      const { data, error } = await query.range(from, to);
+
+      if (error) throw error;
+
+      const batch = data || [];
+      rows.push(...batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+    return rows;
+  }
+
+  async function fetchProfileMap(playerIds){
+    const ids = Array.from(new Set((playerIds || []).filter(Boolean)));
+    if (!ids.length) return new Map();
+
+    const { data, error } = await sb
+      .from("profiles")
+      .select("id,username,display_name")
+      .in("id", ids);
+
+    if (error){
+      console.warn("profiles featured:", error.message);
+      return new Map();
+    }
+    return new Map((data || []).map((p) => [p.id, p]));
+  }
+
+  async function fetchPlayersMap(playerIds){
+    const ids = Array.from(new Set((playerIds || []).filter(Boolean)));
+    if (!ids.length) return new Map();
+
+    const { data, error } = await sb
+      .from("players")
+      .select("id,name")
+      .in("id", ids);
+
+    if (error){
+      console.warn("players featured:", error.message);
+      return new Map();
+    }
+    return new Map((data || []).map((p) => [p.id, p]));
+  }
+
+  function buildFeaturedRanking(matches){
+    const players = new Map();
+
+    for (const row of (matches || [])){
+      const playerId = row?.player_id || null;
+      if (!playerId) continue;
+
+      if (!players.has(playerId)){
+        players.set(playerId, {
+          playerId,
+          games: 0,
+          wins: 0,
+          losses: 0,
+          leaders: new Map()
+        });
+      }
+
+      const p = players.get(playerId);
+      const won = parseMatchWin(row?.result);
+      p.games += 1;
+      if (won) p.wins += 1;
+      else p.losses += 1;
+
+      const leaderCode = String(row?.player_leader || row?.player?.code || "unknown").trim();
+      if (!p.leaders.has(leaderCode)){
+        p.leaders.set(leaderCode, {
+          code: leaderCode,
+          name: row?.player?.name || leaderCode || "Leader",
+          image_url: row?.player?.image_url || "",
+          games: 0,
+          wins: 0
+        });
+      }
+      const leader = p.leaders.get(leaderCode);
+      leader.games += 1;
+      if (won) leader.wins += 1;
+      if (!leader.image_url && row?.player?.image_url) leader.image_url = row.player.image_url;
+      if ((!leader.name || leader.name === leader.code) && row?.player?.name) leader.name = row.player.name;
+    }
+
+    const ranking = Array.from(players.values())
+      .map((p) => ({
+        ...p,
+        wr: p.games ? (p.wins / p.games) : 0,
+        topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
+        topLeaderByWr: chooseLeaderBestWr(p.leaders)
+      }));
+
+    const minGames = 5;
+    const filtered = ranking.filter((p) => p.games >= minGames);
+    const pool = filtered.length ? filtered : ranking;
+
+    pool.sort((a, b) => {
+      if (b.wr !== a.wr) return b.wr - a.wr;
+      if (b.games !== a.games) return b.games - a.games;
+      return b.wins - a.wins;
+    });
+
+    return pool.slice(0, 5);
+  }
+
+  function buildLeaderRankings(matches){
+    const leaders = new Map();
+
+    for (const row of (matches || [])){
+      const leaderCode = String(row?.player_leader || row?.player?.code || "").trim();
+      if (!leaderCode) continue;
+
+      if (!leaders.has(leaderCode)){
+        leaders.set(leaderCode, {
+          code: leaderCode,
+          name: row?.player?.name || leaderCode,
+          image_url: row?.player?.image_url || "",
+          games: 0,
+          wins: 0,
+          matchups: new Map()
+        });
+      }
+
+      const entry = leaders.get(leaderCode);
+      const won = parseMatchWin(row?.result);
+      entry.games += 1;
+      if (won) entry.wins += 1;
+      if (!entry.image_url && row?.player?.image_url) entry.image_url = row.player.image_url;
+      if ((!entry.name || entry.name === entry.code) && row?.player?.name) entry.name = row.player.name;
+
+      const oppCode = String(row?.opponent_leader || row?.opponent?.code || "").trim();
+      if (!oppCode) continue;
+
+      if (!entry.matchups.has(oppCode)){
+        entry.matchups.set(oppCode, {
+          code: oppCode,
+          name: row?.opponent?.name || oppCode,
+          image_url: row?.opponent?.image_url || "",
+          games: 0,
+          wins: 0
+        });
+      }
+      const mu = entry.matchups.get(oppCode);
+      mu.games += 1;
+      if (won) mu.wins += 1;
+      if (!mu.image_url && row?.opponent?.image_url) mu.image_url = row.opponent.image_url;
+      if ((!mu.name || mu.name === mu.code) && row?.opponent?.name) mu.name = row.opponent.name;
+    }
+
+    const rows = Array.from(leaders.values()).map((x) => {
+      const wr = x.games ? (x.wins / x.games) : 0;
+      const muRows = Array.from(x.matchups.values())
+        .map((m) => ({ ...m, wr: m.games ? (m.wins / m.games) : 0 }));
+      const withSample = muRows.filter((m) => m.games >= 2);
+      const pool = withSample.length ? withSample : muRows;
+      pool.sort((a, b) => {
+        if (b.wr !== a.wr) return b.wr - a.wr;
+        return b.games - a.games;
+      });
+      const best = pool[0] || null;
+      const worst = pool.length ? [...pool].sort((a, b) => {
+        if (a.wr !== b.wr) return a.wr - b.wr;
+        return b.games - a.games;
+      })[0] : null;
+      return { ...x, wr, best, worst };
+    });
+
+    const byPlayed = [...rows].sort((a, b) => {
+      if (b.games !== a.games) return b.games - a.games;
+      return b.wr - a.wr;
+    }).slice(0, 3);
+
+    const minGames = 3;
+    const wrPool = rows.filter((x) => x.games >= minGames);
+    const byWr = (wrPool.length ? wrPool : rows)
+      .sort((a, b) => {
+        if (b.wr !== a.wr) return b.wr - a.wr;
+        return b.games - a.games;
+      })
+      .slice(0, 3);
+
+    return { byWr, byPlayed };
+  }
+
+  function matchupHtml(item, cls){
+    if (!item){
+      return `<div class="lrMu ${cls}"><span class="featuredMuted">—</span></div>`;
+    }
+    return `
+      <div class="lrMu ${cls}" title="${escapeAttr(item.name || item.code || "-")}">
+        ${leaderImageHtml(item)}
+      </div>
+    `;
+  }
+
+  function leaderRowHtml(item){
+    return `
+      <div class="lrRow">
+        <div class="lrLeader" title="${escapeAttr(item.name || item.code || "-")}">
+          ${leaderImageHtml(item)}
+        </div>
+        <div class="lrVal games">${item.games}</div>
+        <div class="lrVal wr">${percentText(item.wins, item.games)}</div>
+        ${matchupHtml(item.best, "best")}
+        ${matchupHtml(item.worst, "worst")}
+      </div>
+    `;
+  }
+
+  function leaderRankCardHtml(title, rows){
+    const content = rows.length
+      ? rows.map((r) => leaderRowHtml(r)).join("")
+      : `<div class="lrRow"><span class="featuredMuted">Sin datos suficientes.</span></div>`;
+    return `
+      <div class="leaderRankCard">
+        <p class="leaderRankTitle">${escapeHtml(title)}</p>
+        <div class="lrHead">
+          <span>Foto lider</span>
+          <span>Partidas</span>
+          <span>WR</span>
+          <span>Mejor matchup</span>
+          <span>Peor matchup</span>
+        </div>
+        ${content}
+      </div>
+    `;
+  }
+
+  function renderFeaturedPlayer(topPlayers, profileMap, playersMap, expansion, leaderRankings){
+    const root = $("featuredPlayerBody");
+    const sectionTitle = $("featuredSectionTitle");
+    if (!root) return;
+
+    if (!topPlayers || !topPlayers.length){
+      if (sectionTitle) sectionTitle.textContent = "Jugador destacado";
+      root.innerHTML = `<div class="featuredMuted">Aun no hay suficientes partidas en matches para generar el ranking.</div>`;
+      return;
+    }
+
+    const main = topPlayers[0];
+    const mainProfile = profileMap.get(main.playerId);
+    const mainPlayer = playersMap.get(main.playerId);
+    const mainLabel = playerLabel(mainProfile, mainPlayer, main.playerId);
+    const topGamesLeader = main.topLeaderByGames;
+    const topWrLeader = main.topLeaderByWr;
+
+    if (sectionTitle){
+      sectionTitle.textContent = expansion?.name
+        ? `Jugador destacado - ${expansion.name}`
+        : "Jugador destacado";
+    }
+
+    const topListHtml = topPlayers
+      .map((p, idx) => {
+        const profile = profileMap.get(p.playerId);
+        const playerRow = playersMap.get(p.playerId);
+        const label = playerLabel(profile, playerRow, p.playerId);
+        return `<li><strong>#${idx + 1} ${escapeHtml(label)}</strong> · WR ${percentText(p.wins, p.games)} · ${p.games} partidas</li>`;
+      })
+      .join("");
+
+    root.innerHTML = `
+      <div class="featuredMain">
+        <div>
+          <div class="featuredHero">
+            <span class="champTag">Jugador #1</span>
+          </div>
+          <h3 class="featuredTitle">${escapeHtml(mainLabel)}</h3>
+          <p class="featuredSub">Mejor winrate con volumen de partidas</p>
+          <div class="featuredStats">
+            <div class="featuredStat">
+              <div class="k">Partidas</div>
+              <div class="v">${main.games}</div>
+            </div>
+            <div class="featuredStat">
+              <div class="k">Winrate</div>
+              <div class="v">${percentText(main.wins, main.games)}</div>
+            </div>
+            <div class="featuredStat">
+              <div class="k">Victorias</div>
+              <div class="v">${main.wins}</div>
+            </div>
+            <div class="featuredStat">
+              <div class="k">Derrotas</div>
+              <div class="v">${main.losses}</div>
+            </div>
+          </div>
+        </div>
+        <div class="featuredLeaders">
+          <div class="leaderBox">
+            <div class="leaderLbl">Lider mas jugado</div>
+            <div class="leaderLine">
+              ${leaderImageHtml(topGamesLeader)}
+              <div>
+                <p class="leaderName">${escapeHtml(topGamesLeader?.name || "—")}</p>
+                <p class="leaderMeta">${topGamesLeader ? `${topGamesLeader.games} partidas` : "Sin datos"}</p>
+              </div>
+            </div>
+          </div>
+          <div class="leaderBox">
+            <div class="leaderLbl">Lider con mayor WR</div>
+            <div class="leaderLine">
+              ${leaderImageHtml(topWrLeader)}
+              <div>
+                <p class="leaderName">${escapeHtml(topWrLeader?.name || "—")}</p>
+                <p class="leaderMeta">${topWrLeader ? `${percentText(topWrLeader.wins, topWrLeader.games)} en ${topWrLeader.games} partidas` : "Sin datos"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ul class="topList">${topListHtml}</ul>
+      <div class="leaderRanks">
+        ${leaderRankCardHtml("Top 3 lideres por WR", leaderRankings?.byWr || [])}
+        ${leaderRankCardHtml("Top 3 lideres mas jugados", leaderRankings?.byPlayed || [])}
+      </div>
+    `;
+  }
+
+  async function refreshFeaturedPlayerSection(){
+    const root = $("featuredPlayerBody");
+    const sectionTitle = $("featuredSectionTitle");
+    if (!root) return;
+    if (sectionTitle) sectionTitle.textContent = "Jugador destacado";
+    root.innerHTML = `<div class="featuredMuted">Calculando jugador destacado...</div>`;
+
+    try{
+      const expansion = await fetchCurrentExpansion();
+      if (!expansion){
+        root.innerHTML = `<div class="featuredMuted">No hay expansion activa para la fecha actual.</div>`;
+        return;
+      }
+      const matches = await fetchFeaturedMatches(expansion);
+      const topPlayers = buildFeaturedRanking(matches);
+      const leaderRankings = buildLeaderRankings(matches);
+      const playerIds = topPlayers.map((p) => p.playerId);
+      const [profileMap, playersMap] = await Promise.all([
+        fetchProfileMap(playerIds),
+        fetchPlayersMap(playerIds)
+      ]);
+      renderFeaturedPlayer(topPlayers, profileMap, playersMap, expansion, leaderRankings);
+    }catch(e){
+      console.warn("featured:", e.message || e);
+      root.innerHTML = `<div class="featuredMuted">No se pudo cargar el jugador destacado.</div>`;
+    }
   }
 
   async function togglePostLike(postId){
@@ -1311,6 +2055,7 @@
 
   function renderUpcoming(events){
     const root = $("upcomingList");
+    if (!root) return;
     root.innerHTML = "";
 
     const now = new Date();
@@ -1388,7 +2133,13 @@
       console.warn("refreshPostsSection:", e.message || e);
     }
 
-    await refreshCalendarOnly();
+    try{
+      await refreshFeaturedPlayerSection();
+    }catch(e){
+      console.warn("refreshFeaturedPlayerSection:", e.message || e);
+    }
+
+    // Eventos/calendario ocultos por decision de producto.
   }
 
   $("btnPrev")?.addEventListener("click", async () => {
@@ -1406,9 +2157,6 @@
   });
 
   (async function(){
-    // Pintamos base del calendario de inmediato, aunque falle la carga remota.
-    renderCalendar(viewDate, new Map());
-
     let first = true;
     sb.auth.onAuthStateChange(async (_event, session) => {
       currentUser = session?.user || null;
@@ -1416,7 +2164,8 @@
       setNavAuthUI(currentUser);
 
       if (first) return;           // evita el doble disparo inicial
-      await refreshPostsSection();  // o refresca solo lo minimo
+      await refreshPostsSection();
+      await refreshFeaturedPlayerSection();
     });
     await refreshHome();
     first = false;
@@ -1424,6 +2173,10 @@
 </script>
 </body>
 </html>
+
+
+
+
 
 
 

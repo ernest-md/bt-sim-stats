@@ -1,0 +1,526 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Ranking · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{ --bg:#0b1220; --card: rgba(255,255,255,.92); --shadow: 0 18px 50px rgba(0,0,0,.35); }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color:#0f172a;
+    }
+    body::before{
+      content:"";
+      position: fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.1);
+      z-index:-2;
+    }
+    body::after{
+      content:"";
+      position: fixed;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode: overlay;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction: column;
+      gap:2px;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right: 6px;
+      line-height: 1.1;
+    }
+    .brand small{
+      display:block;
+      text-align:center;
+      padding-left:4px;
+      font-weight:700;
+      color: rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+    .hero{
+      border-radius: 24px;
+      padding: 18px 16px;
+      color:#fff;
+      border: 1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
+    }
+    .hero h1{ margin:0; font-size: 26px; font-weight: 1000; }
+    .hero p{ margin:6px 0 0; color: rgba(255,255,255,.82); font-size: 13px; }
+
+    .card{
+      margin-top: 12px;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .sectionTitle{
+      margin: 2px 0 12px;
+      font-weight: 1000;
+      color:#0f172a;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .9px;
+      opacity: .85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .sectionTitle::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background: linear-gradient(90deg, rgba(15,23,42,.25), transparent);
+    }
+
+    .tableWrap{
+      border-radius: 16px;
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.72);
+      overflow:auto;
+    }
+    table{ width:100%; border-collapse:collapse; min-width: 980px; }
+    th, td{
+      text-align:left;
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(15,23,42,.08);
+      vertical-align: middle;
+      font-size: 13px;
+      color:#334155;
+    }
+    th{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color:#475569;
+      background: rgba(255,255,255,.72);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    tr:last-child td{ border-bottom: 0; }
+    tr:hover td{ background: rgba(124,58,237,.06); }
+    tr.rankRow td{
+      transition: background .15s ease;
+    }
+    tr.rank-1 td{
+      background: linear-gradient(90deg, rgba(245,158,11,.24), rgba(250,204,21,.18));
+    }
+    tr.rank-2 td{
+      background: linear-gradient(90deg, rgba(148,163,184,.26), rgba(203,213,225,.18));
+    }
+    tr.rank-3 td{
+      background: linear-gradient(90deg, rgba(180,83,9,.22), rgba(251,146,60,.14));
+    }
+    tr.rank-4 td,
+    tr.rank-5 td,
+    tr.rank-6 td,
+    tr.rank-7 td,
+    tr.rank-8 td,
+    tr.rank-9 td,
+    tr.rank-10 td{
+      background: rgba(59,130,246,.10);
+    }
+
+    .rankPos{
+      width: 34px;
+      text-align: center;
+      color:#0f172a;
+      font-weight: 1000;
+    }
+    .playerName{
+      font-weight: 1000;
+      color:#0f172a;
+      white-space: nowrap;
+    }
+    .statStrong{
+      font-weight: 1000;
+      color:#0f172a;
+    }
+
+    .leaderCell{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width: 160px;
+    }
+    .leaderImg{
+      width: 28px;
+      height: 40px;
+      border-radius: 5px;
+      object-fit: contain;
+      border: 1px solid rgba(15,23,42,.16);
+      background: rgba(2,6,23,.10);
+      flex: 0 0 28px;
+    }
+    .leaderFallback{
+      width: 28px;
+      height: 40px;
+      border-radius: 5px;
+      border: 1px dashed rgba(15,23,42,.18);
+      background: rgba(15,23,42,.04);
+      color:#64748b;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 10px;
+      font-weight: 900;
+      flex: 0 0 28px;
+    }
+    .leaderTxt{
+      min-width: 0;
+      font-size: 12px;
+      color:#475569;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .muted{ color:#64748b; font-size:12px; }
+
+    @media (max-width: 760px){
+      .brand{ width:100%; margin-right:0; }
+      .brand small{ font-size: 11px; }
+      .hero h1{ font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>ranking</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn primary active" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">—</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>Ranking de jugadores</h1>
+      <p id="expansionInfo">Cargando expansion activa...</p>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Ranking completo</div>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jugador</th>
+              <th>Partidas</th>
+              <th>WR</th>
+              <th>Victorias</th>
+              <th>Derrotas</th>
+              <th>Lider mas jugado</th>
+              <th>Lider con mayor WR</th>
+            </tr>
+          </thead>
+          <tbody id="rankingBody">
+            <tr><td colspan="8" class="muted">Cargando ranking...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+
+    window.BarateamApp.bindProtectedNavLinks(sb);
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    function parseMatchWin(result){
+      const v = String(result || "").trim().toLowerCase();
+      return v === "won" || v === "win" || v === "victoria" || v === "w";
+    }
+
+    function wrText(wins, games){
+      if (!games) return "0.0%";
+      return `${((wins / games) * 100).toFixed(1)}%`;
+    }
+
+    function chooseLeaderMostPlayed(leaderMap){
+      const arr = Array.from(leaderMap.values());
+      if (!arr.length) return null;
+      arr.sort((a, b) => {
+        if (b.games !== a.games) return b.games - a.games;
+        return b.wins - a.wins;
+      });
+      return arr[0];
+    }
+
+    function chooseLeaderBestWr(leaderMap){
+      const arr = Array.from(leaderMap.values());
+      if (!arr.length) return null;
+      const withSample = arr.filter((x) => x.games >= 3);
+      const pool = withSample.length ? withSample : arr;
+      pool.sort((a, b) => {
+        const awr = a.games ? (a.wins / a.games) : 0;
+        const bwr = b.games ? (b.wins / b.games) : 0;
+        if (bwr !== awr) return bwr - awr;
+        if (b.games !== a.games) return b.games - a.games;
+        return b.wins - a.wins;
+      });
+      return pool[0];
+    }
+
+    function leaderCellHtml(leader, mode){
+      if (!leader) return `<div class="leaderCell"><div class="leaderFallback">N/A</div><span class="leaderTxt">Sin datos</span></div>`;
+      const name = escapeHtml(leader.name || leader.code || "-");
+      const meta = mode === "wr"
+        ? `${wrText(leader.wins, leader.games)} en ${leader.games}`
+        : `${leader.games} partidas`;
+      return `
+        <div class="leaderCell">
+          <img class="leaderImg" src="${escapeAttr(leader.image_url || "")}" alt="${escapeAttr(leader.name || "leader")}" />
+          <span class="leaderTxt">${name} · ${escapeHtml(meta)}</span>
+        </div>
+      `;
+    }
+
+    async function fetchCurrentExpansion(){
+      const today = new Date();
+      const isoDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const { data, error } = await sb
+        .from("expansions")
+        .select("id,name,start_date,end_date")
+        .lte("start_date", isoDay)
+        .gte("end_date", isoDay)
+        .order("start_date", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data && data[0]) || null;
+    }
+
+    async function fetchMatches(expansion){
+      const pageSize = 1000;
+      const maxRows = 6000;
+      let from = 0;
+      const rows = [];
+      const startIso = expansion?.start_date ? `${expansion.start_date}T00:00:00` : null;
+      const endIso = expansion?.end_date ? `${expansion.end_date}T23:59:59.999` : null;
+
+      while (from < maxRows){
+        const to = from + pageSize - 1;
+        let query = sb
+          .from("matches")
+          .select(`
+            id,
+            player_id,
+            player_leader,
+            result,
+            match_date,
+            player:leaders!matches_player_leader_fkey (code,name,image_url)
+          `)
+          .order("match_date", { ascending: false });
+
+        if (startIso) query = query.gte("match_date", startIso);
+        if (endIso) query = query.lte("match_date", endIso);
+
+        const { data, error } = await query.range(from, to);
+        if (error) throw error;
+        const batch = data || [];
+        rows.push(...batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      return rows;
+    }
+
+    async function fetchPlayersMap(playerIds){
+      const ids = Array.from(new Set((playerIds || []).filter(Boolean)));
+      if (!ids.length) return new Map();
+      const { data, error } = await sb.from("players").select("id,name").in("id", ids);
+      if (error){
+        console.warn("players:", error.message);
+        return new Map();
+      }
+      return new Map((data || []).map((p) => [p.id, p]));
+    }
+
+    function buildRanking(matches, playersMap){
+      const players = new Map();
+
+      for (const row of (matches || [])){
+        const playerId = row?.player_id || null;
+        if (!playerId) continue;
+
+        if (!players.has(playerId)){
+          players.set(playerId, {
+            playerId,
+            games: 0,
+            wins: 0,
+            losses: 0,
+            leaders: new Map()
+          });
+        }
+
+        const p = players.get(playerId);
+        const won = parseMatchWin(row?.result);
+        p.games += 1;
+        if (won) p.wins += 1;
+        else p.losses += 1;
+
+        const code = String(row?.player_leader || row?.player?.code || "unknown").trim();
+        if (!p.leaders.has(code)){
+          p.leaders.set(code, {
+            code,
+            name: row?.player?.name || code || "Leader",
+            image_url: row?.player?.image_url || "",
+            games: 0,
+            wins: 0
+          });
+        }
+        const l = p.leaders.get(code);
+        l.games += 1;
+        if (won) l.wins += 1;
+      }
+
+      const ranking = Array.from(players.values()).map((p) => ({
+        ...p,
+        name: playersMap.get(p.playerId)?.name || `user-${String(p.playerId).slice(0, 8)}`,
+        wr: p.games ? (p.wins / p.games) : 0,
+        topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
+        topLeaderByWr: chooseLeaderBestWr(p.leaders)
+      }));
+
+      const minGames = 5;
+      const filtered = ranking.filter((p) => p.games >= minGames);
+      const pool = filtered.length ? filtered : ranking;
+      pool.sort((a, b) => {
+        if (b.wr !== a.wr) return b.wr - a.wr;
+        if (b.games !== a.games) return b.games - a.games;
+        return b.wins - a.wins;
+      });
+      return pool;
+    }
+
+    function renderRanking(rows){
+      const body = $("rankingBody");
+      if (!body) return;
+      if (!rows.length){
+        body.innerHTML = `<tr><td colspan="8" class="muted">No hay datos para la expansion activa.</td></tr>`;
+        return;
+      }
+      body.innerHTML = rows.map((r, idx) => `
+        <tr class="rankRow rank-${idx + 1}">
+          <td class="rankPos">${idx + 1}</td>
+          <td class="playerName">${escapeHtml(r.name)}</td>
+          <td class="statStrong">${r.games}</td>
+          <td class="statStrong">${wrText(r.wins, r.games)}</td>
+          <td>${r.wins}</td>
+          <td>${r.losses}</td>
+          <td>${leaderCellHtml(r.topLeaderByGames, "games")}</td>
+          <td>${leaderCellHtml(r.topLeaderByWr, "wr")}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function initRanking(){
+      try{
+        const expansion = await fetchCurrentExpansion();
+        if (!expansion){
+          $("expansionInfo").textContent = "No hay expansion activa para la fecha actual.";
+          renderRanking([]);
+          return;
+        }
+        $("expansionInfo").textContent = `Expansion activa: ${expansion.name} (${expansion.start_date} - ${expansion.end_date})`;
+
+        const matches = await fetchMatches(expansion);
+        const playerIds = matches.map((m) => m.player_id);
+        const playersMap = await fetchPlayersMap(playerIds);
+        const ranking = buildRanking(matches, playersMap);
+        renderRanking(ranking);
+      }catch(e){
+        console.warn("ranking:", e.message || e);
+        $("expansionInfo").textContent = "No se pudo cargar el ranking.";
+        renderRanking([]);
+      }
+    }
+
+    (async function init(){
+      const { data } = await sb.auth.getSession();
+      navController.setUser(data?.session?.user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
+      sb.auth.onAuthStateChange((_event, session) => {
+        navController.setUser(session?.user || null);
+        void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
+      });
+      await initRanking();
+    })();
+  </script>
+</body>
+</html>
+
+
+

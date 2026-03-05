@@ -2,15 +2,16 @@
 .topbar{
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 900;
   backdrop-filter: blur(14px);
   background: rgba(15,23,42,.55);
   border-bottom: 1px solid rgba(255,255,255,.12);
   padding: 12px 14px;
+  isolation: isolate;
 }
 
 .bar{
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   gap: 10px;
@@ -65,6 +66,10 @@
   box-shadow: 0 6px 18px rgba(0,0,0,.22);
 }
 
+.mobileNavToggle{
+  display: none;
+}
+
 .brandLogo{
   display:block;
   height: 52px;
@@ -83,7 +88,7 @@
   position: fixed;
   top: 12px;
   right: 14px;
-  z-index: 40;
+  z-index: 200000;
   display:flex;
   align-items:center;
 }
@@ -130,9 +135,17 @@
 }
 
 .wrap{
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 16px auto 28px;
   padding: 0 14px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: min(1400px, 100%);
+}
+
+html, body{
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* Shared user dropdown (pages using .userwrap) */
@@ -182,7 +195,7 @@
 .menu .head strong{ display:block; font-size: 13px; }
 
 .menu a, .menu button{
-  width:100%;
+  width:auto;
   text-align:left;
   background: transparent;
   border:0;
@@ -201,55 +214,119 @@
 .menu .sep{ height:1px; background: rgba(255,255,255,.10); }
 
 @media (max-width:760px){
-  .topbar{ padding: 10px 0; }
+  .topbar{
+    padding: 10px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left));
+    overflow: visible;
+    background: rgba(15,23,42,.92);
+    border-bottom-color: rgba(255,255,255,.18);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+  }
   .bar{
     gap: 8px;
     width: 100%;
     max-width: none;
     margin: 0;
-    padding: 0 10px;
+    padding: 0;
+    box-sizing: border-box;
+    align-items: flex-start;
+    position: relative;
+    min-height: 52px;
+  }
+  .bar.with-auth-corner{ padding-right: 0; }
+
+  .brand{
+    order: 1;
+    width: 100%;
+    min-width: 0;
+    padding-left: 52px;
+    padding-right: 52px;
     box-sizing: border-box;
   }
-  .bar.with-auth-corner{ padding-right: 10px; }
-  .authCorner{ top: 8px; right: 8px; }
+
+  .authCorner{
+    position: absolute;
+    top: 8px;
+    right: max(10px, env(safe-area-inset-right));
+    z-index: 200000;
+  }
   .authCorner .btn{ padding: 8px 10px; }
   .authCorner .userbtn{
-    width: 46px;
-    height: 46px;
-    padding: 5px;
+    width: 42px;
+    height: 42px;
+    padding: 4px;
   }
   .authCorner .navAvatarImg,
   .authCorner .navAvatarFallback{
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
   }
+
+  .mobileNavToggle{
+    display: inline-flex;
+    position: absolute;
+    top: 8px;
+    left: max(10px, env(safe-area-inset-left));
+    z-index: 200000;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+  }
+
   .wrap{ padding: 0 10px; margin: 12px auto 22px; }
-  .brand{ width: 100%; }
   .brandLogo{ height: 42px; }
   .topbar .nav{
-    order: 3;
-    width: 100%;
-    padding-right: 72px;
+    order: 4;
+    width: auto;
+    flex: 1 1 100%;
+    padding: 8px;
     box-sizing: border-box;
+    display: none !important;
+    flex-direction: column;
+    align-items: stretch;
     flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: visible !important;
+    gap: 6px;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 180000;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(15,23,42,.96);
+    box-shadow: 0 12px 24px rgba(0,0,0,.28);
+    max-width: 100%;
+    overflow-x: hidden;
   }
-  .topbar .nav::-webkit-scrollbar{ display:none; }
-  .topbar .nav .btn{ flex: 0 0 auto; }
+  .topbar .nav.open{
+    display: flex !important;
+  }
+  .topbar .nav .btn{
+    width: auto;
+    justify-content: flex-start;
+  }
   .spacer{ display:none; }
   .menu{ max-width: calc(100vw - 24px); min-width: 200px; }
   .authCorner .menu{
-    position: fixed;
-    top: 64px;
-    right: 8px;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
     left: auto;
     width: min(290px, calc(100vw - 16px));
     min-width: 0;
     max-height: calc(100vh - 80px);
     overflow: auto;
-    z-index: 1200;
+    z-index: 200000;
+  }
+
+  /* hard guard: avoid accidental horizontal drift on narrow devices */
+  .topbar, .bar, .topbar .nav{
+    max-width: 100%;
+    overflow-x: clip;
   }
 }

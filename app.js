@@ -171,6 +171,65 @@
     node.textContent = `${prefix}${y}-${m}-${day}`;
   }
 
+  function initMobileTopbarToggle(){
+    const bars = document.querySelectorAll(".topbar .bar");
+    if (!bars.length) return;
+
+    let autoId = 0;
+    bars.forEach((bar) => {
+      if (!bar || bar.dataset.mobileNavBound === "1") return;
+      const nav = bar.querySelector(".nav");
+      if (!nav) return;
+      bar.dataset.mobileNavBound = "1";
+
+      autoId += 1;
+      if (!nav.id) nav.id = `topbarNav${autoId}`;
+
+      let toggle = bar.querySelector(".mobileNavToggle");
+      if (!toggle){
+        toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "btn mobileNavToggle";
+        toggle.textContent = "☰";
+        toggle.setAttribute("aria-label", "Abrir menu");
+        bar.insertBefore(toggle, nav);
+      }
+
+      toggle.setAttribute("aria-controls", nav.id);
+      toggle.setAttribute("aria-expanded", "false");
+
+      const close = () => {
+        nav.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.textContent = "☰";
+        toggle.setAttribute("aria-label", "Abrir menu");
+      };
+
+      toggle.addEventListener("click", () => {
+        const open = !nav.classList.contains("open");
+        nav.classList.toggle("open", open);
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        toggle.textContent = open ? "✕" : "☰";
+        toggle.setAttribute("aria-label", open ? "Cerrar menu" : "Abrir menu");
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!nav.classList.contains("open")) return;
+        if (bar.contains(e.target)) return;
+        close();
+      });
+
+      nav.querySelectorAll("a").forEach((a) => {
+        a.addEventListener("click", () => close());
+      });
+
+      const mq = window.matchMedia("(min-width: 761px)");
+      const onMq = () => { if (mq.matches) close(); };
+      if (typeof mq.addEventListener === "function") mq.addEventListener("change", onMq);
+      else if (typeof mq.addListener === "function") mq.addListener(onMq);
+    });
+  }
+
   function initUserNav(options){
     const cfg = options || {};
     const getById = cfg.getById || ((id) => document.getElementById(id));
@@ -334,8 +393,15 @@
     leaderLabel,
     getSessionUser,
     bindProtectedNavLinks,
+    initMobileTopbarToggle,
     setTopbarDate,
     initUserNav,
     syncTopbarAvatar
   };
+
+  if (document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", initMobileTopbarToggle);
+  } else {
+    initMobileTopbarToggle();
+  }
 })(window);
