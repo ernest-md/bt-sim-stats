@@ -731,22 +731,34 @@
     }
     @media (max-width: 760px){
       .leaderRankCard{
-        overflow-x: auto;
+        overflow-x: hidden;
         overflow-y: visible;
-        -webkit-overflow-scrolling: touch;
       }
       .lrHead, .lrRow{
-        min-width: 460px;
+        min-width: 0;
+        grid-template-columns: minmax(35px, 1.1fr) minmax(58px, .8fr) minmax(40px, .7fr) minmax(48px, .9fr) minmax(55px, .9fr);
+        gap: 4px;
+        padding: 8px 6px;
       }
       .lrHead{ font-size: 10px; }
-      .lrVal{ font-size: 11px; }
+      .lrVal{ font-size: 10px; }
       .lrLeader .leaderImg,
       .lrLeader .leaderFallback,
       .lrMu .leaderImg,
       .lrMu .leaderFallback{
-        width: calc(32px * var(--leader-card-ratio));
-        height: 32px;
-        flex: 0 0 calc(32px * var(--leader-card-ratio));
+        width: calc(28px * var(--leader-card-ratio));
+        height: 28px;
+        flex: 0 0 calc(28px * var(--leader-card-ratio));
+      }
+      .lrLeader{
+        gap: 4px;
+      }
+      .leaderRankTitle{
+        font-size: 11px;
+        padding: 9px 10px;
+      }
+      .lrHead span{
+        line-height: 1.1;
       }
       .leaderZoomPreview{
         display: none !important;
@@ -1667,11 +1679,11 @@
       <div class="leaderRankCard">
         <p class="leaderRankTitle">${escapeHtml(title)}</p>
         <div class="lrHead">
-          <span>Foto lider</span>
+          <span>Lider</span>
           <span>Partidas</span>
           <span>WR</span>
-          <span>Mejor matchup</span>
-          <span>Peor matchup</span>
+          <span>Mejor WR</span>
+          <span>Peor WR</span>
         </div>
         ${content}
       </div>
