@@ -954,37 +954,69 @@
       }
       const btn = $("btnDownloadPreview");
       const prevText = btn.textContent;
-      const prevStyle = node.getAttribute("style") || "";
       btn.disabled = true;
       btn.textContent = "Generando...";
       $("downloadHint").textContent = "";
       try{
-        document.body.classList.add("forceDesktopCapture");
-        node.style.width = "1080px";
-        node.style.maxWidth = "1080px";
+        const clone = node.cloneNode(true);
+        clone.id = "previewExportClone";
+        clone.style.position = "fixed";
+        clone.style.left = "-100000px";
+        clone.style.top = "0";
+        clone.style.width = "1080px";
+        clone.style.maxWidth = "1080px";
+        clone.style.zIndex = "-1";
+        clone.style.visibility = "visible";
+        clone.style.pointerEvents = "none";
+
+        const cloneHero = clone.querySelector(".previewHero");
+        if (cloneHero){
+          cloneHero.style.minHeight = "138px";
+        }
+        const cloneGrid = clone.querySelector(".previewGrid");
+        if (cloneGrid){
+          cloneGrid.style.display = "grid";
+          cloneGrid.style.gridTemplateColumns = "repeat(4, minmax(0, 1fr))";
+          cloneGrid.style.gap = "12px";
+        }
+        clone.querySelectorAll(".pCard").forEach((el) => { el.style.minHeight = "136px"; });
+        clone.querySelectorAll(".pImg").forEach((el) => {
+          el.style.width = "100px";
+          el.style.height = "139px";
+        });
+        clone.querySelectorAll(".pTitle").forEach((el) => { el.style.fontSize = "13px"; });
+        clone.querySelectorAll(".tag").forEach((el) => {
+          el.style.fontSize = "11px";
+          el.style.padding = "4px 8px";
+        });
+        clone.querySelectorAll(".tagFull").forEach((el) => { el.style.display = "inline"; });
+        clone.querySelectorAll(".tagShort").forEach((el) => { el.style.display = "none"; });
+
+        document.body.appendChild(clone);
+
+        const imgs = Array.from(clone.querySelectorAll("img"));
+        await Promise.all(imgs.map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.addEventListener("load", resolve, { once: true });
+            img.addEventListener("error", resolve, { once: true });
+            setTimeout(resolve, 1200);
+          });
+        }));
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-        const canvas = await window.html2canvas(node, {
+        const canvas = await window.html2canvas(clone, {
           backgroundColor: null,
           scale: 2,
           useCORS: true,
           logging: false,
           windowWidth: 1400,
-          windowHeight: Math.max(1200, node.scrollHeight + 120),
+          windowHeight: Math.max(1200, clone.scrollHeight + 120),
           width: 1080,
           scrollX: 0,
-          scrollY: 0,
-          onclone: (doc) => {
-            doc.body.classList.add("forceDesktopCapture");
-            doc.documentElement.style.width = "1400px";
-            doc.body.style.width = "1400px";
-            const preview = doc.getElementById("preview");
-            if (preview){
-              preview.style.width = "1080px";
-              preview.style.maxWidth = "1080px";
-            }
-          }
+          scrollY: 0
         });
+        clone.remove();
         const link = document.createElement("a");
         const date = new Date().toISOString().slice(0, 10);
         link.download = `op-wrapped-${date}.png`;
@@ -996,9 +1028,8 @@
         alert("No se pudo generar la imagen.");
         $("downloadHint").textContent = "Error exportando. Si persiste, revisa la consola.";
       }finally{
-        if (prevStyle) node.setAttribute("style", prevStyle);
-        else node.removeAttribute("style");
-        document.body.classList.remove("forceDesktopCapture");
+        const stale = document.getElementById("previewExportClone");
+        if (stale) stale.remove();
         btn.disabled = false;
         btn.textContent = prevText;
       }
