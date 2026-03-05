@@ -1,4 +1,4 @@
-import { getPlayers, getMatchesByPlayer, getExpansions } from './api.js'
+import { getPlayersForStats, getMatchesByPlayer, getExpansions, getViewerStatsContext } from './api.js'
 import { supabase } from './supabaseClient.js'
 
 const playerSelect = document.getElementById("playerSelect")
@@ -12,13 +12,15 @@ let allMatches = []
 let allExpansions = []
 let currentFilteredMatches = []
 let selectedLeaderCode = null
+let allowedPlayerIds = new Set()
 
 /* ================= INIT ================= */
 
 
 async function init() {
-
-  const players = await getPlayers()
+  const viewer = await getViewerStatsContext()
+  const players = await getPlayersForStats()
+  allowedPlayerIds = new Set(players.map((p) => p.id))
 
   if (players.length === 0) {
     showStatsAccessMessage("No tienes ningun perfil SIM vinculado o acceso concedido.")
@@ -52,9 +54,32 @@ async function init() {
     expansionSelect.appendChild(option)
   })
 
-  if (players.length > 0) {
-    await loadPlayer(players[0].id)
+  const todayExpansion = getTodayExpansion(expansions)
+  if (todayExpansion?.id) {
+    expansionSelect.value = todayExpansion.id
   }
+
+  if (players.length > 0) {
+    const ownPlayer = players.find((p) => p.profile_id && p.profile_id === viewer.userId)
+    const defaultPlayerId = ownPlayer?.id || players[0].id
+    playerSelect.value = defaultPlayerId
+    await loadPlayer(defaultPlayerId)
+  }
+}
+
+function getTodayExpansion(expansions) {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  const active = (expansions || []).find((exp) => {
+    const start = new Date(exp.start_date)
+    const end = new Date(exp.end_date)
+    const dayStart = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+    const dayEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+    return today >= dayStart && today <= dayEnd
+  })
+
+  return active || null
 }
 
 function showStatsAccessMessage(message) {
@@ -67,6 +92,11 @@ function showStatsAccessMessage(message) {
 /* ================= LOAD PLAYER ================= */
 
 async function loadPlayer(playerId) {
+  if (!allowedPlayerIds.has(playerId)) {
+    allMatches = []
+    calculateStats()
+    return
+  }
   allMatches = await getMatchesByPlayer(playerId)
   calculateStats()
 }
@@ -76,7 +106,6 @@ async function loadPlayer(playerId) {
 function calculateStats() {
 
   let filteredMatches = [...allMatches]
-
   const selectedExpansion = expansionSelect.value
 
   if (selectedExpansion !== "all") {
@@ -450,6 +479,12 @@ async function syncMatchesForSelectedPlayer(playerId) {
 
   if (!selectedPlayerId) {
     statusDiv.textContent = "Selecciona un jugador antes de sincronizar"
+    statusDiv.className = "sync-status sync-error"
+    return
+  }
+
+  if (!allowedPlayerIds.has(selectedPlayerId)) {
+    statusDiv.textContent = "No tienes permisos para sincronizar ese jugador"
     statusDiv.className = "sync-status sync-error"
     return
   }

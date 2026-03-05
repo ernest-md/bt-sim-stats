@@ -446,6 +446,322 @@ select:focus {
   color: #e74c3c;
 }
 
+.teamSummaryWrap {
+  border: 1px solid rgba(15,23,42,.12);
+  border-radius: 16px;
+  background:
+    radial-gradient(520px 180px at 6% 0%, rgba(124,58,237,.16), transparent 75%),
+    radial-gradient(520px 180px at 100% 0%, rgba(6,182,212,.13), transparent 75%),
+    linear-gradient(160deg, rgba(15,23,42,.90), rgba(30,41,59,.76));
+  color: #e2e8f0;
+  padding: 12px;
+  margin-bottom: 18px;
+}
+
+.teamSummaryWrap h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: rgba(241,245,249,.94);
+}
+
+.teamSummaryBody {
+  display: grid;
+  gap: 12px;
+  overflow: visible;
+}
+
+.teamHighlight {
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(15,23,42,.24);
+}
+
+.teamHighlightTop {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: rgba(226,232,240,.76);
+  margin-bottom: 6px;
+}
+
+.teamHighlightName {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 1000;
+  color: #fff;
+}
+
+.teamHighlightSub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: rgba(226,232,240,.82);
+}
+
+.teamKpis {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.teamKpi {
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+  background: rgba(15,23,42,.28);
+  padding: 8px;
+}
+
+.teamKpiLabel {
+  font-size: 11px;
+  color: rgba(226,232,240,.70);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  font-weight: 900;
+}
+
+.teamKpiValue {
+  font-size: 20px;
+  font-weight: 1000;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.teamRankWrap {
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 12px;
+  overflow: visible;
+  background: rgba(15,23,42,.24);
+  position: relative;
+  z-index: 1;
+}
+
+.teamRankTable {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: visible;
+  min-width: 980px;
+}
+
+.teamRankTable thead {
+  background: rgba(15,23,42,.42);
+}
+
+.teamRankTable th {
+  font-size: 12px;
+  color: rgba(226,232,240,.84);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  font-weight: 900;
+}
+
+.teamRankTable td {
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  color: #f8fafc;
+  overflow: visible;
+}
+
+.teamRankTable td:first-child {
+  text-align: center;
+  padding-left: 10px;
+  font-weight: 900;
+}
+
+.teamRankTable td:nth-child(2) {
+  text-align: left;
+  padding-left: 12px;
+}
+
+.teamRankTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.teamRankTable .rankPos {
+  width: 34px;
+  text-align: center;
+  font-weight: 1000;
+}
+
+.teamRankTable .playerName {
+  font-weight: 1000;
+}
+
+.teamRankTable .statStrong {
+  font-weight: 1000;
+}
+
+.teamRankTable tr.rankRow td {
+  transition: background .15s ease;
+}
+
+.teamRankTable tr.rankRow:hover td {
+  background: rgba(124,58,237,.12);
+}
+
+.teamRankTable tr.rank-1 td {
+  background: linear-gradient(90deg, rgba(245,158,11,.24), rgba(250,204,21,.18));
+}
+
+.teamRankTable tr.rank-2 td {
+  background: linear-gradient(90deg, rgba(148,163,184,.26), rgba(203,213,225,.18));
+}
+
+.teamRankTable tr.rank-3 td {
+  background: linear-gradient(90deg, rgba(180,83,9,.22), rgba(251,146,60,.14));
+}
+
+.teamRankTable tr.rank-4 td,
+.teamRankTable tr.rank-5 td,
+.teamRankTable tr.rank-6 td,
+.teamRankTable tr.rank-7 td,
+.teamRankTable tr.rank-8 td,
+.teamRankTable tr.rank-9 td,
+.teamRankTable tr.rank-10 td {
+  background: rgba(59,130,246,.10);
+}
+
+.teamLeaderCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.teamLeaderZoom {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  z-index: 2;
+}
+
+.teamLeaderCell img,
+.leaderMiniFallback {
+  width: 42px;
+  height: 58px;
+  border-radius: 6px;
+  border: 1px solid rgba(15,23,42,.18);
+  object-fit: contain;
+  background: #fff;
+}
+
+.teamLeaderZoomPreview {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px) scale(.96);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,.35);
+  background: rgba(15,23,42,.92);
+  box-shadow: 0 20px 38px rgba(2,6,23,.40);
+  padding: 6px;
+  transition: opacity .14s ease, transform .14s ease;
+}
+
+.teamLeaderZoomPreview img {
+  width: 150px;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+  display:block;
+  border-radius: 8px;
+  border: 0;
+  background: rgba(2,6,23,.35);
+}
+
+.teamLeaderZoom:hover .teamLeaderZoomPreview {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.leaderMiniFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.teamLeaderCell span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  line-height: 1.15;
+}
+
+@media (max-width: 760px) {
+  .teamLeaderCell img,
+  .leaderMiniFallback {
+    width: 36px;
+    height: 50px;
+  }
+
+  .teamLeaderZoomPreview {
+    display: none !important;
+  }
+}
+
+.team-page .teamSummaryWrap {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: rgba(15,23,42,.14);
+}
+
+.team-page .teamSummaryWrap h3 {
+  color: #0f172a;
+}
+
+.team-page .teamHighlight {
+  background: #ffffff;
+  border-color: rgba(15,23,42,.14);
+}
+
+.team-page .teamHighlightTop,
+.team-page .teamHighlightSub {
+  color: #334155;
+}
+
+.team-page .teamHighlightName,
+.team-page .teamKpiValue {
+  color: #0f172a;
+}
+
+.team-page .teamKpi {
+  background: #f8fafc;
+  border-color: rgba(15,23,42,.14);
+}
+
+.team-page .teamKpiLabel {
+  color: #475569;
+}
+
+.team-page .teamRankWrap {
+  background: #ffffff;
+  border-color: rgba(15,23,42,.14);
+  overflow: visible;
+}
+
+.team-page .teamRankTable thead {
+  background: #e5e7eb;
+}
+
+.team-page .teamRankTable th,
+.team-page .teamRankTable td {
+  color: #0f172a;
+}
+
+.team-page .teamRankTable td {
+  border-bottom: 1px solid rgba(15,23,42,.10);
+}
+
 /* ============================= */
 /*          RESPONSIVE           */
 /* ============================= */
@@ -466,6 +782,10 @@ select:focus {
   .mainLayout {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .teamKpis {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -503,6 +823,29 @@ select:focus {
 
   .sync-status {
     margin-top: 2px;
+  }
+
+  .teamRankWrap,
+  .team-page .teamRankWrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .teamRankTable {
+    min-width: 760px;
+  }
+
+  .teamKpis {
+    grid-template-columns: 1fr;
+  }
+
+  .teamHighlightName {
+    font-size: 20px;
+  }
+
+  .teamHighlightSub {
+    font-size: 11px;
   }
 
   .summary {
