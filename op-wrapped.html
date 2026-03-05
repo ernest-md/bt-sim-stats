@@ -278,10 +278,6 @@
       font-size: 34px;
       letter-spacing:.2px;
       line-height: 1;
-      color: rgba(255,255,255,.97);
-      text-shadow:
-        0 2px 10px rgba(0,0,0,.55),
-        0 0 1px rgba(0,0,0,.45);
     }
     .heroSub{
       color: rgba(241,245,249,.94);
@@ -443,6 +439,7 @@
       color:#0f172a;
       width: fit-content;
     }
+    .tagShort{ display:none; }
 
     .moveBtns{
       display:flex;
@@ -452,6 +449,23 @@
     }
     .dot{ width:8px; height:8px; border-radius:999px; background: var(--p1); display:inline-block; }
     .dot.c2{ background: var(--p2); }
+
+    .forceDesktopCapture #preview{
+      width:1080px !important;
+      max-width:1080px !important;
+    }
+    .forceDesktopCapture #preview .previewGrid{
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+    .forceDesktopCapture #preview .pCard{ min-height:136px !important; }
+    .forceDesktopCapture #preview .pImg{
+      width:100px !important;
+      height:139px !important;
+    }
+    .forceDesktopCapture #preview .pTitle{ font-size:13px !important; }
+    .forceDesktopCapture #preview .heroTitle{ font-size:34px !important; }
+    .forceDesktopCapture #preview .tagFull{ display:inline !important; }
+    .forceDesktopCapture #preview .tagShort{ display:none !important; }
 
     @media (max-width: 760px){
       .brand{ width:100%; margin-right:0; }
@@ -464,6 +478,10 @@
       .pCard{ min-height: 120px; }
       .pImg{ width: 92px;
         height: 129px; }
+      .pTitle{ font-size: 12px; line-height:1.05; }
+      .tag{ font-size:10px; padding: 3px 7px; }
+      .tagFull{ display:none; }
+      .tagShort{ display:inline; }
       .downloadBtn{ width:100%; justify-content:center; }
       .downloadHint{ width:100%; }
       .adjustBtn{ width:100%; justify-content:center; }
@@ -870,7 +888,7 @@
 
       let n = 1;
 
-      const pushCard = ({ title, label, tag, dotClass, img }) => {
+      const pushCard = ({ title, label, tag, tagShort, dotClass, img }) => {
         const hasImg = !!img;
         const item = document.createElement("div");
         item.className = "pCard";
@@ -881,7 +899,7 @@
           <div class="pMeta">
             <div class="pTitle">${escapeHtml(title)}</div>
             <div class="pLabel">${escapeHtml(label || "-")}</div>
-            <div class="tag"><span class="dot ${dotClass}"></span>${escapeHtml(tag)}</div>
+            <div class="tag"><span class="dot ${dotClass}"></span><span class="tagFull">${escapeHtml(tag)}</span><span class="tagShort">${escapeHtml(tagShort || tag)}</span></div>
           </div>
         `;
         grid.appendChild(item);
@@ -894,6 +912,7 @@
           title: q.title,
           label: card ? card.label : "-",
           tag: "Leader",
+          tagShort: "L",
           dotClass: "",
           img: card?.image || ""
         });
@@ -906,6 +925,7 @@
           title: q.title,
           label: card ? card.label : "-",
           tag: "Card",
+          tagShort: "C",
           dotClass: "c2",
           img: card?.image || ""
         });
@@ -929,7 +949,14 @@
           scale: 2,
           useCORS: true,
           logging: false,
-          onclone: (_doc) => {}
+          onclone: (doc) => {
+            doc.body.classList.add("forceDesktopCapture");
+            const preview = doc.getElementById("preview");
+            if (preview){
+              preview.style.width = "1080px";
+              preview.style.maxWidth = "1080px";
+            }
+          }
         });
         const link = document.createElement("a");
         const date = new Date().toISOString().slice(0, 10);
