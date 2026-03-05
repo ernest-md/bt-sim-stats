@@ -456,7 +456,15 @@
       if (!raw) return null;
       try{
         const parsed = new URL(raw);
-        const fromParam = parsed.searchParams.get("deviceId");
+        let fromParam = parsed.searchParams.get("deviceId");
+        if (!fromParam){
+          for (const [key, val] of parsed.searchParams.entries()){
+            if (String(key || "").toLowerCase() === "deviceid"){
+              fromParam = val;
+              break;
+            }
+          }
+        }
         return fromParam ? fromParam.trim() : null;
       } catch (_e){
         const match = raw.match(/[?&]deviceId=([^&]+)/i);
@@ -464,12 +472,20 @@
       }
     }
 
+    function normalizeDeviceId(value){
+      return String(value || "").trim().replace(/\s+/g, "");
+    }
+
     function isLikelyDeviceId(value){
-      return /^[a-f0-9]{24,80}$/i.test((value || "").trim());
+      const v = normalizeDeviceId(value);
+      if (!v) return false;
+      if (/^[a-f0-9]{24,80}$/i.test(v)) return true;
+      if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(v)) return true;
+      return false;
     }
 
     async function linkSimDeviceToPlayer(profileId, playerName, simProfileUrl){
-      const deviceId = extractDeviceIdFromSimUrl(simProfileUrl);
+      const deviceId = normalizeDeviceId(extractDeviceIdFromSimUrl(simProfileUrl));
       if (!deviceId) return { ok: true, skipped: true };
 
       if (!isLikelyDeviceId(deviceId)) {
