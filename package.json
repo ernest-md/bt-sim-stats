@@ -1,0 +1,30 @@
+{
+  "name": "barateam-hub",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ernest-md/barateam-hub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ernest-md/barateam-hub/issues"
+  },
+  "homepage": "https://github.com/ernest-md/barateam-hub#readme",
+  "devDependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0"
+  },
+  "dependencies": {
+    "@capacitor/status-bar": "^8.0.1"
+  }
+}
