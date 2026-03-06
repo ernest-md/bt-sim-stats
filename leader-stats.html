@@ -76,7 +76,7 @@
     .heroTop{
       display:flex;
       gap:10px;
-      align-items:flex-end;
+      align-items:center;
       justify-content:space-between;
       flex-wrap:wrap;
     }
@@ -98,9 +98,9 @@
       font-weight:700;
     }
     .heroControls{
-      margin-top:12px;
       display:flex;
       align-items:center;
+      justify-content:flex-end;
       gap:10px;
       flex-wrap:wrap;
     }
@@ -190,7 +190,7 @@
       flex-direction:column;
       min-height:0;
       position:relative;
-      height:100%;
+      height:99%;
     }
     .detailPanel{
       background:
@@ -445,6 +445,36 @@
       .leaderZoomPreview{
         display:none !important;
       }
+      .tableWrap{
+        max-height:52vh;
+        -webkit-overflow-scrolling:touch;
+      }
+      .tableWrapLeaders,
+      .tableWrapMatchups{
+        overflow-x:auto;
+      }
+      .leadersTable{
+        min-width:560px;
+      }
+      .matchupsTable{
+        min-width:640px;
+      }
+      th, td{
+        padding:7px 6px;
+        font-size:12px;
+      }
+      th{
+        font-size:11px;
+      }
+      .leaderImg,
+      .leaderFallback{
+        width:24px;
+        height:34px;
+        flex-basis:24px;
+      }
+      .kpi b{
+        font-size:18px;
+      }
     }
   </style>
 </head>
@@ -493,18 +523,17 @@
     <section class="hero">
       <div class="heroTop">
         <h1>Global Leader Stats</h1>
-        <div class="heroMeta" id="statusText">Cargando...</div>
+        <div class="heroControls">
+          <label class="filter">Fecha
+            <input id="dateInput" type="date">
+          </label>
+          <button id="btnReload" class="btn2" type="button">Cargar stats</button>
+          <label class="filter">Buscar
+            <input id="searchInput" type="search" placeholder="Codigo o nombre">
+          </label>
+        </div>
       </div>
-      <p class="heroSub">Analiza el meta global por leader: volumen, winrate y matchups.</p>
-      <div class="heroControls">
-        <label class="filter">Fecha
-          <input id="dateInput" type="date">
-        </label>
-        <button id="btnReload" class="btn2" type="button">Cargar stats</button>
-        <label class="filter">Buscar
-          <input id="searchInput" type="search" placeholder="Codigo o nombre">
-        </label>
-      </div>
+      <span id="statusText" style="display:none;" aria-hidden="true"></span>
     </section>
 
     <div class="card">
@@ -514,7 +543,7 @@
         <section class="panel">
           <h3>Leaders (ordenado por partidas)</h3>
           <div class="tableWrap tableWrapLeaders">
-            <table>
+            <table class="leadersTable">
               <thead>
                 <tr>
                   <th class="sortable" data-sort-table="leaders" data-sort-key="rank">#</th>
@@ -547,7 +576,7 @@
             <span class="muted" id="matchupMeta"></span>
           </div>
           <div class="tableWrap tableWrapMatchups">
-            <table>
+            <table class="matchupsTable">
               <thead>
                 <tr>
                   <th class="sortable" data-sort-table="matchups" data-sort-key="opponent">Lider</th>
