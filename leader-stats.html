@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Leader Stats · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.92);
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --line:rgba(15,23,42,.14);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --good:#16a34a;
+      --bad:#dc2626;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      z-index:-2;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      color:rgba(255,255,255,.72);
+      font-weight:700;
+      text-align:center;
+      padding-left:4px;
+    }
+    .page{
+      max-width:1450px;
+      margin:14px auto 28px;
+      padding:0 14px;
+      box-sizing:border-box;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .head{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      margin-bottom:12px;
+    }
+    .title{
+      font-size:28px;
+      font-weight:1000;
+      margin-right:auto;
+    }
+    .filter{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:800;
+      color:#334155;
+    }
+    input[type="date"], input[type="search"], select, button{
+      border-radius:10px;
+      border:1px solid var(--line);
+      padding:9px 10px;
+      font-size:14px;
+      background:#fff;
+      color:var(--ink);
+    }
+    .btn2{
+      border:none;
+      background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.9));
+      color:#fff;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns: minmax(520px, 1.2fr) minmax(420px, 1fr);
+      gap:12px;
+    }
+    .panel{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(255,255,255,.75);
+      overflow:hidden;
+    }
+    .panel h3{
+      margin:0;
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      font-size:15px;
+      font-weight:1000;
+    }
+    .tableWrap{
+      max-height:70vh;
+      overflow:auto;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+    }
+    th, td{
+      border-bottom:1px solid rgba(15,23,42,.08);
+      padding:8px 8px;
+      font-size:13px;
+      text-align:center;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:#e2e8f0;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+    td.left, th.left{
+      text-align:left;
+    }
+    .rowBtn{
+      width:100%;
+      text-align:left;
+      border:none;
+      background:transparent;
+      padding:0;
+      cursor:pointer;
+      font:inherit;
+      color:inherit;
+    }
+    tbody tr:hover{
+      background:#eef2ff;
+    }
+    tbody tr.active{
+      background:#dbeafe;
+    }
+    .good{ color:var(--good); font-weight:900; }
+    .bad{ color:var(--bad); font-weight:900; }
+    .muted{ color:var(--muted); }
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:8px;
+      padding:10px;
+      border-bottom:1px solid var(--line);
+      background:#f8fafc;
+    }
+    .kpi{
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      padding:8px;
+    }
+    .kpi b{
+      display:block;
+      font-size:20px;
+      margin-top:2px;
+    }
+    .status{
+      margin-left:auto;
+      font-size:12px;
+      color:#334155;
+    }
+    .err{
+      color:#991b1b;
+      background:rgba(239,68,68,.12);
+      border:1px solid rgba(239,68,68,.3);
+      border-radius:10px;
+      padding:8px 10px;
+      margin:8px 0 0;
+      display:none;
+    }
+    @media (max-width:1100px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+      .tableWrap{
+        max-height:58vh;
+      }
+    }
+    @media (max-width:760px){
+      .page{ padding:0 10px; }
+      .card{ border-radius:16px; padding:10px; }
+      .title{ font-size:23px; }
+      .kpis{ grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>leaders</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn primary active" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">&mdash;</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+      <div class="head">
+        <div class="title">Global Leader Stats</div>
+        <label class="filter">Fecha
+          <input id="dateInput" type="date">
+        </label>
+        <button id="btnReload" class="btn2" type="button">Cargar stats</button>
+        <label class="filter">Buscar
+          <input id="searchInput" type="search" placeholder="Codigo o nombre">
+        </label>
+        <div class="status" id="statusText">Cargando...</div>
+      </div>
+
+      <div class="layout">
+        <section class="panel">
+          <h3>Leaders (ordenado por partidas)</h3>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th class="left">Leader</th>
+                  <th>W</th>
+                  <th>P</th>
+                  <th>WR</th>
+                  <th>Play Rate</th>
+                  <th>WR 1st</th>
+                  <th>WR 2nd</th>
+                </tr>
+              </thead>
+              <tbody id="leadersBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3 id="detailTitle">Selecciona un leader</h3>
+          <div class="kpis" id="kpis"></div>
+          <div style="padding:10px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;">
+            <label class="filter">Rivales
+              <select id="matchupLimit">
+                <option value="16" selected>Top 16</option>
+                <option value="24">Top 24</option>
+                <option value="32">Top 32</option>
+                <option value="9999">Todos</option>
+              </select>
+            </label>
+            <span class="muted" id="matchupMeta"></span>
+          </div>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="left">Rival</th>
+                  <th>W</th>
+                  <th>P</th>
+                  <th>WR</th>
+                  <th>W 1st</th>
+                  <th>WR 1st</th>
+                  <th>W 2nd</th>
+                  <th>WR 2nd</th>
+                </tr>
+              </thead>
+              <tbody id="matchupsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div id="errorBox" class="err"></div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    window.BarateamApp.bindProtectedNavLinks(sb);
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    (async function initNav(){
+      const { data } = await sb.auth.getSession();
+      navController.setUser(data?.session?.user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
+      sb.auth.onAuthStateChange((_event, session) => {
+        navController.setUser(session?.user || null);
+        void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
+      });
+    })();
+
+    const dateInput = document.getElementById("dateInput");
+    const btnReload = document.getElementById("btnReload");
+    const searchInput = document.getElementById("searchInput");
+    const leadersBody = document.getElementById("leadersBody");
+    const detailTitle = document.getElementById("detailTitle");
+    const kpis = document.getElementById("kpis");
+    const matchupsBody = document.getElementById("matchupsBody");
+    const matchupLimit = document.getElementById("matchupLimit");
+    const matchupMeta = document.getElementById("matchupMeta");
+    const statusText = document.getElementById("statusText");
+    const errorBox = document.getElementById("errorBox");
+
+    let leaders = [];
+    let selectedLeaderCode = null;
+    let leaderNameMap = new Map();
+
+    function toYmd(dateObj){
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function toCompact(ymd){
+      return String(ymd || "").replaceAll("-", "");
+    }
+
+    function pct(v){
+      if (v == null || Number.isNaN(Number(v))) return "-";
+      return `${(Number(v) * 100).toFixed(1)}%`;
+    }
+
+    function int(v){
+      return Number(v || 0).toLocaleString("es-ES");
+    }
+
+    function wrClass(v){
+      if (v == null || Number.isNaN(Number(v))) return "muted";
+      return Number(v) >= 0.5 ? "good" : "bad";
+    }
+
+    function showError(text){
+      errorBox.style.display = "block";
+      errorBox.textContent = text;
+    }
+
+    function clearError(){
+      errorBox.style.display = "none";
+      errorBox.textContent = "";
+    }
+
+    async function fetchStatsByDate(ymd){
+      const compact = toCompact(ymd);
+      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/leader-stats?date=${compact}`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`No disponible (${res.status}) para ${ymd}`);
+      const payload = await res.json();
+      const data = Array.isArray(payload?.data) ? payload.data : payload;
+      if (!Array.isArray(data)) throw new Error("Formato inesperado del JSON");
+      return { data, url, ymd };
+    }
+
+    async function loadStatsWithFallback(ymd){
+      const base = new Date(`${ymd}T00:00:00`);
+      const candidates = [];
+      for (let i = 0; i < 7; i++) {
+        const dt = new Date(base);
+        dt.setDate(base.getDate() - i);
+        candidates.push(toYmd(dt));
+      }
+      let lastErr = null;
+      for (const c of candidates){
+        try {
+          return await fetchStatsByDate(c);
+        } catch (e){
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error("No se pudieron cargar stats");
+    }
+
+    function normalizeLeaders(raw){
+      const mapped = raw.map((row, idx) => {
+        const wins = Number(row?.wins || 0);
+        const matches = Number(row?.number_of_matches || 0);
+        const losses = Math.max(0, matches - wins);
+        return {
+          rank: idx + 1,
+          code: String(row?.leader || ""),
+          name: String(row?.leaderName || row?.leader || "Leader"),
+          wins,
+          matches,
+          losses,
+          wr: Number(row?.raw_win_rate ?? 0),
+          playRate: Number(row?.play_rate ?? 0),
+          firstWr: row?.first_win_rate == null ? null : Number(row.first_win_rate),
+          secondWr: row?.second_win_rate == null ? null : Number(row.second_win_rate),
+          matchups: Array.isArray(row?.matchups) ? row.matchups : []
+        };
+      });
+      return mapped.sort((a, b) => b.matches - a.matches);
+    }
+
+    function renderLeaders(){
+      const q = String(searchInput.value || "").trim().toLowerCase();
+      leadersBody.innerHTML = "";
+
+      const list = q
+        ? leaders.filter((l) => l.code.toLowerCase().includes(q) || l.name.toLowerCase().includes(q))
+        : leaders;
+
+      for (const l of list){
+        const tr = document.createElement("tr");
+        if (l.code === selectedLeaderCode) tr.classList.add("active");
+        tr.innerHTML = `
+          <td>${l.rank}</td>
+          <td class="left">
+            <button class="rowBtn" type="button" data-code="${l.code}">
+              <strong>${l.code}</strong> · ${l.name}
+            </button>
+          </td>
+          <td>${int(l.wins)}</td>
+          <td>${int(l.matches)}</td>
+          <td class="${wrClass(l.wr)}">${pct(l.wr)}</td>
+          <td>${pct(l.playRate)}</td>
+          <td class="${wrClass(l.firstWr)}">${pct(l.firstWr)}</td>
+          <td class="${wrClass(l.secondWr)}">${pct(l.secondWr)}</td>
+        `;
+        leadersBody.appendChild(tr);
+      }
+    }
+
+    function renderDetail(){
+      const leader = leaders.find((l) => l.code === selectedLeaderCode) || null;
+      if (!leader){
+        detailTitle.textContent = "Selecciona un leader";
+        kpis.innerHTML = "";
+        matchupsBody.innerHTML = "";
+        matchupMeta.textContent = "";
+        return;
+      }
+
+      detailTitle.textContent = `${leader.code} · ${leader.name}`;
+      kpis.innerHTML = `
+        <div class="kpi">Partidas<b>${int(leader.matches)}</b></div>
+        <div class="kpi">Victorias<b>${int(leader.wins)}</b></div>
+        <div class="kpi">Derrotas<b>${int(leader.losses)}</b></div>
+        <div class="kpi">WR<b class="${wrClass(leader.wr)}">${pct(leader.wr)}</b></div>
+        <div class="kpi">Play Rate<b>${pct(leader.playRate)}</b></div>
+        <div class="kpi">WR 1st<b class="${wrClass(leader.firstWr)}">${pct(leader.firstWr)}</b></div>
+        <div class="kpi">WR 2nd<b class="${wrClass(leader.secondWr)}">${pct(leader.secondWr)}</b></div>
+        <div class="kpi">Rivales<b>${int(leader.matchups.length)}</b></div>
+      `;
+
+      const limit = Number(matchupLimit.value || 16);
+      const rows = [...leader.matchups]
+        .map((m) => ({
+          opponent: String(m?.opponent || ""),
+          wins: Number(m?.wins || 0),
+          games: Number(m?.total_games || 0),
+          wr: m?.matchup_win_rate == null ? null : Number(m.matchup_win_rate),
+          firstWins: Number(m?.first_wins || 0),
+          firstWr: m?.first_win_rate == null ? null : Number(m.first_win_rate),
+          secondWins: Number(m?.second_wins || 0),
+          secondWr: m?.second_win_rate == null ? null : Number(m.second_win_rate)
+        }))
+        .sort((a, b) => b.games - a.games)
+        .slice(0, limit);
+
+      matchupMeta.textContent = `Mostrando ${rows.length} de ${leader.matchups.length}`;
+      matchupsBody.innerHTML = "";
+      for (const m of rows){
+        const name = leaderNameMap.get(m.opponent) || m.opponent;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="left"><strong>${m.opponent}</strong> · ${name}</td>
+          <td>${int(m.wins)}</td>
+          <td>${int(m.games)}</td>
+          <td class="${wrClass(m.wr)}">${pct(m.wr)}</td>
+          <td>${int(m.firstWins)}</td>
+          <td class="${wrClass(m.firstWr)}">${pct(m.firstWr)}</td>
+          <td>${int(m.secondWins)}</td>
+          <td class="${wrClass(m.secondWr)}">${pct(m.secondWr)}</td>
+        `;
+        matchupsBody.appendChild(tr);
+      }
+    }
+
+    async function reload(){
+      clearError();
+      statusText.textContent = "Cargando...";
+      try{
+        const selected = dateInput.value || toYmd(new Date());
+        const { data, ymd } = await loadStatsWithFallback(selected);
+        leaders = normalizeLeaders(data);
+        leaderNameMap = new Map(leaders.map((l) => [l.code, l.name]));
+        if (!selectedLeaderCode || !leaders.some((l) => l.code === selectedLeaderCode)){
+          selectedLeaderCode = leaders[0]?.code || null;
+        }
+        renderLeaders();
+        renderDetail();
+        statusText.textContent = `Fuente: ${ymd} · ${leaders.length} leaders`;
+      } catch (err){
+        leaders = [];
+        selectedLeaderCode = null;
+        renderLeaders();
+        renderDetail();
+        statusText.textContent = "Error cargando datos";
+        showError((err?.message || "No se pudieron cargar las estadisticas") + ". Revisa si la edge function 'leader-stats' esta desplegada.");
+      }
+    }
+
+    leadersBody.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-code]");
+      if (!btn) return;
+      selectedLeaderCode = btn.getAttribute("data-code");
+      renderLeaders();
+      renderDetail();
+    });
+
+    searchInput.addEventListener("input", renderLeaders);
+    matchupLimit.addEventListener("change", renderDetail);
+    btnReload.addEventListener("click", reload);
+
+    (function init(){
+      dateInput.value = toYmd(new Date());
+      reload();
+    })();
+  </script>
+</body>
+</html>
