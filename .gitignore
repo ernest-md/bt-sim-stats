@@ -1,5 +1,16 @@
-
-node_modules/
+# Android / Capacitor build artifacts
 android/.gradle/
 android/build/
+android/app/build/
+android/local.properties
+android/captures/
+
+# Capacitor generated web bundle
 web/
+
+# Node deps
+node_modules/
+
+# Optional local env/files
+.gradle/
+android/
