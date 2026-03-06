@@ -197,8 +197,8 @@
     .leaderZoomPreview{
       position: absolute;
       left: calc(100% + 10px);
-      top: 50%;
-      transform: translateY(-50%) translateX(-4px) scale(.96);
+      top: 0;
+      transform: translateX(-4px) scale(.96);
       opacity: 0;
       pointer-events: none;
       z-index: 10000;
@@ -221,7 +221,7 @@
     }
     .leaderZoom:hover .leaderZoomPreview{
       opacity: 1;
-      transform: translateY(-50%) translateX(0) scale(1);
+      transform: translateX(0) scale(1);
     }
     .leaderImg{
       width: 28px;
