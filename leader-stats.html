@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Leader Stats · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <link rel="stylesheet" href="app.css?v=20260306a" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js?v=20260305c"></script>
   <style>
@@ -56,10 +56,63 @@
       padding-left:4px;
     }
     .page{
-      max-width:1450px;
+      max-width:1400px;
       margin:14px auto 28px;
       padding:0 14px;
       box-sizing:border-box;
+    }
+    .hero{
+      border-radius:24px;
+      padding:16px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow:0 18px 50px rgba(0,0,0,.28);
+      margin-bottom:12px;
+    }
+    .heroTop{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .heroTop h1{
+      margin:0;
+      font-size:26px;
+      line-height:1.08;
+      font-weight:1000;
+      letter-spacing:.2px;
+    }
+    .heroSub{
+      margin:6px 0 0;
+      color:rgba(255,255,255,.84);
+      font-size:13px;
+    }
+    .heroMeta{
+      color:rgba(255,255,255,.78);
+      font-size:13px;
+      font-weight:700;
+    }
+    .heroControls{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .heroControls .filter{
+      color:rgba(255,255,255,.92);
+      font-weight:900;
+    }
+    .heroControls input[type="date"],
+    .heroControls input[type="search"],
+    .heroControls select{
+      background:rgba(255,255,255,.92);
+      border-color:rgba(255,255,255,.34);
     }
     .card{
       background:var(--card);
@@ -67,6 +120,24 @@
       border-radius:22px;
       box-shadow:var(--shadow);
       padding:16px;
+    }
+    .sectionTitle{
+      margin:2px 0 12px;
+      font-weight:1000;
+      color:#0f172a;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.9px;
+      opacity:.85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .sectionTitle::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background:linear-gradient(90deg, rgba(15,23,42,.25), transparent);
     }
     .head{
       display:flex;
@@ -106,12 +177,44 @@
       display:grid;
       grid-template-columns: minmax(520px, 1.2fr) minmax(420px, 1fr);
       gap:12px;
+      align-items:stretch;
+      height:min(74vh, 920px);
+      overflow:hidden;
     }
     .panel{
       border:1px solid var(--line);
       border-radius:14px;
       background:rgba(255,255,255,.75);
       overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+      position:relative;
+      height:99%;
+    }
+    .detailPanel{
+      background:
+        linear-gradient(140deg, rgba(255,255,255,.78), rgba(248,250,252,.72));
+      transition: background-image .2s ease, background-color .2s ease;
+    }
+    .detailPanel.withLeaderBg{
+      background:
+        linear-gradient(140deg, rgba(15,23,42,.62), rgba(30,41,59,.54)),
+        radial-gradient(80% 100% at 12% 10%, rgba(124,58,237,.24), transparent 65%),
+        rgba(15,23,42,.35);
+      background-size: cover;
+      background-position: center;
+      border-color: rgba(255,255,255,.26);
+    }
+    .detailPanel.withLeaderBg h3{
+      color:#f8fafc;
+      border-bottom-color: rgba(255,255,255,.22);
+    }
+    .detailPanel.withLeaderBg .filter{
+      color:#e2e8f0;
+    }
+    .detailPanel.withLeaderBg .muted{
+      color:#cbd5e1;
     }
     .panel h3{
       margin:0;
@@ -121,13 +224,34 @@
       font-weight:1000;
     }
     .tableWrap{
-      max-height:70vh;
+      min-height:0;
+      height:100%;
+      max-height:100%;
       overflow:auto;
+      box-sizing:border-box;
+      padding-bottom:6px;
+      overscroll-behavior:contain;
+      scrollbar-gutter:stable;
+      flex:1 1 auto;
+    }
+    .tableWrapLeaders{
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+    .tableWrapMatchups{
+      overflow-x:hidden;
+      overflow-y:auto;
+      border-bottom-left-radius:14px;
+      border-bottom-right-radius:14px;
     }
     table{
       width:100%;
       border-collapse:collapse;
       background:#fff;
+    }
+    .tableWrapMatchups table{
+      min-width:0;
+      width:100%;
     }
     th, td{
       border-bottom:1px solid rgba(15,23,42,.08);
@@ -139,18 +263,36 @@
     th{
       position:sticky;
       top:0;
-      z-index:2;
+      z-index:20;
       background:#e2e8f0;
       font-size:12px;
       font-weight:900;
       text-transform:uppercase;
       letter-spacing:.4px;
     }
+    th.sortable{
+      cursor:pointer;
+      user-select:none;
+    }
+    th.sortable::after{
+      content:"⇅";
+      font-size:10px;
+      margin-left:6px;
+      opacity:.5;
+    }
+    th.sortable.sort-asc::after{
+      content:"↑";
+      opacity:.95;
+    }
+    th.sortable.sort-desc::after{
+      content:"↓";
+      opacity:.95;
+    }
     td.left, th.left{
       text-align:left;
     }
     .rowBtn{
-      width:100%;
+      width:auto;
       text-align:left;
       border:none;
       background:transparent;
@@ -158,6 +300,75 @@
       cursor:pointer;
       font:inherit;
       color:inherit;
+    }
+    .leaderCell{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:visible;
+    }
+    .leaderZoom{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      line-height:0;
+      z-index:1;
+    }
+    .leaderImg{
+      width:28px;
+      height:40px;
+      border-radius:5px;
+      object-fit:contain;
+      border:1px solid rgba(15,23,42,.16);
+      background:rgba(2,6,23,.10);
+      flex:0 0 28px;
+    }
+    .leaderFallback{
+      width:28px;
+      height:40px;
+      border-radius:5px;
+      border:1px dashed rgba(15,23,42,.18);
+      background:rgba(15,23,42,.04);
+      color:#64748b;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      font-weight:900;
+      flex:0 0 28px;
+    }
+    .leaderGlobalPreview{
+      position:fixed;
+      left:0;
+      top:0;
+      transform:translate3d(-9999px,-9999px,0);
+      opacity:0;
+      pointer-events:none;
+      z-index:250000;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.35);
+      background:rgba(2,6,23,.94);
+      box-shadow:0 20px 38px rgba(2,6,23,.55);
+      padding:6px;
+      transition:opacity .12s ease;
+    }
+    .leaderGlobalPreview img{
+      width:180px;
+      height:auto;
+      max-height:280px;
+      object-fit:contain;
+      display:block;
+      border-radius:8px;
+      background:rgba(2,6,23,.40);
+    }
+    .leaderGlobalPreview .caption{
+      margin-top:4px;
+      font-size:12px;
+      color:#e2e8f0;
+      text-align:center;
+      line-height:1.2;
+      white-space:nowrap;
     }
     tbody tr:hover{
       background:#eef2ff;
@@ -204,6 +415,7 @@
     @media (max-width:1100px){
       .layout{
         grid-template-columns:1fr;
+        height:auto;
       }
       .tableWrap{
         max-height:58vh;
@@ -211,9 +423,58 @@
     }
     @media (max-width:760px){
       .page{ padding:0 10px; }
+      .hero{
+        border-radius:16px;
+        padding:12px;
+      }
+      .heroTop h1{
+        font-size:23px;
+      }
       .card{ border-radius:16px; padding:10px; }
       .title{ font-size:23px; }
       .kpis{ grid-template-columns:1fr 1fr; }
+      .heroControls{
+        gap:8px;
+      }
+      .heroControls .filter{
+        width:100%;
+      }
+      .heroControls .filter input{
+        width:100%;
+      }
+      .leaderZoomPreview{
+        display:none !important;
+      }
+      .tableWrap{
+        max-height:52vh;
+        -webkit-overflow-scrolling:touch;
+      }
+      .tableWrapLeaders,
+      .tableWrapMatchups{
+        overflow-x:auto;
+      }
+      .leadersTable{
+        min-width:560px;
+      }
+      .matchupsTable{
+        min-width:640px;
+      }
+      th, td{
+        padding:7px 6px;
+        font-size:12px;
+      }
+      th{
+        font-size:11px;
+      }
+      .leaderImg,
+      .leaderFallback{
+        width:24px;
+        height:34px;
+        flex-basis:24px;
+      }
+      .kpi b{
+        font-size:18px;
+      }
     }
   </style>
 </head>
@@ -224,15 +485,15 @@
         <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
         <small>leaders</small>
       </div>
-      <div class="nav">
-        <a class="btn" href="index.html">&#127968; Home</a>
-        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
-        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
-        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
-        <a class="btn primary active" href="leader-stats.html">&#129504; Leader Stats</a>
-        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
-        <a class="btn" href="decks.html">&#127183; DeckLists</a>
-        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      <div class="nav nav-compact">
+        <a class="btn" href="index.html">Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">Ranking</a>
+        <a class="btn primary active" href="leader-stats.html">Leader Stats</a>
+        <a class="btn" href="op-wrapped.html">OP Wrapped</a>
+        <a class="btn" href="decks.html">Decks</a>
+        <a class="btn" href="encuestas.html">Encuestas</a>
       </div>
     </div>
   </div>
@@ -259,34 +520,40 @@
   </div>
 
   <div class="page">
-    <div class="card">
-      <div class="head">
-        <div class="title">Global Leader Stats</div>
-        <label class="filter">Fecha
-          <input id="dateInput" type="date">
-        </label>
-        <button id="btnReload" class="btn2" type="button">Cargar stats</button>
-        <label class="filter">Buscar
-          <input id="searchInput" type="search" placeholder="Codigo o nombre">
-        </label>
-        <div class="status" id="statusText">Cargando...</div>
+    <section class="hero">
+      <div class="heroTop">
+        <h1>Global Leader Stats</h1>
+        <div class="heroControls">
+          <label class="filter">Fecha
+            <input id="dateInput" type="date">
+          </label>
+          <button id="btnReload" class="btn2" type="button">Cargar stats</button>
+          <label class="filter">Buscar
+            <input id="searchInput" type="search" placeholder="Codigo o nombre">
+          </label>
+        </div>
       </div>
+      <span id="statusText" style="display:none;" aria-hidden="true"></span>
+    </section>
+
+    <div class="card">
+      <div class="sectionTitle">Estadisticas</div>
 
       <div class="layout">
         <section class="panel">
           <h3>Leaders (ordenado por partidas)</h3>
-          <div class="tableWrap">
-            <table>
+          <div class="tableWrap tableWrapLeaders">
+            <table class="leadersTable">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th class="left">Leader</th>
-                  <th>W</th>
-                  <th>P</th>
-                  <th>WR</th>
-                  <th>Play Rate</th>
-                  <th>WR 1st</th>
-                  <th>WR 2nd</th>
+                  <th class="sortable" data-sort-table="leaders" data-sort-key="rank">#</th>
+                  <th class="sortable" data-sort-table="leaders" data-sort-key="leader">Leader</th>
+                  <th class="sortable" data-sort-table="leaders" data-sort-key="wins">W</th>
+                  <th class="sortable sort-desc" data-sort-table="leaders" data-sort-key="matches">P</th>
+                  <th class="sortable" data-sort-table="leaders" data-sort-key="wr">WR</th>
+                  <th class="sortable" data-sort-table="leaders" data-sort-key="playRate">Play Rate</th>
+                  <th class="sortable" data-sort-table="leaders" data-sort-key="firstWr">WR 1st</th>
+                  <th class="sortable" data-sort-table="leaders" data-sort-key="secondWr">WR 2nd</th>
                 </tr>
               </thead>
               <tbody id="leadersBody"></tbody>
@@ -294,7 +561,7 @@
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel detailPanel" id="detailPanel">
           <h3 id="detailTitle">Selecciona un leader</h3>
           <div class="kpis" id="kpis"></div>
           <div style="padding:10px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;">
@@ -308,18 +575,18 @@
             </label>
             <span class="muted" id="matchupMeta"></span>
           </div>
-          <div class="tableWrap">
-            <table>
+          <div class="tableWrap tableWrapMatchups">
+            <table class="matchupsTable">
               <thead>
                 <tr>
-                  <th class="left">Rival</th>
-                  <th>W</th>
-                  <th>P</th>
-                  <th>WR</th>
-                  <th>W 1st</th>
-                  <th>WR 1st</th>
-                  <th>W 2nd</th>
-                  <th>WR 2nd</th>
+                  <th class="sortable" data-sort-table="matchups" data-sort-key="opponent">Lider</th>
+                  <th class="sortable" data-sort-table="matchups" data-sort-key="wins">W</th>
+                  <th class="sortable sort-desc" data-sort-table="matchups" data-sort-key="games">P</th>
+                  <th class="sortable" data-sort-table="matchups" data-sort-key="wr">WR</th>
+                  <th class="sortable" data-sort-table="matchups" data-sort-key="firstWins">W 1st</th>
+                  <th class="sortable" data-sort-table="matchups" data-sort-key="firstWr">WR 1st</th>
+                  <th class="sortable" data-sort-table="matchups" data-sort-key="secondWins">W 2nd</th>
+                  <th class="sortable" data-sort-table="matchups" data-sort-key="secondWr">WR 2nd</th>
                 </tr>
               </thead>
               <tbody id="matchupsBody"></tbody>
@@ -334,6 +601,8 @@
 
   <script>
     const sb = window.BarateamApp.createClient();
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
     window.BarateamApp.bindProtectedNavLinks(sb);
     const navController = window.BarateamApp.initUserNav({
       onLogout: async () => {
@@ -359,6 +628,7 @@
     const searchInput = document.getElementById("searchInput");
     const leadersBody = document.getElementById("leadersBody");
     const detailTitle = document.getElementById("detailTitle");
+    const detailPanel = document.getElementById("detailPanel");
     const kpis = document.getElementById("kpis");
     const matchupsBody = document.getElementById("matchupsBody");
     const matchupLimit = document.getElementById("matchupLimit");
@@ -369,6 +639,9 @@
     let leaders = [];
     let selectedLeaderCode = null;
     let leaderNameMap = new Map();
+    let leaderAssetMap = new Map();
+    let leaderSort = { key: "matches", dir: "desc" };
+    let matchupSort = { key: "games", dir: "desc" };
 
     function toYmd(dateObj){
       const y = dateObj.getFullYear();
@@ -395,6 +668,162 @@
       return Number(v) >= 0.5 ? "good" : "bad";
     }
 
+    function norm(v){
+      return String(v || "").trim();
+    }
+
+    function leaderImageByCode(code){
+      const asset = leaderAssetMap.get(String(code || "")) || null;
+      return norm(asset?.parallel_image_url || asset?.image_url || "");
+    }
+
+    function leaderNameByCode(code, fallback){
+      const key = String(code || "");
+      const asset = leaderAssetMap.get(key) || null;
+      return norm(asset?.name || fallback || key || "Leader");
+    }
+
+    function leaderThumbHtml(code, name){
+      const src = leaderImageByCode(code);
+      const alt = escapeAttr(name || code || "Leader");
+      if (!src){
+        return `<span class="leaderFallback">N/A</span>`;
+      }
+      const safeSrc = escapeAttr(src);
+      const safeCaption = escapeAttr(`${code || ""} · ${name || code || "Leader"}`);
+      return `
+        <span class="leaderZoom" title="${alt}" data-preview-src="${safeSrc}" data-preview-caption="${safeCaption}">
+          <img class="leaderImg" src="${safeSrc}" alt="${alt}" loading="lazy">
+        </span>
+      `;
+    }
+
+    function initLeaderHoverPreview(){
+      const preview = document.createElement("div");
+      preview.className = "leaderGlobalPreview";
+      preview.innerHTML = `<img alt=""><div class="caption"></div>`;
+      document.body.appendChild(preview);
+
+      const img = preview.querySelector("img");
+      const cap = preview.querySelector(".caption");
+      let activeAnchor = null;
+
+      function place(anchor){
+        if (!anchor) return;
+        const rect = anchor.getBoundingClientRect();
+        const margin = 12;
+        const pw = preview.offsetWidth || 196;
+        const ph = preview.offsetHeight || 250;
+        let x = rect.right + 10;
+        let y = rect.top + ((rect.height - ph) / 2);
+        if (x + pw > window.innerWidth - margin){
+          x = rect.left - pw - 10;
+        }
+        if (y < margin) y = margin;
+        if (y + ph > window.innerHeight - margin){
+          y = Math.max(margin, window.innerHeight - ph - margin);
+        }
+        preview.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+      }
+
+      function show(anchor){
+        const src = anchor?.dataset?.previewSrc || "";
+        if (!src){
+          hide();
+          return;
+        }
+        activeAnchor = anchor;
+        img.src = src;
+        cap.textContent = anchor.dataset.previewCaption || "";
+        preview.style.opacity = "1";
+        place(anchor);
+      }
+
+      function hide(){
+        activeAnchor = null;
+        preview.style.opacity = "0";
+        preview.style.transform = "translate3d(-9999px,-9999px,0)";
+      }
+
+      document.addEventListener("mouseover", (e) => {
+        const anchor = e.target.closest(".leaderZoom[data-preview-src]");
+        if (!anchor){
+          if (activeAnchor && !preview.contains(e.target)) hide();
+          return;
+        }
+        show(anchor);
+      });
+      document.addEventListener("mouseout", (e) => {
+        const from = e.target.closest(".leaderZoom[data-preview-src]");
+        if (!from) return;
+        const to = e.relatedTarget;
+        if (to && (from.contains(to) || preview.contains(to))) return;
+        hide();
+      });
+      window.addEventListener("scroll", () => { if (activeAnchor) place(activeAnchor); }, true);
+      window.addEventListener("resize", () => { if (activeAnchor) place(activeAnchor); });
+    }
+
+    function isNumericSortKey(table, key){
+      if (table === "leaders"){
+        return key !== "leader";
+      }
+      return key !== "opponent";
+    }
+
+    function compareValues(a, b, numeric){
+      if (numeric){
+        const av = Number(a ?? 0);
+        const bv = Number(b ?? 0);
+        if (Number.isNaN(av) && Number.isNaN(bv)) return 0;
+        if (Number.isNaN(av)) return -1;
+        if (Number.isNaN(bv)) return 1;
+        return av - bv;
+      }
+      const as = String(a || "");
+      const bs = String(b || "");
+      return as.localeCompare(bs, "es", { sensitivity: "base" });
+    }
+
+    function applySort(list, state, table){
+      const key = state.key;
+      const dir = state.dir === "asc" ? 1 : -1;
+      const numeric = isNumericSortKey(table, key);
+      return [...list].sort((x, y) => {
+        const xv = table === "leaders" && key === "leader" ? (x?.name || x?.code) : x?.[key];
+        const yv = table === "leaders" && key === "leader" ? (y?.name || y?.code) : y?.[key];
+        const cmp = compareValues(xv, yv, numeric);
+        if (cmp !== 0) return cmp * dir;
+        return compareValues(x?.rank, y?.rank, true);
+      });
+    }
+
+    function updateSortHeaders(table, key, dir){
+      document.querySelectorAll(`th.sortable[data-sort-table="${table}"]`).forEach((th) => {
+        th.classList.remove("sort-asc", "sort-desc");
+        if (th.dataset.sortKey === key){
+          th.classList.add(dir === "asc" ? "sort-asc" : "sort-desc");
+        }
+      });
+    }
+
+    function setDetailBackground(leader){
+      const src = norm(leader?.parallel_image_url || leader?.image_url || leaderImageByCode(leader?.code));
+      if (!src){
+        detailPanel.classList.remove("withLeaderBg");
+        detailPanel.style.backgroundImage = "";
+        return;
+      }
+      detailPanel.classList.add("withLeaderBg");
+      detailPanel.style.backgroundImage = `
+        linear-gradient(140deg, rgba(15,23,42,.78), rgba(30,41,59,.72)),
+        radial-gradient(80% 100% at 12% 10%, rgba(124,58,237,.26), transparent 65%),
+        url("${escapeAttr(src)}")
+      `;
+      detailPanel.style.backgroundSize = "cover, cover, cover";
+      detailPanel.style.backgroundPosition = "center, center, center";
+    }
+
     function showError(text){
       errorBox.style.display = "block";
       errorBox.textContent = text;
@@ -414,6 +843,36 @@
       const data = Array.isArray(payload?.data) ? payload.data : payload;
       if (!Array.isArray(data)) throw new Error("Formato inesperado del JSON");
       return { data, url, ymd };
+    }
+
+    async function fetchLeaderAssets(codes){
+      const uniqueCodes = [...new Set((codes || []).map((x) => String(x || "").trim()).filter(Boolean))];
+      if (!uniqueCodes.length){
+        leaderAssetMap = new Map();
+        return;
+      }
+      const { data, error } = await sb
+        .from("leaders")
+        .select("code,name,image_url,parallel_image_url")
+        .in("code", uniqueCodes);
+
+      if (error || !Array.isArray(data)){
+        leaderAssetMap = new Map();
+        return;
+      }
+
+      const map = new Map();
+      for (const row of data){
+        const key = String(row?.code || "").trim();
+        if (!key) continue;
+        map.set(key, {
+          code: key,
+          name: row?.name || key,
+          image_url: row?.image_url || "",
+          parallel_image_url: row?.parallel_image_url || ""
+        });
+      }
+      leaderAssetMap = map;
     }
 
     async function loadStatsWithFallback(ymd){
@@ -457,22 +916,25 @@
       return mapped.sort((a, b) => b.matches - a.matches);
     }
 
-    function renderLeaders(){
+        function renderLeaders(){
       const q = String(searchInput.value || "").trim().toLowerCase();
       leadersBody.innerHTML = "";
 
-      const list = q
+      const filtered = q
         ? leaders.filter((l) => l.code.toLowerCase().includes(q) || l.name.toLowerCase().includes(q))
         : leaders;
+      const list = applySort(filtered, leaderSort, "leaders");
+      updateSortHeaders("leaders", leaderSort.key, leaderSort.dir);
 
       for (const l of list){
+        const leaderName = leaderNameByCode(l.code, l.name);
         const tr = document.createElement("tr");
         if (l.code === selectedLeaderCode) tr.classList.add("active");
         tr.innerHTML = `
           <td>${l.rank}</td>
-          <td class="left">
-            <button class="rowBtn" type="button" data-code="${l.code}">
-              <strong>${l.code}</strong> · ${l.name}
+          <td>
+            <button class="rowBtn leaderCell" type="button" data-code="${escapeAttr(l.code)}" aria-label="${escapeAttr(`${l.code} · ${leaderName}`)}">
+              ${leaderThumbHtml(l.code, leaderName)}
             </button>
           </td>
           <td>${int(l.wins)}</td>
@@ -493,10 +955,19 @@
         kpis.innerHTML = "";
         matchupsBody.innerHTML = "";
         matchupMeta.textContent = "";
+        setDetailBackground(null);
         return;
       }
 
-      detailTitle.textContent = `${leader.code} · ${leader.name}`;
+      const leaderName = leaderNameByCode(leader.code, leader.name);
+      const detailLeader = {
+        ...leader,
+        name: leaderName,
+        image_url: leaderImageByCode(leader.code),
+        parallel_image_url: leaderImageByCode(leader.code)
+      };
+      detailTitle.textContent = `${leader.code} · ${leaderName}`;
+      setDetailBackground(detailLeader);
       kpis.innerHTML = `
         <div class="kpi">Partidas<b>${int(leader.matches)}</b></div>
         <div class="kpi">Victorias<b>${int(leader.wins)}</b></div>
@@ -509,7 +980,7 @@
       `;
 
       const limit = Number(matchupLimit.value || 16);
-      const rows = [...leader.matchups]
+      const rawRows = [...leader.matchups]
         .map((m) => ({
           opponent: String(m?.opponent || ""),
           wins: Number(m?.wins || 0),
@@ -518,18 +989,22 @@
           firstWins: Number(m?.first_wins || 0),
           firstWr: m?.first_win_rate == null ? null : Number(m.first_win_rate),
           secondWins: Number(m?.second_wins || 0),
-          secondWr: m?.second_win_rate == null ? null : Number(m.second_win_rate)
-        }))
-        .sort((a, b) => b.games - a.games)
-        .slice(0, limit);
+          secondWr: m?.second_win_rate == null ? null : Number(m.second_win_rate),
+          opponentName: leaderNameByCode(m?.opponent, leaderNameMap.get(String(m?.opponent || "")) || String(m?.opponent || ""))
+        }));
+      const rows = applySort(rawRows, matchupSort, "matchups").slice(0, limit);
 
       matchupMeta.textContent = `Mostrando ${rows.length} de ${leader.matchups.length}`;
+      updateSortHeaders("matchups", matchupSort.key, matchupSort.dir);
       matchupsBody.innerHTML = "";
       for (const m of rows){
-        const name = leaderNameMap.get(m.opponent) || m.opponent;
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td class="left"><strong>${m.opponent}</strong> · ${name}</td>
+          <td>
+            <span class="leaderCell" aria-label="${escapeAttr(`${m.opponent} · ${m.opponentName}`)}">
+              ${leaderThumbHtml(m.opponent, m.opponentName)}
+            </span>
+          </td>
           <td>${int(m.wins)}</td>
           <td>${int(m.games)}</td>
           <td class="${wrClass(m.wr)}">${pct(m.wr)}</td>
@@ -541,7 +1016,6 @@
         matchupsBody.appendChild(tr);
       }
     }
-
     async function reload(){
       clearError();
       statusText.textContent = "Cargando...";
@@ -549,7 +1023,15 @@
         const selected = dateInput.value || toYmd(new Date());
         const { data, ymd } = await loadStatsWithFallback(selected);
         leaders = normalizeLeaders(data);
-        leaderNameMap = new Map(leaders.map((l) => [l.code, l.name]));
+        const leaderCodes = new Set();
+        for (const l of leaders){
+          if (l.code) leaderCodes.add(l.code);
+          for (const m of (l.matchups || [])){
+            if (m?.opponent) leaderCodes.add(String(m.opponent));
+          }
+        }
+        await fetchLeaderAssets([...leaderCodes]);
+        leaderNameMap = new Map(leaders.map((l) => [l.code, leaderNameByCode(l.code, l.name)]));
         if (!selectedLeaderCode || !leaders.some((l) => l.code === selectedLeaderCode)){
           selectedLeaderCode = leaders[0]?.code || null;
         }
@@ -559,6 +1041,7 @@
       } catch (err){
         leaders = [];
         selectedLeaderCode = null;
+        leaderAssetMap = new Map();
         renderLeaders();
         renderDetail();
         statusText.textContent = "Error cargando datos";
@@ -574,14 +1057,37 @@
       renderDetail();
     });
 
+    document.querySelectorAll("th.sortable").forEach((th) => {
+      th.addEventListener("click", () => {
+        const table = th.dataset.sortTable;
+        const key = th.dataset.sortKey;
+        if (!table || !key) return;
+        if (table === "leaders"){
+          leaderSort = {
+            key,
+            dir: leaderSort.key === key && leaderSort.dir === "desc" ? "asc" : "desc"
+          };
+          renderLeaders();
+          return;
+        }
+        matchupSort = {
+          key,
+          dir: matchupSort.key === key && matchupSort.dir === "desc" ? "asc" : "desc"
+        };
+        renderDetail();
+      });
+    });
+
     searchInput.addEventListener("input", renderLeaders);
     matchupLimit.addEventListener("change", renderDetail);
     btnReload.addEventListener("click", reload);
 
     (function init(){
+      initLeaderHoverPreview();
       dateInput.value = toYmd(new Date());
       reload();
     })();
   </script>
 </body>
 </html>
+
