@@ -678,7 +678,7 @@
           showMsg("Login OK", "ok");
         }
         await refreshSession();
-        // opcional: location.href = "index.html";
+        location.href = "index.html";
       }catch(e){
         console.error(e);
         showMsg("Error: " + (e.message || "login"), "err");
