@@ -411,15 +411,43 @@
       grid-template-columns: 1fr;
       gap: 12px;
     }
-    @media (min-width: 560px){
-      .featuredMain{ grid-template-columns: 1.2fr .8fr; }
-    }
     .featuredTitle{
       margin:0;
       font-size: 24px;
       font-weight: 1000;
       color:#f8fafc;
       line-height: 1.05;
+    }
+    .featuredSpotlight{
+      position: relative;
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(15,23,42,.20);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .featuredSpotlight.withLeaderBg::before{
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(155deg, rgba(15,23,42,.72) 0%, rgba(51,65,85,.62) 55%, rgba(15,23,42,.72) 100%),
+        radial-gradient(460px 240px at 8% 10%, rgba(124,58,237,.28), transparent 70%),
+        radial-gradient(420px 220px at 95% 0%, rgba(6,182,212,.24), transparent 72%);
+      z-index: -1;
+    }
+    .featuredSpotlight.withLeaderBg::after{
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: var(--featured-leader-bg);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: saturate(.95) brightness(.70) contrast(1.05);
+      opacity: .58;
+      z-index: -2;
     }
     .featuredSub{
       margin:0;
@@ -510,6 +538,12 @@
       display:grid;
       grid-template-columns: 1fr;
       gap: 10px;
+      margin-top: 10px;
+    }
+    @media (min-width: 760px){
+      .featuredLeaders{
+        grid-template-columns: 1fr 1fr;
+      }
     }
     .leaderBox{
       border: 1px solid rgba(255,255,255,.18);
@@ -616,6 +650,151 @@
     }
     .topList li strong{
       color:#fff;
+      font-weight: 1000;
+    }
+    .featuredBottomLists{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .featuredListCard{
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(15,23,42,.18);
+      border-radius: 12px;
+      padding: 8px 10px;
+    }
+    .featuredListTitle{
+      margin:0 0 6px;
+      font-size: 11px;
+      color: rgba(226,232,240,.82);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      font-weight: 1000;
+    }
+    .featuredListCard .topList{
+      margin: 0;
+    }
+    .teamTopList{
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .teamTopItem{
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(15,23,42,.24);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      align-items: start;
+    }
+    .teamTopMain{
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+    .teamTopTeam{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: rgba(226,232,240,.78);
+      font-weight: 1000;
+      line-height: 1.1;
+    }
+    .teamTopPlayer{
+      font-size: 14px;
+      color:#f8fafc;
+      font-weight: 1000;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .teamTopMeta{
+      display:flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color:#cbd5e1;
+      font-weight: 900;
+      line-height: 1.1;
+      text-align: left;
+    }
+    .teamTopMeta .wr{
+      color:#fde68a;
+    }
+    @media (max-width: 760px){
+      .teamTopMeta{
+        justify-content: flex-start;
+        text-align: left;
+      }
+    }
+    .featuredTeamRow{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+    @media (min-width: 920px){
+      .featuredTeamRow{
+        grid-template-columns: 1.15fr .85fr;
+      }
+    }
+    .featuredTeamCard{
+      border: 1px solid rgba(255,255,255,.20);
+      background: rgba(15,23,42,.24);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .featuredTeamHead{
+      display:flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .featuredTeamName{
+      margin:0;
+      font-size: 20px;
+      font-weight: 1000;
+      color: #f8fafc;
+      line-height: 1.05;
+    }
+    .featuredTeamSub{
+      margin:0;
+      font-size: 12px;
+      color: rgba(226,232,240,.84);
+    }
+    .featuredTeamStats{
+      margin-top: 8px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .featuredTeamStats .featuredStat{
+      background: rgba(15,23,42,.30);
+    }
+    .featuredTeamMeta{
+      margin-top: 10px;
+      border-top: 1px solid rgba(255,255,255,.14);
+      padding-top: 8px;
+      display:grid;
+      gap: 6px;
+    }
+    .featuredTeamMetaLine{
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.3;
+    }
+    .featuredTeamMetaLine strong{
+      color:#f8fafc;
       font-weight: 1000;
     }
     .featuredMuted{
@@ -1363,6 +1542,14 @@
     return playersMap?.get(playerId)?.profile_id || null;
   }
 
+  function isRankedTeamName(teamName){
+    const t = String(teamName || "").trim().toLowerCase();
+    if (!t) return false;
+    if (t === "sin equipo" || t === "sinequipo") return false;
+    if (t === "no team" || t === "none" || t === "-") return false;
+    return true;
+  }
+
   function featuredPlayerLabelHtml(playersMap, playerId, label){
     const profileId = featuredPlayerProfileId(playersMap, playerId);
     if (profileId) return profileLinkById(profileId, label);
@@ -1370,8 +1557,9 @@
   }
 
   function leaderImageHtml(leader){
-    if (leader?.image_url){
-      const src = escapeAttr(leader.image_url);
+    const source = String(leader?.parallel_image_url || leader?.image_url || "").trim();
+    if (source){
+      const src = escapeAttr(source);
       const alt = escapeAttr(leader.name || "leader");
       return `
         <span class="leaderZoom">
@@ -1449,12 +1637,14 @@
           player:leaders!matches_player_leader_fkey (
             code,
             name,
-            image_url
+            image_url,
+            parallel_image_url
           ),
           opponent:leaders!matches_opponent_leader_fkey (
             code,
             name,
-            image_url
+            image_url,
+            parallel_image_url
           )
         `)
         .order("match_date", { ascending: false });
@@ -1478,32 +1668,42 @@
     const ids = Array.from(new Set((profileIds || []).filter(Boolean)));
     if (!ids.length) return new Map();
 
-    const { data, error } = await sb
-      .from("profiles")
-      .select("id,username,display_name,avatar_url")
-      .in("id", ids);
-
-    if (error){
-      console.warn("profiles featured:", error.message);
-      return new Map();
+    const map = new Map();
+    const chunkSize = 150;
+    for (let i = 0; i < ids.length; i += chunkSize){
+      const chunk = ids.slice(i, i + chunkSize);
+      const { data, error } = await sb
+        .from("profiles")
+        .select("id,username,display_name,avatar_url,team")
+        .in("id", chunk);
+      if (error){
+        console.warn("profiles featured:", error.message);
+        continue;
+      }
+      for (const p of (data || [])) map.set(p.id, p);
     }
-    return new Map((data || []).map((p) => [p.id, p]));
+    return map;
   }
 
   async function fetchPlayersMap(playerIds){
     const ids = Array.from(new Set((playerIds || []).filter(Boolean)));
     if (!ids.length) return new Map();
 
-    const { data, error } = await sb
-      .from("players")
-      .select("id,name,profile_id")
-      .in("id", ids);
-
-    if (error){
-      console.warn("players featured:", error.message);
-      return new Map();
+    const map = new Map();
+    const chunkSize = 150;
+    for (let i = 0; i < ids.length; i += chunkSize){
+      const chunk = ids.slice(i, i + chunkSize);
+      const { data, error } = await sb
+        .from("players")
+        .select("id,name,profile_id")
+        .in("id", chunk);
+      if (error){
+        console.warn("players featured:", error.message);
+        continue;
+      }
+      for (const p of (data || [])) map.set(p.id, p);
     }
-    return new Map((data || []).map((p) => [p.id, p]));
+    return map;
   }
 
   function buildFeaturedRanking(matches){
@@ -1534,6 +1734,7 @@
         p.leaders.set(leaderCode, {
           code: leaderCode,
           name: row?.player?.name || leaderCode || "Leader",
+          parallel_image_url: row?.player?.parallel_image_url || "",
           image_url: row?.player?.image_url || "",
           games: 0,
           wins: 0
@@ -1542,6 +1743,7 @@
       const leader = p.leaders.get(leaderCode);
       leader.games += 1;
       if (won) leader.wins += 1;
+      if (!leader.parallel_image_url && row?.player?.parallel_image_url) leader.parallel_image_url = row.player.parallel_image_url;
       if (!leader.image_url && row?.player?.image_url) leader.image_url = row.player.image_url;
       if ((!leader.name || leader.name === leader.code) && row?.player?.name) leader.name = row.player.name;
     }
@@ -1564,7 +1766,7 @@
       return b.wins - a.wins;
     });
 
-    return pool.slice(0, 5);
+    return pool;
   }
 
   function buildLeaderRankings(matches){
@@ -1578,6 +1780,7 @@
         leaders.set(leaderCode, {
           code: leaderCode,
           name: row?.player?.name || leaderCode,
+          parallel_image_url: row?.player?.parallel_image_url || "",
           image_url: row?.player?.image_url || "",
           games: 0,
           wins: 0,
@@ -1589,6 +1792,7 @@
       const won = parseMatchWin(row?.result);
       entry.games += 1;
       if (won) entry.wins += 1;
+      if (!entry.parallel_image_url && row?.player?.parallel_image_url) entry.parallel_image_url = row.player.parallel_image_url;
       if (!entry.image_url && row?.player?.image_url) entry.image_url = row.player.image_url;
       if ((!entry.name || entry.name === entry.code) && row?.player?.name) entry.name = row.player.name;
 
@@ -1599,6 +1803,7 @@
         entry.matchups.set(oppCode, {
           code: oppCode,
           name: row?.opponent?.name || oppCode,
+          parallel_image_url: row?.opponent?.parallel_image_url || "",
           image_url: row?.opponent?.image_url || "",
           games: 0,
           wins: 0
@@ -1607,6 +1812,7 @@
       const mu = entry.matchups.get(oppCode);
       mu.games += 1;
       if (won) mu.wins += 1;
+      if (!mu.parallel_image_url && row?.opponent?.parallel_image_url) mu.parallel_image_url = row.opponent.parallel_image_url;
       if (!mu.image_url && row?.opponent?.image_url) mu.image_url = row.opponent.image_url;
       if ((!mu.name || mu.name === mu.code) && row?.opponent?.name) mu.name = row.opponent.name;
     }
@@ -1701,7 +1907,8 @@
       return;
     }
 
-    const main = topPlayers[0];
+    const featuredTopPlayers = topPlayers.slice(0, 5);
+    const main = featuredTopPlayers[0];
     const mainPlayer = playersMap.get(main.playerId);
     const mainProfile = profileMap.get(featuredPlayerProfileId(playersMap, main.playerId));
     const mainLabel = playerLabel(mainProfile, mainPlayer, main.playerId);
@@ -1709,6 +1916,11 @@
     const mainInitial = String(mainLabel || "U").trim().charAt(0) || "U";
     const topGamesLeader = main.topLeaderByGames;
     const topWrLeader = main.topLeaderByWr;
+    const spotlightLeaderBg = String(topGamesLeader?.parallel_image_url || topGamesLeader?.image_url || "").trim();
+    const spotlightClass = spotlightLeaderBg ? "featuredSpotlight withLeaderBg" : "featuredSpotlight";
+    const spotlightStyle = spotlightLeaderBg
+      ? ` style="--featured-leader-bg: url('${escapeAttr(spotlightLeaderBg)}');"`
+      : "";
 
     if (sectionTitle){
       sectionTitle.textContent = expansion?.name
@@ -1716,7 +1928,7 @@
         : "Jugador destacado";
     }
 
-    const topListHtml = topPlayers
+    const topListHtml = featuredTopPlayers
       .map((p, idx) => {
         const profile = profileMap.get(featuredPlayerProfileId(playersMap, p.playerId));
         const playerRow = playersMap.get(p.playerId);
@@ -1725,9 +1937,123 @@
       })
       .join("");
 
+    const teams = new Map();
+    for (const p of topPlayers){
+      const pid = featuredPlayerProfileId(playersMap, p.playerId);
+      const profile = profileMap.get(pid);
+      const rawTeam = String(profile?.team || "").trim();
+      if (!isRankedTeamName(rawTeam)) continue;
+      const teamKey = rawTeam.toLowerCase();
+      const playerRow = playersMap.get(p.playerId);
+      const label = playerLabel(profile, playerRow, p.playerId);
+      if (!teams.has(teamKey)){
+        teams.set(teamKey, {
+          team: rawTeam,
+          games: 0,
+          wins: 0,
+          losses: 0,
+          wrSum: 0,
+          wrCount: 0,
+          players: []
+        });
+      }
+      const t = teams.get(teamKey);
+      t.games += p.games;
+      t.wins += p.wins;
+      t.losses += p.losses;
+      t.wrSum += p.wr;
+      t.wrCount += 1;
+      t.players.push({ p, label });
+    }
+
+    const teamRows = Array.from(teams.values())
+      .map((t) => {
+        const playersByWr = [...t.players].sort((a, b) => {
+          if (b.p.wr !== a.p.wr) return b.p.wr - a.p.wr;
+          if (b.p.games !== a.p.games) return b.p.games - a.p.games;
+          return b.p.wins - a.p.wins;
+        });
+        const playersByGames = [...t.players].sort((a, b) => {
+          if (b.p.games !== a.p.games) return b.p.games - a.p.games;
+          if (b.p.wr !== a.p.wr) return b.p.wr - a.p.wr;
+          return b.p.wins - a.p.wins;
+        });
+        const topByWr = playersByWr[0] || null;
+        const topByGames = playersByGames[0] || null;
+        const avgWr = t.wrCount ? (t.wrSum / t.wrCount) : 0;
+        const weightedWr = t.games ? (t.wins / t.games) : 0;
+        return { ...t, avgWr, weightedWr, topByWr, topByGames };
+      })
+      .sort((a, b) => {
+        if (b.avgWr !== a.avgWr) return b.avgWr - a.avgWr;
+        if (b.games !== a.games) return b.games - a.games;
+        return b.wins - a.wins;
+      });
+
+    const featuredTeam = teamRows[0] || null;
+    const topByTeamHtml = teamRows.length
+      ? teamRows.map((t) => {
+          const top = t.topByWr;
+          if (!top) return "";
+          return `
+            <li class="teamTopItem">
+              <div class="teamTopMain">
+                <div class="teamTopTeam">${escapeHtml(t.team)}</div>
+                <div class="teamTopPlayer">${featuredPlayerLabelHtml(playersMap, top.p.playerId, top.label)}</div>
+              </div>
+              <div class="teamTopMeta">
+                <span class="wr">${percentText(top.p.wins, top.p.games)}</span>
+                <span>${top.p.games} partidas</span>
+              </div>
+            </li>
+          `;
+        }).join("")
+      : `<li class="featuredMuted">Sin equipos con datos suficientes.</li>`;
+
+    const featuredTeamHtml = featuredTeam
+      ? `
+        <div class="featuredTeamCard">
+          <div class="featuredTeamHead">
+            <div>
+              <p class="featuredListTitle" style="margin-bottom:4px;">Equipo destacado</p>
+              <h4 class="featuredTeamName">${escapeHtml(featuredTeam.team)}</h4>
+              <p class="featuredTeamSub">Mayor WR promedio entre jugadores del equipo</p>
+            </div>
+          </div>
+          <div class="featuredTeamStats">
+            <div class="featuredStat">
+              <div class="k">WR promedio</div>
+              <div class="v">${(featuredTeam.avgWr * 100).toFixed(1)}%</div>
+            </div>
+            <div class="featuredStat">
+              <div class="k">Jugadores</div>
+              <div class="v">${featuredTeam.wrCount}</div>
+            </div>
+            <div class="featuredStat">
+              <div class="k">Partidas</div>
+              <div class="v">${featuredTeam.games}</div>
+            </div>
+            <div class="featuredStat">
+              <div class="k">Victorias</div>
+              <div class="v">${featuredTeam.wins}</div>
+            </div>
+          </div>
+          <div class="featuredTeamMeta">
+            <div class="featuredTeamMetaLine"><strong>Top jugador:</strong> ${featuredPlayerLabelHtml(playersMap, featuredTeam.topByWr?.p?.playerId || "", featuredTeam.topByWr?.label || "-")} · WR ${featuredTeam.topByWr ? percentText(featuredTeam.topByWr.p.wins, featuredTeam.topByWr.p.games) : "0.0%"} · ${featuredTeam.topByWr?.p?.games || 0} partidas</div>
+            <div class="featuredTeamMetaLine"><strong>Mas jugado:</strong> ${featuredPlayerLabelHtml(playersMap, featuredTeam.topByGames?.p?.playerId || "", featuredTeam.topByGames?.label || "-")} · ${featuredTeam.topByGames?.p?.games || 0} partidas</div>
+          </div>
+        </div>
+      `
+      : `
+        <div class="featuredTeamCard">
+          <p class="featuredListTitle">Equipo destacado</p>
+          <div class="featuredMuted">Sin equipos con datos suficientes.</div>
+        </div>
+      `;
+
     root.innerHTML = `
       <div class="featuredMain">
-        <div>
+        <div class="${spotlightClass}"${spotlightStyle}>
           <div class="featuredHero">
             ${mainAvatar
               ? `<img class="featuredAvatar" src="${escapeAttr(mainAvatar)}" alt="${escapeAttr(mainLabel)}">`
@@ -1758,31 +2084,43 @@
               <div class="v">${main.losses}</div>
             </div>
           </div>
-        </div>
-        <div class="featuredLeaders">
-          <div class="leaderBox">
-            <div class="leaderLbl">Lider mas jugado</div>
-            <div class="leaderLine">
-              ${leaderImageHtml(topGamesLeader)}
-              <div>
-                <p class="leaderName">${escapeHtml(topGamesLeader?.name || "â€”")}</p>
-                <p class="leaderMeta">${topGamesLeader ? `${topGamesLeader.games} partidas` : "Sin datos"}</p>
+          <div class="featuredLeaders">
+            <div class="leaderBox">
+              <div class="leaderLbl">Lider mas jugado</div>
+              <div class="leaderLine">
+                ${leaderImageHtml(topGamesLeader)}
+                <div>
+                  <p class="leaderName">${escapeHtml(topGamesLeader?.name || "â€”")}</p>
+                  <p class="leaderMeta">${topGamesLeader ? `${topGamesLeader.games} partidas` : "Sin datos"}</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="leaderBox">
-            <div class="leaderLbl">Lider con mayor WR</div>
-            <div class="leaderLine">
-              ${leaderImageHtml(topWrLeader)}
-              <div>
-                <p class="leaderName">${escapeHtml(topWrLeader?.name || "â€”")}</p>
-                <p class="leaderMeta">${topWrLeader ? `${percentText(topWrLeader.wins, topWrLeader.games)} en ${topWrLeader.games} partidas` : "Sin datos"}</p>
+            <div class="leaderBox">
+              <div class="leaderLbl">Lider con mayor WR</div>
+              <div class="leaderLine">
+                ${leaderImageHtml(topWrLeader)}
+                <div>
+                  <p class="leaderName">${escapeHtml(topWrLeader?.name || "â€”")}</p>
+                  <p class="leaderMeta">${topWrLeader ? `${percentText(topWrLeader.wins, topWrLeader.games)} en ${topWrLeader.games} partidas` : "Sin datos"}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <ul class="topList">${topListHtml}</ul>
+      <div class="featuredBottomLists">
+        <div class="featuredTeamRow">
+          ${featuredTeamHtml}
+          <div class="featuredListCard">
+            <p class="featuredListTitle">Top 1 por equipo</p>
+            <ul class="teamTopList">${topByTeamHtml}</ul>
+          </div>
+        </div>
+        <div class="featuredListCard">
+          <p class="featuredListTitle">Top 5 jugadores</p>
+          <ul class="topList">${topListHtml}</ul>
+        </div>
+      </div>
       <div class="leaderRanks">
         ${leaderRankCardHtml("Top 3 lideres por WR", leaderRankings?.byWr || [])}
         ${leaderRankCardHtml("Top 3 lideres mas jugados", leaderRankings?.byPlayed || [])}
