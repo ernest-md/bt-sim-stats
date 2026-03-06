@@ -1,4 +1,4 @@
-name: Auto PR main -> app-stats
+name: Auto PR main -> app-test
 
 on:
   push:
@@ -14,15 +14,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Ver PR existente
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Buscando PR abierto de main a app-test..."
+          gh pr list \
+            --base app-test \
+            --head main \
+            --state open \
+            --json number,title
 
       - name: Crear PR si no existe
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           EXISTS=$(gh pr list \
-            --base app-stats \
+            --base app-test \
             --head main \
             --state open \
             --json number \
@@ -30,10 +40,10 @@ jobs:
 
           if [ "$EXISTS" -eq "0" ]; then
             gh pr create \
-              --base app-stats \
+              --base app-test \
               --head main \
-              --title "Sync main -> app-stats" \
+              --title "Sync main -> app-test" \
               --body "PR creado automáticamente al hacer push en main"
           else
-            echo "Ya existe un PR abierto de main a app-stats"
+            echo "Ya existe un PR abierto"
           fi

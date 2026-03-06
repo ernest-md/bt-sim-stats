@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient.js'
 const playerSelect = document.getElementById("playerSelect")
 const expansionSelect = document.getElementById("expansionSelect")
 const syncButton = document.getElementById("syncMatchesBtn")
+const syncAllButton = document.getElementById("syncAllMatchesBtn")
 const summaryView = document.getElementById("summaryView")
 const leaderView = document.getElementById("leaderView")
 const backButton = document.getElementById("backToSummary")
@@ -13,6 +14,8 @@ let allExpansions = []
 let currentFilteredMatches = []
 let selectedLeaderCode = null
 let allowedPlayerIds = new Set()
+let viewerRole = "user"
+let isSyncRunning = false
 
 function setLoading(on, text) {
   const overlay = document.getElementById("loadingOverlay")
@@ -28,13 +31,20 @@ function setLoading(on, text) {
 
 async function init() {
   const viewer = await getViewerStatsContext()
+  viewerRole = viewer?.role || "user"
   const players = await getPlayersForStats()
   allowedPlayerIds = new Set(players.map((p) => p.id))
+  const canSyncAll = viewerRole === "admin" || viewerRole === "staff"
+
+  if (syncAllButton) {
+    syncAllButton.style.display = canSyncAll ? "" : "none"
+  }
 
   if (players.length === 0) {
     showStatsAccessMessage("No tienes ningun perfil SIM vinculado o acceso concedido.")
     playerSelect.disabled = true
     syncButton.disabled = true
+    if (syncAllButton) syncAllButton.disabled = true
   }
 
   players.forEach(player => {
@@ -96,6 +106,32 @@ function showStatsAccessMessage(message) {
   if (!statusDiv) return
   statusDiv.textContent = message
   statusDiv.className = "sync-status sync-info"
+}
+
+function setSyncState(loading) {
+  isSyncRunning = !!loading
+  if (syncButton) syncButton.disabled = isSyncRunning
+  if (syncAllButton && syncAllButton.style.display !== "none") {
+    syncAllButton.disabled = isSyncRunning
+  }
+}
+
+async function callSyncMatches(playerId) {
+  const res = await fetch("https://ceunhkqhskwnsoqyunze.supabase.co/functions/v1/sync-matches", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o"
+    },
+    body: JSON.stringify({ playerId })
+  })
+
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(data?.error || `Error HTTP ${res.status}`)
+  }
+  return Number(data?.inserted || 0)
 }
 
 /* ================= LOAD PLAYER ================= */
@@ -485,6 +521,7 @@ async function syncMatchesForSelectedPlayer(playerId) {
 
   const statusDiv = document.getElementById("syncStatus")
   const selectedPlayerId = playerId ?? playerSelect.value
+  if (isSyncRunning) return
 
   if (!selectedPlayerId) {
     statusDiv.textContent = "Selecciona un jugador antes de sincronizar"
@@ -502,39 +539,83 @@ async function syncMatchesForSelectedPlayer(playerId) {
   statusDiv.className = "sync-status sync-loading"
 
   try {
+    setSyncState(true)
+    const inserted = await callSyncMatches(selectedPlayerId)
 
-    const res = await fetch("https://ceunhkqhskwnsoqyunze.supabase.co/functions/v1/sync-matches", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o"
-      },
-      body: JSON.stringify({ playerId: selectedPlayerId })
-    })
-
-    const data = await res.json().catch(() => ({}))
-
-    if (!res.ok) {
-      throw new Error(data?.error || `Error HTTP ${res.status}`)
-    }
-
-    if (data.inserted > 0) {
-      statusDiv.textContent = `Se han añadido ${data.inserted} partidas nuevas`
+    if (inserted > 0) {
+      statusDiv.textContent = `Se han anadido ${inserted} partidas nuevas`
       statusDiv.className = "sync-status sync-success"
     } else {
       statusDiv.textContent = "No se han encontrado partidas nuevas"
       statusDiv.className = "sync-status sync-info"
     }
 
+    await loadPlayer(selectedPlayerId)
+
   } catch (err) {
 
     statusDiv.textContent = `Error al sincronizar partidas: ${err.message}`
     statusDiv.className = "sync-status sync-error"
 
+  } finally {
+    setSyncState(false)
   }
 }
 
+async function syncMatchesForAllPlayers() {
+  const statusDiv = document.getElementById("syncStatus")
+  if (isSyncRunning) return
+
+  if (!(viewerRole === "admin" || viewerRole === "staff")) {
+    statusDiv.textContent = "No tienes permisos para actualizar todos los jugadores"
+    statusDiv.className = "sync-status sync-error"
+    return
+  }
+
+  const playerIds = Array.from(allowedPlayerIds)
+  if (playerIds.length === 0) {
+    statusDiv.textContent = "No hay jugadores disponibles para sincronizar"
+    statusDiv.className = "sync-status sync-info"
+    return
+  }
+
+  let totalInserted = 0
+  let okCount = 0
+  let failCount = 0
+
+  setSyncState(true)
+  try {
+    for (let i = 0; i < playerIds.length; i++) {
+      const pid = playerIds[i]
+      statusDiv.textContent = `Actualizando ${i + 1}/${playerIds.length}...`
+      statusDiv.className = "sync-status sync-loading"
+
+      try {
+        const inserted = await callSyncMatches(pid)
+        totalInserted += inserted
+        okCount++
+      } catch (_err) {
+        failCount++
+      }
+    }
+
+    statusDiv.textContent = `Actualizacion completa: ${okCount}/${playerIds.length} jugadores, ${totalInserted} partidas nuevas${failCount ? `, ${failCount} errores` : ""}`
+    statusDiv.className = failCount ? "sync-status sync-info" : "sync-status sync-success"
+
+    const selectedPlayerId = playerSelect.value
+    if (selectedPlayerId && allowedPlayerIds.has(selectedPlayerId)) {
+      await loadPlayer(selectedPlayerId)
+    }
+  } finally {
+    setSyncState(false)
+  }
+}
+
+if (syncAllButton) {
+  syncAllButton.addEventListener("click", async () => {
+    await syncMatchesForAllPlayers()
+  })
+}
 
 ;(async function bootstrap() {
   setLoading(true, "Cargando estadisticas...")

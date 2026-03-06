@@ -86,6 +86,10 @@
       border: 1px solid rgba(255,255,255,.20);
       border-radius: 22px;
       box-shadow: var(--shadow);
+      transition: max-width .22s ease;
+    }
+    .panel.is-signup{
+      max-width: 760px;
     }
 
     .hero{
@@ -116,7 +120,8 @@
       color:#0f172a;
       font-size: 13px;
     }
-    input{
+    input,
+    select{
       width:100%;
       border-radius: 12px;
       border: 1px solid rgba(15,23,42,.18);
@@ -126,9 +131,91 @@
       box-sizing: border-box;
       font-size: 14px;
     }
-    input:focus{
+    input:focus,
+    select:focus{
       border-color: rgba(124,58,237,.55);
       box-shadow: 0 0 0 4px rgba(124,58,237,.15);
+    }
+    .signupOnly{
+      display:none !important;
+    }
+    .panel.is-signup .signupOnly{
+      display:block !important;
+    }
+    .panel.is-signup .row .signupOnly{
+      display:inline-flex !important;
+    }
+    #btnSignup{
+      color:#435787 !important;
+      background:#ffffff !important;
+      border:1px solid rgba(15,23,42,.25) !important;
+      font-weight:900;
+    }
+    #btnSignup:hover{
+      background:#f8fafc !important;
+    }
+    #btnSignupConfirm{
+      font-weight:900;
+    }
+    #btnSignupCancel{
+      color:#334155 !important;
+      background:rgba(255,255,255,.9) !important;
+      border:1px solid rgba(51,65,85,.28) !important;
+      font-weight:700;
+      transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+    }
+    #btnSignupCancel:hover{
+      background:#ffffff !important;
+      border-color: rgba(51,65,85,.42) !important;
+      color:#1e293b !important;
+      box-shadow: 0 0 0 2px rgba(51,65,85,.12) inset;
+    }
+    #btnSignupCancel:focus-visible{
+      outline:none;
+      box-shadow: 0 0 0 3px rgba(51,65,85,.18);
+    }
+    .helpBtn{
+      width:100%;
+      border:1px solid rgba(15,23,42,.16);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:900;
+      cursor:pointer;
+      background: rgba(255,255,255,.8);
+      color:#0f172a;
+      margin: 0;
+      text-align:left;
+      transition: border-color .18s ease, background .18s ease;
+    }
+    .helpBtn:hover{
+      border-color: rgba(124,58,237,.35);
+      background: rgba(255,255,255,.96);
+    }
+    .helpPanel{
+      display:none !important;
+      border:1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.84);
+      border-radius:14px;
+      padding:10px;
+      margin-top:8px;
+    }
+    .helpPanel.open{
+      display:block !important;
+    }
+    .helpStep{
+      font-size:13px;
+      color:#334155;
+      margin: 0 0 8px;
+      line-height: 1.45;
+    }
+    .helpShot{
+      width:100%;
+      border-radius:10px;
+      border:1px solid rgba(15,23,42,.12);
+      background:#fff;
+      margin-bottom:10px;
+      display:block;
+      box-shadow: 0 6px 18px rgba(0,0,0,.08);
     }
 
     .row{
@@ -251,8 +338,8 @@
   <div class="wrap">
     <div class="panel">
       <div class="hero">
-        <h1>Login / Registro</h1>
-        <p>Entra para poder subir mazos. (Email + contrasena)</p>
+        <h1 id="heroTitle">Login</h1>
+        <p id="heroSubtitle">Entra para poder subir mazos. (Email + contrasena)</p>
       </div>
 
       <div class="grid">
@@ -261,15 +348,39 @@
           <input id="email" type="email" placeholder="tu@email.com" autocomplete="email">
         </div>
 
+        <div class="signupOnly">
+          <label for="username">Usuario</label>
+          <input id="username" type="text" placeholder="tu_usuario" autocomplete="username">
+        </div>
+
         <div>
           <label for="password">Contrasena</label>
           <input id="password" type="password" placeholder="********" autocomplete="current-password">
         </div>
+
+        <div class="signupOnly">
+          <label for="password2">Repetir contrasena</label>
+          <input id="password2" type="password" placeholder="********" autocomplete="new-password">
+        </div>
+
+        <div class="signupOnly">
+          <label for="team">Equipo</label>
+          <select id="team">
+            <option value="SIN EQUIPO" selected>SIN EQUIPO</option>
+            <option value="BARATEAM">BARATEAM</option>
+            <option value="LABOOMERS">LABOOMERS</option>
+            <option value="YONKOJOS">YONKOJOS</option>
+            <option value="CARDGUILD">CARDGUILD</option>
+          </select>
+        </div>
+
       </div>
 
       <div class="row">
         <button class="btn primary" id="btnLogin" onclick="doLogin()">Entrar</button>
-        <button class="btn" id="btnSignup" onclick="doSignup()">Crear cuenta</button>
+        <button class="btn" id="btnSignup" onclick="startSignup()">Crear cuenta</button>
+        <button class="btn primary signupOnly" id="btnSignupConfirm" onclick="doSignup()">Confirmar registro</button>
+        <button class="btn signupOnly" id="btnSignupCancel" onclick="cancelSignup()">Cancelar</button>
       </div>
 
       <div id="msg" class="msg"></div>
@@ -285,6 +396,11 @@
     const sb = window.BarateamApp.createClient();
 
     const $ = window.BarateamApp.byId;
+    const panelEl = document.querySelector(".panel");
+    const heroTitleEl = $("heroTitle");
+    const heroSubtitleEl = $("heroSubtitle");
+    const SIGNUP_TEAMS = new Set(["SIN EQUIPO", "BARATEAM", "LABOOMERS", "YONKOJOS", "CARDGUILD"]);
+    let isSignupMode = false;
 
     window.BarateamApp.bindProtectedNavLinks(sb);
 
@@ -301,6 +417,187 @@
       void window.BarateamApp.syncTopbarAvatar(sb, user || null);
     }
 
+    function readSignupForm() {
+      return {
+        username: $("username").value.trim(),
+        team: $("team").value || "SIN EQUIPO"
+      };
+    }
+
+    function validSignupPayload(payload){
+      if (!payload.username) return "El usuario es obligatorio.";
+      if (!SIGNUP_TEAMS.has(payload.team)) return "Equipo invalido.";
+      return null;
+    }
+
+    function applyModeUI(){
+      panelEl.classList.toggle("is-signup", isSignupMode);
+      $("btnLogin").style.display = isSignupMode ? "none" : "";
+      $("btnSignup").style.display = isSignupMode ? "none" : "";
+      heroTitleEl.textContent = isSignupMode ? "Crear cuenta" : "Login";
+      heroSubtitleEl.textContent = isSignupMode
+        ? "Completa correo, usuario, contrasena y equipo."
+        : "Entra para poder subir mazos. (Email + contrasena)";
+      $("password").autocomplete = isSignupMode ? "new-password" : "current-password";
+      if (!isSignupMode){
+        $("password2").value = "";
+      }
+    }
+
+    async function upsertProfile(userId, payload, opts = {}){
+      const force = !!opts.force;
+      if (!userId) return { ok: false, message: "Sesion invalida." };
+      const normalizedTeam = SIGNUP_TEAMS.has(payload.team) ? payload.team : "SIN EQUIPO";
+      const basePayload = {
+        id: userId,
+        username: payload.username,
+        team: normalizedTeam,
+        updated_at: new Date().toISOString()
+      };
+
+      if (!force){
+        const { data: existing, error: existingError } = await sb
+          .from("profiles")
+          .select("id,username")
+          .eq("id", userId)
+          .maybeSingle();
+        if (existingError) return { ok: false, message: existingError.message || "No se pudo leer el perfil." };
+        if (existing?.username) return { ok: true, skipped: true };
+      }
+
+      const { error } = await sb.from("profiles").upsert(basePayload);
+      if (error) return { ok: false, message: error.message || "No se pudo guardar el perfil." };
+      return { ok: true, skipped: false };
+    }
+
+    async function ensureProfileFromUserMetadata(user, opts = {}){
+      const md = user?.user_metadata || {};
+      const payload = {
+        username: String(md.username || "").trim(),
+        team: String(md.team || "SIN EQUIPO").trim()
+      };
+      if (!payload.username) return { ok: true, skipped: true };
+      const invalidReason = validSignupPayload(payload);
+      if (invalidReason) return { ok: false, message: invalidReason };
+      return upsertProfile(user?.id, payload, opts);
+    }
+
+    function extractDeviceIdFromSimUrl(rawUrl){
+      const raw = String(rawUrl || "").trim();
+      if (!raw) return null;
+      try{
+        const parsed = new URL(raw);
+        let fromParam = parsed.searchParams.get("deviceId");
+        if (!fromParam){
+          for (const [key, val] of parsed.searchParams.entries()){
+            if (String(key || "").toLowerCase() === "deviceid"){
+              fromParam = val;
+              break;
+            }
+          }
+        }
+        return fromParam ? fromParam.trim() : null;
+      } catch (_e){
+        const match = raw.match(/[?&]deviceId=([^&]+)/i);
+        return match ? decodeURIComponent(match[1]).trim() : null;
+      }
+    }
+
+    function normalizeDeviceId(value){
+      const v = String(value || "").trim().replace(/\s+/g, "");
+      if (!v) return "";
+      if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(v)) return v.toUpperCase();
+      return v.toLowerCase();
+    }
+
+    function isLikelyDeviceId(value){
+      const v = normalizeDeviceId(value);
+      if (!v) return false;
+      if (/^[a-f0-9]{24,80}$/i.test(v)) return true;
+      if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(v)) return true;
+      return false;
+    }
+
+    async function runInitialSimSync(playerId){
+      if (!playerId) return { ok: false, message: "No se pudo resolver el playerId para sincronizar." };
+      try{
+        const res = await fetch(`${window.BarateamApp.SUPABASE_URL}/functions/v1/sync-matches`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": window.BarateamApp.SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${window.BarateamApp.SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ playerId })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          return { ok: false, message: data?.error || `Error HTTP ${res.status}` };
+        }
+        return { ok: true, inserted: Number(data?.inserted || 0) };
+      } catch (err){
+        return { ok: false, message: err?.message || "Error de red al sincronizar partidas." };
+      }
+    }
+
+    async function maybeAutoLinkAndSyncForUser(user){
+      const userId = user?.id || null;
+      if (!userId) return { ok: true, skipped: true };
+
+      const { data: profile, error: profileErr } = await sb
+        .from("profiles")
+        .select("username,display_name,sim_profile_url")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profileErr) return { ok: false, message: profileErr.message || "No se pudo leer el perfil." };
+
+      const simUrl = String(profile?.sim_profile_url || "").trim();
+      if (!simUrl) return { ok: true, skipped: true };
+
+      const deviceId = normalizeDeviceId(extractDeviceIdFromSimUrl(simUrl));
+      if (!isLikelyDeviceId(deviceId)) {
+        return { ok: false, message: "La URL SIM guardada no tiene un deviceId valido." };
+      }
+
+      const playerName = String(profile?.username || profile?.display_name || user?.email || "Jugador").trim();
+      const { data: linkedPlayerId, error: linkErr } = await sb.rpc("link_sim_profile_device", {
+        p_profile_id: userId,
+        p_player_name: playerName,
+        p_device_id: deviceId
+      });
+      if (linkErr){
+        return { ok: false, message: linkErr.message || "No se pudo vincular el deviceId al jugador." };
+      }
+
+      const playerId = typeof linkedPlayerId === "string"
+        ? linkedPlayerId
+        : Array.isArray(linkedPlayerId)
+          ? (linkedPlayerId[0] || null)
+          : (linkedPlayerId?.player_id || linkedPlayerId?.id || null);
+      if (!playerId){
+        return { ok: false, message: "No se pudo resolver el playerId para sincronizar." };
+      }
+
+      const syncResult = await runInitialSimSync(playerId);
+      if (!syncResult.ok){
+        return { ok: false, message: syncResult.message || "No se pudo sincronizar partidas." };
+      }
+
+      return { ok: true, skipped: false, inserted: Number(syncResult.inserted || 0) };
+    }
+
+    window.startSignup = function startSignup(){
+      isSignupMode = true;
+      applyModeUI();
+      showMsg("Modo registro activado.", "ok");
+    };
+
+    window.cancelSignup = function cancelSignup(){
+      isSignupMode = false;
+      applyModeUI();
+      showMsg("Registro cancelado.", "ok");
+    };
+
     async function refreshSession(){
       const { data } = await sb.auth.getSession();
       const user = data?.session?.user || null;
@@ -312,18 +609,37 @@
     window.doSignup = async function doSignup(){
       const email = $("email").value.trim();
       const password = $("password").value.trim();
-      if (!email || !password) return showMsg("Pon email y contrasena.", "err");
+      const password2 = $("password2").value.trim();
+      const signupPayload = readSignupForm();
+      if (!email || !password || !password2) return showMsg("Completa email y contrasena.", "err");
+      if (password !== password2) return showMsg("Las contrasenas no coinciden.", "err");
+      if (password.length < 6) return showMsg("La contrasena debe tener al menos 6 caracteres.", "err");
+      const invalidReason = validSignupPayload(signupPayload);
+      if (invalidReason) return showMsg(invalidReason, "err");
 
       try{
-        const { data, error } = await sb.auth.signUp({ email, password });
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: {
+            data: signupPayload
+          }
+        });
         if (error) throw error;
 
-        if (data?.user && !data?.session){
-          showMsg("Cuenta creada. Revisa el email para confirmar.", "ok");
-        } else {
-          showMsg("Cuenta creada y sesion iniciada", "ok");
+        if (data?.session?.user){
+          const saved = await upsertProfile(data.session.user.id, signupPayload, { force: true });
+          if (!saved.ok) throw new Error(saved.message);
         }
 
+        if (data?.user && !data?.session){
+          showMsg("Cuenta creada. Revisa el email para confirmar; tu perfil se completara al primer login.", "ok");
+        } else {
+          showMsg("Cuenta creada y sesion iniciada.", "ok");
+        }
+
+        isSignupMode = false;
+        applyModeUI();
         await refreshSession();
       }catch(e){
         console.error(e);
@@ -337,10 +653,30 @@
       if (!email || !password) return showMsg("Pon email y contrasena.", "err");
 
       try{
-        const { error } = await sb.auth.signInWithPassword({ email, password });
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        let hasFinalMessage = false;
 
-        showMsg("Login OK", "ok");
+        if (data?.user){
+          const seeded = await ensureProfileFromUserMetadata(data.user, { force: false });
+          if (!seeded.ok){
+            showMsg("Login OK, pero no se pudo completar el perfil inicial: " + seeded.message, "err");
+            hasFinalMessage = true;
+          }
+
+          const autoSync = await maybeAutoLinkAndSyncForUser(data.user);
+          if (!autoSync.ok){
+            showMsg("Login OK, pero fallo la vinculacion/sync SIM: " + autoSync.message, "err");
+            hasFinalMessage = true;
+          } else if (!autoSync.skipped){
+            showMsg(`Login OK. Perfil SIM vinculado y sincronizado (${autoSync.inserted} partidas nuevas).`, "ok");
+            hasFinalMessage = true;
+          }
+        }
+
+        if (!hasFinalMessage){
+          showMsg("Login OK", "ok");
+        }
         await refreshSession();
         // opcional: location.href = "index.html";
       }catch(e){
@@ -363,6 +699,7 @@
 
     // init
     (async function(){
+      applyModeUI();
       await refreshSession();
 
       sb.auth.onAuthStateChange((_event, session) => {
