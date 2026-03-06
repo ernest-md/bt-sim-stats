@@ -1,4 +1,4 @@
-name: Sync main -> app-stats
+name: Sync main -> app-test
 
 on:
   push:
@@ -17,12 +17,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Merge main into app-stats
+      - name: Merge main into app-test
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
           git fetch origin
-          git checkout app-stats
+          git checkout app-test
           git merge origin/main --no-edit || exit 0
-          git push origin app-stats
+          git push origin app-test
