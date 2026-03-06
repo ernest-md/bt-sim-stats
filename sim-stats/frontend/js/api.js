@@ -37,13 +37,15 @@ export async function getMatchesByPlayer(playerId) {
         code,
         name,
         image_url,
+        parallel_image_url,
         color_primary,
         color_secondary
       ),
       opponent:leaders!matches_opponent_leader_fkey (
         code,
         name,
-        image_url
+        image_url,
+        parallel_image_url
       )
     `)
     .eq("player_id", playerId);
@@ -68,7 +70,8 @@ export async function getMatchesByPlayers(playerIds) {
       player:leaders!matches_player_leader_fkey (
         code,
         name,
-        image_url
+        image_url,
+        parallel_image_url
       )
     `)
     .in("player_id", playerIds);

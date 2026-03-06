@@ -131,7 +131,7 @@ table {
   border-collapse: collapse;
   background: white;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 thead {
@@ -155,6 +155,46 @@ td {
 td img {
   width: 55px;
   border-radius: 6px;
+}
+
+.leaderZoom {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.leaderZoomPreview {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px) scale(.96);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 120;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,.35);
+  background: rgba(2,6,23,.92);
+  box-shadow: 0 20px 38px rgba(2,6,23,.40);
+  padding: 6px;
+  transition: opacity .14s ease, transform .14s ease;
+}
+
+.leaderZoomPreview img {
+  width: 170px;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  border: 0;
+  background: rgba(2,6,23,.35);
+}
+
+.leaderZoom:hover .leaderZoomPreview {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0) scale(1);
 }
 
 td:nth-child(2) {
@@ -279,6 +319,12 @@ tbody tr:hover {
   border-radius: 6px;
 }
 
+/* Keep zoom preview size consistent; do not inherit tiny matchup thumb size */
+.matchupLeader .leaderZoomPreview img {
+  width: 170px;
+  max-height: 260px;
+}
+
 .matchupLeader span {
   font-size: 13px;
   font-weight: 500;
@@ -400,6 +446,13 @@ select:focus {
   width: 50px;
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* Ensure zoom preview in Fav/Desf keeps full size (not 50px thumb size) */
+.miniMatchup .leaderZoomPreview img {
+  width: 170px;
+  max-height: 260px;
+  box-shadow: none;
 }
 
 .miniMatchup span {
@@ -569,6 +622,7 @@ select:focus {
   border-bottom: 1px solid rgba(255,255,255,.10);
   color: #f8fafc;
   overflow: visible;
+  position: relative;
 }
 
 .teamRankTable td:first-child {
@@ -602,10 +656,6 @@ select:focus {
 
 .teamRankTable tr.rankRow td {
   transition: background .15s ease;
-}
-
-.teamRankTable tr.rankRow:hover td {
-  background: rgba(124,58,237,.12);
 }
 
 .teamRankTable tr.rank-1 td {
@@ -647,6 +697,10 @@ select:focus {
   z-index: 2;
 }
 
+.teamLeaderZoom:hover {
+  z-index: 10000;
+}
+
 .teamLeaderCell img,
 .leaderMiniFallback {
   width: 42px;
@@ -659,9 +713,9 @@ select:focus {
 
 .teamLeaderZoomPreview {
   position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%) translateY(4px) scale(.96);
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px) scale(.96);
   opacity: 0;
   pointer-events: none;
   z-index: 9999;
@@ -674,9 +728,9 @@ select:focus {
 }
 
 .teamLeaderZoomPreview img {
-  width: 150px;
+  width: 180px;
   height: auto;
-  max-height: 220px;
+  max-height: 280px;
   object-fit: contain;
   display:block;
   border-radius: 8px;
@@ -686,7 +740,7 @@ select:focus {
 
 .teamLeaderZoom:hover .teamLeaderZoomPreview {
   opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateY(-50%) translateX(0) scale(1);
 }
 
 .leaderMiniFallback {
@@ -706,6 +760,10 @@ select:focus {
 }
 
 @media (max-width: 760px) {
+  .leaderZoomPreview {
+    display: none !important;
+  }
+
   .teamLeaderCell img,
   .leaderMiniFallback {
     width: 36px;

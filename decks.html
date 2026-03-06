@@ -322,11 +322,14 @@
       justify-content: center;
       line-height: 0;
     }
+    .leaderZoom:hover{
+      z-index: 10000;
+    }
     .leaderZoomPreview{
       position: absolute;
-      left: 50%;
-      top: calc(100% + 8px);
-      transform: translateX(-50%) translateY(-4px) scale(.96);
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-4px) scale(.96);
       opacity: 0;
       pointer-events: none;
       z-index: 120;
@@ -348,7 +351,7 @@
     }
     .leaderZoom:hover .leaderZoomPreview{
       opacity: 1;
-      transform: translateX(-50%) translateY(0) scale(1);
+      transform: translateY(-50%) translateX(0) scale(1);
     }
     .pager{
       margin-top: 10px;
@@ -374,6 +377,7 @@
         overflow-y: visible;
       }
       table{ min-width: 560px; }
+      .leaderZoomPreview{ display:none !important; }
     }
   </style>
 </head>
@@ -641,7 +645,7 @@
       return [name, expansion].filter(Boolean).join(" ").trim();
     }
     function leaderImageFromRow(row){
-      return normalize(row?.image_url || row?.leader_image_url || row?.image || row?.img || row?.card_image);
+      return normalize(row?.parallel_image_url || row?.image_url || row?.leader_image_url || row?.image || row?.img || row?.card_image);
     }
     function fillLeaderSelects(){
       const leaderSel = $("leader");
@@ -783,7 +787,7 @@
         const leader = d.leader || "-";
         const autor = usernameByUserId.get(d.autor) || d.autor || "-";
         const name = d.name || "Sin nombre";
-        const leaderImg = d.leader_image_url || "";
+        const leaderImg = d.leader_image_url || leaderByLabel.get(leader)?.image || "";
         const imgHtml = leaderImg
           ? `
             <span class="leaderZoom">

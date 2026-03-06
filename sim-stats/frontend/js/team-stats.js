@@ -11,6 +11,10 @@ let allExpansions = []
 let playersMap = new Map()
 let currentUserTeam = "SIN EQUIPO"
 
+function pickLeaderImage(leader) {
+  return String(leader?.parallel_image_url || leader?.image_url || "").trim() || null
+}
+
 function setLoading(on, text) {
   const overlay = document.getElementById("loadingOverlay")
   const label = document.getElementById("loadingText")
@@ -143,7 +147,7 @@ function renderTeamSummary(matches) {
     if (!row.leaderMap.has(leaderCode)) {
       row.leaderMap.set(leaderCode, {
         name: m.player?.name || leaderCode,
-        imageUrl: m.player?.image_url || null,
+        imageUrl: pickLeaderImage(m.player),
         games: 0,
         wins: 0
       })

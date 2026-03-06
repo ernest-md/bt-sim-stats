@@ -17,6 +17,24 @@ let allowedPlayerIds = new Set()
 let viewerRole = "user"
 let isSyncRunning = false
 
+function pickLeaderImage(leader) {
+  return String(leader?.parallel_image_url || leader?.image_url || "").trim()
+}
+
+function leaderZoomHtml(src, alt = "Lider", thumbWidth = 45) {
+  const safeSrc = String(src || "").trim()
+  const safeAlt = String(alt || "Lider")
+  if (!safeSrc) return `<span class="leaderMiniFallback">-</span>`
+  return `
+    <span class="leaderZoom">
+      <img src="${safeSrc}" width="${thumbWidth}" alt="${safeAlt}">
+      <span class="leaderZoomPreview">
+        <img src="${safeSrc}" alt="${safeAlt} ampliado">
+      </span>
+    </span>
+  `
+}
+
 function setLoading(on, text) {
   const overlay = document.getElementById("loadingOverlay")
   const label = document.getElementById("loadingText")
@@ -199,7 +217,7 @@ function buildLeaderStats(matches) {
     if (!leaderMap[leaderCode]) {
       leaderMap[leaderCode] = {
         name: m.player.name,
-        image: m.player.image_url,
+        image: pickLeaderImage(m.player),
         games: 0,
         wins: 0,
         matchups: {}
@@ -216,7 +234,7 @@ function buildLeaderStats(matches) {
     if (!leader.matchups[oppCode]) {
       leader.matchups[oppCode] = {
         name: m.opponent.name,
-        image: m.opponent.image_url,
+        image: pickLeaderImage(m.opponent),
         games: 0,
         wins: 0
       }
@@ -260,7 +278,7 @@ function buildLeaderStats(matches) {
 
       favHtml = `
         <div class="miniMatchup">
-          <img src="${fav.image}">
+          ${leaderZoomHtml(fav.image, fav.name || "Matchup", 50)}
           <span class="${fav.wr >= 50 ? 'wr-positive' : 'wr-negative'}">
             ${fav.wr.toFixed(1)}%
           </span>
@@ -269,7 +287,7 @@ function buildLeaderStats(matches) {
 
       desfHtml = `
         <div class="miniMatchup">
-          <img src="${desf.image}">
+          ${leaderZoomHtml(desf.image, desf.name || "Matchup", 50)}
           <span class="${desf.wr >= 50 ? 'wr-positive' : 'wr-negative'}">
             ${desf.wr.toFixed(1)}%
           </span>
@@ -282,7 +300,7 @@ function buildLeaderStats(matches) {
     row.onclick = () => showLeaderView(leaderCode)
 
     row.innerHTML = `
-      <td><img src="${data.image}" width="45"></td>
+      <td>${leaderZoomHtml(data.image, data.name || "Lider", 45)}</td>
       <td><strong>${data.name}</strong></td>
       <td>${data.games}</td>
       <td>${data.wins}</td>
@@ -315,7 +333,7 @@ function buildGlobalMatchups(matches) {
     if (!globalMap[oppCode]) {
       globalMap[oppCode] = {
         name: m.opponent.name,
-        image: m.opponent.image_url,
+        image: pickLeaderImage(m.opponent),
         games: 0,
         wins: 0
       }
@@ -341,7 +359,7 @@ function buildGlobalMatchups(matches) {
     const tr = document.createElement("tr")
     tr.innerHTML = `
       <td class="matchupLeader">
-        <img src="${item.image}">
+        ${leaderZoomHtml(item.image, item.name || "Lider", 40)}
         <span>${item.name}</span>
       </td>
       <td>${item.wins}</td>
@@ -358,7 +376,7 @@ function buildGlobalMatchups(matches) {
     const tr = document.createElement("tr")
     tr.innerHTML = `
       <td class="matchupLeader">
-        <img src="${item.image}">
+        ${leaderZoomHtml(item.image, item.name || "Lider", 40)}
         <span>${item.name}</span>
       </td>
       <td>${item.losses}</td>
@@ -406,7 +424,7 @@ function buildLeaderDetail(leaderCode) {
   const wrClass = wr >= 50 ? "wr-positive" : "wr-negative"
 
 summaryContainer.innerHTML = `
-  <img src="${leaderInfo.image_url}" class="leaderImage">
+  ${leaderZoomHtml(pickLeaderImage(leaderInfo), leaderInfo.name || "Lider", 140)}
   <div class="leaderSummaryStats">
     <div>
       <strong>${total}</strong>
@@ -478,7 +496,7 @@ summaryContainer.innerHTML = `
       const tr = document.createElement("tr")
 
       tr.innerHTML = `
-        <td><img src="${m.info.image_url}" width="60"></td>
+        <td>${leaderZoomHtml(pickLeaderImage(m.info), m.info.name || "Lider", 60)}</td>
         <td>${m.info.name}</td>
         <td>${m.games}</td>
         <td>${m.wins}</td>

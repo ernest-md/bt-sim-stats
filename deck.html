@@ -472,7 +472,14 @@
     }
 
     function leaderImageFromRow(row){
-      return norm(row?.image_url || row?.leader_image_url || row?.image || row?.img || row?.card_image);
+      return norm(row?.parallel_image_url || row?.image_url || row?.leader_image_url || row?.image || row?.img || row?.card_image);
+    }
+
+    function deckLeaderImage(deck){
+      const direct = norm(deck?.leader_image_url);
+      if (direct) return direct;
+      const byLabel = editLeaderByLabel.get(norm(deck?.leader || ""))?.image || "";
+      return norm(byLabel);
     }
 
     function fillEditLeaderSelect(){
@@ -597,12 +604,13 @@
       $("deckAuthor").innerHTML = `Autor: ${profileLink(deck.autor, authorLabel)}`;
       $("deckCreated").textContent = `Creado: ${formatDate(deck.created_at)}`;
 
+      const resolvedLeaderImage = deckLeaderImage(deck);
       $("leaderName").textContent = deck.leader || "-";
-      setImage($("leaderImage"), deck.leader_image_url || "");
+      setImage($("leaderImage"), resolvedLeaderImage || "");
       const leaderPanel = $("leaderPanel");
       if (leaderPanel){
-        const bg = deck.leader_image_url
-          ? `url("${String(deck.leader_image_url).replace(/"/g, '\\"')}")`
+        const bg = resolvedLeaderImage
+          ? `url("${String(resolvedLeaderImage).replace(/"/g, '\\"')}")`
           : "none";
         leaderPanel.style.setProperty("--leader-bg-image", bg);
       }

@@ -424,13 +424,14 @@
       border-radius: 12px;
       padding: 10px;
       background: rgba(15,23,42,.20);
-      overflow: hidden;
+      overflow: visible;
       isolation: isolate;
     }
     .featuredSpotlight.withLeaderBg::before{
       content: "";
       position: absolute;
       inset: 0;
+      border-radius: inherit;
       background:
         linear-gradient(155deg, rgba(15,23,42,.72) 0%, rgba(51,65,85,.62) 55%, rgba(15,23,42,.72) 100%),
         radial-gradient(460px 240px at 8% 10%, rgba(124,58,237,.28), transparent 70%),
@@ -441,6 +442,7 @@
       content: "";
       position: absolute;
       inset: 0;
+      border-radius: inherit;
       background-image: var(--featured-leader-bg);
       background-size: cover;
       background-position: center;
@@ -583,10 +585,10 @@
     }
     .leaderZoomPreview{
       position: absolute;
-      left: 50%;
-      top: calc(100% + 8px);
+      left: calc(100% + 10px);
+      top: 50%;
       bottom: auto;
-      transform: translateX(-50%) translateY(-4px) scale(.96);
+      transform: translateY(-50%) translateX(-4px) scale(.96);
       opacity: 0;
       pointer-events: none;
       z-index: 120;
@@ -608,7 +610,7 @@
     }
     .leaderZoom:hover .leaderZoomPreview{
       opacity: 1;
-      transform: translateX(-50%) translateY(0) scale(1);
+      transform: translateY(-50%) translateX(0) scale(1);
     }
     .leaderFallback{
       width: calc(42px * var(--leader-card-ratio));

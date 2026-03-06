@@ -106,7 +106,9 @@
       border-radius: 16px;
       border: 1px solid rgba(15,23,42,.12);
       background: rgba(255,255,255,.72);
-      overflow:auto;
+      overflow-x:auto;
+      overflow-y:hidden;
+      position: relative;
     }
     table{ width:100%; border-collapse:collapse; min-width: 980px; }
     th, td{
@@ -181,6 +183,45 @@
       align-items:center;
       gap:8px;
       min-width: 160px;
+      overflow: visible;
+    }
+    .leaderZoom{
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+      z-index: 3;
+    }
+    .leaderZoom:hover{ z-index: 10000; }
+    .leaderZoomPreview{
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-4px) scale(.96);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10000;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(2,6,23,.90);
+      box-shadow: 0 20px 38px rgba(2,6,23,.55);
+      padding: 6px;
+      transition: opacity .14s ease, transform .14s ease;
+    }
+    .leaderZoomPreview img{
+      width: 180px;
+      height: auto;
+      max-height: 280px;
+      object-fit: contain;
+      display:block;
+      border-radius: 8px;
+      background: rgba(2,6,23,.40);
+      border: 0;
+    }
+    .leaderZoom:hover .leaderZoomPreview{
+      opacity: 1;
+      transform: translateY(-50%) translateX(0) scale(1);
     }
     .leaderImg{
       width: 28px;
@@ -220,6 +261,7 @@
       .brand{ width:100%; margin-right:0; }
       .brand small{ font-size: 11px; }
       .hero h1{ font-size: 22px; }
+      .leaderZoomPreview{ display:none !important; }
     }
   </style>
 </head>
@@ -350,9 +392,16 @@
       const meta = mode === "wr"
         ? `${wrText(leader.wins, leader.games)} en ${leader.games}`
         : `${leader.games} partidas`;
+      const src = escapeAttr(leader.parallel_image_url || leader.image_url || "");
+      const alt = escapeAttr(leader.name || "leader");
       return `
         <div class="leaderCell">
-          <img class="leaderImg" src="${escapeAttr(leader.image_url || "")}" alt="${escapeAttr(leader.name || "leader")}" />
+          <span class="leaderZoom">
+            <img class="leaderImg" src="${src}" alt="${alt}" />
+            <span class="leaderZoomPreview">
+              <img src="${src}" alt="${alt} ampliado" />
+            </span>
+          </span>
           <span class="leaderTxt">${name} · ${escapeHtml(meta)}</span>
         </div>
       `;
@@ -390,7 +439,7 @@
             player_leader,
             result,
             match_date,
-            player:leaders!matches_player_leader_fkey (code,name,image_url)
+            player:leaders!matches_player_leader_fkey (code,name,image_url,parallel_image_url)
           `)
           .order("match_date", { ascending: false });
 
@@ -462,6 +511,7 @@
           p.leaders.set(code, {
             code,
             name: row?.player?.name || code || "Leader",
+            parallel_image_url: row?.player?.parallel_image_url || "",
             image_url: row?.player?.image_url || "",
             games: 0,
             wins: 0
@@ -470,6 +520,8 @@
         const l = p.leaders.get(code);
         l.games += 1;
         if (won) l.wins += 1;
+        if (!l.parallel_image_url && row?.player?.parallel_image_url) l.parallel_image_url = row.player.parallel_image_url;
+        if (!l.image_url && row?.player?.image_url) l.image_url = row.player.image_url;
       }
 
       const ranking = Array.from(players.values()).map((p) => ({
