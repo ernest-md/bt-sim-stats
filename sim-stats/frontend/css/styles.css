@@ -425,6 +425,14 @@ select:focus {
   transform: translateY(-1px);
 }
 
+.sync-btn-secondary {
+  background: #0f172a;
+}
+
+.sync-btn-secondary:hover {
+  background: #1e293b;
+}
+
 .sync-status {
   margin-top: 10px;
   font-weight: 600;
