@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -191,37 +191,7 @@
       align-items: center;
       justify-content: center;
       line-height: 0;
-      z-index: 3;
-    }
-    .leaderZoom:hover{ z-index: 10000; }
-    .leaderZoomPreview{
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 0;
-      transform: translateX(-4px) scale(.96);
-      opacity: 0;
-      pointer-events: none;
-      z-index: 10000;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.35);
-      background: rgba(2,6,23,.90);
-      box-shadow: 0 20px 38px rgba(2,6,23,.55);
-      padding: 6px;
-      transition: opacity .14s ease, transform .14s ease;
-    }
-    .leaderZoomPreview img{
-      width: 180px;
-      height: auto;
-      max-height: 280px;
-      object-fit: contain;
-      display:block;
-      border-radius: 8px;
-      background: rgba(2,6,23,.40);
-      border: 0;
-    }
-    .leaderZoom:hover .leaderZoomPreview{
-      opacity: 1;
-      transform: translateX(0) scale(1);
+      z-index: 1;
     }
     .leaderImg{
       width: 28px;
@@ -255,13 +225,40 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .leaderGlobalPreview{
+      position:fixed;
+      left:0;
+      top:0;
+      transform:translate3d(-9999px,-9999px,0);
+      opacity:0;
+      pointer-events:none;
+      z-index:250000;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.35);
+      background:rgba(2,6,23,.94);
+      box-shadow:0 20px 38px rgba(2,6,23,.55);
+      padding:6px;
+      transition:opacity .12s ease;
+    }
+    .leaderGlobalPreview img{
+      width:180px;
+      height:auto;
+      max-height:280px;
+      object-fit:contain;
+      display:block;
+      border-radius:8px;
+      background:rgba(2,6,23,.40);
+    }
+    .leaderGlobalPreview .caption{
+      display:none;
+    }
     .muted{ color:#64748b; font-size:12px; }
 
     @media (max-width: 760px){
       .brand{ width:100%; margin-right:0; }
       .brand small{ font-size: 11px; }
       .hero h1{ font-size: 22px; }
-      .leaderZoomPreview{ display:none !important; }
+      .leaderGlobalPreview{ display:none !important; }
     }
   </style>
 </head>
@@ -297,7 +294,7 @@
       </button>
       <div class="menu" id="userMenu">
         <div class="head">
-          <strong id="userEmail">—</strong>
+          <strong id="userEmail">&mdash;</strong>
           <span>Sesion iniciada</span>
         </div>
         <a href="profile.html">Ver perfil</a>
@@ -388,7 +385,7 @@
       return pool[0];
     }
 
-    function leaderCellHtml(leader, mode){
+        function leaderCellHtml(leader, mode){
       if (!leader) return `<div class="leaderCell"><div class="leaderFallback">N/A</div><span class="leaderTxt">Sin datos</span></div>`;
       const name = escapeHtml(leader.name || leader.code || "-");
       const meta = mode === "wr"
@@ -398,17 +395,72 @@
       const alt = escapeAttr(leader.name || "leader");
       return `
         <div class="leaderCell">
-          <span class="leaderZoom">
+          <span class="leaderZoom" data-preview-src="${src}">
             <img class="leaderImg" src="${src}" alt="${alt}" />
-            <span class="leaderZoomPreview">
-              <img src="${src}" alt="${alt} ampliado" />
-            </span>
           </span>
           <span class="leaderTxt">${name} · ${escapeHtml(meta)}</span>
         </div>
       `;
     }
 
+    function initLeaderHoverPreview(){
+      const preview = document.createElement("div");
+      preview.className = "leaderGlobalPreview";
+      preview.innerHTML = `<img alt=""><div class="caption"></div>`;
+      document.body.appendChild(preview);
+
+      const img = preview.querySelector("img");
+      const cap = preview.querySelector(".caption");
+      let activeAnchor = null;
+
+      function place(anchor){
+        if (!anchor) return;
+        const rect = anchor.getBoundingClientRect();
+        const margin = 12;
+        const pw = preview.offsetWidth || 196;
+        const ph = preview.offsetHeight || 250;
+        let x = rect.right + 10;
+        let y = rect.top + ((rect.height - ph) / 2);
+        if (x + pw > window.innerWidth - margin) x = rect.left - pw - 10;
+        if (y < margin) y = margin;
+        if (y + ph > window.innerHeight - margin) y = Math.max(margin, window.innerHeight - ph - margin);
+        preview.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+      }
+
+      function show(anchor){
+        const src = anchor?.dataset?.previewSrc || "";
+        if (!src){ hide(); return; }
+        activeAnchor = anchor;
+        img.src = src;
+        cap.textContent = "";
+        preview.style.opacity = "1";
+        place(anchor);
+      }
+
+      function hide(){
+        activeAnchor = null;
+        preview.style.opacity = "0";
+        preview.style.transform = "translate3d(-9999px,-9999px,0)";
+      }
+
+      document.addEventListener("mouseover", (e) => {
+        const anchor = e.target.closest(".leaderZoom[data-preview-src]");
+        if (!anchor){
+          if (activeAnchor && !preview.contains(e.target)) hide();
+          return;
+        }
+        show(anchor);
+      });
+      document.addEventListener("mouseout", (e) => {
+        const from = e.target.closest(".leaderZoom[data-preview-src]");
+        if (!from) return;
+        const to = e.relatedTarget;
+        if (to && (from.contains(to) || preview.contains(to))) return;
+        hide();
+      });
+      window.addEventListener("scroll", () => { if (activeAnchor) place(activeAnchor); }, true);
+      window.addEventListener("resize", () => { if (activeAnchor) place(activeAnchor); });
+    }
     async function fetchCurrentExpansion(){
       const today = new Date();
       const isoDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -596,6 +648,7 @@
     }
 
     (async function init(){
+      initLeaderHoverPreview();
       const { data } = await sb.auth.getSession();
       navController.setUser(data?.session?.user || null);
       void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
