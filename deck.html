@@ -66,6 +66,14 @@
       padding: 16px;
     }
     .title{ margin:0 0 10px; font-size:26px; font-weight:1000; }
+    .headRow{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .headRow .title{ margin:0; }
     .meta{ color:#475569; font-size:13px; display:flex; gap:12px; flex-wrap:wrap; }
     .grid{ display:grid; grid-template-columns:1fr; gap:14px; margin-top:14px; }
     @media (min-width: 980px){ .grid{ grid-template-columns: 1fr 1fr; } }
@@ -101,6 +109,20 @@
       pointer-events:none;
     }
     .panel h3{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:#334155; }
+    .panelHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:8px;
+    }
+    .panelHead h3{ margin:0; }
+    .btnTiny{
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1;
+    }
     .leaderRow{ display:flex; align-items:center; gap:12px; }
     .leaderImg{
       width: calc(96px * 0.72);
@@ -308,6 +330,7 @@
       .bar{ gap:8px; }
       .wrap{ padding: 0 10px; margin: 12px auto 22px; }
       .title{ font-size: 22px; }
+      .headRow{ align-items:center; }
       .card{ padding: 12px; border-radius: 16px; }
       .panel{ border-radius: 12px; }
       .leaderPanel::before{
@@ -332,14 +355,16 @@
 
   <div class="wrap">
     <div class="card">
-      <h1 class="title" id="deckName">Deck</h1>
+      <div class="headRow">
+        <h1 class="title" id="deckName">Deck</h1>
+        <button class="btn btnLight" id="btnCopyDeckLink" type="button">Copiar enlace</button>
+      </div>
       <div class="meta">
         <span id="deckAuthor">Autor: -</span>
         <span id="deckCreated">Creado: -</span>
       </div>
       <div class="actionsRow">
         <button class="btn btnLight" id="btnEditDeck" type="button" style="display:none;">Editar deck</button>
-        <button class="btn btnLight" id="btnCopyDeckLink" type="button">Copiar enlace</button>
       </div>
 
       <div class="grid">
@@ -353,6 +378,11 @@
           </div>
         </div>
 
+        <div class="panel">
+          <h3>Descripcion</h3>
+          <pre id="description">-</pre>
+        </div>
+
         <div class="panel" id="deckImagePanel">
           <h3>Imagen del deck</h3>
           <img id="deckImage" class="deckImg" alt="Imagen del deck" />
@@ -360,12 +390,10 @@
         </div>
 
         <div class="panel">
-          <h3>Descripcion</h3>
-          <pre id="description">-</pre>
-        </div>
-
-        <div class="panel">
-          <h3>Sim paste</h3>
+          <div class="panelHead">
+            <h3>Sim paste</h3>
+            <button class="btn btnLight btnTiny" id="btnCopySimPaste" type="button">Copiar lista</button>
+          </div>
           <pre id="simPaste">-</pre>
         </div>
       </div>
@@ -472,14 +500,29 @@
     }
 
     function leaderImageFromRow(row){
-      return norm(row?.parallel_image_url || row?.image_url || row?.leader_image_url || row?.image || row?.img || row?.card_image);
+      return norm(row?.parallel_image_url || row?.image_url);
+    }
+
+    function resolveLeaderForDeck(leaderLabel){
+      const normalized = norm(leaderLabel);
+      if (!normalized) return null;
+      const lower = normalized.toLowerCase();
+      const direct = editLeaderByLabel.get(normalized);
+      if (direct) return direct;
+      return editLeaders.find((l) => (
+        l.searchLabel === lower ||
+        l.searchName === lower ||
+        l.searchCode === lower ||
+        l.searchLabel.startsWith(lower) ||
+        lower.startsWith(l.searchName)
+      )) || null;
     }
 
     function deckLeaderImage(deck){
-      const direct = norm(deck?.leader_image_url);
-      if (direct) return direct;
-      const byLabel = editLeaderByLabel.get(norm(deck?.leader || ""))?.image || "";
-      return norm(byLabel);
+      const byLeader = resolveLeaderForDeck(deck?.leader || "");
+      const fromLeaders = norm(byLeader?.image || "");
+      if (fromLeaders) return fromLeaders;
+      return norm(deck?.leader_image_url);
     }
 
     function fillEditLeaderSelect(){
@@ -523,7 +566,17 @@
         .map((row) => {
           const label = leaderLabelFromRow(row);
           if (!label) return null;
-          return { label, image: leaderImageFromRow(row) || null };
+          const name = norm(row?.name);
+          const code = norm(row?.code);
+          return {
+            label,
+            image: leaderImageFromRow(row) || null,
+            name,
+            code,
+            searchLabel: label.toLowerCase(),
+            searchName: name.toLowerCase(),
+            searchCode: code.toLowerCase()
+          };
         })
         .filter(Boolean);
 
@@ -913,12 +966,27 @@ async function loadDeck(){
       }
     }
 
+    async function copySimPaste(){
+      const text = String($("simPaste")?.textContent || "").trim();
+      if (!text || text === "-"){
+        showError("No hay lista para copiar.");
+        return;
+      }
+      try{
+        await navigator.clipboard.writeText(text);
+        window.BarateamApp.showMessage("msg", "Lista copiada", { baseClass: "msg", type: "ok" });
+      }catch(_e){
+        showError("No pude copiar la lista.");
+      }
+    }
+
     $("btnLike").addEventListener("click", toggleDeckLike);
     $("btnToggleComments").addEventListener("click", () => {
       $("commentsPanel").classList.toggle("open");
     });
     $("btnEditDeck").addEventListener("click", openEditPanel);
     $("btnCopyDeckLink").addEventListener("click", copyDeckLink);
+    $("btnCopySimPaste").addEventListener("click", copySimPaste);
     $("btnCancelEditDeck").addEventListener("click", closeEditPanel);
     $("btnSaveEditDeck").addEventListener("click", saveDeckEdits);
     $("btnDeleteDeck").addEventListener("click", deleteDeck);

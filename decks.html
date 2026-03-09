@@ -450,8 +450,8 @@
           </select>
         </div>
         <div class="grow">
-          <label for="filter_text">Buscar (nombre / descripcion)</label>
-          <input id="filter_text" placeholder="Ej: zoro, control, matchup..." />
+          <label for="filter_text">Buscar (deck / lider / autor)</label>
+          <input id="filter_text" placeholder="Ej: zoro, op01, estereo..." />
         </div>
         <div>
           <label for="filter_sort">Orden</label>
@@ -643,11 +643,25 @@
     }
     function leaderLabelFromRow(row){
       const name = normalize(row?.name);
-      const expansion = normalize(row?.code);
-      return [name, expansion].filter(Boolean).join(" ").trim();
+      const code = normalize(row?.code);
+      return [name, code].filter(Boolean).join(" ").trim();
     }
     function leaderImageFromRow(row){
-      return normalize(row?.parallel_image_url || row?.image_url || row?.leader_image_url || row?.image || row?.img || row?.card_image);
+      return normalize(row?.parallel_image_url || row?.image_url);
+    }
+    function resolveLeaderMeta(leaderLabel){
+      const normalized = normalize(leaderLabel);
+      if (!normalized) return null;
+      const lower = normalized.toLowerCase();
+      const direct = leaderByLabel.get(normalized);
+      if (direct) return direct;
+      return leaders.find((l) => (
+        l.searchLabel === lower ||
+        l.searchName === lower ||
+        l.searchCode === lower ||
+        l.searchLabel.startsWith(lower) ||
+        lower.startsWith(l.searchName)
+      )) || null;
     }
     function fillLeaderSelects(){
       const leaderSel = $("leader");
@@ -681,7 +695,17 @@
         .map(row => {
           const label = leaderLabelFromRow(row);
           if (!label) return null;
-          return { label, image: leaderImageFromRow(row) || null };
+          const name = normalize(row?.name);
+          const code = normalize(row?.code);
+          return {
+            label,
+            image: leaderImageFromRow(row) || null,
+            name,
+            code,
+            searchLabel: label.toLowerCase(),
+            searchName: name.toLowerCase(),
+            searchCode: code.toLowerCase()
+          };
         })
         .filter(Boolean);
 
@@ -789,7 +813,8 @@
         const leader = d.leader || "-";
         const autor = usernameByUserId.get(d.autor) || d.autor || "-";
         const name = d.name || "Sin nombre";
-        const leaderImg = d.leader_image_url || leaderByLabel.get(leader)?.image || "";
+        const leaderMeta = resolveLeaderMeta(leader);
+        const leaderImg = leaderMeta?.image || d.leader_image_url || "";
         const imgHtml = leaderImg
           ? `
             <span class="leaderZoom">
@@ -857,7 +882,18 @@
         if (!search) return true;
         const name = String(d.name || "").toLowerCase();
         const description = String(d.description || "").toLowerCase();
-        return name.includes(search) || description.includes(search);
+        const leaderLabel = String(d.leader || "").toLowerCase();
+        const leaderMeta = resolveLeaderMeta(d.leader || "");
+        const leaderName = String(leaderMeta?.name || "").toLowerCase();
+        const leaderCode = String(leaderMeta?.code || "").toLowerCase();
+        const author = String(usernameByUserId.get(d.autor) || "").toLowerCase();
+        return (
+          name.includes(search) ||
+          leaderLabel.includes(search) ||
+          leaderName.includes(search) ||
+          leaderCode.includes(search) ||
+          author.includes(search)
+        );
       });
 
       filteredDecks.sort((a, b) => {
