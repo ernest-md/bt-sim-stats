@@ -324,6 +324,57 @@
       color:#334155;
       line-height: 1.4;
     }
+    .commentThread{
+      display:grid;
+      gap:8px;
+    }
+    .commentActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .commentActionBtn{
+      border:0;
+      background:none;
+      padding:0;
+      font: inherit;
+      font-size:12px;
+      font-weight:800;
+      color:#0f172a;
+      cursor:pointer;
+      opacity:.78;
+    }
+    .commentActionBtn:hover{ opacity:1; }
+    .commentReplies{
+      display:none;
+      margin-left:18px;
+      padding-left:12px;
+      border-left: 2px solid rgba(15,23,42,.12);
+    }
+    .commentReplies.open{
+      display:grid;
+      gap:8px;
+    }
+    .replyComposer{
+      display:none;
+      gap:8px;
+      margin-top:8px;
+    }
+    .replyComposer.open{ display:grid; }
+    .replyComposer textarea{
+      width:100%;
+      min-height:70px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+      padding: 10px 12px;
+      box-sizing: border-box;
+      resize: vertical;
+      font: inherit;
+    }
+    .replyItem{
+      background: rgba(248,250,252,.92);
+    }
 
     @media (max-width: 760px){
       .topbar{ padding: 10px; }
@@ -829,7 +880,7 @@ async function loadDeck(){
 
       const [commentsRes, likesRes] = await Promise.all([
         sb.from("comments")
-          .select("id,created_at,autor,body,deck")
+          .select("id,created_at,autor,body,deck,parent_comment")
           .eq("deck", deckId)
           .order("created_at", { ascending: false }),
         sb.from("likes")
@@ -857,9 +908,79 @@ async function loadDeck(){
       renderSocial();
     }
 
+    function buildCommentThreads(comments){
+      const roots = [];
+      const repliesByParent = new Map();
+
+      for (const comment of comments || []){
+        if (comment.parent_comment){
+          const key = String(comment.parent_comment);
+          if (!repliesByParent.has(key)) repliesByParent.set(key, []);
+          repliesByParent.get(key).push(comment);
+        } else {
+          roots.push(comment);
+        }
+      }
+
+      for (const replies of repliesByParent.values()){
+        replies.sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || "")));
+      }
+
+      return { roots, repliesByParent };
+    }
+
+    function renderRepliesHtml(replies){
+      return replies.map(reply => `
+        <div class="commentItem replyItem">
+          <div class="commentHead">
+            <span class="commentUser">${profileLink(reply.autor, userLabel(reply.autor))}</span>
+            <span>${escapeHtml(formatDateTime(reply.created_at))}</span>
+          </div>
+          <p class="commentBody">${escapeHtml(reply.body || "")}</p>
+        </div>
+      `).join("");
+    }
+
+    function renderCommentThreadHtml(comment, replies){
+      const replyCount = replies.length;
+      const replyToggleHtml = replyCount
+        ? `<button class="commentActionBtn btnToggleReplies" data-parent-id="${escapeAttr(comment.id)}" type="button">Respuestas (${replyCount})</button>`
+        : "";
+      const replyComposerHtml = currentUser
+        ? `
+          <div class="replyComposer" data-parent-id="${escapeAttr(comment.id)}">
+            <textarea class="replyInput" data-parent-id="${escapeAttr(comment.id)}" placeholder="Escribe una respuesta..."></textarea>
+            <div>
+              <button class="iconBtn btnSendReply" data-parent-id="${escapeAttr(comment.id)}" type="button">Responder</button>
+              <button class="iconBtn btnCancelReply" data-parent-id="${escapeAttr(comment.id)}" type="button">Cancelar</button>
+            </div>
+          </div>
+        `
+        : "";
+
+      return `
+        <div class="commentThread">
+          <div class="commentItem">
+            <div class="commentHead">
+              <span class="commentUser">${profileLink(comment.autor, userLabel(comment.autor))}</span>
+              <span>${escapeHtml(formatDateTime(comment.created_at))}</span>
+            </div>
+            <p class="commentBody">${escapeHtml(comment.body || "")}</p>
+            <div class="commentActions">
+              ${replyToggleHtml}
+              ${currentUser ? `<button class="commentActionBtn btnReplyComment" data-parent-id="${escapeAttr(comment.id)}" type="button">Responder</button>` : ""}
+            </div>
+            ${replyComposerHtml}
+          </div>
+          ${replyCount ? `<div class="commentReplies" data-parent-id="${escapeAttr(comment.id)}">${renderRepliesHtml(replies)}</div>` : ""}
+        </div>
+      `;
+    }
+
     function renderSocial(){
       const likes = socialState.likes || [];
       const comments = socialState.comments || [];
+      const threads = buildCommentThreads(comments);
 
       const likeBtn = $("btnLike");
       likeBtn.innerHTML = `&#128077; ${likes.length}`;
@@ -878,26 +999,57 @@ async function loadDeck(){
           <textarea id="commentInput" placeholder="Escribe un comentario..."></textarea>
           <div><button class="iconBtn" id="btnSendComment" type="button">Comentar</button></div>
         `;
-        $("btnSendComment").addEventListener("click", submitDeckComment);
+        $("btnSendComment").addEventListener("click", () => submitDeckComment());
       } else {
         composer.innerHTML = `<div class="muted">Inicia sesion para comentar.</div>`;
       }
 
       const list = $("commentsList");
-      if (!comments.length){
+      if (!threads.roots.length){
         list.innerHTML = `<div class="muted">No hay comentarios.</div>`;
-        return;
+      } else {
+        list.innerHTML = threads.roots.map(c => renderCommentThreadHtml(c, threads.repliesByParent.get(String(c.id)) || [])).join("");
       }
 
-      list.innerHTML = comments.map(c => `
-        <div class="commentItem">
-          <div class="commentHead">
-            <span class="commentUser">${profileLink(c.autor, userLabel(c.autor))}</span>
-            <span>${escapeHtml(formatDateTime(c.created_at))}</span>
-          </div>
-          <p class="commentBody">${escapeHtml(c.body || "")}</p>
-        </div>
-      `).join("");
+      for (const btn of list.querySelectorAll(".btnToggleReplies")){
+        btn.addEventListener("click", () => {
+          const parentId = btn.getAttribute("data-parent-id");
+          const panel = list.querySelector(`.commentReplies[data-parent-id="${parentId}"]`);
+          if (!panel) return;
+          const open = panel.classList.toggle("open");
+          const count = panel.children.length;
+          btn.textContent = `${open ? "Ocultar respuestas" : "Respuestas"} (${count})`;
+        });
+      }
+
+      for (const btn of list.querySelectorAll(".btnReplyComment")){
+        btn.addEventListener("click", () => {
+          const parentId = btn.getAttribute("data-parent-id");
+          const composer = list.querySelector(`.replyComposer[data-parent-id="${parentId}"]`);
+          if (!composer) return;
+          composer.classList.toggle("open");
+          if (composer.classList.contains("open")){
+            composer.querySelector(".replyInput")?.focus();
+          }
+        });
+      }
+
+      for (const btn of list.querySelectorAll(".btnCancelReply")){
+        btn.addEventListener("click", () => {
+          const parentId = btn.getAttribute("data-parent-id");
+          const composer = list.querySelector(`.replyComposer[data-parent-id="${parentId}"]`);
+          const input = list.querySelector(`.replyInput[data-parent-id="${parentId}"]`);
+          if (input) input.value = "";
+          composer?.classList.remove("open");
+        });
+      }
+
+      for (const btn of list.querySelectorAll(".btnSendReply")){
+        btn.addEventListener("click", async () => {
+          const parentId = btn.getAttribute("data-parent-id");
+          await submitDeckComment(parentId);
+        });
+      }
     }
 
     async function toggleDeckLike(){
@@ -934,21 +1086,24 @@ async function loadDeck(){
       await loadDeckSocial();
     }
 
-    async function submitDeckComment(){
+    async function submitDeckComment(parentCommentId = null){
       if (!currentUser){
         showError("Inicia sesion para comentar.");
         return;
       }
       if (!deckId) return;
 
-      const input = $("commentInput");
+      const input = parentCommentId
+        ? document.querySelector(`.replyInput[data-parent-id="${parentCommentId}"]`)
+        : $("commentInput");
       const body = input?.value?.trim() || "";
       if (!body) return showError("Escribe un comentario.");
 
       const { error } = await sb.from("comments").insert({
         autor: currentUser.id,
         deck: deckId,
-        body
+        body,
+        parent_comment: parentCommentId || null
       });
 
       if (error) return showError("No pude guardar el comentario: " + error.message);
