@@ -2456,16 +2456,16 @@
     root.innerHTML = `<div class="featuredMuted">Calculando jugador destacado...</div>`;
 
     try{
-      const expansion = await fetchCurrentExpansion();
+      const expansion = await withTimeout(fetchCurrentExpansion(), 12000);
       if (!expansion){
         root.innerHTML = `<div class="featuredMuted">No hay expansion activa para la fecha actual.</div>`;
         return;
       }
-      const matches = await fetchFeaturedMatches(expansion);
+      const matches = await withTimeout(fetchFeaturedMatches(expansion), 12000);
       const topPlayers = buildFeaturedRanking(matches);
       const leaderRankings = buildLeaderRankings(matches);
       const playerIds = topPlayers.map((p) => p.playerId);
-      const playersMap = await fetchPlayersMap(playerIds);
+      const playersMap = await withTimeout(fetchPlayersMap(playerIds), 12000);
       const profileIds = Array.from(
         new Set(
           Array.from(playersMap.values())
@@ -2473,7 +2473,7 @@
             .filter(Boolean)
         )
       );
-      const profileMap = await fetchProfileMap(profileIds);
+      const profileMap = await withTimeout(fetchProfileMap(profileIds), 12000);
       renderFeaturedPlayer(topPlayers, profileMap, playersMap, expansion, leaderRankings);
     }catch(e){
       console.warn("featured:", e.message || e);
@@ -2936,8 +2936,6 @@
       renderFeedbackBar();
 
       if (first) return;           // evita el doble disparo inicial
-      await refreshPostsSection();
-      await refreshFeaturedPlayerSection();
     });
     await refreshHome();
     first = false;
