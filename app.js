@@ -155,11 +155,81 @@
     return String(value || "").trim().toLowerCase();
   }
 
+  function appPageHref(fileName){
+    const path = String(window.location.pathname || "").replace(/\\/g, "/");
+    if (path.includes("/sim-stats/frontend/")) return `../../${fileName}`;
+    return fileName;
+  }
+
+  function ensureAdminModeDock(){
+    let dock = document.getElementById("adminModeDock");
+    if (dock) return dock;
+
+    dock = document.createElement("div");
+    dock.id = "adminModeDock";
+    dock.className = "adminModeDock";
+    dock.innerHTML = `
+      <div class="adminModePanel" id="adminModePanel"></div>
+      <button class="adminModeToggle" id="adminModeToggle" type="button" aria-label="Abrir modo admin" aria-expanded="false" title="Modo admin">
+        &#9881;
+      </button>
+    `;
+    document.body.appendChild(dock);
+
+    const toggle = dock.querySelector("#adminModeToggle");
+    toggle?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = dock.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!dock || !dock.classList.contains("open")) return;
+      if (dock.contains(e.target)) return;
+      dock.classList.remove("open");
+      toggle?.setAttribute("aria-expanded", "false");
+    });
+
+    return dock;
+  }
+
+  function renderAdminModeDock(actions){
+    const dock = ensureAdminModeDock();
+    const panel = dock.querySelector("#adminModePanel");
+    const toggle = dock.querySelector("#adminModeToggle");
+    const items = Array.isArray(actions) ? actions : [];
+
+    if (!items.length){
+      dock.style.display = "none";
+      dock.classList.remove("open");
+      if (panel) panel.innerHTML = "";
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+      return;
+    }
+
+    if (panel){
+      panel.innerHTML = items.map((item) => {
+        const isActive = item.href && window.location.pathname.replace(/\\/g, "/").endsWith(item.href.replace(/^\.\.\//g, "").replace(/^\.\//g, ""));
+        return `
+          <a class="adminModeLink${isActive ? " active" : ""}" href="${escapeAttr(item.href)}" title="${escapeAttr(item.label)}">
+            <span>${item.icon}</span>
+            <span>${escapeHtml(item.label)}</span>
+          </a>
+        `;
+      }).join("");
+    }
+
+    dock.style.display = "flex";
+  }
+
   async function applyRestrictedNavVisibility(sb){
     const restrictedLinks = Array.from(document.querySelectorAll('a[data-vdbf-only="1"]'));
-    if (!restrictedLinks.length) return;
+    const adminLinks = Array.from(document.querySelectorAll('a[data-admin-only="1"]'));
 
     restrictedLinks.forEach((a) => {
+      a.style.display = "none";
+    });
+    adminLinks.forEach((a) => {
       a.style.display = "none";
     });
 
@@ -167,8 +237,12 @@
 
     try{
       const user = await getSessionUser(sb);
-      if (!user) return;
+      if (!user){
+        renderAdminModeDock([]);
+        return;
+      }
 
+      let profile = null;
       const handles = new Set();
       const emailHandle = normalizeHandle((user.email || "").split("@")[0]);
       if (emailHandle) handles.add(emailHandle);
@@ -182,24 +256,38 @@
       if (user.id){
         const { data } = await sb
           .from("profiles")
-          .select("username,display_name")
+          .select("username,display_name,app_role")
           .eq("id", user.id)
           .maybeSingle();
-        if (data){
-          const username = normalizeHandle(data.username);
-          const displayName = normalizeHandle(data.display_name);
+        profile = data || null;
+        if (profile){
+          const username = normalizeHandle(profile.username);
+          const displayName = normalizeHandle(profile.display_name);
           if (username) handles.add(username);
           if (displayName) handles.add(displayName);
         }
       }
 
-      const allowed = Array.from(handles).some((h) => VDBF_ALLOWED_USERS.has(h));
-      if (!allowed) return;
+      const isAdmin = profile?.app_role === "admin";
 
-      restrictedLinks.forEach((a) => {
-        a.style.display = "inline-flex";
-      });
+      if (isAdmin){
+        renderAdminModeDock([
+          {
+            href: restrictedLinks[0]?.getAttribute("href") || appPageHref("vade-back-fight.html"),
+            label: "VDBF",
+            icon: "🔥"
+          },
+          {
+            href: adminLinks[0]?.getAttribute("href") || appPageHref("feedback.html"),
+            label: "Feedback",
+            icon: "💬"
+          }
+        ]);
+      } else {
+        renderAdminModeDock([]);
+      }
     } catch (_err){
+      renderAdminModeDock([]);
       // Si falla cualquier check, por defecto permanece oculto.
     }
   }

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Feedback · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.92);
+      --line:rgba(15,23,42,.12);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --accent:#0ea5e9;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      z-index:-1;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      display:block;
+      text-align:center;
+      padding-left:4px;
+      font-weight:700;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+    .wrap{
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+    .hero{
+      border-radius:24px;
+      padding:18px 16px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow:0 18px 50px rgba(0,0,0,.28);
+    }
+    .hero h1{ margin:0; font-size:26px; font-weight:1000; }
+    .hero p{ margin:8px 0 0; color:rgba(255,255,255,.86); font-size:13px; }
+    .heroStats{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(140px,1fr));
+      gap:10px;
+      max-width:420px;
+    }
+    .stat{
+      border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:8px 10px;
+    }
+    .stat b{
+      display:block;
+      font-size:18px;
+      font-weight:1000;
+      color:#fff;
+    }
+    .stat span{
+      color:rgba(255,255,255,.85);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .card{
+      margin-top:14px;
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .toolbar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .btn2{
+      border:none;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.9));
+      color:#fff;
+    }
+    .btnGhost{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:9px 13px;
+      font-weight:800;
+      background:#fff;
+      color:var(--ink);
+      cursor:pointer;
+    }
+    .btnGhost.active{
+      background:rgba(14,165,233,.10);
+      border-color:rgba(14,165,233,.28);
+      color:#0c4a6e;
+    }
+    .toolbar .muted{
+      margin-left:auto;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+    }
+    .msg{
+      display:none;
+      margin-bottom:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      font-size:13px;
+    }
+    .msg.ok{
+      display:block;
+      border-color:rgba(34,197,94,.35);
+      background:rgba(34,197,94,.10);
+      color:#166534;
+    }
+    .msg.err{
+      display:block;
+      border-color:rgba(239,68,68,.35);
+      background:rgba(239,68,68,.10);
+      color:#991b1b;
+    }
+    .tableWrap{
+      border:1px solid var(--line);
+      border-radius:16px;
+      overflow:auto;
+      background:rgba(255,255,255,.78);
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:860px;
+      table-layout:fixed;
+    }
+    th, td{
+      padding:8px 10px;
+      border-bottom:1px solid rgba(15,23,42,.08);
+      font-size:13px;
+      vertical-align:middle;
+      text-align:left;
+    }
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:#d7e3ef;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.4px;
+    }
+    tbody tr:hover{
+      background:rgba(14,165,233,.08);
+    }
+    .authorCol{
+      width:170px;
+      font-weight:900;
+      color:#0f172a;
+    }
+    .bodyCol{
+      width:auto;
+    }
+    .dateCol{
+      width:160px;
+      white-space:nowrap;
+      color:#475569;
+      font-weight:700;
+    }
+    .actionCol{
+      width:140px;
+      white-space:nowrap;
+      text-align:center;
+    }
+    .bodyPreview{
+      color:#334155;
+      line-height:1.35;
+      white-space:pre-wrap;
+      word-break:break-word;
+      max-width: 100%;
+    }
+    .bodyPreview[data-expanded="0"] .bodyText{
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+    .inlineBtn{
+      border:0;
+      background:none;
+      color:#0369a1;
+      font:inherit;
+      font-weight:900;
+      cursor:pointer;
+      padding:0;
+      margin-left:6px;
+    }
+    .rowBtn{
+      border:1px solid rgba(14,165,233,.34);
+      background:linear-gradient(180deg, rgba(14,165,233,.16), rgba(2,132,199,.24));
+      color:#0c4a6e;
+      border-radius:999px;
+      padding:8px 14px;
+      min-width:108px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow:0 8px 20px rgba(14,165,233,.14);
+      transition:transform .08s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    .rowBtn:hover{
+      filter:brightness(1.03);
+      box-shadow:0 10px 24px rgba(14,165,233,.18);
+    }
+    .rowBtn:active{ transform:translateY(1px); }
+    .empty{
+      padding:20px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .hidden{
+      display:none !important;
+    }
+    @media (max-width: 760px){
+      .hero h1{ font-size:22px; }
+      .heroStats{ grid-template-columns:1fr 1fr; }
+      .toolbar .muted{ margin-left:0; width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>feedback · moderacion</small>
+      </div>
+
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn primary active" href="feedback.html" data-requires-auth="1" data-admin-only="1">&#128172; Feedback</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>Bandeja de feedback</h1>
+      <p>Revision interna del hub. Por defecto se cargan los feedback pendientes.</p>
+      <div class="heroStats">
+        <div class="stat">
+          <b id="pendingCount">0</b>
+          <span>Sin revisar</span>
+        </div>
+        <div class="stat">
+          <b id="reviewedCount">0</b>
+          <span>Revisados</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="forbiddenCard">
+      <div class="msg err" id="forbiddenMsg" style="display:block;">No tienes permisos para acceder a esta pantalla.</div>
+    </div>
+
+    <div class="card hidden" id="feedbackPanel">
+      <div class="msg" id="pageMsg"></div>
+      <div class="toolbar">
+        <button class="btnGhost active" id="btnShowPending" type="button">Sin revisar</button>
+        <button class="btnGhost" id="btnShowReviewed" type="button">Ver revisados</button>
+        <span class="muted" id="toolbarHint">Ordenados por fecha de creacion.</span>
+      </div>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="authorCol">Autor</th>
+              <th class="bodyCol">Body</th>
+              <th class="dateCol">Created_at</th>
+              <th class="actionCol">Accion</th>
+            </tr>
+          </thead>
+          <tbody id="feedbackTableBody">
+            <tr><td colspan="4" class="empty">Cargando feedback...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+    const formatDateTime = window.BarateamApp.formatDateTime;
+
+    window.BarateamApp.bindProtectedNavLinks(sb);
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    let currentUser = null;
+    let currentFilter = 0;
+    let currentRows = [];
+    const authorNameCache = new Map();
+
+    function showPageMsg(text, type){
+      const el = $("pageMsg");
+      if (!el) return;
+      if (!text){
+        el.className = "msg";
+        el.style.display = "none";
+        el.textContent = "";
+        return;
+      }
+      el.className = type === "ok" ? "msg ok" : "msg err";
+      el.style.display = "block";
+      el.textContent = text;
+    }
+
+    function authorLabel(authorId){
+      if (!authorId) return "-";
+      return authorNameCache.get(String(authorId)) || `user-${String(authorId).slice(0, 8)}`;
+    }
+
+    async function ensureAuthorLabels(authorIds){
+      const ids = Array.from(new Set((authorIds || []).filter(Boolean).map(String))).filter((id) => !authorNameCache.has(id));
+      if (!ids.length) return;
+
+      const { data, error } = await sb
+        .from("profiles")
+        .select("id,username,display_name")
+        .in("id", ids);
+
+      if (error){
+        console.warn("profiles:", error.message);
+      }
+
+      for (const row of (data || [])){
+        authorNameCache.set(String(row.id), row.display_name || row.username || `user-${String(row.id).slice(0, 8)}`);
+      }
+      for (const id of ids){
+        if (!authorNameCache.has(id)) authorNameCache.set(id, `user-${id.slice(0, 8)}`);
+      }
+    }
+
+    async function loadCounts(){
+      const [pendingRes, reviewedRes] = await Promise.all([
+        sb.from("feedback").select("id", { count: "exact", head: true }).eq("estado", 0),
+        sb.from("feedback").select("id", { count: "exact", head: true }).eq("estado", 1)
+      ]);
+
+      $("pendingCount").textContent = String(pendingRes.count || 0);
+      $("reviewedCount").textContent = String(reviewedRes.count || 0);
+    }
+
+    function bodyPreviewHtml(row){
+      const body = String(row.body || "");
+      const isLong = body.length > 180;
+      const short = isLong ? `${body.slice(0, 180).trimEnd()}...` : body;
+
+      return `
+        <div class="bodyPreview" data-feedback-id="${escapeAttr(row.id)}" data-expanded="0">
+          <span class="bodyText">${escapeHtml(short || "-")}</span>
+          ${isLong ? `<button class="inlineBtn btnToggleBody" data-feedback-id="${escapeAttr(row.id)}" type="button">Mas</button>` : ""}
+        </div>
+      `;
+    }
+
+    function renderRows(rows){
+      const tbody = $("feedbackTableBody");
+      if (!tbody) return;
+
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="4" class="empty">No hay feedback en este estado.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((row) => `
+        <tr>
+          <td class="authorCol">${escapeHtml(authorLabel(row.autor))}</td>
+          <td class="bodyCol">${bodyPreviewHtml(row)}</td>
+          <td class="dateCol">${escapeHtml(formatDateTime(row.created_at))}</td>
+          <td class="actionCol">
+            <button class="rowBtn btnToggleStatus" data-feedback-id="${escapeAttr(row.id)}" data-next-state="${currentFilter === 0 ? "1" : "0"}" type="button">
+              ${currentFilter === 0 ? "Revisado" : "Sin revisar"}
+            </button>
+          </td>
+        </tr>
+      `).join("");
+
+      for (const btn of tbody.querySelectorAll(".btnToggleBody")){
+        btn.addEventListener("click", () => {
+          const feedbackId = btn.getAttribute("data-feedback-id");
+          const root = tbody.querySelector(`.bodyPreview[data-feedback-id="${feedbackId}"]`);
+          const row = currentRows.find((item) => String(item.id) === String(feedbackId));
+          if (!root) return;
+          if (!row) return;
+          const expanded = root.getAttribute("data-expanded") === "1";
+          const text = root.querySelector(".bodyText");
+          const full = String(row.body || "");
+          const short = full.length > 180 ? `${full.slice(0, 180).trimEnd()}...` : full;
+          if (!text) return;
+          text.textContent = expanded ? short : full;
+          root.setAttribute("data-expanded", expanded ? "0" : "1");
+          btn.textContent = expanded ? "Mas" : "Menos";
+        });
+      }
+
+      for (const btn of tbody.querySelectorAll(".btnToggleStatus")){
+        btn.addEventListener("click", async () => {
+          const feedbackId = btn.getAttribute("data-feedback-id");
+          const nextState = Number(btn.getAttribute("data-next-state") || "0");
+          await updateFeedbackStatus(feedbackId, nextState);
+        });
+      }
+    }
+
+    async function loadFeedback(status){
+      currentFilter = status;
+      $("btnShowPending").classList.toggle("active", status === 0);
+      $("btnShowReviewed").classList.toggle("active", status === 1);
+      $("toolbarHint").textContent = status === 0
+        ? "Mostrando feedback sin revisar."
+        : "Mostrando feedback revisado.";
+      showPageMsg("", "ok");
+
+      const tbody = $("feedbackTableBody");
+      if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="empty">Cargando feedback...</td></tr>`;
+
+      const { data, error } = await sb
+        .from("feedback")
+        .select("id,autor,body,created_at,estado")
+        .eq("estado", status)
+        .order("created_at", { ascending: false });
+
+      if (error){
+        console.error(error);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="empty">No pude cargar el feedback.</td></tr>`;
+        showPageMsg("No pude cargar el feedback: " + error.message, "err");
+        return;
+      }
+
+      currentRows = data || [];
+      await ensureAuthorLabels(currentRows.map((row) => row.autor));
+      renderRows(currentRows);
+      await loadCounts();
+    }
+
+    async function updateFeedbackStatus(feedbackId, nextState){
+      if (!feedbackId) return;
+
+      const { error } = await sb
+        .from("feedback")
+        .update({ estado: nextState })
+        .eq("id", feedbackId);
+
+      if (error){
+        console.error(error);
+        showPageMsg("No pude actualizar el feedback: " + error.message, "err");
+        return;
+      }
+
+      showPageMsg(nextState === 1 ? "Feedback marcado como revisado." : "Feedback marcado como sin revisar.", "ok");
+      await loadFeedback(currentFilter);
+    }
+
+    async function requireAdmin(){
+      const { data } = await sb.auth.getSession();
+      const user = data?.session?.user || null;
+      currentUser = user;
+      navController.setUser(user);
+      void window.BarateamApp.syncTopbarAvatar(sb, user);
+
+      if (!user){
+        location.href = "login.html";
+        return false;
+      }
+
+      const { data: profile, error } = await sb
+        .from("profiles")
+        .select("app_role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error){
+        console.error(error);
+      }
+
+      const isAdmin = profile?.app_role === "admin";
+      $("forbiddenCard").classList.toggle("hidden", isAdmin);
+      $("feedbackPanel").classList.toggle("hidden", !isAdmin);
+      if (!isAdmin){
+        return false;
+      }
+      return true;
+    }
+
+    $("btnShowPending").addEventListener("click", async () => {
+      await loadFeedback(0);
+    });
+
+    $("btnShowReviewed").addEventListener("click", async () => {
+      await loadFeedback(1);
+    });
+
+    (async function init(){
+      const allowed = await requireAdmin();
+      sb.auth.onAuthStateChange((_event, session) => {
+        currentUser = session?.user || null;
+        navController.setUser(currentUser);
+        void window.BarateamApp.syncTopbarAvatar(sb, currentUser);
+        if (!currentUser){
+          location.href = "login.html";
+        }
+      });
+      if (!allowed) return;
+      await loadCounts();
+      await loadFeedback(0);
+    })();
+  </script>
+</body>
+</html>

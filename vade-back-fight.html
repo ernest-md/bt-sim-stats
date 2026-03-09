@@ -360,9 +360,12 @@
       background-clip:padding-box;
     }
     .playerCard .smallWrap thead th{
-      background:rgba(255,255,255,.08);
+      background:var(--pc-surface);
       color:var(--pc-surface-ink);
       z-index:7;
+      box-shadow:
+        inset 0 -1px 0 rgba(255,255,255,.12),
+        0 1px 0 rgba(15,23,42,.28);
     }
     .playerCard .smallWrap td{
       color:var(--pc-surface-ink);

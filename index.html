@@ -307,6 +307,58 @@
       grid-template-columns: 1fr;
       gap: 8px;
     }
+    .commentComposer textarea,
+    .replyComposer textarea{
+      width:100%;
+      min-height:86px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+      padding: 10px 12px;
+      box-sizing: border-box;
+      resize: vertical;
+      font: inherit;
+    }
+    .commentThread{
+      display:grid;
+      gap:8px;
+    }
+    .commentActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .commentActionBtn{
+      border:0;
+      background:none;
+      padding:0;
+      font: inherit;
+      font-size:12px;
+      font-weight:800;
+      color:#0f172a;
+      cursor:pointer;
+      opacity:.78;
+    }
+    .commentActionBtn:hover{ opacity:1; }
+    .commentReplies{
+      display:none;
+      margin-left:18px;
+      padding-left:12px;
+      border-left: 2px solid rgba(15,23,42,.12);
+    }
+    .commentReplies.open{
+      display:grid;
+      gap:8px;
+    }
+    .replyComposer{
+      display:none;
+      gap:8px;
+      margin-top:8px;
+    }
+    .replyComposer.open{ display:grid; }
+    .replyItem{
+      background: rgba(248,250,252,.92);
+    }
 
     /* Editor (manual enable) */
     .editor{
@@ -366,6 +418,79 @@
     .btnDark:hover{
       background: rgba(15,23,42,.10);
       border-color: rgba(15,23,42,.14);
+    }
+    #postsMoreWrap{
+      margin-top: 14px;
+      display:none;
+      justify-content:center;
+    }
+    #btnLoadMorePosts{
+      border: 1px solid rgba(15,23,42,.12);
+      background: linear-gradient(180deg, rgba(15,23,42,.06), rgba(15,23,42,.10));
+      color:#0f172a;
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(15,23,42,.08);
+    }
+    #btnLoadMorePosts:hover{
+      background: linear-gradient(180deg, rgba(15,23,42,.10), rgba(15,23,42,.14));
+      border-color: rgba(15,23,42,.18);
+    }
+    #btnLoadMorePosts:disabled{
+      opacity:.6;
+      cursor: wait;
+      box-shadow:none;
+    }
+    .feedbackCard{
+      margin-top: 14px;
+      display:none;
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 10px 26px rgba(15,23,42,.10);
+    }
+    .feedbackBar{
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items:center;
+    }
+    .feedbackBar textarea{
+      min-height: 44px;
+      margin:0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.82);
+      font-size: 13px;
+    }
+    .feedbackMsg{
+      margin-top: 8px;
+    }
+    .feedbackCard .sectionTitle{
+      margin-bottom: 8px;
+      font-size: 11px;
+      letter-spacing: .7px;
+      opacity: .72;
+    }
+    .feedbackCard .sectionTitle::after{
+      background: linear-gradient(90deg, rgba(15,23,42,.14), transparent);
+    }
+    #btnSendFeedback{
+      padding: 9px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    @media (max-width: 760px){
+      .feedbackBar{
+        grid-template-columns: 1fr;
+      }
+      .feedbackBar .btn{
+        width:100%;
+        justify-content:center;
+      }
     }
 
     .msg{
@@ -1091,6 +1216,7 @@
         <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
         <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
         <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn" href="feedback.html" data-requires-auth="1" data-admin-only="1">&#128172; Feedback</a>
         <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
         <a class="btn" href="decks.html">&#127183; DeckLists</a>
         <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
@@ -1167,6 +1293,9 @@
         </div>
 
         <div id="postsList"></div>
+        <div id="postsMoreWrap">
+          <button class="btn" id="btnLoadMorePosts" type="button">Cargar mas antiguos</button>
+        </div>
       </div>
 
       <div class="card">
@@ -1177,7 +1306,16 @@
       </div>
     </div>
 
-    <div class="foot">Hecho con &#10084;&#65039; para el team · GitHub Pages</div>
+    <div class="card feedbackCard" id="feedbackCard">
+      <div class="sectionTitle">Feedback</div>
+      <div class="feedbackBar">
+        <textarea id="feedbackInput" placeholder="Escribe una sugerencia, bug o mejora para el hub..."></textarea>
+        <button class="btn btnDark" id="btnSendFeedback" type="button">Enviar feedback</button>
+      </div>
+      <div class="msg feedbackMsg" id="feedbackMsg"></div>
+    </div>
+
+    <div class="foot">Hecho con &#10084;&#65039; para la comunidad</div>
   </div>
 
   <script>
@@ -1241,6 +1379,37 @@
   let currentUser = null;
   const profileNameCache = new Map();
   const navProfileCache = new Map();
+  const POSTS_PAGE_SIZE = 3;
+  let visiblePosts = [];
+  let visiblePostsOffset = 0;
+  let hasMorePosts = true;
+  let loadingMorePosts = false;
+
+  function showFeedbackMsg(text, type){
+    const el = $("feedbackMsg");
+    if (!el) return;
+    if (!text){
+      el.className = "msg feedbackMsg";
+      el.style.display = "none";
+      el.textContent = "";
+      return;
+    }
+    el.textContent = text;
+    el.className = `msg feedbackMsg ${type === "ok" ? "ok" : "err"}`;
+    el.style.display = "block";
+  }
+
+  function renderFeedbackBar(){
+    const card = $("feedbackCard");
+    if (!card) return;
+    const visible = !!currentUser;
+    card.style.display = visible ? "block" : "none";
+    if (!visible){
+      const input = $("feedbackInput");
+      if (input) input.value = "";
+      showFeedbackMsg("", "ok");
+    }
+  }
 
   async function syncNavAvatar(user){
     const img = $("navAvatarImg");
@@ -1352,7 +1521,7 @@
 
     const [commentsRes, likesRes] = await Promise.all([
       sb.from("comments")
-        .select("id,created_at,autor,body,post")
+        .select("id,created_at,autor,body,post,parent_comment")
         .in("post", ids)
         .order("created_at", { ascending: false }),
       sb.from("likes")
@@ -1388,6 +1557,80 @@
     return { commentsByPost, likesByPost, likedPostIds };
   }
 
+  function buildCommentThreads(comments){
+    const roots = [];
+    const repliesByParent = new Map();
+
+    for (const comment of comments || []){
+      if (comment.parent_comment){
+        const key = String(comment.parent_comment);
+        if (!repliesByParent.has(key)) repliesByParent.set(key, []);
+        repliesByParent.get(key).push(comment);
+      } else {
+        roots.push(comment);
+      }
+    }
+
+    for (const replies of repliesByParent.values()){
+      replies.sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || "")));
+    }
+
+    return { roots, repliesByParent };
+  }
+
+  function renderRepliesHtml(postId, parentId, replies){
+    if (!replies.length) return "";
+    return replies.map(reply => {
+      const cDate = (reply.created_at || "").slice(0,16).replace("T", " ");
+      return `
+        <div class="commentItem replyItem">
+          <div class="commentHead">
+            <span class="commentUser">${profileLinkById(reply.autor, userLabelById(reply.autor))}</span>
+            <span>${escapeHtml(cDate || "-")}</span>
+          </div>
+          <p class="commentBody">${escapeHtml(reply.body || "")}</p>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderCommentThreadHtml(postId, comment, replies){
+    const cDate = (comment.created_at || "").slice(0,16).replace("T", " ");
+    const replyCount = replies.length;
+    const replyToggleHtml = replyCount
+      ? `<button class="commentActionBtn btnToggleReplies" data-post-id="${escapeAttr(postId)}" data-parent-id="${escapeAttr(comment.id)}" type="button">Respuestas (${replyCount})</button>`
+      : "";
+    const replyComposerHtml = currentUser
+      ? `
+        <div class="replyComposer" data-post-id="${escapeAttr(postId)}" data-parent-id="${escapeAttr(comment.id)}">
+          <textarea class="replyInput" data-post-id="${escapeAttr(postId)}" data-parent-id="${escapeAttr(comment.id)}" placeholder="Escribe una respuesta..."></textarea>
+          <div>
+            <button class="btn btnDark btnSendReply" data-post-id="${escapeAttr(postId)}" data-parent-id="${escapeAttr(comment.id)}" type="button">Responder</button>
+            <button class="btn btnCancelReply" data-post-id="${escapeAttr(postId)}" data-parent-id="${escapeAttr(comment.id)}" type="button">Cancelar</button>
+          </div>
+        </div>
+      `
+      : "";
+
+    return `
+      <div class="commentThread">
+        <div class="commentItem">
+          <div class="commentHead">
+            <span class="commentUser">${profileLinkById(comment.autor, userLabelById(comment.autor))}</span>
+            <span>${escapeHtml(cDate || "-")}</span>
+          </div>
+          <p class="commentBody">${escapeHtml(comment.body || "")}</p>
+          <div class="commentActions">
+            ${replyToggleHtml}
+            ${currentUser ? `<button class="commentActionBtn btnReplyComment" data-post-id="${escapeAttr(postId)}" data-parent-id="${escapeAttr(comment.id)}" type="button">Responder</button>` : ""}
+          </div>
+          ${replyComposerHtml}
+        </div>
+        ${replyCount ? `<div class="commentReplies" data-post-id="${escapeAttr(postId)}" data-parent-id="${escapeAttr(comment.id)}">${renderRepliesHtml(postId, comment.id, replies)}</div>` : ""}
+      </div>
+    `;
+  }
+
   function renderPosts(posts, social){
     const root = $("postsList");
     root.innerHTML = "";
@@ -1403,6 +1646,7 @@
       const title = p.title || "Sin titulo";
       const body = p.body || "";
       const comments = social.commentsByPost.get(p.id) || [];
+      const threads = buildCommentThreads(comments);
       const likes = social.likesByPost.get(p.id) || [];
       const likedByMe = social.likedPostIds.has(p.id);
 
@@ -1410,19 +1654,8 @@
         ? likes.map(l => `<div class="u">${profileLinkById(l.autor, userLabelById(l.autor))}</div>`).join("")
         : `<div class="u">Sin likes todavia.</div>`;
 
-      const commentsHtml = comments.length
-        ? comments.map(c => {
-            const cDate = (c.created_at || "").slice(0,16).replace("T", " ");
-            return `
-              <div class="commentItem">
-                <div class="commentHead">
-                  <span class="commentUser">${profileLinkById(c.autor, userLabelById(c.autor))}</span>
-                  <span>${escapeHtml(cDate || "-")}</span>
-                </div>
-                <p class="commentBody">${escapeHtml(c.body || "")}</p>
-              </div>
-            `;
-          }).join("")
+      const commentsHtml = threads.roots.length
+        ? threads.roots.map(c => renderCommentThreadHtml(p.id, c, threads.repliesByParent.get(String(c.id)) || [])).join("")
         : `<div class="muted">No hay comentarios.</div>`;
 
       const composerHtml = currentUser
@@ -1489,11 +1722,66 @@
         await submitPostComment(postId);
       });
     }
+
+    for (const btn of root.querySelectorAll(".btnToggleReplies")){
+      btn.addEventListener("click", () => {
+        const postId = btn.getAttribute("data-post-id");
+        const parentId = btn.getAttribute("data-parent-id");
+        const panel = root.querySelector(`.commentReplies[data-post-id="${postId}"][data-parent-id="${parentId}"]`);
+        if (!panel) return;
+        const open = panel.classList.toggle("open");
+        const count = panel.children.length;
+        btn.textContent = `${open ? "Ocultar respuestas" : "Respuestas"} (${count})`;
+      });
+    }
+
+    for (const btn of root.querySelectorAll(".btnReplyComment")){
+      btn.addEventListener("click", () => {
+        const postId = btn.getAttribute("data-post-id");
+        const parentId = btn.getAttribute("data-parent-id");
+        const composer = root.querySelector(`.replyComposer[data-post-id="${postId}"][data-parent-id="${parentId}"]`);
+        if (!composer) return;
+        composer.classList.toggle("open");
+        if (composer.classList.contains("open")){
+          composer.querySelector(".replyInput")?.focus();
+        }
+      });
+    }
+
+    for (const btn of root.querySelectorAll(".btnCancelReply")){
+      btn.addEventListener("click", () => {
+        const postId = btn.getAttribute("data-post-id");
+        const parentId = btn.getAttribute("data-parent-id");
+        const composer = root.querySelector(`.replyComposer[data-post-id="${postId}"][data-parent-id="${parentId}"]`);
+        const input = root.querySelector(`.replyInput[data-post-id="${postId}"][data-parent-id="${parentId}"]`);
+        if (input) input.value = "";
+        composer?.classList.remove("open");
+      });
+    }
+
+    for (const btn of root.querySelectorAll(".btnSendReply")){
+      btn.addEventListener("click", async () => {
+        const postId = btn.getAttribute("data-post-id");
+        const parentId = btn.getAttribute("data-parent-id");
+        await submitPostComment(postId, parentId);
+      });
+    }
   }
 
-  async function fetchPosts(){
+  function updateLoadMorePostsUI(){
+    const wrap = $("postsMoreWrap");
+    const btn = $("btnLoadMorePosts");
+    if (!wrap || !btn) return;
+
+    const shouldShow = visiblePosts.length > 0 && hasMorePosts;
+    wrap.style.display = shouldShow ? "flex" : "none";
+    btn.disabled = loadingMorePosts;
+    btn.textContent = loadingMorePosts ? "Cargando..." : "Cargar mas antiguos";
+  }
+
+  async function fetchPostsPage(offset = 0, limit = POSTS_PAGE_SIZE){
     if (USE_MOCK){
-      return [
+      const sample = [
         {
           id: 1,
           title: "Nuevo hub con login",
@@ -1503,13 +1791,14 @@
           created_at: new Date().toISOString()
         },
       ];
+      return sample.slice(offset, offset + limit);
     }
 
     const { data, error } = await sb
       .from("posts")
       .select("id,title,tag,body,image_url,created_at")
       .order("created_at", { ascending:false })
-      .limit(30);
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.warn("posts:", error.message);
@@ -1518,10 +1807,37 @@
     return data || [];
   }
 
+  async function loadMorePosts({ reset = false } = {}){
+    if (loadingMorePosts) return;
+    loadingMorePosts = true;
+    updateLoadMorePostsUI();
+
+    try{
+      if (reset){
+        visiblePosts = [];
+        visiblePostsOffset = 0;
+        hasMorePosts = true;
+      }
+
+      const nextPosts = await fetchPostsPage(visiblePostsOffset, POSTS_PAGE_SIZE);
+      if (reset){
+        visiblePosts = nextPosts;
+      } else {
+        visiblePosts = visiblePosts.concat(nextPosts);
+      }
+      visiblePostsOffset += nextPosts.length;
+      hasMorePosts = nextPosts.length === POSTS_PAGE_SIZE;
+
+      const social = await fetchPostSocial(visiblePosts.map(p => p.id));
+      renderPosts(visiblePosts, social);
+    } finally {
+      loadingMorePosts = false;
+      updateLoadMorePostsUI();
+    }
+  }
+
   async function refreshPostsSection(){
-    const posts = await fetchPosts();
-    const social = await fetchPostSocial(posts.map(p => p.id));
-    renderPosts(posts, social);
+    await loadMorePosts({ reset: true });
   }
 
   function parseMatchWin(result){
@@ -2193,18 +2509,21 @@
     await refreshPostsSection();
   }
 
-  async function submitPostComment(postId){
+  async function submitPostComment(postId, parentCommentId = null){
     if (!currentUser) return showPostMsg("Inicia sesion para comentar.", "err");
     if (!postId) return;
 
-    const input = document.querySelector(`.commentInput[data-post-id="${postId}"]`);
+    const input = parentCommentId
+      ? document.querySelector(`.replyInput[data-post-id="${postId}"][data-parent-id="${parentCommentId}"]`)
+      : document.querySelector(`.commentInput[data-post-id="${postId}"]`);
     const body = input?.value?.trim() || "";
     if (!body) return showPostMsg("Escribe un comentario.", "err");
 
     const { error } = await sb.from("comments").insert({
       autor: currentUser.id,
       post: postId,
-      body
+      body,
+      parent_comment: parentCommentId || null
     });
 
     if (error) return showPostMsg("No pude guardar el comentario: " + error.message, "err");
@@ -2280,6 +2599,41 @@
 
   $("btnPublish")?.addEventListener("click", async () => {
     await publishPost();
+  });
+
+  $("btnLoadMorePosts")?.addEventListener("click", async () => {
+    await loadMorePosts();
+  });
+
+  async function submitFeedback(){
+    if (!currentUser) return;
+
+    const input = $("feedbackInput");
+    const btn = $("btnSendFeedback");
+    const body = input?.value?.trim() || "";
+    if (!body) return showFeedbackMsg("Escribe algun feedback.", "err");
+
+    try{
+      if (btn) btn.disabled = true;
+      const { error } = await sb.from("feedback").insert({
+        autor: currentUser.id,
+        body,
+        estado: 0
+      });
+      if (error) throw error;
+
+      if (input) input.value = "";
+      showFeedbackMsg("Feedback enviado. Gracias.", "ok");
+    }catch(e){
+      console.error(e);
+      showFeedbackMsg("No pude guardar el feedback: " + (e.message || "unknown"), "err");
+    }finally{
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  $("btnSendFeedback")?.addEventListener("click", async () => {
+    await submitFeedback();
   });
 
   async function createEvent(){
@@ -2542,6 +2896,7 @@
 
   async function refreshHome(){
     await refreshSession();
+    renderFeedbackBar();
 
     try{
       await refreshPostsSection();
@@ -2578,6 +2933,7 @@
       currentUser = session?.user || null;
       window.__barateamCurrentUser = currentUser;
       setNavAuthUI(currentUser);
+      renderFeedbackBar();
 
       if (first) return;           // evita el doble disparo inicial
       await refreshPostsSection();
