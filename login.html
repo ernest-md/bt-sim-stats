@@ -225,6 +225,32 @@
       align-items:center;
       margin-top: 10px;
     }
+    .recoverRow{
+      margin-top: 8px;
+      display:flex;
+      justify-content:flex-end;
+    }
+    .linkBtn{
+      appearance:none;
+      border:1px solid rgba(15,23,42,.16);
+      border-radius:12px;
+      background: rgba(255,255,255,.92);
+      color:#0f172a;
+      font-weight:900;
+      font-size:13px;
+      padding:9px 12px;
+      cursor:pointer;
+      text-decoration:none;
+      box-shadow: 0 6px 16px rgba(15,23,42,.08);
+      transition: background .16s ease, border-color .16s ease, transform .08s ease;
+    }
+    .linkBtn:hover{
+      background: rgba(255,255,255,1);
+      border-color: rgba(15,23,42,.28);
+    }
+    .linkBtn:active{
+      transform: translateY(1px);
+    }
     .panel .row .btn{
       color:#0f172a;
       border: 1px solid rgba(15,23,42,.16);
@@ -383,6 +409,9 @@
         <button class="btn primary signupOnly" id="btnSignupConfirm" onclick="doSignup()">Confirmar registro</button>
         <button class="btn signupOnly" id="btnSignupCancel" onclick="cancelSignup()">Cancelar</button>
       </div>
+      <div class="recoverRow">
+        <button class="linkBtn" id="btnForgotPassword" type="button" onclick="doForgotPassword()">He olvidado mi contrasena</button>
+      </div>
 
       <div id="msg" class="msg"></div>
 
@@ -435,6 +464,7 @@
       panelEl.classList.toggle("is-signup", isSignupMode);
       $("btnLogin").style.display = isSignupMode ? "none" : "";
       $("btnSignup").style.display = isSignupMode ? "none" : "";
+      $("btnForgotPassword").style.display = isSignupMode ? "none" : "";
       heroTitleEl.textContent = isSignupMode ? "Crear cuenta" : "Login";
       heroSubtitleEl.textContent = isSignupMode
         ? "Completa correo, usuario, contrasena y equipo."
@@ -683,6 +713,20 @@
       }catch(e){
         console.error(e);
         showMsg("Error: " + (e.message || "login"), "err");
+      }
+    };
+
+    window.doForgotPassword = async function doForgotPassword(){
+      const email = $("email").value.trim();
+      if (!email) return showMsg("Escribe tu email para recuperar la contrasena.", "err");
+      try{
+        const redirectTo = `${window.location.href.replace(/[^/]*$/, "")}reset-password.html`;
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        showMsg("Te hemos enviado un correo para restablecer la contrasena.", "ok");
+      }catch(e){
+        console.error(e);
+        showMsg("Error al enviar recuperacion: " + (e.message || "reset"), "err");
       }
     };
 
