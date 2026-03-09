@@ -3,6 +3,7 @@
 
   const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
+  const VDBF_ALLOWED_USERS = new Set(["estereo", "coquito"]);
 
   function createClient(options){
     if (!window.supabase || typeof window.supabase.createClient !== "function"){
@@ -150,6 +151,59 @@
     }
   }
 
+  function normalizeHandle(value){
+    return String(value || "").trim().toLowerCase();
+  }
+
+  async function applyRestrictedNavVisibility(sb){
+    const restrictedLinks = Array.from(document.querySelectorAll('a[data-vdbf-only="1"]'));
+    if (!restrictedLinks.length) return;
+
+    restrictedLinks.forEach((a) => {
+      a.style.display = "none";
+    });
+
+    if (!sb) return;
+
+    try{
+      const user = await getSessionUser(sb);
+      if (!user) return;
+
+      const handles = new Set();
+      const emailHandle = normalizeHandle((user.email || "").split("@")[0]);
+      if (emailHandle) handles.add(emailHandle);
+
+      const meta = user.user_metadata || {};
+      ["username", "display_name", "name", "nickname"].forEach((key) => {
+        const v = normalizeHandle(meta[key]);
+        if (v) handles.add(v);
+      });
+
+      if (user.id){
+        const { data } = await sb
+          .from("profiles")
+          .select("username,display_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (data){
+          const username = normalizeHandle(data.username);
+          const displayName = normalizeHandle(data.display_name);
+          if (username) handles.add(username);
+          if (displayName) handles.add(displayName);
+        }
+      }
+
+      const allowed = Array.from(handles).some((h) => VDBF_ALLOWED_USERS.has(h));
+      if (!allowed) return;
+
+      restrictedLinks.forEach((a) => {
+        a.style.display = "inline-flex";
+      });
+    } catch (_err){
+      // Si falla cualquier check, por defecto permanece oculto.
+    }
+  }
+
   function bindProtectedNavLinks(sb, options){
     if (!sb) return;
     const selector = options?.selector || 'a[data-requires-auth="1"]';
@@ -158,6 +212,14 @@
       a.dataset.authBound = "1";
       a.addEventListener("click", (e) => protectedNavClick(e, sb, options));
     });
+
+    void applyRestrictedNavVisibility(sb);
+    if (!window.__barateamVdbfAuthBound && sb.auth && typeof sb.auth.onAuthStateChange === "function"){
+      window.__barateamVdbfAuthBound = true;
+      sb.auth.onAuthStateChange(() => {
+        void applyRestrictedNavVisibility(sb);
+      });
+    }
   }
 
   function setTopbarDate(target, options){
@@ -392,6 +454,7 @@
     eventDate,
     leaderLabel,
     getSessionUser,
+    applyRestrictedNavVisibility,
     bindProtectedNavLinks,
     initMobileTopbarToggle,
     setTopbarDate,
