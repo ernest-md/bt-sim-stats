@@ -1,0 +1,1104 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>VADE BACK FIGHT - Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.92);
+      --line:rgba(15,23,42,.12);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --accent:#0ea5e9;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      z-index:-1;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      display:block;
+      text-align:center;
+      padding-left:4px;
+      font-weight:700;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+    .hero{
+      border-radius:24px;
+      padding:18px 16px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow:0 18px 50px rgba(0,0,0,.28);
+    }
+    .hero h1{ margin:0; font-size:26px; font-weight:1000; }
+    .hero p{ margin:8px 0 0; color:rgba(255,255,255,.86); font-size:13px; }
+    .heroStats{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(130px,1fr));
+      gap:10px;
+    }
+    .stat{
+      border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:8px 10px;
+    }
+    .stat b{
+      display:block;
+      font-size:18px;
+      font-weight:1000;
+      color:#fff;
+    }
+    .stat span{
+      color:rgba(255,255,255,.85);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(0,1.7fr) minmax(290px,.95fr);
+      gap:14px;
+      align-items:start;
+    }
+    .card{
+      margin-top:14px;
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .card h2,.card h3{
+      margin:0 0 10px;
+      color:#0f172a;
+      letter-spacing:.2px;
+    }
+    .toolbar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .toolbar .muted{ margin-left:auto; }
+    .btn2{
+      border:none;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.9));
+      color:#fff;
+    }
+    .btnGhost{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:9px 13px;
+      font-weight:800;
+      background:#fff;
+      color:var(--ink);
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+    }
+    .search{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-left:auto;
+    }
+    .search input{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:9px 10px;
+      min-width:220px;
+      background:#fff;
+      font:inherit;
+    }
+    .search button{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:9px 10px;
+      background:#fff;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .tableWrap{
+      border:1px solid var(--line);
+      border-radius:16px;
+      overflow-y:auto;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      touch-action:pan-y;
+      background:rgba(255,255,255,.75);
+      max-height:65vh;
+    }
+    .tableWrap tbody tr{
+      transition: background-color .12s ease;
+    }
+    .tableWrap tbody tr:hover{
+      background:rgba(14,165,233,.16) !important;
+      outline:1px solid rgba(14,165,233,.32);
+    }
+    table{ width:100%; border-collapse:collapse; min-width:640px; }
+    th, td{
+      padding:9px 10px;
+      border-bottom:1px solid rgba(15,23,42,.08);
+      font-size:13px;
+      text-align:center;
+      white-space:nowrap;
+    }
+    thead tr.headRow th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:#d7e3ef;
+      font-size:12px;
+      letter-spacing:.4px;
+      font-weight:900;
+    }
+    td.left, th.left{ text-align:left; }
+    .rank{
+      width:52px;
+      color:#0f172a;
+      font-weight:1000;
+    }
+    .nameCol{
+      min-width:150px;
+      font-weight:900;
+    }
+    .tierTag{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.3px;
+      border:1px solid transparent;
+    }
+    .tier-pirate-king{ background:#111827; color:#facc15; border-color:#facc15; }
+    .tier-yonkou{ background:#ef4444; color:#111827; border-color:#991b1b; }
+    .tier-shichibukai{ background:#fdba74; color:#111827; border-color:#c2410c; }
+    .tier-supernova{ background:#fde68a; color:#111827; border-color:#a16207; }
+    .tier-piratilla{ background:#f3f4f6; color:#111827; border-color:#94a3b8; }
+    .metric{ font-weight:800; }
+    .rowAlt{ background:rgba(99,102,241,.05); }
+    .selectedRow{
+      background:rgba(14,165,233,.12) !important;
+      outline:1px solid rgba(14,165,233,.42);
+    }
+    .empty{
+      color:#64748b;
+      text-align:center;
+      padding:20px;
+      font-size:13px;
+    }
+    .sideCol{
+      display:flex;
+      flex-direction:column;
+      gap:0;
+    }
+    .playerCard{
+      --pc-card-bg:#f3f4f6;
+      --pc-card-border:rgba(148,163,184,.45);
+      --pc-ink:#0f172a;
+      --pc-muted:#475569;
+      --pc-border:rgba(250,204,21,.45);
+      --pc-surface:#0b1730;
+      --pc-surface-ink:#f8fafc;
+      --pc-surface-muted:#e2e8f0;
+      --pc-chip-bg:rgba(15,23,42,.08);
+      --pc-chip-border:rgba(15,23,42,.2);
+      --pc-chip-ink:#0f172a;
+      --pc-win-bg:rgba(250,204,21,.2);
+      --pc-win-badge-bg:rgba(250,204,21,.24);
+      --pc-win-badge-border:rgba(202,138,4,.5);
+      --pc-win-badge-ink:#fef08a;
+      background:var(--pc-card-bg);
+      border-color:var(--pc-card-border);
+    }
+    .playerCard h3{
+      color:var(--pc-ink);
+      text-align:center;
+    }
+    .playerSummaryTitle{
+      margin:2px 0 14px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:2px;
+      line-height:1.1;
+    }
+    .playerSummaryTitle .name{
+      font-size:33px;
+      font-weight:1000;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      max-width:100%;
+      overflow-wrap:anywhere;
+      text-align:center;
+    }
+    .playerSummaryTitle .berries{
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.9px;
+      opacity:.9;
+    }
+    .playerCard .empty{
+      color:var(--pc-muted);
+    }
+    .summaryGrid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+      margin:8px 0 10px;
+    }
+    .summaryItem{
+      border:1px solid var(--pc-border);
+      border-radius:10px;
+      padding:8px;
+      background:var(--pc-surface);
+    }
+    .summaryItem b{
+      display:block;
+      color:var(--pc-surface-ink);
+      font-size:15px;
+      font-weight:1000;
+    }
+    .summaryItem span{
+      color:var(--pc-surface-muted);
+      font-size:12px;
+      font-weight:700;
+    }
+    .chips{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .chip{
+      border:1px solid var(--pc-chip-border);
+      border-radius:999px;
+      background:var(--pc-chip-bg);
+      color:var(--pc-chip-ink);
+      font-size:11px;
+      font-weight:900;
+      padding:4px 8px;
+    }
+    .smallWrap{
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:auto;
+      background:#fff;
+      max-height:220px;
+      scrollbar-gutter:stable;
+      overflow-y:auto;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      touch-action:pan-y;
+    }
+    .playerCard .smallWrap{
+      border-color:var(--pc-border);
+      background:var(--pc-surface);
+    }
+    .smallWrap table{
+      min-width:0;
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+    }
+    .smallWrap th,.smallWrap td{ padding:7px 8px; font-size:12px; }
+    .smallWrap thead th{
+      background:#eff6ff;
+      position:sticky;
+      top:0;
+      z-index:6;
+      line-height:1.25;
+      box-shadow:inset 0 -1px 0 rgba(255,255,255,.12);
+      background-clip:padding-box;
+    }
+    .playerCard .smallWrap thead th{
+      background:rgba(255,255,255,.08);
+      color:var(--pc-surface-ink);
+      z-index:7;
+    }
+    .playerCard .smallWrap td{
+      color:var(--pc-surface-ink);
+    }
+    .playerCard .smallWrap th:last-child,
+    .playerCard .smallWrap td:last-child{
+      padding-right:18px;
+    }
+    .podium-gold td{
+      background:linear-gradient(135deg, #f5e6c5, #e6d8b6);
+      color:#111827;
+      font-weight:1000;
+    }
+    .podium-silver td{
+      background:linear-gradient(135deg, #d9dde3, #c4cbd4);
+      color:#111827;
+      font-weight:1000;
+    }
+    .podium-bronze td{
+      background:linear-gradient(135deg, #e8d8c8, #d9c7b4);
+      color:#111827;
+      font-weight:1000;
+    }
+    .wonRow{
+      background:var(--pc-win-bg);
+      font-weight:900;
+    }
+    .winBadge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:1000;
+      letter-spacing:.3px;
+      padding:3px 7px;
+      background:var(--pc-win-badge-bg);
+      color:var(--pc-win-badge-ink);
+      border:1px solid var(--pc-win-badge-border);
+    }
+    .playerCard.theme-pirate-king{
+      --pc-card-bg:#111827;
+      --pc-card-border:rgba(250,204,21,.45);
+      --pc-ink:#facc15;
+      --pc-muted:#fde68a;
+      --pc-border:rgba(250,204,21,.45);
+      --pc-surface:#111827;
+      --pc-surface-ink:#fde047;
+      --pc-surface-muted:#fde68a;
+      --pc-chip-bg:rgba(250,204,21,.2);
+      --pc-chip-border:rgba(202,138,4,.45);
+      --pc-chip-ink:#fef08a;
+      --pc-win-bg:rgba(250,204,21,.20);
+      --pc-win-badge-bg:rgba(250,204,21,.24);
+      --pc-win-badge-border:rgba(202,138,4,.5);
+      --pc-win-badge-ink:#fef08a;
+    }
+    .playerCard.theme-yonkou{
+      --pc-card-bg:#ef4444;
+      --pc-card-border:rgba(17,24,39,.45);
+      --pc-ink:#111827;
+      --pc-muted:#1f2937;
+      --pc-border:rgba(17,24,39,.45);
+      --pc-surface:#111827;
+      --pc-surface-ink:#f87171;
+      --pc-surface-muted:#fecaca;
+      --pc-chip-bg:rgba(17,24,39,.14);
+      --pc-chip-border:rgba(17,24,39,.32);
+      --pc-chip-ink:#111827;
+      --pc-win-bg:rgba(127,29,29,.35);
+      --pc-win-badge-bg:rgba(127,29,29,.42);
+      --pc-win-badge-border:rgba(239,68,68,.55);
+      --pc-win-badge-ink:#fecaca;
+    }
+    .playerCard.theme-shichibukai{
+      --pc-card-bg:#fdba74;
+      --pc-card-border:rgba(124,45,18,.3);
+      --pc-ink:#7c2d12;
+      --pc-muted:#7c2d12;
+      --pc-border:rgba(194,65,12,.3);
+      --pc-surface:#0b1730;
+      --pc-surface-ink:#fdba74;
+      --pc-surface-muted:#fed7aa;
+      --pc-chip-bg:rgba(124,45,18,.12);
+      --pc-chip-border:rgba(194,65,12,.32);
+      --pc-chip-ink:#7c2d12;
+      --pc-win-bg:rgba(251,146,60,.16);
+      --pc-win-badge-bg:#9a3412;
+      --pc-win-badge-border:#fdba74;
+      --pc-win-badge-ink:#ffedd5;
+    }
+    .playerCard.theme-supernova{
+      --pc-card-bg:#fde68a;
+      --pc-card-border:rgba(161,98,7,.32);
+      --pc-ink:#713f12;
+      --pc-muted:#854d0e;
+      --pc-border:rgba(161,98,7,.26);
+      --pc-surface:#0b1730;
+      --pc-surface-ink:#fde68a;
+      --pc-surface-muted:#fef08a;
+      --pc-chip-bg:rgba(161,98,7,.12);
+      --pc-chip-border:rgba(161,98,7,.28);
+      --pc-chip-ink:#854d0e;
+      --pc-win-bg:rgba(234,179,8,.18);
+      --pc-win-badge-bg:#a16207;
+      --pc-win-badge-border:#facc15;
+      --pc-win-badge-ink:#fef9c3;
+    }
+    .error{
+      margin-top:10px;
+      color:#991b1b;
+      border:1px solid rgba(239,68,68,.3);
+      background:rgba(239,68,68,.12);
+      border-radius:10px;
+      padding:8px 10px;
+      display:none;
+    }
+    @media (max-width:1060px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+      .search{
+        margin-left:0;
+        width:100%;
+      }
+      .search input{ flex:1; min-width:0; }
+    }
+    @media (max-width:760px){
+      .wrap, .layout, .card, .sideCol{
+        min-width:0;
+      }
+      .hero h1{ font-size:22px; }
+      .toolbar .muted{ margin-left:0; width:100%; order:3; }
+      .heroStats{
+        grid-template-columns:1fr;
+      }
+      .card{
+        padding:12px;
+        border-radius:18px;
+      }
+      .toolbar{
+        gap:8px;
+      }
+      .btn2, .btnGhost{
+        width:100%;
+        justify-content:center;
+      }
+      .search{
+        width:100%;
+      }
+      .search input{
+        min-width:0;
+        flex:1;
+      }
+      .search button{
+        flex:0 0 auto;
+      }
+      .summaryGrid{
+        grid-template-columns:1fr;
+      }
+      .playerSummaryTitle .name{
+        font-size:26px;
+      }
+      .playerSummaryTitle .berries{
+        font-size:12px;
+      }
+      .tableWrap{
+        max-height:58vh;
+      }
+      .tableWrap table{
+        min-width:0;
+        width:100%;
+      }
+      .tableWrap th, .tableWrap td{
+        font-size:11px;
+        padding:7px 6px;
+      }
+      .tableWrap thead th:nth-child(1),
+      .tableWrap tbody td:nth-child(1),
+      .tableWrap thead th:nth-child(7),
+      .tableWrap tbody td:nth-child(7),
+      .tableWrap thead th:nth-child(8),
+      .tableWrap tbody td:nth-child(8){
+        display:none;
+      }
+      .smallWrap{
+        max-height:190px;
+      }
+      .sideCol .smallWrap table,
+      #playerSummary .smallWrap table{
+        min-width:0;
+        width:100%;
+      }
+      .smallWrap th, .smallWrap td{
+        font-size:11px;
+        padding:6px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>vade</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn primary active" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>VADE BACK FIGHT - OP14</h1>
+      <p>Datos en tiempo real desde Google Sheets (solo lectura).</p>
+      <div class="heroStats">
+        <div class="stat"><b id="statPlayers">-</b><span>Jugadores</span></div>
+        <div class="stat"><b id="statEvents">-</b><span>Torneos detectados</span></div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <div class="toolbar">
+          <button id="btnReload" class="btn2" type="button">Recargar hoja</button>
+          <a class="btnGhost" id="openSheet" target="_blank" rel="noreferrer noopener">Abrir Google Sheet</a>
+          <div class="search">
+            <input id="playerSearch" type="search" list="playersList" placeholder="Buscar jugador..." autocomplete="off" />
+            <datalist id="playersList"></datalist>
+            <button id="btnClearSearch" type="button">Limpiar</button>
+          </div>
+          <span class="muted" id="status">Cargando...</span>
+        </div>
+
+        <div class="tableWrap">
+          <table>
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div id="error" class="error"></div>
+      </div>
+
+      <div class="sideCol">
+        <div class="card">
+          <h3>Top 3 por victorias</h3>
+          <div class="smallWrap">
+            <table>
+              <thead><tr><th>#</th><th class="left">Jugador</th><th>Victorias</th><th>Jugados</th></tr></thead>
+              <tbody id="topWinsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Top 3 por torneos jugados</h3>
+          <div class="smallWrap">
+            <table>
+              <thead><tr><th>#</th><th class="left">Jugador</th><th>Jugados</th><th>Puntos</th></tr></thead>
+              <tbody id="topPlayedBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card playerCard" id="playerCard">
+          <h3 id="playerSummaryTitle">Ficha de jugador</h3>
+          <div id="playerSummary" class="empty">Selecciona un jugador para ver su resumen.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_ID = "1bRu9xDWAO8vBLF2GkzmsGL2M4P3AqczkDCXl6t-coFo";
+    const SHEET_NAME = "OP14";
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing`;
+
+    const thead = document.getElementById("thead");
+    const tbody = document.getElementById("tbody");
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const playerSearchEl = document.getElementById("playerSearch");
+    const playerSummaryEl = document.getElementById("playerSummary");
+    const playerSummaryTitleEl = document.getElementById("playerSummaryTitle");
+    const playerCardEl = document.getElementById("playerCard");
+    const playersListEl = document.getElementById("playersList");
+    const topWinsBodyEl = document.getElementById("topWinsBody");
+    const topPlayedBodyEl = document.getElementById("topPlayedBody");
+    const statPlayersEl = document.getElementById("statPlayers");
+    const statEventsEl = document.getElementById("statEvents");
+
+    document.getElementById("openSheet").href = SHEET_URL;
+    document.getElementById("btnReload").addEventListener("click", loadSheet);
+    document.getElementById("btnClearSearch").addEventListener("click", clearSelection);
+    playerSearchEl.addEventListener("change", () => selectPlayerByName(playerSearchEl.value));
+    playerSearchEl.addEventListener("input", () => {
+      if (!playerSearchEl.value.trim()) clearSelection();
+    });
+
+    let currentModel = null;
+    let selectedPlayerName = "";
+
+    function showError(msg){
+      errorEl.textContent = msg;
+      errorEl.style.display = "block";
+    }
+
+    function clearError(){
+      errorEl.style.display = "none";
+      errorEl.textContent = "";
+    }
+
+    function parseGviz(text){
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start < 0 || end <= start) throw new Error("Respuesta GViz invalida");
+      const json = JSON.parse(text.slice(start, end + 1));
+      const table = json?.table;
+      if (!table || !Array.isArray(table.cols) || !Array.isArray(table.rows)) {
+        throw new Error("Formato GViz inesperado");
+      }
+      const rows = table.rows.map((r) =>
+        (r?.c || []).map((cell) => {
+          const v = cell?.v;
+          if (v == null) return "";
+          if (typeof v === "string") return v.trim();
+          if (typeof v === "number") return v;
+          return String(v || "").trim();
+        })
+      );
+      return { rows };
+    }
+
+    function normalizeTable(rows){
+      let maxCols = 0;
+      for (const r of rows) maxCols = Math.max(maxCols, r.length);
+      const padded = rows.map((r) => {
+        const out = r.slice();
+        while (out.length < maxCols) out.push("");
+        return out;
+      });
+
+      const nonEmptyRows = padded.filter((r) => r.some((c) => String(c || "").trim() !== ""));
+      if (nonEmptyRows.length === 0) return [];
+
+      const keepCols = [];
+      for (let c = 0; c < maxCols; c++){
+        const hasValue = nonEmptyRows.some((r) => String(r[c] || "").trim() !== "");
+        if (hasValue) keepCols.push(c);
+      }
+      return nonEmptyRows.map((r) => keepCols.map((c) => String(r[c] || "").trim()));
+    }
+
+    function getNumber(v){
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+      const text = String(v || "").trim().replace(",", ".");
+      if (!text) return NaN;
+      const n = Number(text);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function serialDateToLabel(serial){
+      const n = Number(serial);
+      if (!Number.isFinite(n) || n < 30000) return String(serial || "");
+      const ms = Math.round((n - 25569) * 86400 * 1000);
+      const dt = new Date(ms);
+      const day = String(dt.getUTCDate());
+      const month = dt.toLocaleString("es-ES", { month: "short", timeZone: "UTC" }).replace(".", "");
+      return `${day}-${month}`;
+    }
+
+    function tierClass(tier){
+      const t = String(tier || "").trim().toLowerCase();
+      if (t === "pirate king") return "tier-pirate-king";
+      if (t === "yonkou") return "tier-yonkou";
+      if (t === "shichibukai") return "tier-shichibukai";
+      if (t === "supernova") return "tier-supernova";
+      if (t === "piratilla") return "tier-piratilla";
+      return "";
+    }
+
+    function escapeHtml(text){
+      return String(text || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function computeStreak(values){
+      let best = 0;
+      let current = 0;
+      for (const v of values){
+        if (Number.isFinite(v) && v > 0){
+          current += 1;
+          if (current > best) best = current;
+        } else {
+          current = 0;
+        }
+      }
+      return best;
+    }
+
+    function computeCurrentStreak(values){
+      let streak = 0;
+      for (let i = values.length - 1; i >= 0; i--){
+        const v = values[i];
+        if (Number.isFinite(v) && v > 0) streak += 1;
+        else break;
+      }
+      return streak;
+    }
+
+    function buildModel(payload){
+      const rows = normalizeTable(payload?.rows || []);
+      if (!rows.length) return null;
+
+      const headerRow = rows[0] || [];
+      const sourceRows = rows.slice(1).filter((r) => String(r[2] || "").trim() !== "");
+      if (!sourceRows.length) return null;
+
+      const eventIndexes = [];
+      const eventLabels = [];
+      for (let i = 3; i < headerRow.length; i++){
+        eventIndexes.push(i);
+        eventLabels.push(serialDateToLabel(headerRow[i]) || `T${i - 2}`);
+      }
+
+      const players = sourceRows.map((r) => {
+        const points = eventIndexes.map((idx) => {
+          const n = getNumber(r[idx]);
+          return Number.isFinite(n) ? n : null;
+        });
+        const berries = getNumber(r[1]);
+        return {
+          tier: String(r[0] || "").trim(),
+          berries: Number.isFinite(berries) ? berries : 0,
+          name: String(r[2] || "").trim(),
+          points
+        };
+      });
+
+      const eventMax = eventIndexes.map((_, eventPos) => {
+        let max = 0;
+        players.forEach((p) => {
+          const v = p.points[eventPos];
+          if (Number.isFinite(v) && v > max) max = v;
+        });
+        return max;
+      });
+
+      players.forEach((p) => {
+        let wins = 0;
+        let played = 0;
+        let totalPoints = 0;
+        p.points.forEach((v, i) => {
+          if (Number.isFinite(v) && v > 0){
+            played += 1;
+            totalPoints += v;
+            if (eventMax[i] > 0 && v === eventMax[i]) wins += 1;
+          }
+        });
+        p.wins = wins;
+        p.played = played;
+        p.totalPoints = totalPoints;
+        p.bestStreak = computeStreak(p.points);
+        p.currentStreak = computeCurrentStreak(p.points);
+      });
+
+      players.sort((a, b) => {
+        if (b.berries !== a.berries) return b.berries - a.berries;
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        return a.name.localeCompare(b.name, "es");
+      });
+      players.forEach((p, idx) => { p.rank = idx + 1; });
+
+      const totals = {
+        players: players.length,
+        events: eventIndexes.length
+      };
+
+      return { players, eventLabels, eventMax, totals };
+    }
+
+    function formatTierTag(tier){
+      const cls = tierClass(tier);
+      const text = escapeHtml(tier || "-");
+      return `<span class="tierTag ${cls}">${text}</span>`;
+    }
+
+    function renderRanking(model){
+      thead.innerHTML = `<tr class="headRow">
+        <th class="rank">#</th>
+        <th class="left">Jugador</th>
+        <th>Rango</th>
+        <th>Berries</th>
+        <th>Victorias</th>
+        <th>Jugados</th>
+        <th>Racha max</th>
+        <th>Racha actual</th>
+      </tr>`;
+
+      if (!model || !model.players.length){
+        tbody.innerHTML = `<tr><td class="empty" colspan="8">No hay datos para mostrar.</td></tr>`;
+        return;
+      }
+
+      const selected = selectedPlayerName.trim().toLowerCase();
+      const rows = model.players.map((p, idx) => {
+        const isSelected = selected && p.name.toLowerCase() === selected;
+        return `<tr class="${idx % 2 === 1 ? "rowAlt" : ""} ${isSelected ? "selectedRow" : ""}" data-player="${escapeHtml(p.name)}">
+          <td class="rank">${p.rank}</td>
+          <td class="left nameCol">${escapeHtml(p.name)}</td>
+          <td>${formatTierTag(p.tier)}</td>
+          <td class="metric">${Math.round(p.berries)}</td>
+          <td class="metric">${p.wins}</td>
+          <td class="metric">${p.played}</td>
+          <td class="metric">${p.bestStreak}</td>
+          <td class="metric">${p.currentStreak}</td>
+        </tr>`;
+      }).join("");
+      tbody.innerHTML = rows;
+
+      tbody.querySelectorAll("tr[data-player]").forEach((row) => {
+        row.addEventListener("click", () => {
+          const name = row.getAttribute("data-player") || "";
+          selectPlayerByName(name);
+        });
+      });
+    }
+
+    function renderPlayersList(model){
+      playersListEl.innerHTML = "";
+      if (!model) return;
+      model.players.forEach((p) => {
+        const option = document.createElement("option");
+        option.value = p.name;
+        playersListEl.appendChild(option);
+      });
+    }
+
+    function renderTopTables(model){
+      if (!model || !model.players.length){
+        topWinsBodyEl.innerHTML = `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
+        topPlayedBodyEl.innerHTML = `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
+        return;
+      }
+
+      const byWins = model.players
+        .slice()
+        .sort((a, b) => b.wins - a.wins || b.played - a.played || a.rank - b.rank)
+        .slice(0, 3);
+
+      const byPlayed = model.players
+        .slice()
+        .sort((a, b) => b.played - a.played || b.totalPoints - a.totalPoints || a.rank - b.rank)
+        .slice(0, 3);
+
+      topWinsBodyEl.innerHTML = byWins.map((p, i) =>
+        `<tr class="${i === 0 ? "podium-gold" : i === 1 ? "podium-silver" : "podium-bronze"}"><td>${i + 1}</td><td class="left">${escapeHtml(p.name)}</td><td>${p.wins}</td><td>${p.played}</td></tr>`
+      ).join("") || `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
+
+      topPlayedBodyEl.innerHTML = byPlayed.map((p, i) =>
+        `<tr class="${i === 0 ? "podium-gold" : i === 1 ? "podium-silver" : "podium-bronze"}"><td>${i + 1}</td><td class="left">${escapeHtml(p.name)}</td><td>${p.played}</td><td>${p.totalPoints}</td></tr>`
+      ).join("") || `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
+    }
+
+    function renderHeroStats(model){
+      if (!model){
+        statPlayersEl.textContent = "-";
+        statEventsEl.textContent = "-";
+        return;
+      }
+      statPlayersEl.textContent = String(model.totals.players);
+      statEventsEl.textContent = String(model.totals.events);
+    }
+
+    function renderPlayerSummary(model, player){
+      if (!model || !player){
+        playerSummaryTitleEl.textContent = "Ficha de jugador";
+        playerSummaryTitleEl.classList.remove("playerSummaryTitle");
+        playerCardEl.classList.remove("theme-pirate-king", "theme-yonkou", "theme-shichibukai", "theme-supernova");
+        playerSummaryEl.innerHTML = `<div class="empty">Selecciona un jugador para ver su resumen.</div>`;
+        return;
+      }
+
+      playerSummaryTitleEl.classList.add("playerSummaryTitle");
+      playerSummaryTitleEl.innerHTML = `<span class="name">${escapeHtml(player.name)}</span><span class="berries">${Math.round(player.berries)} BERRIES</span>`;
+      playerCardEl.classList.remove("theme-pirate-king", "theme-yonkou", "theme-shichibukai", "theme-supernova");
+      const tierKey = String(player.tier || "").trim().toLowerCase();
+      if (tierKey === "pirate king") playerCardEl.classList.add("theme-pirate-king");
+      else if (tierKey === "yonkou") playerCardEl.classList.add("theme-yonkou");
+      else if (tierKey === "shichibukai") playerCardEl.classList.add("theme-shichibukai");
+      else if (tierKey === "supernova") playerCardEl.classList.add("theme-supernova");
+      const playedEvents = [];
+      player.points.forEach((v, idx) => {
+        if (Number.isFinite(v) && v > 0){
+          const won = (model.eventMax[idx] || 0) > 0 && v === model.eventMax[idx];
+          playedEvents.push({ label: model.eventLabels[idx] || `T${idx + 1}`, score: v, won });
+        }
+      });
+
+      const allPlayedHtml = playedEvents.length
+        ? playedEvents.slice().reverse().map((e) =>
+          `<tr class="${e.won ? "wonRow" : ""}"><td class="left">${escapeHtml(e.label)}</td><td>${e.score}</td><td>${e.won ? '<span class="winBadge">GANADO</span>' : "-"}</td></tr>`
+        ).join("")
+        : `<tr><td colspan="3" class="empty">Sin torneos puntuados</td></tr>`;
+
+      playerSummaryEl.innerHTML = `
+        <div class="summaryGrid">
+          <div class="summaryItem"><b>${player.wins}</b><span>Torneos ganados</span></div>
+          <div class="summaryItem"><b>${player.played}</b><span>Torneos jugados</span></div>
+          <div class="summaryItem"><b>${player.bestStreak}</b><span>Racha maxima</span></div>
+          <div class="summaryItem"><b>${player.currentStreak}</b><span>Racha actual</span></div>
+        </div>
+        <div class="chips">
+          <span class="chip">#${player.rank} ranking</span>
+          <span class="chip">${escapeHtml(player.tier || "Sin tier")}</span>
+          <span class="chip">${player.totalPoints} puntos total</span>
+        </div>
+        <h3 style="margin-top:12px;">Todos los torneos jugados</h3>
+        <div class="smallWrap">
+          <table>
+            <thead><tr><th class="left">Torneo</th><th>Puntos</th><th>Resultado</th></tr></thead>
+            <tbody>${allPlayedHtml}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function selectPlayerByName(name){
+      if (!currentModel){
+        selectedPlayerName = "";
+        return;
+      }
+      const clean = String(name || "").trim();
+      if (!clean){
+        clearSelection();
+        return;
+      }
+      const player = currentModel.players.find((p) => p.name.toLowerCase() === clean.toLowerCase());
+      if (!player) return;
+      selectedPlayerName = player.name;
+      playerSearchEl.value = player.name;
+      renderRanking(currentModel);
+      renderPlayerSummary(currentModel, player);
+    }
+
+    function clearSelection(){
+      selectedPlayerName = "";
+      playerSearchEl.value = "";
+      if (currentModel){
+        renderRanking(currentModel);
+      }
+      renderPlayerSummary(currentModel, null);
+    }
+
+    function render(payload){
+      currentModel = buildModel(payload);
+      renderRanking(currentModel);
+      renderPlayersList(currentModel);
+      renderTopTables(currentModel);
+      renderHeroStats(currentModel);
+      renderPlayerSummary(currentModel, null);
+    }
+
+    async function loadSheet(){
+      clearError();
+      statusEl.textContent = `Cargando hoja ${SHEET_NAME}...`;
+      try{
+        const res = await fetch(GVIZ_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+        const gvizText = await res.text();
+        const parsed = parseGviz(gvizText);
+        selectedPlayerName = "";
+        playerSearchEl.value = "";
+        render(parsed);
+        const count = currentModel?.players?.length || 0;
+        statusEl.textContent = `${SHEET_NAME} cargado - ${count} jugadores`;
+      } catch (err){
+        statusEl.textContent = "Error cargando hoja";
+        showError(`No se pudo leer ${SHEET_NAME} desde Google Sheets: ${err?.message || "error desconocido"}`);
+      }
+    }
+
+    const sb = window.BarateamApp.createClient();
+    window.BarateamApp.bindProtectedNavLinks(sb);
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    (async function initNav(){
+      const { data } = await sb.auth.getSession();
+      navController.setUser(data?.session?.user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
+      sb.auth.onAuthStateChange((_event, session) => {
+        navController.setUser(session?.user || null);
+        void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
+      });
+      await loadSheet();
+    })();
+  </script>
+</body>
+</html>
