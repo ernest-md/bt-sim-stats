@@ -295,6 +295,47 @@
       border-color: rgba(239,68,68,.35);
       background: rgba(239,68,68,.10);
     }
+    .loadingOverlay{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(9, 14, 28, .55);
+      backdrop-filter: blur(4px);
+    }
+    .loadingBox{
+      min-width: 280px;
+      max-width: min(92vw, 520px);
+      border-radius: 18px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,.28);
+      background: linear-gradient(135deg, rgba(15,23,42,.95), rgba(30,64,175,.88));
+      color: #eef4ff;
+      box-shadow: 0 20px 44px rgba(0,0,0,.35);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .spinner{
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.28);
+      border-top-color: #fff;
+      animation: spin .8s linear infinite;
+      flex: 0 0 auto;
+    }
+    .loadingText{
+      font-size: 14px;
+      line-height: 1.3;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+    @keyframes spin{
+      to { transform: rotate(360deg); }
+    }
     .muted{
       color:#64748b;
       font-size: 12px;
@@ -360,6 +401,13 @@
         <div class="sep"></div>
         <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
       </div>
+    </div>
+  </div>
+
+  <div id="loadingOverlay" class="loadingOverlay" aria-live="polite" aria-busy="true">
+    <div class="loadingBox">
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="loadingText" class="loadingText">Iniciando sesion...</span>
     </div>
   </div>
 
@@ -430,6 +478,8 @@
     const panelEl = document.querySelector(".panel");
     const heroTitleEl = $("heroTitle");
     const heroSubtitleEl = $("heroSubtitle");
+    const loadingOverlay = $("loadingOverlay");
+    const loadingText = $("loadingText");
     const SIGNUP_TEAMS = new Set(["SIN EQUIPO", "BARATEAM", "LABOOMERS", "YONKOJOS", "CARDGUILD"]);
     let isSignupMode = false;
 
@@ -474,6 +524,13 @@
       if (!isSignupMode){
         $("password2").value = "";
       }
+    }
+
+    function setAuthLoading(on, text){
+      if (!loadingOverlay || !loadingText) return;
+      if (text) loadingText.textContent = text;
+      loadingOverlay.style.display = on ? "flex" : "none";
+      document.body.style.overflow = on ? "hidden" : "";
     }
 
     async function upsertProfile(userId, payload, opts = {}){
@@ -685,17 +742,20 @@
       if (!email || !password) return showMsg("Pon email y contrasena.", "err");
 
       try{
+        setAuthLoading(true, "Iniciando sesion...");
         const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
         let hasFinalMessage = false;
 
         if (data?.user){
+          setAuthLoading(true, "Recuperando perfil...");
           const seeded = await ensureProfileFromUserMetadata(data.user, { force: false });
           if (!seeded.ok){
             showMsg("Login OK, pero no se pudo completar el perfil inicial: " + seeded.message, "err");
             hasFinalMessage = true;
           }
 
+          setAuthLoading(true, "Recuperando partidas nuevas...");
           const autoSync = await maybeAutoLinkAndSyncForUser(data.user);
           if (!autoSync.ok){
             showMsg("Login OK, pero fallo la vinculacion/sync SIM: " + autoSync.message, "err");
@@ -714,6 +774,8 @@
       }catch(e){
         console.error(e);
         showMsg("Error: " + (e.message || "login"), "err");
+      } finally {
+        setAuthLoading(false);
       }
     };
 
