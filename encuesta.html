@@ -829,7 +829,10 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: (ctx) => ` ${ctx.parsed.y} votos`,
+                label: (ctx) => {
+                  const rawValue = isMobile ? ctx.parsed.x : ctx.parsed.y;
+                  return ` ${rawValue} votos`;
+                },
                 labelColor: (ctx) => {
                   const label = String(ctx.label || "");
                   const leader = findLeaderForLabel(label, leaders);
