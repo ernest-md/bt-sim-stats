@@ -278,13 +278,61 @@
     }
     @media (max-width:680px){
       .stats{ grid-template-columns:1fr; }
-      .chartBig{ height:320px; }
-      .chartMid{ height:300px; }
-      .chartSmall{ height:230px; }
+      .layout{
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+      }
+      .stack{
+        display:contents;
+      }
+      #pieMainPanel{ order:1; }
+      #mainBarPanel{ order:2; }
+      #pieSecondaryPanel{ order:3; }
+      #secondaryPanel{ order:4; }
+      .chartBig{ height:680px; }
+      .chartMid{ height:360px; }
+      .chartSmall{ height:560px; }
       .hero h1{ font-size:24px; }
       .question{ font-size:19px; }
       .topActions{ width:100%; margin-left:0; }
       .pill{ width:100%; text-align:center; }
+      .panel{
+        padding:16px 14px 14px;
+      }
+      .legendItem{
+        align-items:flex-start;
+        gap:10px;
+        padding:10px 12px;
+      }
+      .legendLabel{
+        align-items:flex-start;
+        gap:9px;
+      }
+      .legendText{
+        white-space:normal;
+        overflow:visible;
+        text-overflow:clip;
+        line-height:1.2;
+        font-size:14px;
+        display:-webkit-box;
+        -webkit-line-clamp:3;
+        -webkit-box-orient:vertical;
+        overflow-wrap:anywhere;
+      }
+      .legendVal{
+        font-size:16px;
+        min-width:44px;
+        padding:6px 8px;
+        text-align:center;
+      }
+      .stat .v.text{
+        white-space:normal;
+        overflow:visible;
+        text-overflow:clip;
+        font-size:14px;
+        line-height:1.25;
+      }
     }
   </style>
 </head>
@@ -321,7 +369,7 @@
 
     <section class="layout">
       <div class="stack">
-        <article class="panel">
+        <article class="panel" id="mainBarPanel">
           <h2 class="sectionTitle">Votacion general</h2>
           <h3 class="question" id="mainQuestion">Pregunta principal</h3>
           <p class="sub" id="mainSub">Distribucion por cantidad de votos.</p>
@@ -337,7 +385,7 @@
       </div>
 
       <div class="stack">
-        <article class="panel">
+        <article class="panel" id="pieMainPanel">
           <h2 class="sectionTitle">Predicción Meta</h2>
           <h3 class="question" id="pieQuestion">Distribucion principal</h3>
           <p class="sub" id="pieSub">Se ocultan mazos con 2 votos o menos.</p>
@@ -483,6 +531,11 @@
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, " ")
         .trim();
+    }
+    function shortAxisLabel(txt){
+      const label = String(txt || "").trim();
+      if (label.length <= 12) return label;
+      return `${label.slice(0, 10)}...`;
     }
 
     async function resolveLeaderImageUrl(raw){
@@ -723,6 +776,7 @@
       const c = $(canvasId);
       const leaders = await loadLeaders();
       const fills = labels.map((lab, i) => barFillForLabel(lab, leaders, colorFor(i), c));
+      const isMobile = window.innerWidth <= 680;
       const ch = new Chart(c, {
         type: "bar",
         data: {
@@ -735,24 +789,38 @@
           }]
         },
         options: {
+          indexAxis: isMobile ? "y" : "x",
           responsive: true,
           maintainAspectRatio: false,
           animation: { duration: 350 },
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { precision: 0, color: "#283055", font: { weight: "700" } },
+              ticks: isMobile
+                ? {
+                    color: "#202a4c",
+                    autoSkip: false,
+                    font: { weight: "700", size: 10 },
+                    callback: function(value){
+                      const label = this.getLabelForValue(value);
+                      return shortAxisLabel(label);
+                    }
+                  }
+                : { precision: 0, color: "#283055", font: { weight: "700" } },
               grid: { color: "rgba(17,25,53,.12)" },
               border: { display: false }
             },
             x: {
-              ticks: {
-                color: "#202a4c",
-                maxRotation: 45,
-                minRotation: 40,
-                autoSkip: false,
-                font: { weight: "700", size: 11 }
-              },
+              beginAtZero: true,
+              ticks: isMobile
+                ? { precision: 0, color: "#283055", font: { weight: "700", size: 10 } }
+                : {
+                    color: "#202a4c",
+                    maxRotation: 45,
+                    minRotation: 40,
+                    autoSkip: false,
+                    font: { weight: "700", size: 11 }
+                  },
               grid: { display: false },
               border: { display: false }
             }
