@@ -10,6 +10,10 @@
   isolation: isolate;
 }
 
+#menuLogout {
+    width: 100% !important;
+  }
+
 .bar{
   max-width: 1400px;
   margin: 0 auto;
@@ -440,10 +444,6 @@ html, body{
   .topbar, .bar, .topbar .nav{
     max-width: 100%;
     overflow-x: clip;
-  }
-
-  #menuLogout {
-    width: 100% !important;
   }
 
   .adminModeDock{
