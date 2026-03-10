@@ -477,6 +477,9 @@
       .heroTop h1{
         font-size:23px;
       }
+      .detailPanel.isHiddenMobile{
+        display:none;
+      }
       .card{ border-radius:16px; padding:10px; }
       .title{ font-size:23px; }
       .kpis{ grid-template-columns:1fr 1fr; }
@@ -728,6 +731,10 @@
 
     function norm(v){
       return String(v || "").trim();
+    }
+
+    function isMobileLayout(){
+      return window.innerWidth <= 760;
     }
 
     function leaderImageByCode(code){
@@ -1021,6 +1028,7 @@
     function renderDetail(){
       const leader = leaders.find((l) => l.code === selectedLeaderCode) || null;
       if (!leader){
+        detailPanel.classList.toggle("isHiddenMobile", isMobileLayout());
         detailTitle.textContent = "Selecciona un leader";
         kpis.innerHTML = "";
         matchupsBody.innerHTML = "";
@@ -1029,6 +1037,7 @@
         return;
       }
 
+      detailPanel.classList.remove("isHiddenMobile");
       const leaderName = leaderNameByCode(leader.code, leader.name);
       const detailLeader = {
         ...leader,
@@ -1104,7 +1113,7 @@
         await fetchLeaderAssets([...leaderCodes]);
         leaderNameMap = new Map(leaders.map((l) => [l.code, leaderNameByCode(l.code, l.name)]));
         if (!selectedLeaderCode || !leaders.some((l) => l.code === selectedLeaderCode)){
-          selectedLeaderCode = leaders[0]?.code || null;
+          selectedLeaderCode = isMobileLayout() ? null : (leaders[0]?.code || null);
         }
         renderLeaders();
         renderDetail();
