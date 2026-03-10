@@ -811,9 +811,7 @@
     function proxiedImage(url){
       const clean = normalizeExternalImageUrl(url);
       if (!clean) return "";
-      if (!/^https?:\/\//i.test(clean)) return clean;
-      const withoutProto = clean.replace(/^https?:\/\//i, "");
-      return `https://images.weserv.nl/?url=${encodeURIComponent(withoutProto)}`;
+      return clean;
     }
 
     function setStatus(text){
@@ -1185,7 +1183,7 @@
         const safeImg = hasImg ? proxiedImage(img) : "";
         const rawImg = hasImg ? String(img) : "";
         item.innerHTML = `
-          <img class="pImg" ${hasImg ? `src="${escapeAttr(safeImg)}" data-raw="${escapeAttr(rawImg)}" crossorigin="anonymous" onerror="this.removeAttribute('src');this.style.opacity='.25';"` : ""} alt="" style="opacity:${hasImg ? 1 : .25}">
+          <img class="pImg" ${hasImg ? `src="${escapeAttr(safeImg)}" data-raw="${escapeAttr(rawImg)}" onerror="this.removeAttribute('src');this.style.opacity='.25';"` : ""} alt="" style="opacity:${hasImg ? 1 : .25}">
           <div class="pMeta">
             <div class="pTitle">${escapeHtml(title)}</div>
             <div class="pLabel">${escapeHtml(label || "-")}</div>
@@ -1248,6 +1246,13 @@
         const cloneHero = clone.querySelector(".previewHero");
         if (cloneHero){
           cloneHero.style.minHeight = "138px";
+          cloneHero.classList.remove("withLeaderBg");
+          cloneHero.style.removeProperty("--hero-bg-image");
+        }
+        const cloneRail = clone.querySelector(".previewRail");
+        if (cloneRail){
+          cloneRail.classList.remove("withArtworkBg");
+          cloneRail.style.removeProperty("--rail-bg-image");
         }
         const cloneGrid = clone.querySelector(".previewGrid");
         if (cloneGrid){
@@ -1259,6 +1264,8 @@
         clone.querySelectorAll(".pImg").forEach((el) => {
           el.style.width = "100px";
           el.style.height = "139px";
+          el.removeAttribute("src");
+          el.style.opacity = ".18";
         });
         clone.querySelectorAll(".pTitle").forEach((el) => { el.style.fontSize = "13px"; });
         clone.querySelectorAll(".tag").forEach((el) => {
