@@ -294,8 +294,8 @@
       border-radius: 16px;
       border: 1px solid rgba(15,23,42,.10);
       background: #e2e8f0;
-      user-select: none;
-      -webkit-user-drag: none;
+      touch-action: auto;
+      -webkit-touch-callout: default;
     }
     .exportActions{
       margin-top: 12px;
@@ -916,6 +916,23 @@
         reader.readAsDataURL(blob);
       });
     }
+    async function tryWebShare(blob, fileName){
+      if (!navigator.share || typeof File === "undefined") return false;
+      try{
+        const file = new File([blob], fileName, { type: "image/png" });
+        if (navigator.canShare && !navigator.canShare({ files: [file] })) return false;
+        await navigator.share({
+          title: "OP Wrapped",
+          text: "Tu OP Wrapped",
+          files: [file]
+        });
+        $("downloadHint").textContent = "Imagen compartida.";
+        return true;
+      }catch(e){
+        if (e?.name === "AbortError") return true;
+        return false;
+      }
+    }
 
     let exportPreviewUrl = "";
     function revokeExportPreviewUrl(){
@@ -950,6 +967,8 @@
       const Filesystem = plugins?.Filesystem;
       const Share = plugins?.Share;
       if (!Filesystem){
+        const shared = await tryWebShare(blob, fileName);
+        if (shared) return true;
         showExportOverlay(blob);
         return true;
       }
@@ -1308,7 +1327,13 @@
     $("exportCloseBtn").addEventListener("click", closeExportOverlay);
     $("exportOpenImageBtn").addEventListener("click", () => {
       if (!exportPreviewUrl) return;
-      window.open(exportPreviewUrl, "_blank");
+      const win = window.open("", "_blank");
+      if (!win){
+        window.open(exportPreviewUrl, "_blank");
+        return;
+      }
+      win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OP Wrapped</title><style>html,body{margin:0;background:#0f172a;height:100%}body{display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}</style></head><body><img src="${exportPreviewUrl}" alt="OP Wrapped" /></body></html>`);
+      win.document.close();
     });
     $("exportOverlay").addEventListener("click", (e) => {
       if (e.target === $("exportOverlay")) closeExportOverlay();
