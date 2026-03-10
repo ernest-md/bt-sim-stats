@@ -104,6 +104,9 @@
       gap:10px;
       flex-wrap:wrap;
     }
+    .heroControls .hiddenControl{
+      display:none;
+    }
     .heroControls .filter{
       color:rgba(255,255,255,.92);
       font-weight:900;
@@ -576,10 +579,10 @@
       <div class="heroTop">
         <h1>Global Leader Stats</h1>
         <div class="heroControls">
-          <label class="filter">Fecha
+          <label class="filter hiddenControl">Fecha
             <input id="dateInput" type="date">
           </label>
-          <button id="btnReload" class="btn2" type="button">Cargar stats</button>
+          <button id="btnReload" class="btn2 hiddenControl" type="button">Cargar stats</button>
           <label class="filter">Buscar
             <input id="searchInput" type="search" placeholder="Codigo o nombre">
           </label>
