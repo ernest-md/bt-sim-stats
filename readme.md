@@ -23,6 +23,7 @@ $must = @(
   ".\web\login.html",
   ".\web\decks.html",
   ".\web\encuestas.html",
+  ".\web\op-wrapped.html",
   ".\web\sim-stats\frontend\stats.html",
   ".\web\sim-stats\frontend\team-stats.html"
 )
@@ -31,7 +32,7 @@ $must | ForEach-Object {
 }
 
 # 4) sync capacitor -> android assets
-npx cap copy android
+npx.cmd cap copy android
 
 # 5) compilar apk
 cd .\android
