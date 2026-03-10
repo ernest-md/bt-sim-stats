@@ -373,6 +373,9 @@
     tbody tr:hover{
       background:#eef2ff;
     }
+    .leadersTable tbody tr[data-code]{
+      cursor:pointer;
+    }
     tbody tr.active{
       background:#dbeafe;
     }
@@ -686,6 +689,7 @@
     const errorBox = document.getElementById("errorBox");
     const loadingOverlay = document.getElementById("loadingOverlay");
     const loadingText = document.getElementById("loadingText");
+    const prefersHoverPreview = window.matchMedia("(hover: hover) and (pointer: fine)");
 
     let leaders = [];
     let selectedLeaderCode = null;
@@ -750,6 +754,7 @@
     }
 
     function initLeaderHoverPreview(){
+      if (!prefersHoverPreview.matches) return;
       const preview = document.createElement("div");
       preview.className = "leaderGlobalPreview";
       preview.innerHTML = `<img alt=""><div class="caption"></div>`;
@@ -987,6 +992,10 @@
       for (const l of list){
         const leaderName = leaderNameByCode(l.code, l.name);
         const tr = document.createElement("tr");
+        tr.dataset.code = l.code;
+        tr.tabIndex = 0;
+        tr.setAttribute("role", "button");
+        tr.setAttribute("aria-label", `${l.code} · ${leaderName}`);
         if (l.code === selectedLeaderCode) tr.classList.add("active");
         tr.innerHTML = `
           <td>${l.rank}</td>
@@ -1110,12 +1119,26 @@
       }
     }
 
-    leadersBody.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-code]");
-      if (!btn) return;
-      selectedLeaderCode = btn.getAttribute("data-code");
+    function selectLeaderRow(row){
+      const code = row?.dataset?.code || "";
+      if (!code) return;
+      selectedLeaderCode = code;
       renderLeaders();
       renderDetail();
+    }
+
+    leadersBody.addEventListener("click", (e) => {
+      const row = e.target.closest("tr[data-code]");
+      if (!row) return;
+      selectLeaderRow(row);
+    });
+
+    leadersBody.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const row = e.target.closest("tr[data-code]");
+      if (!row) return;
+      e.preventDefault();
+      selectLeaderRow(row);
     });
 
     document.querySelectorAll("th.sortable").forEach((th) => {
