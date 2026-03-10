@@ -545,6 +545,13 @@
       .tag{ font-size:10px; padding: 3px 7px; }
       .tagFull{ display:none; }
       .tagShort{ display:inline; }
+      .moveBtns{
+        width:100%;
+        margin-right:0;
+      }
+      .moveBtns .adjustBtn{
+        flex: 1 1 100%;
+      }
       .downloadBtn{ width:100%; justify-content:center; }
       .downloadHint{ width:100%; }
       .adjustBtn{ width:100%; justify-content:center; }
@@ -848,7 +855,7 @@
       const plugins = getCapacitorPlugins();
       const Filesystem = plugins?.Filesystem;
       const Share = plugins?.Share;
-      if (!Filesystem || !Share) return false;
+      if (!Filesystem) return false;
 
       const dataUrl = await blobToDataUrl(blob);
       const base64Data = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
@@ -862,6 +869,11 @@
 
       const uri = result?.uri;
       if (!uri) throw new Error("No se obtuvo ruta del archivo exportado.");
+
+      if (!Share || typeof Share.share !== "function"){
+        $("downloadHint").textContent = "Imagen guardada en la app.";
+        return true;
+      }
 
       let canShare = true;
       if (typeof Share.canShare === "function"){
@@ -1167,15 +1179,16 @@
 
         if (isNativeApp()){
           const handled = await savePreviewViaCapacitor(blob, fileName);
-          if (!handled) throw new Error("Capacitor Filesystem/Share no disponible.");
+          if (!handled) throw new Error("Capacitor Filesystem no disponible.");
         } else {
           triggerBrowserDownload(blob, fileName);
           $("downloadHint").textContent = "Descarga lista.";
         }
       }catch(e){
         console.error("downloadPreviewImage:", e);
-        alert("No se pudo generar la imagen.");
-        $("downloadHint").textContent = "Error exportando. Si persiste, revisa la consola.";
+        const detail = e?.message ? ` ${e.message}` : "";
+        alert(`No se pudo generar la imagen.${detail}`);
+        $("downloadHint").textContent = `Error exportando.${detail}`;
       }finally{
         const stale = document.getElementById("previewExportClone");
         if (stale) stale.remove();
