@@ -176,10 +176,6 @@
       color:#64748b;
     }
 
-    .grid > *{
-      min-width:0;
-    }
-
     input[type="text"], select{
       width:100%;
       border-radius: 12px;
@@ -188,11 +184,6 @@
       outline:none;
       background:#fff;
       box-sizing: border-box;
-      font: inherit;
-      min-width: 0;
-    }
-    input[list]{
-      font-size: 16px;
     }
     input[type="text"]:focus, select:focus{
       border-color: rgba(124,58,237,.55);
@@ -234,74 +225,15 @@
       transform: translateY(-1px);
     }
     .downloadBtn:disabled{
-      appearance: none;
-      -webkit-appearance: none;
-      opacity: 1 !important;
-      filter: none !important;
-      border-color: rgba(37,99,235,.42) !important;
-      background: linear-gradient(135deg, rgba(37,99,235,.96), rgba(14,165,233,.90)) !important;
-      color: #ffffff !important;
-      -webkit-text-fill-color: #ffffff !important;
-      text-shadow: 0 1px 1px rgba(15,23,42,.28);
+      opacity:.72;
       cursor:not-allowed;
       transform:none;
-      box-shadow: 0 10px 24px rgba(37,99,235,.22) !important;
+      box-shadow:none;
     }
     .downloadHint{
       font-size: 12px;
       color:#64748b;
       margin-right:auto;
-    }
-    .exportOverlay{
-      position: fixed;
-      inset: 0;
-      z-index: 300000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      background: rgba(15,23,42,.84);
-      backdrop-filter: blur(10px);
-    }
-    .exportOverlay.open{
-      display: flex;
-    }
-    .exportSheet{
-      width: min(100%, 520px);
-      max-height: min(100%, 92vh);
-      overflow: auto;
-      border-radius: 22px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.96);
-      box-shadow: 0 24px 60px rgba(0,0,0,.35);
-      padding: 14px;
-      box-sizing: border-box;
-    }
-    .exportSheet h3{
-      margin: 0 0 6px;
-      font-size: 18px;
-      color:#0f172a;
-    }
-    .exportSheet p{
-      margin: 0 0 12px;
-      font-size: 13px;
-      color:#475569;
-    }
-    .exportPreviewImg{
-      width: 100%;
-      height: auto;
-      display: block;
-      border-radius: 16px;
-      border: 1px solid rgba(15,23,42,.10);
-      background: #e2e8f0;
-      touch-action: auto;
-      -webkit-touch-callout: default;
-    }
-    .exportActions{
-      margin-top: 12px;
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
     }
     .adjustBtn{
       border: 1px solid rgba(15,23,42,.22);
@@ -517,7 +449,6 @@
       -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
       white-space: normal;
-      overflow-wrap:anywhere;
     }
 
     .tag{
@@ -582,34 +513,20 @@
       .heroLeft{ min-width: 0; }
       .heroTitle{ font-size: 28px; }
       .previewGrid{ grid-template-columns: 1fr; }
-      .pCard{ min-height: 120px; }
+      .pCard{
+        min-height: 120px;
+        width: 100%;
+        box-sizing: border-box;
+      }
       .pImg{ width: 92px;
         height: 129px; }
       .pTitle{ font-size: 12px; line-height:1.05; }
-      .heroSub,
-      .pTitle,
-      .pLabel,
-      .badge,
-      .downloadHint{
-        overflow-wrap:anywhere;
-      }
       .tag{ font-size:10px; padding: 3px 7px; }
       .tagFull{ display:none; }
       .tagShort{ display:inline; }
-      .moveBtns{
-        width:100%;
-        margin-right:0;
-      }
-      .moveBtns .adjustBtn{
-        flex: 1 1 100%;
-      }
       .downloadBtn{ width:100%; justify-content:center; }
       .downloadHint{ width:100%; }
       .adjustBtn{ width:100%; justify-content:center; }
-      .exportSheet{
-        width: 100%;
-        padding: 12px;
-      }
     }
   </style>
 </head>
@@ -696,17 +613,6 @@
 
   <datalist id="leadersList"></datalist>
   <datalist id="nonLeadersList"></datalist>
-  <div class="exportOverlay" id="exportOverlay" aria-hidden="true">
-    <div class="exportSheet">
-      <h3>Imagen generada</h3>
-      <p>Manten pulsado sobre la imagen para guardarla o compartirla desde la app.</p>
-      <img class="exportPreviewImg" id="exportPreviewImg" alt="OP Wrapped exportado" />
-      <div class="exportActions">
-        <button class="btn adjustBtn" id="exportOpenImageBtn" type="button">Abrir imagen</button>
-        <button class="btn downloadBtn" id="exportCloseBtn" type="button">Cerrar</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     // ===== Supabase navbar auth =====
@@ -791,14 +697,6 @@
     function guessImageUrl(card){
       return card.card_image || card.image || card.imageUrl || card.cardImage || card.img || card.art || "";
     }
-    function cardLabelFromCard(card){
-      const name = normalize(card?.name);
-      const cardSetId = normalize(card?.card_set_id);
-      const setName = normalize(card?.set_name);
-      if (name && cardSetId) return `${name} (${cardSetId})`;
-      if (name && setName) return `${name} - ${setName}`;
-      return name || cardSetId || setName;
-    }
 
     function proxiedImage(url){
       const u = normalize(url);
@@ -854,17 +752,14 @@
         div.className = "q";
         div.innerHTML = `
           <label for="${q.id}">${q.title}</label>
-           <input type="text"
-                   id="${q.id}"
-                   list="${listId}"
-                   placeholder="Escribe nombre o codigo..."
-                   oninput="onPickChanged()"
-                   autocomplete="off"
-                   autocapitalize="none"
-                   spellcheck="false"
-                   inputmode="search" />
-            <small>${q.hint}</small>
-          `;
+          <input type="text"
+                 id="${q.id}"
+                 list="${listId}"
+                 placeholder="Escribe para buscar..."
+                 oninput="onPickChanged()"
+                 autocomplete="off" />
+          <small>${q.hint}</small>
+        `;
         root.appendChild(div);
       }
     }
@@ -891,136 +786,6 @@
     }
 
     function onPickChanged(){ buildPreview(); }
-
-    function getCapacitorPlugins(){
-      const cap = window.Capacitor;
-      if (!cap) return null;
-      const plugins = cap.Plugins || {};
-      const Filesystem = plugins.Filesystem || cap.Filesystem || null;
-      const Share = plugins.Share || cap.Share || null;
-      return { cap, Filesystem, Share };
-    }
-
-    function isNativeApp(){
-      const cap = window.Capacitor;
-      if (!cap || typeof cap.getPlatform !== "function") return false;
-      const platform = cap.getPlatform();
-      return platform === "android" || platform === "ios";
-    }
-
-    function blobToDataUrl(blob){
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(reader.error || new Error("No se pudo leer el blob."));
-        reader.onload = () => resolve(String(reader.result || ""));
-        reader.readAsDataURL(blob);
-      });
-    }
-    async function tryWebShare(blob, fileName){
-      if (!navigator.share || typeof File === "undefined") return false;
-      try{
-        const file = new File([blob], fileName, { type: "image/png" });
-        if (navigator.canShare && !navigator.canShare({ files: [file] })) return false;
-        await navigator.share({
-          title: "OP Wrapped",
-          text: "Tu OP Wrapped",
-          files: [file]
-        });
-        $("downloadHint").textContent = "Imagen compartida.";
-        return true;
-      }catch(e){
-        if (e?.name === "AbortError") return true;
-        return false;
-      }
-    }
-
-    let exportPreviewUrl = "";
-    function revokeExportPreviewUrl(){
-      if (!exportPreviewUrl) return;
-      URL.revokeObjectURL(exportPreviewUrl);
-      exportPreviewUrl = "";
-    }
-    function showExportOverlay(blob){
-      revokeExportPreviewUrl();
-      exportPreviewUrl = URL.createObjectURL(blob);
-      const overlay = $("exportOverlay");
-      const img = $("exportPreviewImg");
-      if (!overlay || !img) return;
-      img.src = exportPreviewUrl;
-      overlay.classList.add("open");
-      overlay.setAttribute("aria-hidden", "false");
-      $("downloadHint").textContent = "Imagen lista. Manten pulsado para guardarla.";
-    }
-    function closeExportOverlay(){
-      const overlay = $("exportOverlay");
-      const img = $("exportPreviewImg");
-      if (img) img.removeAttribute("src");
-      if (overlay){
-        overlay.classList.remove("open");
-        overlay.setAttribute("aria-hidden", "true");
-      }
-      revokeExportPreviewUrl();
-    }
-
-    async function savePreviewViaCapacitor(blob, fileName){
-      const plugins = getCapacitorPlugins();
-      const Filesystem = plugins?.Filesystem;
-      const Share = plugins?.Share;
-      if (!Filesystem){
-        const shared = await tryWebShare(blob, fileName);
-        if (shared) return true;
-        showExportOverlay(blob);
-        return true;
-      }
-
-      const dataUrl = await blobToDataUrl(blob);
-      const base64Data = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
-      const directory = (window.Capacitor?.FilesystemDirectory?.Cache) || "CACHE";
-      const result = await Filesystem.writeFile({
-        path: fileName,
-        data: base64Data,
-        directory,
-        recursive: true
-      });
-
-      const uri = result?.uri;
-      if (!uri) throw new Error("No se obtuvo ruta del archivo exportado.");
-
-      if (!Share || typeof Share.share !== "function"){
-        $("downloadHint").textContent = "Imagen guardada en la app.";
-        return true;
-      }
-
-      let canShare = true;
-      if (typeof Share.canShare === "function"){
-        const check = await Share.canShare();
-        canShare = !!check?.value;
-      }
-      if (!canShare){
-        $("downloadHint").textContent = "Imagen guardada en cache de la app.";
-        return true;
-      }
-
-      await Share.share({
-        title: "OP Wrapped",
-        text: "Tu OP Wrapped",
-        url: uri,
-        dialogTitle: "Compartir OP Wrapped"
-      });
-      $("downloadHint").textContent = "Imagen lista para compartir.";
-      return true;
-    }
-
-    function triggerBrowserDownload(blob, fileName){
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = blobUrl;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    }
 
     async function fetchJson(url){
       const res = await fetch(url, { cache: "no-store" });
@@ -1055,7 +820,7 @@
             const card_type = normalize(guessType(raw));
             const image = normalize(guessImageUrl(raw));
 
-            const label = cardLabelFromCard({ name, set_name, card_set_id }).replace(/\s+/g, " ").trim();
+            const label = `${name} - ${set_name} (${card_set_id})`.replace(/\s+/g, " ").trim();
             return { label, name, set_name, card_set_id, card_type, image, raw };
           })
           .filter(Boolean);
@@ -1284,27 +1049,16 @@
           scrollY: 0
         });
         clone.remove();
+        const link = document.createElement("a");
         const date = new Date().toISOString().slice(0, 10);
-        const fileName = `op-wrapped-${date}.png`;
-        const blob = await new Promise((resolve, reject) => {
-          canvas.toBlob((value) => {
-            if (value) resolve(value);
-            else reject(new Error("No se pudo generar el PNG."));
-          }, "image/png");
-        });
-
-        if (isNativeApp()){
-          const handled = await savePreviewViaCapacitor(blob, fileName);
-          if (!handled) throw new Error("Capacitor Filesystem no disponible.");
-        } else {
-          triggerBrowserDownload(blob, fileName);
-          $("downloadHint").textContent = "Descarga lista.";
-        }
+        link.download = `op-wrapped-${date}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        $("downloadHint").textContent = "Descarga lista.";
       }catch(e){
         console.error("downloadPreviewImage:", e);
-        const detail = e?.message ? ` ${e.message}` : "";
-        alert(`No se pudo generar la imagen.${detail}`);
-        $("downloadHint").textContent = `Error exportando.${detail}`;
+        alert("No se pudo generar la imagen.");
+        $("downloadHint").textContent = "Error exportando. Si persiste, revisa la consola.";
       }finally{
         const stale = document.getElementById("previewExportClone");
         if (stale) stale.remove();
@@ -1324,31 +1078,6 @@
     $("btnRailBgUp").addEventListener("click", () => moveRailBg(-8));
     $("btnRailBgDown").addEventListener("click", () => moveRailBg(8));
     $("btnDownloadPreview").addEventListener("click", downloadPreviewImage);
-    $("exportCloseBtn").addEventListener("click", closeExportOverlay);
-    $("exportOpenImageBtn").addEventListener("click", () => {
-      if (!exportPreviewUrl) return;
-      const win = window.open("", "_blank");
-      if (!win){
-        window.open(exportPreviewUrl, "_blank");
-        return;
-      }
-      win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OP Wrapped</title><style>html,body{margin:0;background:#0f172a;height:100%}body{display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}</style></head><body><img src="${exportPreviewUrl}" alt="OP Wrapped" /></body></html>`);
-      win.document.close();
-    });
-    $("exportOverlay").addEventListener("click", (e) => {
-      if (e.target === $("exportOverlay")) closeExportOverlay();
-    });
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
