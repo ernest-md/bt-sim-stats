@@ -705,6 +705,10 @@
       return `https://corsproxy.io/?${encodeURIComponent(u)}`;
     }
 
+    function directImage(url){
+      return normalize(url);
+    }
+
     function setStatus(text){
       const status = $("apiStatus");
       if (status) status.textContent = text;
@@ -885,12 +889,12 @@
       const accentRgb = hexToRgbString(sw);
       const favLeaderLabel = normalize($("fav_leader")?.value || "");
       const favLeaderCard = cardsByLabel.get(favLeaderLabel);
-      const favLeaderImg = proxiedImage(favLeaderCard?.image || "");
+      const favLeaderImg = directImage(favLeaderCard?.image || "");
       const hero = $("previewHero");
       const rail = document.querySelector(".previewRail");
       const bestArtLabel = normalize($("best_art")?.value || "");
       const bestArtCard = cardsByLabel.get(bestArtLabel);
-      const bestArtImg = proxiedImage(bestArtCard?.image || "");
+      const bestArtImg = directImage(bestArtCard?.image || "");
 
       if (favLeaderImg){
         hero.classList.add("withLeaderBg");
