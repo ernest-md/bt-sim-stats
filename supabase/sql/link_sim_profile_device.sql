@@ -53,7 +53,7 @@ begin
   end if;
 
   p_player_name := btrim(coalesce(p_player_name, ''));
-  p_device_id := lower(btrim(coalesce(p_device_id, '')));
+  p_device_id := btrim(coalesce(p_device_id, ''));
 
   if p_player_name = '' then
     raise exception 'Player name is required';
