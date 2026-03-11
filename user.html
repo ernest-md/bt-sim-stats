@@ -220,9 +220,9 @@
     }
     .leaderZoomPreview{
       position: absolute;
-      left: 50%;
-      top: calc(100% + 8px);
-      transform: translateX(-50%) translateY(-4px) scale(.96);
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-6px) scale(.96);
       opacity: 0;
       pointer-events: none;
       z-index: 120;
@@ -244,7 +244,7 @@
     }
     .leaderZoom:hover .leaderZoomPreview{
       opacity: 1;
-      transform: translateX(-50%) translateY(0) scale(1);
+      transform: translateY(-50%) translateX(0) scale(1);
     }
     .itemTitle{ font-weight:900; color:#0f172a; font-size:14px; }
     .itemMeta{ color:#64748b; font-size:12px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; }
@@ -623,7 +623,14 @@
         <div class="leaderTopItem">
           <div class="leaderTopMain">
             ${l.image_url
-              ? `<img class="leaderTopImg" src="${escapeAttr(l.image_url)}" alt="${escapeAttr(l.name || l.code)}" />`
+              ? `
+                <span class="leaderZoom">
+                  <img class="leaderTopImg" src="${escapeAttr(l.image_url)}" alt="${escapeAttr(l.name || l.code)}" />
+                  <span class="leaderZoomPreview">
+                    <img src="${escapeAttr(l.image_url)}" alt="${escapeAttr(l.name || l.code)}" />
+                  </span>
+                </span>
+              `
               : `<div class="leaderTopImg" aria-hidden="true"></div>`}
             <span class="leaderTopTxt">#${idx + 1} ${escapeHtml(l.name || l.code)}</span>
           </div>
