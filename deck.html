@@ -262,6 +262,12 @@
       border-top: 1px solid rgba(15,23,42,.08);
     }
     .hoverUsers .u:first-child{ border-top:0; }
+    @media (hover: none), (pointer: coarse){
+      .hoverUsers,
+      .likeWrap:hover .hoverUsers{
+        display:none !important;
+      }
+    }
 
     .commentsPanel{
       margin-top:10px;
