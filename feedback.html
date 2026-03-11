@@ -444,6 +444,14 @@
       `;
     }
 
+    function formatFeedbackDateTime(value){
+      if (!value) return formatDateTime(value);
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return formatDateTime(value);
+      d.setHours(d.getHours() + 1);
+      return formatDateTime(d.toISOString());
+    }
+
     function renderRows(rows){
       const tbody = $("feedbackTableBody");
       if (!tbody) return;
@@ -457,7 +465,7 @@
         <tr>
           <td class="authorCol">${escapeHtml(authorLabel(row.autor))}</td>
           <td class="bodyCol">${bodyPreviewHtml(row)}</td>
-          <td class="dateCol">${escapeHtml(formatDateTime(row.created_at))}</td>
+          <td class="dateCol">${escapeHtml(formatFeedbackDateTime(row.created_at))}</td>
           <td class="actionCol">
             <button class="rowBtn btnToggleStatus" data-feedback-id="${escapeAttr(row.id)}" data-next-state="${currentFilter === 0 ? "1" : "0"}" type="button">
               ${currentFilter === 0 ? "Revisado" : "Sin revisar"}
