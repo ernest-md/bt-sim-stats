@@ -1,4 +1,3 @@
-codigo para ejecutar desde la maquina del capi:
 cd "C:\Users\ErnestGladiadorValde\Documents"
 $ErrorActionPreference = "Stop"
 
@@ -18,7 +17,7 @@ New-Item -ItemType Directory $mobileWeb | Out-Null
 
 robocopy $sourceRoot $mobileWeb /E `
   /XD .git node_modules android web .vscode .codex `
-  /XF *.ps1 package-lock.json npm-debug.log .gitignore
+  /XF *.ps1 package-lock.json npm-debug.log .gitignore op-wrapped.html
 if ($LASTEXITCODE -ge 8) { throw "robocopy web fallo con codigo $LASTEXITCODE" }
 
 # 2) checks criticos
@@ -29,7 +28,6 @@ $must = @(
   ".\web\decks.html",
   ".\web\encuestas.html",
   ".\web\encuesta.html",
-  ".\web\op-wrapped.html",
   ".\web\app.css",
   ".\web\app.js",
   ".\web\LOGO_APP.png",
