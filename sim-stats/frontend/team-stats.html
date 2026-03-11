@@ -256,16 +256,23 @@
 
     (async function initNav(){
       const { data } = await sb.auth.getSession();
+      if (!data?.session?.user){
+        location.replace("../../index.html");
+        return;
+      }
       navController.setUser(data?.session?.user || null);
       void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
       sb.auth.onAuthStateChange((_event, session) => {
+        if (!session?.user){
+          location.replace("../../index.html");
+          return;
+        }
         navController.setUser(session?.user || null);
         void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
       });
+      await import("./js/team-stats.js");
     })();
   </script>
-
-  <script type="module" src="./js/team-stats.js"></script>
 </body>
 </html>
 
