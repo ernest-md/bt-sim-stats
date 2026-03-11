@@ -673,13 +673,19 @@
       const wr = total ? ((wins / total) * 100).toFixed(1) : "0.0";
       const leaderCount = new Map();
       for (const row of (matches || [])){
-        const key = String(row?.player?.name || row?.player_leader || "").trim();
+        const key = String(row?.player_leader || row?.player?.code || row?.player?.name || "").trim();
         if (!key) continue;
         if (!leaderCount.has(key)){
-          leaderCount.set(key, { name: key, games: 0, image_url: leaderImage(row?.player) });
+          leaderCount.set(key, {
+            code: key,
+            name: row?.player?.name || key,
+            games: 0,
+            image_url: leaderImage(row?.player)
+          });
         }
         const entry = leaderCount.get(key);
         entry.games += 1;
+        if (!entry.name && row?.player?.name) entry.name = row.player.name;
         if (!entry.image_url) entry.image_url = leaderImage(row?.player);
       }
       const topLeader = Array.from(leaderCount.values()).sort((a, b) => b.games - a.games)[0] || null;
