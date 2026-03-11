@@ -686,6 +686,9 @@
 
     let cards = [];
     let cardsByLabel = new Map();
+    const WRAPPED_CACHE_FN_URL = `${window.BarateamApp.SUPABASE_URL}/functions/v1/optcgapi`;
+    const wrappedImageCache = new Map();
+    const wrappedImageInflight = new Map();
 
     function normalize(s){ return String(s || "").trim(); }
     function guessName(card){ return card.card_name || card.name || card.cardName || card.title || ""; }
@@ -701,6 +704,112 @@
       if (!u) return "";
       if (!/^https?:\/\//i.test(u)) return u;
       return `https://corsproxy.io/?${encodeURIComponent(u)}`;
+    }
+
+    function resolvedImage(card){
+      return normalize(card?.wrapped_image_url || card?.image || "");
+    }
+
+    function wrappedIdentity(card){
+      if (!card) return "";
+      return [
+        normalize(card.card_set_id),
+        normalize(card.name),
+        normalize(card.image)
+      ].join("::");
+    }
+
+    async function resolveWrappedImageForCard(card, imageVariant = "default"){
+      if (!card) return "";
+      const cardCode = normalize(card.card_set_id);
+      const imageUrl = normalize(card.image);
+      if (!cardCode || !imageUrl) return imageUrl;
+
+      const cacheKey = `${wrappedIdentity(card)}::${imageVariant}`;
+      if (wrappedImageCache.has(cacheKey)){
+        const cachedUrl = wrappedImageCache.get(cacheKey) || "";
+        if (cachedUrl) card.wrapped_image_url = cachedUrl;
+        return cachedUrl || imageUrl;
+      }
+      if (card.wrapped_image_url){
+        wrappedImageCache.set(cacheKey, card.wrapped_image_url);
+        return card.wrapped_image_url;
+      }
+      if (wrappedImageInflight.has(cacheKey)){
+        const pending = wrappedImageInflight.get(cacheKey);
+        const resolved = await pending;
+        if (resolved) card.wrapped_image_url = resolved;
+        return resolved || imageUrl;
+      }
+
+      const task = (async () => {
+        try{
+          const res = await fetch(WRAPPED_CACHE_FN_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: window.BarateamApp.SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${window.BarateamApp.SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              card_code: cardCode,
+              image_variant: imageVariant,
+              name: card.name || "",
+              set_name: card.set_name || "",
+              card_type: card.card_type || "",
+              image_url: imageUrl
+            })
+          });
+          if (!res.ok) throw new Error(`wrapped cache ${res.status}`);
+          const data = await res.json();
+          const publicUrl = normalize(data?.public_image_url || "");
+          if (publicUrl){
+            wrappedImageCache.set(cacheKey, publicUrl);
+            card.wrapped_image_url = publicUrl;
+            return publicUrl;
+          }
+        }catch(e){
+          console.warn("resolveWrappedImageForCard:", e?.message || e);
+        }
+        wrappedImageCache.set(cacheKey, imageUrl);
+        return imageUrl;
+      })();
+
+      wrappedImageInflight.set(cacheKey, task);
+      try{
+        const resolved = await task;
+        if (resolved) card.wrapped_image_url = resolved;
+        return resolved || imageUrl;
+      } finally {
+        wrappedImageInflight.delete(cacheKey);
+      }
+    }
+
+    function collectSelectedCards(){
+      const selected = [];
+      const seen = new Set();
+      const addByLabel = (label) => {
+        const normalizedLabel = normalize(label);
+        if (!normalizedLabel) return;
+        const card = cardsByLabel.get(normalizedLabel);
+        if (!card) return;
+        const key = wrappedIdentity(card) || normalizedLabel;
+        if (seen.has(key)) return;
+        seen.add(key);
+        selected.push(card);
+      };
+
+      addByLabel($("fav_leader")?.value || "");
+      addByLabel($("best_art")?.value || "");
+      for (const q of LEADER_QUESTIONS) addByLabel($(q.id)?.value || "");
+      for (const q of CARD_QUESTIONS) addByLabel($(q.id)?.value || "");
+      return selected;
+    }
+
+    async function hydrateSelectedCardImages(){
+      const selected = collectSelectedCards();
+      if (!selected.length) return;
+      await Promise.all(selected.map((card) => resolveWrappedImageForCard(card)));
     }
 
     function setStatus(text){
@@ -783,7 +892,10 @@
       dlNon.appendChild(fragN);
     }
 
-    function onPickChanged(){ buildPreview(); }
+    function onPickChanged(){
+      buildPreview();
+      void hydrateSelectedCardImages().then(() => buildPreview());
+    }
 
     async function fetchJson(url){
       const res = await fetch(url, { cache: "no-store" });
@@ -883,12 +995,12 @@
       const accentRgb = hexToRgbString(sw);
       const favLeaderLabel = normalize($("fav_leader")?.value || "");
       const favLeaderCard = cardsByLabel.get(favLeaderLabel);
-      const favLeaderImg = proxiedImage(favLeaderCard?.image || "");
+      const favLeaderImg = resolvedImage(favLeaderCard) || proxiedImage(favLeaderCard?.image || "");
       const hero = $("previewHero");
       const rail = document.querySelector(".previewRail");
       const bestArtLabel = normalize($("best_art")?.value || "");
       const bestArtCard = cardsByLabel.get(bestArtLabel);
-      const bestArtImg = proxiedImage(bestArtCard?.image || "");
+      const bestArtImg = resolvedImage(bestArtCard) || proxiedImage(bestArtCard?.image || "");
 
       if (favLeaderImg){
         hero.classList.add("withLeaderBg");
@@ -932,12 +1044,13 @@
 
       let n = 1;
 
-      const pushCard = ({ title, label, tag, tagShort, dotClass, img }) => {
+      const pushCard = ({ title, label, tag, tagShort, dotClass, card }) => {
+        const img = resolvedImage(card) || normalize(card?.image);
         const hasImg = !!img;
         const item = document.createElement("div");
         item.className = "pCard";
-        const safeImg = hasImg ? proxiedImage(img) : "";
-        const rawImg = hasImg ? String(img) : "";
+        const safeImg = hasImg ? img : "";
+        const rawImg = hasImg ? String(card?.image || img) : "";
         item.innerHTML = `
           <img class="pImg" ${hasImg ? `src="${escapeAttr(safeImg)}" data-raw="${escapeAttr(rawImg)}" crossorigin="anonymous" onerror="if(this.dataset.raw){this.src=this.dataset.raw;this.removeAttribute('crossorigin');}"` : ""} alt="" style="opacity:${hasImg ? 1 : .25}">
           <div class="pMeta">
@@ -958,7 +1071,7 @@
           tag: "Leader",
           tagShort: "L",
           dotClass: "",
-          img: card?.image || ""
+          card
         });
       }
 
@@ -971,7 +1084,7 @@
           tag: "Card",
           tagShort: "C",
           dotClass: "c2",
-          img: card?.image || ""
+          card
         });
       }
     }
@@ -988,6 +1101,9 @@
       btn.textContent = "Generando...";
       $("downloadHint").textContent = "";
       try{
+        await hydrateSelectedCardImages();
+        buildPreview();
+        await new Promise((resolve) => requestAnimationFrame(resolve));
         const clone = node.cloneNode(true);
         clone.id = "previewExportClone";
         clone.style.position = "fixed";
