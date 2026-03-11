@@ -74,6 +74,101 @@
     }
     .hero h1{ margin:0; font-size: 26px; font-weight: 1000; }
     .hero p{ margin:6px 0 0; color: rgba(255,255,255,.82); font-size: 13px; }
+    .infoLinkBtn{
+      appearance:none;
+      border:0;
+      padding:0;
+      background:none;
+      color:inherit;
+      font:inherit;
+      font-weight:inherit;
+      letter-spacing:inherit;
+      text-transform:inherit;
+      cursor:pointer;
+      text-decoration: underline dotted rgba(71,85,105,.9);
+      text-underline-offset: 3px;
+    }
+    .infoLinkBtn:hover{
+      color:#0f172a;
+      text-decoration-color:#0f172a;
+    }
+    .modalBackdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(2,6,23,.6);
+      backdrop-filter: blur(4px);
+      z-index: 300000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+    }
+    .modalBackdrop[hidden]{
+      display:none;
+    }
+    .infoModal{
+      width:min(560px, 100%);
+      max-height: min(80vh, 720px);
+      overflow:auto;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
+      border: 1px solid rgba(148,163,184,.35);
+      box-shadow: 0 24px 70px rgba(2,6,23,.34);
+      padding: 18px 18px 16px;
+      color:#0f172a;
+    }
+    .infoModalTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom: 12px;
+    }
+    .infoModalTop h3{
+      margin:0;
+      font-size: 18px;
+      font-weight: 1000;
+    }
+    .infoModalTop p{
+      margin:4px 0 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color:#475569;
+    }
+    .modalClose{
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,.4);
+      background: #fff;
+      color:#0f172a;
+      font-size: 18px;
+      cursor:pointer;
+      flex: 0 0 32px;
+    }
+    .formulaImage{
+      display:block;
+      width:100%;
+      max-width: 420px;
+      margin: 0 auto 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(148,163,184,.35);
+      background:#fff;
+      box-shadow: 0 10px 30px rgba(15,23,42,.08);
+    }
+    .infoModal p{
+      margin: 0 0 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      color:#334155;
+    }
+    .infoSummary{
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(15,23,42,.05);
+      border: 1px solid rgba(148,163,184,.2);
+    }
 
     .card{
       margin-top: 12px;
@@ -319,6 +414,7 @@
               <th>#</th>
               <th>Jugador</th>
               <th>Partidas</th>
+              <th><button class="infoLinkBtn" id="eloInfoBtn" type="button" aria-haspopup="dialog" aria-controls="eloInfoModal">ELO</button></th>
               <th>WR</th>
               <th>Victorias</th>
               <th>Derrotas</th>
@@ -327,9 +423,31 @@
             </tr>
           </thead>
           <tbody id="rankingBody">
-            <tr><td colspan="8" class="muted">Cargando ranking...</td></tr>
+            <tr><td colspan="9" class="muted">Cargando ranking...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modalBackdrop" id="eloInfoModal" hidden>
+    <div class="infoModal" role="dialog" aria-modal="true" aria-labelledby="eloInfoTitle">
+      <div class="infoModalTop">
+        <div>
+          <h3 id="eloInfoTitle">Como se calcula el ELO</h3>
+          <p>El ranking usa Wilson Score para evitar que pocas partidas con buen winrate inflen demasiado la posicion.</p>
+        </div>
+        <button class="modalClose" id="eloInfoClose" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <img
+        class="formulaImage"
+        alt="Formula del Wilson Score"
+        src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='860' height='200' viewBox='0 0 860 200'%3E%3Crect width='860' height='200' fill='white'/%3E%3Ctext x='28' y='110' font-family='Times New Roman, serif' font-size='64' font-style='italic' fill='%23111827'%3EScore =%3C/text%3E%3Ctext x='250' y='75' font-family='Times New Roman, serif' font-size='52' font-style='italic' fill='%23111827'%3Ep + z%3C/text%3E%3Ctext x='394' y='53' font-family='Times New Roman, serif' font-size='30' fill='%23111827'%3E2%3C/text%3E%3Ctext x='420' y='75' font-family='Times New Roman, serif' font-size='52' font-style='italic' fill='%23111827'%3E/(2n) - z * sqrt((p(1-p) + z%3C/text%3E%3Ctext x='795' y='53' font-family='Times New Roman, serif' font-size='30' fill='%23111827'%3E2%3C/text%3E%3Ctext x='250' y='155' font-family='Times New Roman, serif' font-size='52' font-style='italic' fill='%23111827'%3E1 + z%3C/text%3E%3Ctext x='365' y='133' font-family='Times New Roman, serif' font-size='30' fill='%23111827'%3E2%3C/text%3E%3Ctext x='392' y='155' font-family='Times New Roman, serif' font-size='52' font-style='italic' fill='%23111827'%3E/n)%3C/text%3E%3Cline x1='245' y1='92' x2='820' y2='92' stroke='%23111827' stroke-width='3'/%3E%3C/svg%3E"
+      />
+      <p><strong>p</strong> es el winrate real del jugador (`victorias / partidas`), <strong>n</strong> es el numero de partidas y <strong>z = 1.96</strong> corresponde a un 95% de confianza.</p>
+      <p>Con ese score calculamos un <strong>ELO visual</strong>: <strong>ELO = 1000 + (wilson * 1000)</strong>. Sirve para ordenar mejor el ranking, pero no es un ELO real de matchmaking.</p>
+      <div class="infoSummary">
+        <p><strong>Resumen rapido:</strong> no gana automaticamente quien tenga mejor WR. Sube quien mantiene buen porcentaje con una muestra mas solida de partidas.</p>
       </div>
     </div>
   </div>
@@ -358,6 +476,46 @@
     function wrText(wins, games){
       if (!games) return "0.0%";
       return `${((wins / games) * 100).toFixed(1)}%`;
+    }
+
+    function wilsonScore(wins, games, z = 1.96){
+      if (!games) return 0;
+      const p = wins / games;
+      const z2 = z * z;
+      const denominator = 1 + (z2 / games);
+      const centre = p + (z2 / (2 * games));
+      const margin = z * Math.sqrt((p * (1 - p) / games) + (z2 / (4 * games * games)));
+      return (centre - margin) / denominator;
+    }
+
+    function eloFromWilson(wilson){
+      return 1000 + (wilson * 1000);
+    }
+
+    function initRankingInfo(){
+      const openBtn = $("eloInfoBtn");
+      const modal = $("eloInfoModal");
+      const closeBtn = $("eloInfoClose");
+      if (!openBtn || !modal || !closeBtn) return;
+
+      function openModal(){
+        modal.removeAttribute("hidden");
+        openBtn.setAttribute("aria-expanded", "true");
+      }
+
+      function closeModal(){
+        modal.setAttribute("hidden", "");
+        openBtn.setAttribute("aria-expanded", "false");
+      }
+
+      openBtn.addEventListener("click", openModal);
+      closeBtn.addEventListener("click", closeModal);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !modal.hasAttribute("hidden")) closeModal();
+      });
     }
 
     function chooseLeaderMostPlayed(leaderMap){
@@ -578,24 +736,29 @@
         if (!l.image_url && row?.player?.image_url) l.image_url = row.player.image_url;
       }
 
-      const ranking = Array.from(players.values()).map((p) => ({
-        profileId: playersMap.get(p.playerId)?.profile_id || null,
-        ...p,
-        name:
-          profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.username ||
-          profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.display_name ||
-          playersMap.get(p.playerId)?.name ||
-          `user-${String(p.playerId).slice(0, 8)}`,
-        wr: p.games ? (p.wins / p.games) : 0,
-        topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
-        topLeaderByWr: chooseLeaderBestWr(p.leaders)
-      }));
+      const ranking = Array.from(players.values()).map((p) => {
+        const wilson = wilsonScore(p.wins, p.games);
+        return {
+          profileId: playersMap.get(p.playerId)?.profile_id || null,
+          ...p,
+          name:
+            profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.username ||
+            profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.display_name ||
+            playersMap.get(p.playerId)?.name ||
+            `user-${String(p.playerId).slice(0, 8)}`,
+          wr: p.games ? (p.wins / p.games) : 0,
+          wilson,
+          elo: eloFromWilson(wilson),
+          topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
+          topLeaderByWr: chooseLeaderBestWr(p.leaders)
+        };
+      });
 
       const minGames = 5;
       const filtered = ranking.filter((p) => p.games >= minGames);
       const pool = filtered.length ? filtered : ranking;
       pool.sort((a, b) => {
-        if (b.wr !== a.wr) return b.wr - a.wr;
+        if (b.wilson !== a.wilson) return b.wilson - a.wilson;
         if (b.games !== a.games) return b.games - a.games;
         return b.wins - a.wins;
       });
@@ -606,7 +769,7 @@
       const body = $("rankingBody");
       if (!body) return;
       if (!rows.length){
-        body.innerHTML = `<tr><td colspan="8" class="muted">No hay datos para la expansion activa.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="9" class="muted">No hay datos para la expansion activa.</td></tr>`;
         return;
       }
       body.innerHTML = rows.map((r, idx) => `
@@ -614,6 +777,7 @@
           <td class="rankPos">${idx + 1}</td>
           <td class="playerName">${r.profileId ? `<a class="userLink" href="${escapeAttr(profileHrefById(r.profileId))}">${escapeHtml(r.name)}</a>` : escapeHtml(r.name)}</td>
           <td class="statStrong">${r.games}</td>
+          <td class="statStrong">${Math.round(r.elo)}</td>
           <td class="statStrong">${wrText(r.wins, r.games)}</td>
           <td>${r.wins}</td>
           <td>${r.losses}</td>
@@ -648,6 +812,7 @@
     }
 
     (async function init(){
+      initRankingInfo();
       initLeaderHoverPreview();
       const { data } = await sb.auth.getSession();
       if (!data?.session?.user){
