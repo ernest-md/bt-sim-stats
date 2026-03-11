@@ -545,7 +545,6 @@
         <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
         <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
         <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
-        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
         <a class="btn primary active" href="op-wrapped.html">&#127873; OP Wrapped</a>
         <a class="btn" href="decks.html">&#127183; DeckLists</a>
         <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
@@ -607,7 +606,6 @@
       </div>
       <span class="downloadHint" id="downloadHint"></span>
       <button class="btn downloadBtn" id="btnDownloadPreview" type="button">Descargar resultados</button>
-    </div>
     </div>
   </div>
 
@@ -703,10 +701,6 @@
       if (!u) return "";
       if (!/^https?:\/\//i.test(u)) return u;
       return `https://corsproxy.io/?${encodeURIComponent(u)}`;
-    }
-
-    function directImage(url){
-      return normalize(url);
     }
 
     function setStatus(text){
@@ -889,12 +883,12 @@
       const accentRgb = hexToRgbString(sw);
       const favLeaderLabel = normalize($("fav_leader")?.value || "");
       const favLeaderCard = cardsByLabel.get(favLeaderLabel);
-      const favLeaderImg = directImage(favLeaderCard?.image || "");
+      const favLeaderImg = proxiedImage(favLeaderCard?.image || "");
       const hero = $("previewHero");
       const rail = document.querySelector(".previewRail");
       const bestArtLabel = normalize($("best_art")?.value || "");
       const bestArtCard = cardsByLabel.get(bestArtLabel);
-      const bestArtImg = directImage(bestArtCard?.image || "");
+      const bestArtImg = proxiedImage(bestArtCard?.image || "");
 
       if (favLeaderImg){
         hero.classList.add("withLeaderBg");
