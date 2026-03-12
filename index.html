@@ -537,6 +537,31 @@
       overflow: visible;
       box-shadow: 0 18px 34px rgba(15,23,42,.24);
     }
+    .featuredRefreshBtn{
+      position:absolute;
+      top:16px;
+      right:16px;
+      width:32px;
+      height:32px;
+      border:0;
+      background:transparent;
+      color:#f8fafc;
+      font-size:24px;
+      font-weight:900;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      text-shadow:0 2px 8px rgba(15,23,42,.55);
+    }
+    .featuredRefreshBtn:hover{
+      transform:rotate(-25deg);
+    }
+    .featuredRefreshBtn:disabled{
+      opacity:.75;
+      cursor:wait;
+    }
     .featuredMain{
       display:grid;
       grid-template-columns: 1fr;
@@ -1307,6 +1332,7 @@
       <div class="card" id="featuredCard">
         <div class="sectionTitle" id="featuredSectionTitle">Jugador destacado</div>
         <div class="featuredBody" id="featuredPlayerBody">
+          <button class="featuredRefreshBtn" id="btnRefreshFeatured" type="button" aria-label="Recargar jugador destacado" title="Recargar jugador destacado">&#10227;</button>
           <div class="featuredMuted">Cargando ranking de jugadores...</div>
         </div>
       </div>
@@ -1391,6 +1417,7 @@
   // ===== POSTS =====
   let currentUser = null;
   let currentAccessState = null;
+  let featuredRefreshLoading = false;
   const profileNameCache = new Map();
   const navProfileCache = new Map();
   const POSTS_PAGE_SIZE = 3;
@@ -2269,6 +2296,10 @@
     `;
   }
 
+  function featuredRefreshButtonHtml(disabled = false){
+    return `<button class="featuredRefreshBtn" id="btnRefreshFeatured" type="button" aria-label="Recargar jugador destacado" title="Recargar jugador destacado"${disabled ? " disabled" : ""}>&#10227;</button>`;
+  }
+
   function renderFeaturedPlayer(topPlayers, profileMap, playersMap, expansion, leaderRankings){
     const root = $("featuredPlayerBody");
     const sectionTitle = $("featuredSectionTitle");
@@ -2276,7 +2307,7 @@
 
     if (!topPlayers || !topPlayers.length){
       if (sectionTitle) sectionTitle.textContent = "Jugador destacado";
-      root.innerHTML = `<div class="featuredMuted">Aun no hay suficientes partidas en matches para generar el ranking.</div>`;
+      root.innerHTML = `${featuredRefreshButtonHtml()}<div class="featuredMuted">Aun no hay suficientes partidas en matches para generar el ranking.</div>`;
       return;
     }
 
@@ -2425,6 +2456,7 @@
       `;
 
     root.innerHTML = `
+      ${featuredRefreshButtonHtml()}
       <div class="featuredMain">
         <div class="${spotlightClass}"${spotlightStyle}>
           <div class="featuredHero">
@@ -2505,13 +2537,15 @@
     const root = $("featuredPlayerBody");
     const sectionTitle = $("featuredSectionTitle");
     if (!root) return;
+    if (featuredRefreshLoading) return;
+    featuredRefreshLoading = true;
     if (sectionTitle) sectionTitle.textContent = "Jugador destacado";
     root.innerHTML = `<div class="featuredMuted">Calculando jugador destacado...</div>`;
 
     try{
       const expansion = await withTimeout(fetchCurrentExpansion(), 12000);
       if (!expansion){
-        root.innerHTML = `<div class="featuredMuted">No hay expansion activa para la fecha actual.</div>`;
+        root.innerHTML = `${featuredRefreshButtonHtml()}<div class="featuredMuted">No hay expansion activa para la fecha actual.</div>`;
         return;
       }
       const matches = await withTimeout(fetchFeaturedMatches(expansion), 12000);
@@ -2537,7 +2571,9 @@
       renderFeaturedPlayer(visibleTopPlayers, profileMap, playersMap, expansion, leaderRankings);
     }catch(e){
       console.warn("featured:", e.message || e);
-      root.innerHTML = `<div class="featuredMuted">No se pudo cargar el jugador destacado.</div>`;
+      root.innerHTML = `${featuredRefreshButtonHtml()}<div class="featuredMuted">No se pudo cargar el jugador destacado.</div>`;
+    } finally {
+      featuredRefreshLoading = false;
     }
   }
 
@@ -2663,6 +2699,12 @@
 
   $("btnLoadMorePosts")?.addEventListener("click", async () => {
     await loadMorePosts();
+  });
+
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("#btnRefreshFeatured");
+    if (!btn) return;
+    await refreshFeaturedPlayerSection();
   });
 
   async function submitFeedback(){
@@ -2994,7 +3036,7 @@
 
   (async function(){
     let first = true;
-    sb.auth.onAuthStateChange(async (_event, session) => {
+    sb.auth.onAuthStateChange(async (event, session) => {
       window.BarateamApp.clearAccessStateCache(session?.user?.id || null);
       currentUser = session?.user || null;
       window.__barateamCurrentUser = currentUser;
@@ -3003,6 +3045,9 @@
       applyMemberHomeState();
 
       if (first) return;           // evita el doble disparo inicial
+      if (event === "TOKEN_REFRESHED"){
+        return;
+      }
       await refreshHome();
     });
     await refreshHome();
