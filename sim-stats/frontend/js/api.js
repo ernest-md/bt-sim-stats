@@ -87,23 +87,25 @@ export async function getMatchesByPlayers(playerIds) {
 export async function getViewerStatsContext() {
   const { data: { session } } = await supabase.auth.getSession()
   const userId = session?.user?.id || null
-  if (!userId) return { userId: null, role: "user", team: "SIN EQUIPO" }
+  if (!userId) return { userId: null, role: "user", team: "SIN EQUIPO", username: "", displayName: "" }
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("app_role, team")
+    .select("app_role, team, username, display_name")
     .eq("id", userId)
     .maybeSingle()
 
   if (error) {
     console.error("Error cargando contexto de usuario stats:", error)
-    return { userId, role: "user", team: "SIN EQUIPO" }
+    return { userId, role: "user", team: "SIN EQUIPO", username: "", displayName: "" }
   }
 
   return {
     userId,
     role: data?.app_role || "user",
-    team: data?.team || "SIN EQUIPO"
+    team: data?.team || "SIN EQUIPO",
+    username: data?.username || "",
+    displayName: data?.display_name || ""
   }
 }
 
@@ -168,4 +170,50 @@ export async function getPlayersForTeamOnly() {
   })
 
   return filtered.map((p) => ({ id: p.id, name: p.name }))
+}
+
+export async function getPlayersForSpecificTeam(team) {
+  const safeTeam = String(team || "").trim()
+  if (!safeTeam) return []
+
+  const { data, error } = await supabase
+    .from("players")
+    .select(`
+      id,
+      name,
+      profile_id,
+      owner:profiles!players_profile_id_fkey (
+        team
+      )
+    `)
+    .order("name")
+
+  if (error) {
+    console.error("Error cargando jugadores por equipo seleccionado:", error)
+    return []
+  }
+
+  return data
+    .filter((p) => (p?.owner?.team || "SIN EQUIPO") === safeTeam)
+    .map((p) => ({ id: p.id, name: p.name }))
+}
+
+export async function getAvailableTeamsForStats() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("team")
+    .not("team", "is", null)
+
+  if (error) {
+    console.error("Error cargando equipos para stats:", error)
+    return []
+  }
+
+  return Array.from(
+    new Set(
+      (data || [])
+        .map((row) => String(row?.team || "").trim())
+        .filter((team) => team && team !== "SIN EQUIPO")
+    )
+  ).sort((a, b) => a.localeCompare(b, "es"))
 }
