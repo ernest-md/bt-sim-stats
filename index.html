@@ -1915,6 +1915,14 @@
     return 1000 + (wilson * 1000);
   }
 
+  const FEATURED_RANKING_MIN_GAMES = 40;
+
+  function featuredTopPlayerPool(rows){
+    const list = Array.isArray(rows) ? rows : [];
+    const eligible = list.filter((p) => p.games >= FEATURED_RANKING_MIN_GAMES);
+    return eligible.length ? eligible : list;
+  }
+
   function playerLabel(profile, playerRow, playerId){
     if (profile?.username) return profile.username;
     if (profile?.display_name) return profile.display_name;
@@ -2156,17 +2164,13 @@
         };
       });
 
-    const minGames = 5;
-    const filtered = ranking.filter((p) => p.games >= minGames);
-    const pool = filtered.length ? filtered : ranking;
-
-    pool.sort((a, b) => {
+    ranking.sort((a, b) => {
       if (b.wilson !== a.wilson) return b.wilson - a.wilson;
       if (b.games !== a.games) return b.games - a.games;
       return b.wins - a.wins;
     });
 
-    return pool;
+    return ranking;
   }
 
   function buildLeaderRankings(matches){
@@ -2311,7 +2315,8 @@
       return;
     }
 
-    const featuredTopPlayers = topPlayers.slice(0, 5);
+    const featuredPool = featuredTopPlayerPool(topPlayers);
+    const featuredTopPlayers = featuredPool.slice(0, 5);
     const main = featuredTopPlayers[0];
     const mainPlayer = playersMap.get(main.playerId);
     const mainProfile = profileMap.get(featuredPlayerProfileId(playersMap, main.playerId));
