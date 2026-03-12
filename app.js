@@ -9,7 +9,9 @@
     if (!window.supabase || typeof window.supabase.createClient !== "function"){
       throw new Error("Supabase client is not available.");
     }
-    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, options || undefined);
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, options || undefined);
+    window.__barateamLastSupabaseClient = client;
+    return client;
   }
 
   function byId(id){
@@ -161,6 +163,14 @@
     return fileName;
   }
 
+  function publicProfileHref(username, userId){
+    const trimmed = String(username || "").trim();
+    const base = appPageHref("user.html");
+    if (trimmed) return `${base}?u=${encodeURIComponent(trimmed)}`;
+    if (userId) return `${base}?id=${encodeURIComponent(userId)}`;
+    return "";
+  }
+
   function currentPageName(){
     const path = String(window.location.pathname || "").replace(/\\/g, "/");
     const parts = path.split("/").filter(Boolean);
@@ -178,6 +188,10 @@
 
   function isMembersPage(){
     return currentPageName() === "members.html";
+  }
+
+  function isProfilePage(){
+    return currentPageName() === "profile.html";
   }
 
   const _accessStateCache = new Map();
@@ -232,7 +246,7 @@
 
     const loginHref = opts.loginHref || appPageHref("login.html");
     const indexHref = opts.indexHref || appPageHref("index.html");
-    const allowNonMember = opts.allowNonMember === true || isIndexPage();
+    const allowNonMember = opts.allowNonMember === true || isIndexPage() || isProfilePage();
 
     try{
       const accessState = await resolveAccessState(sb);
@@ -346,6 +360,45 @@
 
   function renderVdjModeDock(actions){
     renderModeDock("vdj", actions);
+  }
+
+  async function syncPublicProfileMenuLink(sb, userMenu, user){
+    if (!userMenu) return;
+
+    let link = userMenu.querySelector('[data-public-profile-link="1"]');
+    if (!link){
+      link = document.createElement("a");
+      link.setAttribute("data-public-profile-link", "1");
+      link.textContent = "Ver perfil";
+      const profileLink = Array.from(userMenu.querySelectorAll("a")).find((a) => {
+        const href = String(a.getAttribute("href") || "").toLowerCase();
+        return href.endsWith("profile.html") || href.endsWith("../../profile.html");
+      });
+      if (profileLink && profileLink.parentNode){
+        profileLink.insertAdjacentElement("afterend", link);
+      } else {
+        userMenu.insertBefore(link, userMenu.firstChild);
+      }
+    }
+
+    if (!user?.id || !sb){
+      link.style.display = "none";
+      link.removeAttribute("href");
+      return;
+    }
+
+    try{
+      const accessState = await resolveAccessState(sb);
+      const profile = accessState?.profile || null;
+      const href = publicProfileHref(profile?.username || "", user.id);
+      const visible = profile?.member === true && !!href;
+      link.style.display = visible ? "" : "none";
+      if (visible) link.setAttribute("href", href);
+      else link.removeAttribute("href");
+    }catch(_err){
+      link.style.display = "none";
+      link.removeAttribute("href");
+    }
   }
 
   async function applyRestrictedNavVisibility(sb){
@@ -564,6 +617,7 @@
       if (userLabel && user){
         userLabel.textContent = formatLabel(user);
       }
+      void syncPublicProfileMenuLink(cfg.supabase || window.__barateamLastSupabaseClient || null, userMenu, user || null);
       if (!user){
         closeMenu();
       }

@@ -344,7 +344,7 @@
         <span class="chev">v</span>
       </button>
       <div class="menu profile" id="userMenu">
-        <a href="profile.html">Ver perfil</a>
+        <a href="profile.html">Configurar perfil</a>
         <div class="sep"></div>
         <button type="button" onclick="doLogout()" class="logoutButton">Cerrar sesion</button>
       </div>
@@ -372,7 +372,7 @@
         <option value="CARDGUILD">CARDGUILD</option>
       </select>
 
-      <div class="simConnect">
+      <div class="simConnect" id="simConnectBlock">
         <div class="simConnectHead">Conexion SIM</div>
         <label>SIM profile URL</label>
         <input id="sim_profile_url" placeholder="https://...">
@@ -587,10 +587,12 @@
       if (!data){
         const { error: insErr } = await sb.from("profiles").insert({ id: user.id });
         if (insErr) show("No pude crear tu perfil: " + insErr.message, "err");
+        $("simConnectBlock").style.display = "none";
         updatePublicLink("", user.id);
         return;
       }
 
+      $("simConnectBlock").style.display = data.member === true ? "" : "none";
       $("username").value = data.username || "";
       $("team").value = data.team || "SIN EQUIPO";
       $("sim_profile_url").value = data.sim_profile_url || "";
