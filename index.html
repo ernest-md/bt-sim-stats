@@ -1257,7 +1257,7 @@
     </div>
 
     <div class="grid">
-      <div class="card">
+      <div class="card" id="postsCard">
         <div class="sectionTitle">Posts</div>
 
         <!-- CHAPUZA TEMPORAL: editor oculto por CSS inline -->
@@ -1304,12 +1304,17 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="featuredCard">
         <div class="sectionTitle" id="featuredSectionTitle">Jugador destacado</div>
         <div class="featuredBody" id="featuredPlayerBody">
           <div class="featuredMuted">Cargando ranking de jugadores...</div>
         </div>
       </div>
+    </div>
+
+    <div class="card" id="memberPendingCard" style="display:none;">
+      <div class="sectionTitle">Acceso pendiente</div>
+      <div class="muted">un administrador ha de validarte de que eres miembro de nuestra comunidad, cualquier duda ponte en contacto con un miembro de Barateam (desde el feedback) o de la administracion de Vadejocs</div>
     </div>
 
     <div class="card feedbackCard" id="feedbackCard">
@@ -1355,11 +1360,13 @@
 
   async function refreshSession(){
     try{
-      const { data } = await sb.auth.getSession();
-      const user = data?.session?.user || null;
+      const accessState = await window.BarateamApp.resolveAccessState(sb);
+      const user = accessState?.user || null;
+      currentAccessState = accessState || null;
       currentUser = user;
       window.__barateamCurrentUser = user;
       setNavAuthUI(user);
+      applyMemberHomeState();
       return user;
     }catch(e){
       console.warn("refreshSession:", e.message);
@@ -1383,6 +1390,7 @@
 
   // ===== POSTS =====
   let currentUser = null;
+  let currentAccessState = null;
   const profileNameCache = new Map();
   const navProfileCache = new Map();
   const POSTS_PAGE_SIZE = 3;
@@ -1415,6 +1423,16 @@
       if (input) input.value = "";
       showFeedbackMsg("", "ok");
     }
+  }
+
+  function applyMemberHomeState(){
+    const isMember = currentAccessState?.isMember === true;
+    const postsCard = $("postsCard");
+    const featuredCard = $("featuredCard");
+    const pendingCard = $("memberPendingCard");
+    if (postsCard) postsCard.style.display = isMember ? "block" : "none";
+    if (featuredCard) featuredCard.style.display = isMember ? "block" : "none";
+    if (pendingCard) pendingCard.style.display = isMember ? "none" : "block";
   }
 
   async function syncNavAvatar(user){
@@ -1856,6 +1874,20 @@
     return `${((wins / games) * 100).toFixed(1)}%`;
   }
 
+  function wilsonScore(wins, games, z = 1.96){
+    if (!games) return 0;
+    const p = wins / games;
+    const z2 = z * z;
+    const denominator = 1 + (z2 / games);
+    const centre = p + (z2 / (2 * games));
+    const margin = z * Math.sqrt((p * (1 - p) / games) + (z2 / (4 * games * games)));
+    return (centre - margin) / denominator;
+  }
+
+  function eloFromWilson(wilson){
+    return 1000 + (wilson * 1000);
+  }
+
   function playerLabel(profile, playerRow, playerId){
     if (profile?.username) return profile.username;
     if (profile?.display_name) return profile.display_name;
@@ -1880,6 +1912,16 @@
     const profileId = featuredPlayerProfileId(playersMap, playerId);
     if (profileId) return profileLinkById(profileId, label);
     return escapeHtml(label);
+  }
+
+  function memberFeaturedPlayerIds(playersMap, profileMap){
+    const allowed = new Set();
+    for (const [playerId, player] of (playersMap || new Map()).entries()){
+      const profileId = player?.profile_id || null;
+      const profile = profileId ? profileMap.get(profileId) : null;
+      if (profile?.member === true) allowed.add(playerId);
+    }
+    return allowed;
   }
 
   function leaderImageHtml(leader){
@@ -2000,7 +2042,7 @@
       const chunk = ids.slice(i, i + chunkSize);
       const { data, error } = await sb
         .from("profiles")
-        .select("id,username,display_name,avatar_url,team")
+        .select("id,username,display_name,avatar_url,team,member")
         .in("id", chunk);
       if (error){
         console.warn("profiles featured:", error.message);
@@ -2075,19 +2117,24 @@
     }
 
     const ranking = Array.from(players.values())
-      .map((p) => ({
-        ...p,
-        wr: p.games ? (p.wins / p.games) : 0,
-        topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
-        topLeaderByWr: chooseLeaderBestWr(p.leaders)
-      }));
+      .map((p) => {
+        const wilson = wilsonScore(p.wins, p.games);
+        return {
+          ...p,
+          wr: p.games ? (p.wins / p.games) : 0,
+          wilson,
+          elo: eloFromWilson(wilson),
+          topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
+          topLeaderByWr: chooseLeaderBestWr(p.leaders)
+        };
+      });
 
     const minGames = 5;
     const filtered = ranking.filter((p) => p.games >= minGames);
     const pool = filtered.length ? filtered : ranking;
 
     pool.sort((a, b) => {
-      if (b.wr !== a.wr) return b.wr - a.wr;
+      if (b.wilson !== a.wilson) return b.wilson - a.wilson;
       if (b.games !== a.games) return b.games - a.games;
       return b.wins - a.wins;
     });
@@ -2468,10 +2515,8 @@
         return;
       }
       const matches = await withTimeout(fetchFeaturedMatches(expansion), 12000);
-      const topPlayers = buildFeaturedRanking(matches);
-      const leaderRankings = buildLeaderRankings(matches);
-      const playerIds = topPlayers.map((p) => p.playerId);
-      const playersMap = await withTimeout(fetchPlayersMap(playerIds), 12000);
+      const allPlayerIds = matches.map((m) => m.player_id).filter(Boolean);
+      const playersMap = await withTimeout(fetchPlayersMap(allPlayerIds), 12000);
       const profileIds = Array.from(
         new Set(
           Array.from(playersMap.values())
@@ -2480,7 +2525,16 @@
         )
       );
       const profileMap = await withTimeout(fetchProfileMap(profileIds), 12000);
-      renderFeaturedPlayer(topPlayers, profileMap, playersMap, expansion, leaderRankings);
+      const allowedPlayerIds = memberFeaturedPlayerIds(playersMap, profileMap);
+      const memberMatches = matches.filter((m) => allowedPlayerIds.has(m.player_id));
+      const topPlayers = buildFeaturedRanking(memberMatches);
+      const leaderRankings = buildLeaderRankings(memberMatches);
+      const playerIds = topPlayers.map((p) => p.playerId);
+      const visibleTopPlayers = topPlayers.filter((p) => {
+        const profileId = featuredPlayerProfileId(playersMap, p.playerId);
+        return profileMap.get(profileId || "")?.member === true;
+      });
+      renderFeaturedPlayer(visibleTopPlayers, profileMap, playersMap, expansion, leaderRankings);
     }catch(e){
       console.warn("featured:", e.message || e);
       root.innerHTML = `<div class="featuredMuted">No se pudo cargar el jugador destacado.</div>`;
@@ -2903,6 +2957,11 @@
   async function refreshHome(){
     await refreshSession();
     renderFeedbackBar();
+    applyMemberHomeState();
+
+    if (!currentAccessState?.isMember){
+      return;
+    }
 
     try{
       await refreshPostsSection();
@@ -2936,12 +2995,15 @@
   (async function(){
     let first = true;
     sb.auth.onAuthStateChange(async (_event, session) => {
+      window.BarateamApp.clearAccessStateCache(session?.user?.id || null);
       currentUser = session?.user || null;
       window.__barateamCurrentUser = currentUser;
       setNavAuthUI(currentUser);
       renderFeedbackBar();
+      applyMemberHomeState();
 
       if (first) return;           // evita el doble disparo inicial
+      await refreshHome();
     });
     await refreshHome();
     first = false;

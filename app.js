@@ -93,22 +93,22 @@
   }
 
   function eventTitle(eventRow){
-    return eventRow?.title || eventRow?.name || eventRow?.event_name || "—";
+    return eventRow?.title || eventRow?.name || eventRow?.event_name || "-";
   }
 
   function eventDate(eventRow){
-    return formatDate(eventRow?.start_at || eventRow?.date || eventRow?.event_date, "—");
+    return formatDate(eventRow?.start_at || eventRow?.date || eventRow?.event_date, "-");
   }
 
   function leaderLabel(leaderRow){
     const name = leaderRow?.name || leaderRow?.leader || leaderRow?.title || "";
     const code = leaderRow?.code || leaderRow?.expansion || "";
     const label = [name, code].filter(Boolean).join(" ").trim();
-    return label || "—";
+    return label || "-";
   }
 
   async function getSessionUser(sb){
-    const timeoutMs = 2500;
+    const timeoutMs = 8000;
     const authPromise = sb.auth.getSession();
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error("Auth timeout")), timeoutMs);
@@ -146,7 +146,7 @@
       }
       window.location.href = href;
     }catch(_err){
-      // Si falla el check, navegamos: la página destino ya valida sesión si toca.
+      // Si falla el check, navegamos: la pagina destino ya valida sesion si toca.
       window.location.href = href;
     }
   }
@@ -161,22 +161,140 @@
     return fileName;
   }
 
-  function ensureAdminModeDock(){
-    let dock = document.getElementById("adminModeDock");
+  function currentPageName(){
+    const path = String(window.location.pathname || "").replace(/\\/g, "/");
+    const parts = path.split("/").filter(Boolean);
+    return parts.length ? parts[parts.length - 1].toLowerCase() : "index.html";
+  }
+
+  function isIndexPage(){
+    return currentPageName() === "index.html";
+  }
+
+  function isAccessGuardExemptPage(){
+    const page = currentPageName();
+    return page === "login.html" || page === "reset-password.html";
+  }
+
+  function isMembersPage(){
+    return currentPageName() === "members.html";
+  }
+
+  const _accessStateCache = new Map();
+  async function resolveAccessState(sb){
+    const user = sb ? await getSessionUser(sb) : null;
+    if (!user?.id){
+      const anonState = {
+        user: null,
+        profile: null,
+        isLoggedIn: false,
+        isMember: false,
+        isAdmin: false,
+        isPrivileged: false
+      };
+      window.__barateamAccessState = anonState;
+      return anonState;
+    }
+
+    let profile = _accessStateCache.get(user.id);
+    if (!profile && sb){
+      const { data } = await sb
+        .from("profiles")
+        .select("id,username,display_name,avatar_url,app_role,member")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = data || null;
+      _accessStateCache.set(user.id, profile);
+    }
+
+    const accessState = {
+      user,
+      profile: profile || null,
+      isLoggedIn: true,
+      isMember: profile?.member === true,
+      isAdmin: profile?.app_role === "admin",
+      isPrivileged: profile?.app_role === "admin" || profile?.app_role === "vdj"
+    };
+    window.__barateamAccessState = accessState;
+    return accessState;
+  }
+
+  function clearAccessStateCache(userId){
+    if (userId) _accessStateCache.delete(String(userId));
+    else _accessStateCache.clear();
+  }
+
+  async function enforcePageAccess(sb, options){
+    const opts = options || {};
+    if (!sb || opts.skipGuard || isAccessGuardExemptPage()){
+      return { allowed: true, redirected: false, accessState: window.__barateamAccessState || null };
+    }
+
+    const loginHref = opts.loginHref || appPageHref("login.html");
+    const indexHref = opts.indexHref || appPageHref("index.html");
+    const allowNonMember = opts.allowNonMember === true || isIndexPage();
+
+    try{
+      const accessState = await resolveAccessState(sb);
+      if (!accessState.isLoggedIn){
+        window.location.replace(loginHref);
+        return { allowed: false, redirected: true, accessState };
+      }
+      if (!accessState.isMember && !allowNonMember && !(isMembersPage() && accessState.isPrivileged)){
+        window.location.replace(indexHref);
+        return { allowed: false, redirected: true, accessState };
+      }
+      return { allowed: true, redirected: false, accessState };
+    }catch(_err){
+      console.warn("enforcePageAccess:", _err?.message || _err);
+      return {
+        allowed: true,
+        redirected: false,
+        accessState: window.__barateamAccessState || null
+      };
+    }
+  }
+
+  function initGlobalAccessGuard(sb, options){
+    if (!sb || isAccessGuardExemptPage()) return;
+    if (window.__barateamAccessGuardBound === "1") return;
+    window.__barateamAccessGuardBound = "1";
+
+    void enforcePageAccess(sb, options);
+    if (sb.auth && typeof sb.auth.onAuthStateChange === "function"){
+      sb.auth.onAuthStateChange((_event, session) => {
+        clearAccessStateCache(session?.user?.id || null);
+        void enforcePageAccess(sb, options);
+      });
+    }
+  }
+
+  function ensureModeDock(mode){
+    const dockId = mode === "vdj" ? "vdjModeDock" : "adminModeDock";
+    const panelId = mode === "vdj" ? "vdjModePanel" : "adminModePanel";
+    const toggleId = mode === "vdj" ? "vdjModeToggle" : "adminModeToggle";
+    let dock = document.getElementById(dockId);
     if (dock) return dock;
 
     dock = document.createElement("div");
-    dock.id = "adminModeDock";
-    dock.className = "adminModeDock";
-    dock.innerHTML = `
-      <div class="adminModePanel" id="adminModePanel"></div>
-      <button class="adminModeToggle" id="adminModeToggle" type="button" aria-label="Abrir modo admin" aria-expanded="false" title="Modo admin">
-        &#9881;
-      </button>
-    `;
+    dock.id = dockId;
+    dock.className = `adminModeDock ${mode}ModeDock`;
+    dock.innerHTML = mode === "vdj"
+      ? `
+        <div class="adminModePanel" id="${panelId}"></div>
+        <button class="adminModeToggle vdjModeToggle" id="${toggleId}" type="button" aria-label="Abrir modo VDJ" aria-expanded="false" title="Modo VDJ">
+          <img class="vdjModeToggleImg" src="${escapeAttr(appPageHref("VDJ.png"))}" alt="VDJ" />
+        </button>
+      `
+      : `
+        <div class="adminModePanel" id="${panelId}"></div>
+        <button class="adminModeToggle" id="${toggleId}" type="button" aria-label="Abrir modo admin" aria-expanded="false" title="Modo admin">
+          &#9881;
+        </button>
+      `;
     document.body.appendChild(dock);
 
-    const toggle = dock.querySelector("#adminModeToggle");
+    const toggle = dock.querySelector(`#${toggleId}`);
     toggle?.addEventListener("click", (e) => {
       e.stopPropagation();
       const open = dock.classList.toggle("open");
@@ -193,10 +311,10 @@
     return dock;
   }
 
-  function renderAdminModeDock(actions){
-    const dock = ensureAdminModeDock();
-    const panel = dock.querySelector("#adminModePanel");
-    const toggle = dock.querySelector("#adminModeToggle");
+  function renderModeDock(mode, actions){
+    const dock = ensureModeDock(mode);
+    const panel = dock.querySelector(mode === "vdj" ? "#vdjModePanel" : "#adminModePanel");
+    const toggle = dock.querySelector(mode === "vdj" ? "#vdjModeToggle" : "#adminModeToggle");
     const items = Array.isArray(actions) ? actions : [];
 
     if (!items.length){
@@ -222,9 +340,18 @@
     dock.style.display = "flex";
   }
 
+  function renderAdminModeDock(actions){
+    renderModeDock("admin", actions);
+  }
+
+  function renderVdjModeDock(actions){
+    renderModeDock("vdj", actions);
+  }
+
   async function applyRestrictedNavVisibility(sb){
     const restrictedLinks = Array.from(document.querySelectorAll('a[data-vdbf-only="1"]'));
     const adminLinks = Array.from(document.querySelectorAll('a[data-admin-only="1"]'));
+    const privilegedLinks = Array.from(document.querySelectorAll('a[data-privileged-only="1"]'));
 
     restrictedLinks.forEach((a) => {
       a.style.display = "none";
@@ -232,68 +359,75 @@
     adminLinks.forEach((a) => {
       a.style.display = "none";
     });
+    privilegedLinks.forEach((a) => {
+      a.style.display = "none";
+    });
 
     if (!sb) return;
 
     try{
-      const user = await getSessionUser(sb);
+      const accessState = await resolveAccessState(sb);
+      const user = accessState.user;
       if (!user){
         renderAdminModeDock([]);
+        renderVdjModeDock([]);
         return;
       }
 
-      let profile = null;
-      const handles = new Set();
-      const emailHandle = normalizeHandle((user.email || "").split("@")[0]);
-      if (emailHandle) handles.add(emailHandle);
+      const isAdmin = accessState.isAdmin;
+      const isPrivileged = accessState.isPrivileged === true;
 
-      const meta = user.user_metadata || {};
-      ["username", "display_name", "name", "nickname"].forEach((key) => {
-        const v = normalizeHandle(meta[key]);
-        if (v) handles.add(v);
+      privilegedLinks.forEach((a) => {
+        a.style.display = isPrivileged ? "" : "none";
       });
-
-      if (user.id){
-        const { data } = await sb
-          .from("profiles")
-          .select("username,display_name,app_role")
-          .eq("id", user.id)
-          .maybeSingle();
-        profile = data || null;
-        if (profile){
-          const username = normalizeHandle(profile.username);
-          const displayName = normalizeHandle(profile.display_name);
-          if (username) handles.add(username);
-          if (displayName) handles.add(displayName);
-        }
-      }
-
-      const isAdmin = profile?.app_role === "admin";
 
       if (isAdmin){
         renderAdminModeDock([
           {
             href: restrictedLinks[0]?.getAttribute("href") || appPageHref("vade-back-fight.html"),
             label: "VDBF",
-            icon: "🔥"
+            icon: "V"
           },
           {
             href: adminLinks[0]?.getAttribute("href") || appPageHref("feedback.html"),
             label: "Feedback",
-            icon: "💬"
+            icon: "F"
+          },
+          {
+            href: privilegedLinks[0]?.getAttribute("href") || appPageHref("members.html"),
+            label: "Members",
+            icon: "M"
+          }
+        ]);
+        renderVdjModeDock([]);
+      } else if (isPrivileged){
+        renderAdminModeDock([]);
+        renderVdjModeDock([
+          {
+            href: restrictedLinks[0]?.getAttribute("href") || appPageHref("vade-back-fight.html"),
+            label: "VDBF",
+            icon: "V"
+          },
+          {
+            href: privilegedLinks[0]?.getAttribute("href") || appPageHref("members.html"),
+            label: "Members",
+            icon: "M"
           }
         ]);
       } else {
         renderAdminModeDock([]);
+        renderVdjModeDock([]);
       }
     } catch (_err){
       renderAdminModeDock([]);
+      renderVdjModeDock([]);
       // Si falla cualquier check, por defecto permanece oculto.
     }
   }
 
   function bindProtectedNavLinks(sb, options){
     if (!sb) return;
+    initGlobalAccessGuard(sb, options);
     const selector = options?.selector || 'a[data-requires-auth="1"]';
     document.querySelectorAll(selector).forEach((a) => {
       if (a.dataset.authBound === "1") return;
@@ -340,7 +474,7 @@
         toggle = document.createElement("button");
         toggle.type = "button";
         toggle.className = "btn mobileNavToggle";
-        toggle.textContent = "☰";
+        toggle.textContent = "MENU";
         toggle.setAttribute("aria-label", "Abrir menu");
         bar.insertBefore(toggle, nav);
       }
@@ -351,7 +485,7 @@
       const close = () => {
         nav.classList.remove("open");
         toggle.setAttribute("aria-expanded", "false");
-        toggle.textContent = "☰";
+        toggle.textContent = "MENU";
         toggle.setAttribute("aria-label", "Abrir menu");
       };
 
@@ -359,7 +493,7 @@
         const open = !nav.classList.contains("open");
         nav.classList.toggle("open", open);
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
-        toggle.textContent = open ? "✕" : "☰";
+        toggle.textContent = open ? "X" : "MENU";
         toggle.setAttribute("aria-label", open ? "Cerrar menu" : "Abrir menu");
       });
 
@@ -542,6 +676,10 @@
     eventDate,
     leaderLabel,
     getSessionUser,
+    resolveAccessState,
+    enforcePageAccess,
+    initGlobalAccessGuard,
+    clearAccessStateCache,
     applyRestrictedNavVisibility,
     bindProtectedNavLinks,
     initMobileTopbarToggle,
@@ -551,8 +689,22 @@
   };
 
   if (document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", initMobileTopbarToggle);
+    document.addEventListener("DOMContentLoaded", () => {
+      initMobileTopbarToggle();
+      try{
+        initGlobalAccessGuard(createClient());
+      }catch(_err){
+        // Si supabase no esta listo en esta pagina, el propio script de pagina lo iniciara.
+      }
+    });
   } else {
     initMobileTopbarToggle();
+    try{
+      initGlobalAccessGuard(createClient());
+    }catch(_err){
+      // Si supabase no esta listo en esta pagina, el propio script de pagina lo iniciara.
+    }
   }
 })(window);
+
+

@@ -11,6 +11,20 @@ let allExpansions = []
 let playersMap = new Map()
 let currentUserTeam = "SIN EQUIPO"
 
+function wilsonScore(wins, games, z = 1.96) {
+  if (!games) return 0
+  const p = wins / games
+  const z2 = z * z
+  const denominator = 1 + (z2 / games)
+  const centre = p + (z2 / (2 * games))
+  const margin = z * Math.sqrt((p * (1 - p) / games) + (z2 / (4 * games * games)))
+  return (centre - margin) / denominator
+}
+
+function eloFromWilson(wilson) {
+  return 1000 + (wilson * 1000)
+}
+
 function pickLeaderImage(leader) {
   return String(leader?.parallel_image_url || leader?.image_url || "").trim() || null
 }
@@ -161,17 +175,18 @@ function renderTeamSummary(matches) {
   const list = Array.from(byPlayer.values()).map((p) => {
     const losses = p.games - p.wins
     const wr = p.games > 0 ? (p.wins / p.games) * 100 : 0
+    const wilson = wilsonScore(p.wins, p.games)
     const leaders = Array.from(p.leaderMap.values())
     const topPlayed = leaders.sort((a, b) => b.games - a.games)[0] || null
     const topWr = leaders
       .filter((l) => l.games >= 3)
       .sort((a, b) => (b.wins / b.games) - (a.wins / a.games))[0] || topPlayed
 
-    return { ...p, losses, wr, topPlayed, topWr }
+    return { ...p, losses, wr, wilson, elo: eloFromWilson(wilson), topPlayed, topWr }
   })
 
   list.sort((a, b) => {
-    if (b.wr !== a.wr) return b.wr - a.wr
+    if (b.wilson !== a.wilson) return b.wilson - a.wilson
     return b.games - a.games
   })
 
@@ -181,6 +196,7 @@ function renderTeamSummary(matches) {
       <td class="rankPos">${idx + 1}</td>
       <td class="playerName">${escapeHtml(p.name)}</td>
       <td>${p.wr.toFixed(1)}%</td>
+      <td class="statStrong">${Math.round(p.elo)}</td>
       <td class="statStrong">${p.games}</td>
       <td>${p.wins}</td>
       <td>${p.losses}</td>
@@ -194,12 +210,13 @@ function renderTeamSummary(matches) {
       <div class="teamHighlightTop">Jugador destacado del equipo</div>
       <h4 class="teamHighlightName">${escapeHtml(top.name)}</h4>
       <p class="teamHighlightSub">Mejor WR con volumen de partidas en el filtro actual</p>
-      <div class="teamKpis">
-        <div class="teamKpi"><div class="teamKpiLabel">Partidas</div><div class="teamKpiValue">${top.games}</div></div>
-        <div class="teamKpi"><div class="teamKpiLabel">Winrate</div><div class="teamKpiValue">${top.wr.toFixed(1)}%</div></div>
-        <div class="teamKpi"><div class="teamKpiLabel">Victorias</div><div class="teamKpiValue">${top.wins}</div></div>
-        <div class="teamKpi"><div class="teamKpiLabel">Derrotas</div><div class="teamKpiValue">${top.losses}</div></div>
-      </div>
+        <div class="teamKpis">
+          <div class="teamKpi"><div class="teamKpiLabel">Partidas</div><div class="teamKpiValue">${top.games}</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Winrate</div><div class="teamKpiValue">${top.wr.toFixed(1)}%</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">ELO</div><div class="teamKpiValue">${Math.round(top.elo)}</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Victorias</div><div class="teamKpiValue">${top.wins}</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Derrotas</div><div class="teamKpiValue">${top.losses}</div></div>
+        </div>
     </div>
 
     <div class="teamRankWrap">
@@ -209,6 +226,7 @@ function renderTeamSummary(matches) {
             <th>#</th>
             <th>Jugador</th>
             <th>WR</th>
+            <th>ELO</th>
             <th>Partidas</th>
             <th>Victorias</th>
             <th>Derrotas</th>

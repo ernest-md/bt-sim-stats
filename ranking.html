@@ -682,7 +682,7 @@
     async function fetchProfilesMap(profileIds){
       const ids = Array.from(new Set((profileIds || []).filter(Boolean)));
       if (!ids.length) return new Map();
-      const { data, error } = await sb.from("profiles").select("id,username,display_name").in("id", ids);
+      const { data, error } = await sb.from("profiles").select("id,username,display_name,member").in("id", ids);
       if (error){
         console.warn("profiles:", error.message);
         return new Map();
@@ -693,6 +693,16 @@
     function profileHrefById(userId){
       if (!userId) return "";
       return `user.html?id=${encodeURIComponent(userId)}`;
+    }
+
+    function memberPlayerIds(playersMap, profilesMap){
+      const allowed = new Set();
+      for (const [playerId, player] of (playersMap || new Map()).entries()){
+        const profileId = player?.profile_id || null;
+        const profile = profileId ? profilesMap.get(profileId) : null;
+        if (profile?.member === true) allowed.add(playerId);
+      }
+      return allowed;
     }
 
     function buildRanking(matches, playersMap, profilesMap){
@@ -737,13 +747,16 @@
       }
 
       const ranking = Array.from(players.values()).map((p) => {
+        const profileId = playersMap.get(p.playerId)?.profile_id || null;
+        const profile = profilesMap.get(profileId || "") || null;
         const wilson = wilsonScore(p.wins, p.games);
         return {
-          profileId: playersMap.get(p.playerId)?.profile_id || null,
+          profileId,
+          member: profile?.member === true,
           ...p,
           name:
-            profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.username ||
-            profilesMap.get(playersMap.get(p.playerId)?.profile_id || "")?.display_name ||
+            profile?.username ||
+            profile?.display_name ||
             playersMap.get(p.playerId)?.name ||
             `user-${String(p.playerId).slice(0, 8)}`,
           wr: p.games ? (p.wins / p.games) : 0,
@@ -754,9 +767,10 @@
         };
       });
 
+      const memberRanking = ranking.filter((p) => p.member === true);
       const minGames = 5;
-      const filtered = ranking.filter((p) => p.games >= minGames);
-      const pool = filtered.length ? filtered : ranking;
+      const filtered = memberRanking.filter((p) => p.games >= minGames);
+      const pool = filtered.length ? filtered : memberRanking;
       pool.sort((a, b) => {
         if (b.wilson !== a.wilson) return b.wilson - a.wilson;
         if (b.games !== a.games) return b.games - a.games;
@@ -802,7 +816,9 @@
         const playersMap = await fetchPlayersMap(playerIds);
         const profileIds = Array.from(new Set(Array.from(playersMap.values()).map((p) => p?.profile_id).filter(Boolean)));
         const profilesMap = await fetchProfilesMap(profileIds);
-        const ranking = buildRanking(matches, playersMap, profilesMap);
+        const allowedPlayerIds = memberPlayerIds(playersMap, profilesMap);
+        const memberMatches = matches.filter((m) => allowedPlayerIds.has(m.player_id));
+        const ranking = buildRanking(memberMatches, playersMap, profilesMap);
         renderRanking(ranking);
       }catch(e){
         console.warn("ranking:", e.message || e);
@@ -816,14 +832,14 @@
       initLeaderHoverPreview();
       const { data } = await sb.auth.getSession();
       if (!data?.session?.user){
-        location.replace("index.html");
+        location.replace("login.html");
         return;
       }
       navController.setUser(data?.session?.user || null);
       void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
       sb.auth.onAuthStateChange((_event, session) => {
         if (!session?.user){
-          location.replace("index.html");
+          location.replace("login.html");
           return;
         }
         navController.setUser(session?.user || null);
