@@ -797,7 +797,8 @@
     }
     .topList{
       margin: 12px 0 0;
-      padding-left: 18px;
+      padding-left: 0;
+      list-style: none;
       display:grid;
       gap: 6px;
     }
@@ -814,6 +815,11 @@
       margin-top: 12px;
       display:grid;
       grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .featuredPlayerLists{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
     .featuredListCard{
@@ -892,6 +898,9 @@
         justify-content: flex-start;
         text-align: left;
       }
+      .featuredPlayerLists{
+        grid-template-columns: 1fr;
+      }
     }
     .featuredTeamRow{
       display:grid;
@@ -936,13 +945,15 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
+    .featuredTeamStats.tight{
+      margin-top: 0;
+    }
     .featuredTeamStats .featuredStat{
       background: rgba(15,23,42,.30);
     }
     .featuredTeamMeta{
       margin-top: 10px;
-      border-top: 1px solid rgba(255,255,255,.14);
-      padding-top: 8px;
+      padding-top: 0;
       display:grid;
       gap: 6px;
     }
@@ -950,6 +961,10 @@
       font-size: 13px;
       color: #cbd5e1;
       line-height: 1.3;
+    }
+    .featuredTeamMetaLine.center{
+      text-align:center;
+      margin-top: 4px;
     }
     .featuredTeamMetaLine strong{
       color:#f8fafc;
@@ -2342,9 +2357,22 @@
         const profile = profileMap.get(featuredPlayerProfileId(playersMap, p.playerId));
         const playerRow = playersMap.get(p.playerId);
         const label = playerLabel(profile, playerRow, p.playerId);
-        return `<li><strong>#${idx + 1} ${featuredPlayerLabelHtml(playersMap, p.playerId, label)}</strong> · WR ${percentText(p.wins, p.games)} · ${p.games} partidas</li>`;
+        return `<li><strong>#${idx + 1} ${featuredPlayerLabelHtml(playersMap, p.playerId, label)}</strong> · ${percentText(p.wins, p.games)} · ${p.games} partidas</li>`;
       })
       .join("");
+    const rookiePlayers = topPlayers
+      .filter((p) => p.games < FEATURED_RANKING_MIN_GAMES)
+      .slice(0, 5);
+    const rookieListHtml = rookiePlayers.length
+      ? rookiePlayers
+          .map((p, idx) => {
+            const profile = profileMap.get(featuredPlayerProfileId(playersMap, p.playerId));
+            const playerRow = playersMap.get(p.playerId);
+            const label = playerLabel(profile, playerRow, p.playerId);
+            return `<li><strong>#${idx + 1} ${featuredPlayerLabelHtml(playersMap, p.playerId, label)}</strong> · ${percentText(p.wins, p.games)} · ${p.games} partidas</li>`;
+          })
+          .join("")
+      : `<li>Sin rookies disponibles en esta expansion.</li>`;
 
     const teams = new Map();
     for (const p of topPlayers){
@@ -2361,40 +2389,48 @@
           games: 0,
           wins: 0,
           losses: 0,
-          wrSum: 0,
-          wrCount: 0,
-          players: []
+          memberCount: 0,
+          rankingCount: 0,
+          rankingEloSum: 0,
+          players: [],
+          rankingPlayers: []
         });
       }
       const t = teams.get(teamKey);
       t.games += p.games;
       t.wins += p.wins;
       t.losses += p.losses;
-      t.wrSum += p.wr;
-      t.wrCount += 1;
+      t.memberCount += 1;
       t.players.push({ p, label });
+      if (p.games >= FEATURED_RANKING_MIN_GAMES){
+        t.rankingCount += 1;
+        t.rankingEloSum += p.elo || 0;
+        t.rankingPlayers.push({ p, label });
+      }
     }
 
     const teamRows = Array.from(teams.values())
       .map((t) => {
-        const playersByWr = [...t.players].sort((a, b) => {
-          if (b.p.wr !== a.p.wr) return b.p.wr - a.p.wr;
+        const rankingPool = t.rankingPlayers.length ? [...t.rankingPlayers] : [...t.players];
+        const playersByElo = [...rankingPool].sort((a, b) => {
+          if (b.p.elo !== a.p.elo) return b.p.elo - a.p.elo;
           if (b.p.games !== a.p.games) return b.p.games - a.p.games;
           return b.p.wins - a.p.wins;
         });
         const playersByGames = [...t.players].sort((a, b) => {
           if (b.p.games !== a.p.games) return b.p.games - a.p.games;
-          if (b.p.wr !== a.p.wr) return b.p.wr - a.p.wr;
+          if (b.p.elo !== a.p.elo) return b.p.elo - a.p.elo;
           return b.p.wins - a.p.wins;
         });
-        const topByWr = playersByWr[0] || null;
+        const topByElo = playersByElo[0] || null;
         const topByGames = playersByGames[0] || null;
-        const avgWr = t.wrCount ? (t.wrSum / t.wrCount) : 0;
+        const avgElo = t.rankingCount ? (t.rankingEloSum / t.rankingCount) : 0;
         const weightedWr = t.games ? (t.wins / t.games) : 0;
-        return { ...t, avgWr, weightedWr, topByWr, topByGames };
+        return { ...t, avgElo, weightedWr, topByElo, topByGames };
       })
+      .filter((t) => t.rankingCount > 0)
       .sort((a, b) => {
-        if (b.avgWr !== a.avgWr) return b.avgWr - a.avgWr;
+        if (b.avgElo !== a.avgElo) return b.avgElo - a.avgElo;
         if (b.games !== a.games) return b.games - a.games;
         return b.wins - a.wins;
       });
@@ -2402,7 +2438,7 @@
     const featuredTeam = teamRows[0] || null;
     const topByTeamHtml = teamRows.length
       ? teamRows.map((t) => {
-          const top = t.topByWr;
+          const top = t.topByElo;
           if (!top) return "";
           return `
             <li class="teamTopItem">
@@ -2426,17 +2462,17 @@
             <div>
               <p class="featuredListTitle" style="margin-bottom:4px;">Equipo destacado</p>
               <h4 class="featuredTeamName">${escapeHtml(featuredTeam.team)}</h4>
-              <p class="featuredTeamSub">Mayor WR promedio entre jugadores del equipo</p>
+              <p class="featuredTeamSub">Equipo con mejor rendimiento global en el ranking</p>
             </div>
           </div>
           <div class="featuredTeamStats">
             <div class="featuredStat">
               <div class="k">WR promedio</div>
-              <div class="v">${(featuredTeam.avgWr * 100).toFixed(1)}%</div>
+              <div class="v">${featuredTeam.memberCount ? ((featuredTeam.players.reduce((sum, item) => sum + item.p.wr, 0) / featuredTeam.memberCount) * 100).toFixed(1) : "0.0"}%</div>
             </div>
             <div class="featuredStat">
               <div class="k">Jugadores</div>
-              <div class="v">${featuredTeam.wrCount}</div>
+              <div class="v">${featuredTeam.memberCount}</div>
             </div>
             <div class="featuredStat">
               <div class="k">Partidas</div>
@@ -2448,8 +2484,19 @@
             </div>
           </div>
           <div class="featuredTeamMeta">
-            <div class="featuredTeamMetaLine"><strong>Top jugador:</strong> ${featuredPlayerLabelHtml(playersMap, featuredTeam.topByWr?.p?.playerId || "", featuredTeam.topByWr?.label || "-")} · WR ${featuredTeam.topByWr ? percentText(featuredTeam.topByWr.p.wins, featuredTeam.topByWr.p.games) : "0.0%"} · ${featuredTeam.topByWr?.p?.games || 0} partidas</div>
-            <div class="featuredTeamMetaLine"><strong>Mas jugado:</strong> ${featuredPlayerLabelHtml(playersMap, featuredTeam.topByGames?.p?.playerId || "", featuredTeam.topByGames?.label || "-")} · ${featuredTeam.topByGames?.p?.games || 0} partidas</div>
+            <div class="featuredTeamStats tight">
+              <div class="featuredStat">
+                <div class="k">Top jugador</div>
+                <div class="v">${featuredPlayerLabelHtml(playersMap, featuredTeam.topByElo?.p?.playerId || "", featuredTeam.topByElo?.label || "-")}</div>
+                <div class="featuredTeamMetaLine">WR ${featuredTeam.topByElo ? percentText(featuredTeam.topByElo.p.wins, featuredTeam.topByElo.p.games) : "0.0%"} · ${featuredTeam.topByElo?.p?.wins || 0}/${featuredTeam.topByElo?.p?.losses || 0}</div>
+              </div>
+              <div class="featuredStat">
+                <div class="k">Mas jugado</div>
+                <div class="v">${featuredPlayerLabelHtml(playersMap, featuredTeam.topByGames?.p?.playerId || "", featuredTeam.topByGames?.label || "-")}</div>
+                <div class="featuredTeamMetaLine">${featuredTeam.topByGames?.p?.games || 0} partidas</div>
+              </div>
+            </div>
+            <div class="featuredTeamMetaLine center"><strong>Miembros:</strong> ${featuredTeam.memberCount} / <strong>En ranking:</strong> ${featuredTeam.rankingCount}</div>
           </div>
         </div>
       `
@@ -2526,9 +2573,15 @@
             <ul class="teamTopList">${topByTeamHtml}</ul>
           </div>
         </div>
-        <div class="featuredListCard">
-          <p class="featuredListTitle">Top 5 jugadores</p>
-          <ul class="topList">${topListHtml}</ul>
+        <div class="featuredPlayerLists">
+          <div class="featuredListCard">
+            <p class="featuredListTitle">Top 5 jugadores</p>
+            <ul class="topList">${topListHtml}</ul>
+          </div>
+          <div class="featuredListCard">
+            <p class="featuredListTitle">Top 5 rookies</p>
+            <ul class="topList">${rookieListHtml}</ul>
+          </div>
         </div>
       </div>
       <div class="leaderRanks">
@@ -3001,7 +3054,8 @@
     }
   }
 
-  async function refreshHome(){
+  async function refreshHome(options = {}){
+    const opts = options || {};
     await refreshSession();
     renderFeedbackBar();
     applyMemberHomeState();
@@ -3016,10 +3070,12 @@
       console.warn("refreshPostsSection:", e.message || e);
     }
 
-    try{
-      await refreshFeaturedPlayerSection();
-    }catch(e){
-      console.warn("refreshFeaturedPlayerSection:", e.message || e);
+    if (opts.refreshFeatured !== false){
+      try{
+        await refreshFeaturedPlayerSection();
+      }catch(e){
+        console.warn("refreshFeaturedPlayerSection:", e.message || e);
+      }
     }
 
     // Eventos/calendario ocultos por decision de producto.
@@ -3053,9 +3109,9 @@
       if (event === "TOKEN_REFRESHED"){
         return;
       }
-      await refreshHome();
+      await refreshHome({ refreshFeatured: false });
     });
-    await refreshHome();
+    await refreshHome({ refreshFeatured: true });
     first = false;
   })();
 </script>
