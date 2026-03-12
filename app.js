@@ -527,7 +527,7 @@
         toggle = document.createElement("button");
         toggle.type = "button";
         toggle.className = "btn mobileNavToggle";
-        toggle.textContent = "MENU";
+        toggle.innerHTML = '<span class="mobileNavToggleBars" aria-hidden="true"><span></span><span></span><span></span></span>';
         toggle.setAttribute("aria-label", "Abrir menu");
         bar.insertBefore(toggle, nav);
       }
@@ -537,16 +537,16 @@
 
       const close = () => {
         nav.classList.remove("open");
+        toggle.classList.remove("open");
         toggle.setAttribute("aria-expanded", "false");
-        toggle.textContent = "MENU";
         toggle.setAttribute("aria-label", "Abrir menu");
       };
 
       toggle.addEventListener("click", () => {
         const open = !nav.classList.contains("open");
         nav.classList.toggle("open", open);
+        toggle.classList.toggle("open", open);
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
-        toggle.textContent = open ? "X" : "MENU";
         toggle.setAttribute("aria-label", open ? "Cerrar menu" : "Abrir menu");
       });
 
