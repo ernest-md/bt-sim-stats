@@ -1,7 +1,8 @@
-import { getPlayersForTeamOnly, getMatchesByPlayers, getExpansions } from './api.js'
-import { supabase } from './supabaseClient.js'
+import { getPlayersForTeamOnly, getMatchesByPlayers, getExpansions, getViewerStatsContext, getPlayersForSpecificTeam, getAvailableTeamsForStats } from './api.js'
 
 const expansionSelect = document.getElementById("teamExpansionSelect")
+const teamFilterSelect = document.getElementById("teamFilterSelect")
+const teamFilterBlock = document.getElementById("teamFilterBlock")
 const summaryTitle = document.getElementById("teamSummaryTitle")
 const summaryBody = document.getElementById("teamSummaryBody")
 const pageTitle = document.getElementById("teamPageTitle")
@@ -10,6 +11,9 @@ let allMatches = []
 let allExpansions = []
 let playersMap = new Map()
 let currentUserTeam = "SIN EQUIPO"
+let selectedTeam = "SIN EQUIPO"
+let canViewAllTeams = false
+let viewerContext = null
 
 function wilsonScore(wins, games, z = 1.96) {
   if (!games) return 0
@@ -39,11 +43,12 @@ function setLoading(on, text) {
 }
 
 async function init() {
-  currentUserTeam = await getCurrentUserTeam()
+  viewerContext = await getViewerStatsContext()
+  currentUserTeam = viewerContext?.team || "SIN EQUIPO"
+  selectedTeam = currentUserTeam
+  canViewAllTeams = canManageAllTeams(viewerContext)
+  await initTeamSelector()
   updateTitles()
-
-  const players = await getPlayersForTeamOnly()
-  playersMap = new Map(players.map((p) => [p.id, p]))
 
   const expansions = await getExpansions()
   allExpansions = expansions
@@ -53,13 +58,7 @@ async function init() {
     expansionSelect.value = todayExpansion.id
   }
 
-  if (players.length === 0) {
-    renderEmpty("No hay miembros en tu equipo con perfil SIM vinculado.")
-    return
-  }
-
-  allMatches = await getMatchesByPlayers(players.map((p) => p.id))
-  renderTeamSummary(applyExpansionFilter(allMatches))
+  await reloadTeamData()
 }
 
 function buildExpansionSelect(expansions) {
@@ -90,26 +89,69 @@ function getTodayExpansion(expansions) {
   }) || null
 }
 
-async function getCurrentUserTeam() {
-  const { data: { session } } = await supabase.auth.getSession()
-  const userId = session?.user?.id
-  if (!userId) return "SIN EQUIPO"
+function canManageAllTeams(viewer) {
+  const role = viewer?.role || "user"
+  const username = String(viewer?.username || "").trim().toLowerCase()
+  return role === "admin" || role === "staff" || username === "estereo" || username === "coquito"
+}
 
-  const { data } = await supabase
-    .from("profiles")
-    .select("team")
-    .eq("id", userId)
-    .maybeSingle()
+async function initTeamSelector() {
+  if (!teamFilterSelect || !teamFilterBlock) return
+  if (!canViewAllTeams) {
+    teamFilterBlock.style.display = "none"
+    return
+  }
 
-  return data?.team || "SIN EQUIPO"
+  const teams = await getAvailableTeamsForStats()
+  teamFilterSelect.innerHTML = ""
+
+  teams.forEach((team) => {
+    const option = document.createElement("option")
+    option.value = team
+    option.textContent = team
+    teamFilterSelect.appendChild(option)
+  })
+
+  if (teams.includes(selectedTeam)) {
+    teamFilterSelect.value = selectedTeam
+  } else if (teams.length > 0) {
+    selectedTeam = teams[0]
+    teamFilterSelect.value = selectedTeam
+  }
+
+  teamFilterBlock.style.display = ""
 }
 
 function updateTitles() {
-  const suffix = currentUserTeam && currentUserTeam !== "SIN EQUIPO"
-    ? ` - ${currentUserTeam}`
+  const teamLabel = selectedTeam || currentUserTeam
+  const suffix = teamLabel && teamLabel !== "SIN EQUIPO"
+    ? ` - ${teamLabel}`
     : ""
   summaryTitle.textContent = `Resumen del equipo${suffix}`
   pageTitle.textContent = `Estadisticas del equipo${suffix}`
+}
+
+async function loadPlayersForSelectedTeam() {
+  const players = canViewAllTeams
+    ? await getPlayersForSpecificTeam(selectedTeam)
+    : await getPlayersForTeamOnly()
+
+  playersMap = new Map(players.map((p) => [p.id, p]))
+  return players
+}
+
+async function reloadTeamData() {
+  updateTitles()
+  const players = await loadPlayersForSelectedTeam()
+
+  if (players.length === 0) {
+    allMatches = []
+    renderEmpty("No hay miembros en este equipo con perfil SIM vinculado.")
+    return
+  }
+
+  allMatches = await getMatchesByPlayers(players.map((p) => p.id))
+  renderTeamSummary(applyExpansionFilter(allMatches))
 }
 
 function applyExpansionFilter(matches) {
@@ -282,6 +324,18 @@ function escapeHtml(value) {
 expansionSelect.addEventListener("change", () => {
   renderTeamSummary(applyExpansionFilter(allMatches))
 })
+
+if (teamFilterSelect) {
+  teamFilterSelect.addEventListener("change", async () => {
+    selectedTeam = teamFilterSelect.value || currentUserTeam
+    setLoading(true, "Cargando estadisticas de equipo...")
+    try {
+      await reloadTeamData()
+    } finally {
+      setLoading(false)
+    }
+  })
+}
 
 ;(async function bootstrap() {
   setLoading(true, "Cargando estadisticas de equipo...")
