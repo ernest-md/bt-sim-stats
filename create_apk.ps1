@@ -7,6 +7,9 @@ $mobileWeb = Join-Path $mobileRoot "web"
 $androidRoot = Join-Path $mobileRoot "android"
 $defaultSdk = "C:\Users\ErnestGladiadorValde\AppData\Local\Android\Sdk"
 $mainActivity = Join-Path $androidRoot "app\src\main\java\com\barateam\hub\MainActivity.java"
+$sourceWrappedPrimary = Join-Path $sourceRoot "web\op-wrapped.html"
+$sourceWrappedFallback = Join-Path $sourceRoot "op-wrapped.html"
+$mobileWrapped = Join-Path $mobileWeb "op-wrapped.html"
 
 if (!(Test-Path $mobileRoot)) { throw "No existe $mobileRoot" }
 if (!(Test-Path (Join-Path $mobileRoot "node_modules\.bin\cap.cmd"))) { throw "No existe cap.cmd en $mobileRoot\node_modules\.bin" }
@@ -17,8 +20,14 @@ New-Item -ItemType Directory $mobileWeb | Out-Null
 
 robocopy $sourceRoot $mobileWeb /E `
   /XD .git node_modules android web .vscode .codex `
-  /XF *.ps1 package-lock.json npm-debug.log .gitignore op-wrapped.html
+  /XF *.ps1 package-lock.json npm-debug.log .gitignore
 if ($LASTEXITCODE -ge 8) { throw "robocopy web fallo con codigo $LASTEXITCODE" }
+
+if (Test-Path $sourceWrappedPrimary) {
+  Copy-Item $sourceWrappedPrimary $mobileWrapped -Force
+} elseif (Test-Path $sourceWrappedFallback) {
+  Copy-Item $sourceWrappedFallback $mobileWrapped -Force
+}
 
 # 2) checks criticos
 cd $mobileRoot
@@ -28,6 +37,7 @@ $must = @(
   ".\web\decks.html",
   ".\web\encuestas.html",
   ".\web\encuesta.html",
+  ".\web\op-wrapped.html",
   ".\web\app.css",
   ".\web\app.js",
   ".\web\LOGO_APP.png",
@@ -37,6 +47,7 @@ $must = @(
 $must | ForEach-Object {
   if (!(Test-Path $_)) { throw "Falta archivo requerido: $_" }
 }
+if (!(Test-Path $mobileWrapped)) { throw "Falta archivo requerido: $mobileWrapped" }
 
 # 3) config app
 @'
@@ -56,6 +67,13 @@ npx.cmd @capacitor/assets generate --android
 
 # 5) sync capacitor
 .\node_modules\.bin\cap.cmd sync android
+
+if (Test-Path $sourceWrappedPrimary) {
+  Copy-Item $sourceWrappedPrimary $mobileWrapped -Force
+} elseif (Test-Path $sourceWrappedFallback) {
+  Copy-Item $sourceWrappedFallback $mobileWrapped -Force
+}
+if (!(Test-Path $mobileWrapped)) { throw "No se pudo dejar op-wrapped.html en la raiz de $mobileRoot" }
 
 # 6) fullscreen inmersivo
 if (Test-Path $mainActivity) {
