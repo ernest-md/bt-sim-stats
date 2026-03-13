@@ -84,6 +84,23 @@ export async function getMatchesByPlayers(playerIds) {
   return data;
 }
 
+export async function getPlayerEloHistory(playerId) {
+  if (!playerId) return [];
+
+  const { data, error } = await supabase
+    .from("player_elo_history")
+    .select("snapshot_date, captured_at, games, wins, losses, winrate, wilson_score, elo_visual")
+    .eq("player_id", playerId)
+    .order("snapshot_date", { ascending: true });
+
+  if (error) {
+    console.error("Error cargando historial ELO:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
 export async function getViewerStatsContext() {
   const { data: { session } } = await supabase.auth.getSession()
   const userId = session?.user?.id || null
