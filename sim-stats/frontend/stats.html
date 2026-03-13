@@ -277,7 +277,29 @@
             WR
             <strong id="wr">-</strong>
           </div>
+
+          <div class="summaryBox summaryBoxElo">
+            <div class="summaryBoxTopline">
+              <span>ELO</span>
+              <button id="eloInfoBtn" class="summaryHelpBtn" type="button" aria-label="Explicacion del ELO">?</button>
+            </div>
+            <div class="summaryBoxEloBody">
+              <strong id="eloValue">-</strong>
+              <button id="eloToggleBtn" class="eloToggleBtn" type="button" aria-expanded="false">Evolucion</button>
+            </div>
+          </div>
         </div>
+
+        <section id="eloChartPanel" class="eloChartPanel" hidden>
+          <div class="eloChartHeader">
+            <h3>Evolucion del ELO</h3>
+            <p id="eloChartInfo">Mostrando snapshots diarios de la expansion seleccionada.</p>
+          </div>
+          <div class="eloChartWrap">
+            <svg id="eloChart" class="eloChart" viewBox="0 0 900 260" preserveAspectRatio="xMidYMid meet" aria-label="Grafica de evolucion ELO"></svg>
+            <div id="eloChartEmpty" class="eloChartEmpty" hidden>No hay suficiente historico para mostrar la evolucion.</div>
+          </div>
+        </section>
 
         <div class="mainLayout">
           <div class="leaders">
@@ -356,6 +378,18 @@
         </table>
       </div>
 
+    </div>
+  </div>
+
+  <div id="eloInfoModal" class="eloInfoModal" hidden>
+    <div class="eloInfoDialog">
+      <button id="eloInfoClose" class="eloInfoClose" type="button" aria-label="Cerrar">×</button>
+      <h3>Como se calcula el ELO</h3>
+      <p>Es un ELO visual basado en Wilson Score para ordenar mejor el rendimiento.</p>
+      <p><strong>ELO visual:</strong> <code>ELO = 1000 + (wilson * 1000)</code></p>
+      <p><strong>Wilson:</strong> usa las victorias reales y el numero de partidas de la expansion activa, penalizando muestras pequenas para que un WR alto con pocas partidas no infle el ranking.</p>
+      <p><code>wilson = (p + z²/(2n) - z * sqrt((p(1-p)/n) + z²/(4n²))) / (1 + z²/n)</code></p>
+      <p>Donde <code>p = victorias / partidas</code>, <code>n = partidas</code> y <code>z = 1.96</code> para 95% de confianza. No es un ELO clasico de matchmaking.</p>
     </div>
   </div>
 
