@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>LIGA · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.92);
+      --line:rgba(15,23,42,.12);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --node:#f8fafc;
+      --node-text:#111827;
+      --node-win:#fef3c7;
+      --node-win-border:#f59e0b;
+      --node-lose:#cbd5e1;
+      --wire:#ffffff;
+      --wire-soft:rgba(255,255,255,.86);
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.28), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.22), transparent 60%),
+        linear-gradient(180deg, rgba(11,18,32,.84), rgba(11,18,32,.88)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      z-index:-2;
+    }
+    body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        linear-gradient(120deg, transparent 0 18%, rgba(255,255,255,.04) 18% 22%, transparent 22% 42%, rgba(255,255,255,.03) 42% 47%, transparent 47% 100%),
+        radial-gradient(circle at 50% 44%, rgba(245,158,11,.18), transparent 18%);
+      pointer-events:none;
+      z-index:-1;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      display:block;
+      text-align:center;
+      padding-left:4px;
+      font-weight:700;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+    .wrap{
+      max-width:1500px;
+      margin:0 auto;
+      padding:14px;
+    }
+    .hero{
+      border-radius:24px;
+      padding:18px 16px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow:0 18px 50px rgba(0,0,0,.28);
+    }
+    .hero h1{ margin:0; font-size:26px; font-weight:1000; }
+    .hero p{ margin:8px 0 0; color:rgba(255,255,255,.86); font-size:13px; }
+    .heroStats{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(130px,1fr));
+      gap:10px;
+      max-width:620px;
+    }
+    .stat{
+      border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:8px 10px;
+    }
+    .stat b{
+      display:block;
+      font-size:18px;
+      font-weight:1000;
+      color:#fff;
+    }
+    .stat span{
+      color:rgba(255,255,255,.85);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .card{
+      margin-top:14px;
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .hidden{ display:none !important; }
+    .msg{
+      margin-bottom:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(239,68,68,.35);
+      background:rgba(239,68,68,.10);
+      color:#991b1b;
+      font-size:13px;
+    }
+    .ligaStage{
+      position:relative;
+      border-radius:24px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:
+        radial-gradient(circle at 50% 44%, rgba(245,158,11,.14), transparent 18%),
+        linear-gradient(118deg, rgba(255,255,255,.05) 0 16%, transparent 16% 34%, rgba(255,255,255,.04) 34% 38%, transparent 38% 100%),
+        linear-gradient(242deg, rgba(255,255,255,.05) 0 16%, transparent 16% 34%, rgba(255,255,255,.04) 34% 38%, transparent 38% 100%),
+        linear-gradient(180deg, #1f2937, #05070b);
+      min-height:920px;
+      padding:22px 18px 28px;
+    }
+    .stageHeader{
+      text-align:center;
+      color:#fff;
+      margin-bottom:12px;
+      position:relative;
+      z-index:3;
+      text-shadow:0 8px 24px rgba(0,0,0,.45);
+    }
+    .stageHeader h2{
+      margin:0;
+      font-size:54px;
+      line-height:1;
+      font-weight:1000;
+      letter-spacing:.4px;
+    }
+    .stageHeader h2 span{
+      color:#fbbf24;
+      margin-right:10px;
+    }
+    .stageHeader p{
+      margin:8px 0 0;
+      font-size:24px;
+      font-weight:1000;
+      letter-spacing:1px;
+    }
+    .stageHint{
+      margin:12px 0 0;
+      text-align:center;
+      color:rgba(255,255,255,.72);
+      font-size:12px;
+      font-weight:700;
+      position:relative;
+      z-index:3;
+    }
+    .bracketBoard{
+      position:relative;
+      min-height:760px;
+      margin-top:16px;
+    }
+    .bracketLines{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      z-index:1;
+      overflow:visible;
+    }
+    .nodesLayer{
+      position:relative;
+      z-index:2;
+      min-height:760px;
+    }
+    .node{
+      position:absolute;
+      width:180px;
+      min-height:40px;
+      border-radius:999px;
+      border:2px solid rgba(255,255,255,.20);
+      background:var(--node);
+      color:var(--node-text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 14px;
+      text-align:center;
+      font-size:15px;
+      font-weight:1000;
+      line-height:1.05;
+      letter-spacing:.2px;
+      box-shadow:0 10px 26px rgba(0,0,0,.28);
+      transition:transform .12s ease, box-shadow .18s ease, opacity .18s ease, background .18s ease, color .18s ease;
+      user-select:none;
+    }
+    button.node{
+      cursor:pointer;
+    }
+    button.node:hover:not(:disabled){
+      transform:translateY(-1px);
+      box-shadow:0 14px 28px rgba(0,0,0,.34);
+    }
+    .node:disabled{
+      cursor:default;
+    }
+    .node.source{
+      border-color:rgba(255,255,255,.22);
+    }
+    .node.source.available{
+      border-color:rgba(56,189,248,.55);
+    }
+    .node.winner{
+      background:var(--node-win);
+      border-color:var(--node-win-border);
+      color:#7c2d12;
+    }
+    .node.loser{
+      background:var(--node-lose);
+      color:#475569;
+      text-decoration:line-through;
+      text-decoration-thickness:3px;
+      text-decoration-color:#ef4444;
+      opacity:.88;
+    }
+    .node.output{
+      background:rgba(255,255,255,.95);
+      border-color:rgba(255,255,255,.22);
+    }
+    .node.output.empty{
+      color:rgba(71,85,105,.72);
+      background:rgba(255,255,255,.90);
+      border-style:dashed;
+    }
+    .node.champion{
+      background:linear-gradient(180deg, #fef3c7, #fcd34d);
+      border-color:#f59e0b;
+      color:#78350f;
+      width:220px;
+      min-height:50px;
+      box-shadow:0 16px 40px rgba(245,158,11,.28);
+    }
+    .centerEmblem{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -52%);
+      text-align:center;
+      color:#fff;
+      z-index:0;
+      pointer-events:none;
+      text-shadow:0 14px 24px rgba(0,0,0,.45);
+    }
+    .centerEmblem .cup{
+      font-size:70px;
+      line-height:1;
+    }
+    .centerEmblem .title{
+      margin-top:6px;
+      font-size:18px;
+      font-weight:1000;
+      letter-spacing:1.2px;
+    }
+    .legend{
+      margin-top:16px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    .legend span{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      color:#e2e8f0;
+      font-size:12px;
+      font-weight:800;
+    }
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      display:inline-block;
+    }
+    .dot.win{ background:#f59e0b; }
+    .dot.live{ background:#38bdf8; }
+    .dot.empty{ background:#cbd5e1; }
+    @media (max-width: 1280px){
+      .ligaStage{
+        overflow:auto;
+      }
+      .bracketBoard,
+      .nodesLayer{
+        min-width:1420px;
+      }
+    }
+    @media (max-width: 760px){
+      .heroStats{
+        grid-template-columns:1fr;
+      }
+      .stageHeader h2{ font-size:34px; }
+      .stageHeader p{ font-size:18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>liga</small>
+      </div>
+
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn primary active" href="liga.html" data-requires-auth="1" data-admin-only="1">&#127942; LIGA</a>
+        <a class="btn" href="feedback.html" data-requires-auth="1" data-admin-only="1">&#128172; Feedback</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>LIGA Va de Jocs · OP14</h1>
+      <p>Bracket interactivo solo para administradores. Haz clic en el jugador que avanza en cada cruce.</p>
+      <div class="heroStats">
+        <div class="stat"><b>16</b><span>Jugadores</span></div>
+        <div class="stat"><b>Octavos</b><span>Entrada inicial</span></div>
+        <div class="stat"><b>Interactivo</b><span>Propaga ganadores</span></div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="forbiddenCard">
+      <div class="msg">No tienes permisos para acceder a esta pantalla.</div>
+    </div>
+
+    <div class="card hidden" id="ligaPanel">
+      <div class="ligaStage">
+        <div class="stageHeader">
+          <h2><span>&#127942;</span>LLIGA Va de Jocs OP14</h2>
+          <p>BRACKET DE ELIMINATORIAS</p>
+        </div>
+        <div class="stageHint">Pulsa sobre un jugador para marcarlo como ganador del enfrentamiento en el que participa. Si vuelves a pulsar el mismo, se limpia esa ronda y las siguientes dependientes.</div>
+
+        <div class="bracketBoard" id="bracketBoard">
+          <svg class="bracketLines" id="bracketLines" viewBox="0 0 1420 760" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="centerEmblem">
+            <div class="cup">&#127942;</div>
+            <div class="title">WINNER</div>
+          </div>
+          <div class="nodesLayer" id="nodesLayer"></div>
+        </div>
+
+        <div class="legend">
+          <span><i class="dot live"></i>Disponible para elegir</span>
+          <span><i class="dot win"></i>Ganador marcado</span>
+          <span><i class="dot empty"></i>Casilla pendiente</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
+
+    window.BarateamApp.bindProtectedNavLinks(sb);
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    const BOARD_WIDTH = 1420;
+    const BOARD_HEIGHT = 760;
+
+    const participants = {
+      p1: "(1) Charko",
+      p2: "(21) Coquito",
+      p3: "(8) Sicari",
+      p4: "(9) Cape",
+      p5: "(4) Yago",
+      p6: "(18) Ernest",
+      p7: "(5) Romo",
+      p8: "(16) Rodri",
+      p9: "(3) Humano",
+      p10: "(19) Strainer",
+      p11: "(6) Xavisu",
+      p12: "(11) Semidimoni",
+      p13: "(2) Daword",
+      p14: "(20) Colecta",
+      p15: "(7) Joselu",
+      p16: "(10) Papa Nami"
+    };
+
+    const matchDefs = [
+      { id: "L1", side: "left", output: { x: 240, y: 95 }, sources: [{ type: "participant", id: "p1", x: 12, y: 40 }, { type: "participant", id: "p2", x: 12, y: 150 }] },
+      { id: "L2", side: "left", output: { x: 240, y: 315 }, sources: [{ type: "participant", id: "p3", x: 12, y: 260 }, { type: "participant", id: "p4", x: 12, y: 370 }] },
+      { id: "L3", side: "left", output: { x: 240, y: 535 }, sources: [{ type: "participant", id: "p5", x: 12, y: 480 }, { type: "participant", id: "p6", x: 12, y: 590 }] },
+      { id: "L4", side: "left", output: { x: 240, y: 700 }, sources: [{ type: "participant", id: "p7", x: 12, y: 645 }, { type: "participant", id: "p8", x: 12, y: 755 }] },
+      { id: "L5", side: "left", output: { x: 495, y: 205 }, sources: [{ type: "match", id: "L1" }, { type: "match", id: "L2" }] },
+      { id: "L6", side: "left", output: { x: 495, y: 617 }, sources: [{ type: "match", id: "L3" }, { type: "match", id: "L4" }] },
+      { id: "L7", side: "left", output: { x: 420, y: 411 }, sources: [{ type: "match", id: "L5" }, { type: "match", id: "L6" }] },
+      { id: "R1", side: "right", output: { x: 1000, y: 95 }, sources: [{ type: "participant", id: "p9", x: 1228, y: 40 }, { type: "participant", id: "p10", x: 1228, y: 150 }] },
+      { id: "R2", side: "right", output: { x: 1000, y: 315 }, sources: [{ type: "participant", id: "p11", x: 1228, y: 260 }, { type: "participant", id: "p12", x: 1228, y: 370 }] },
+      { id: "R3", side: "right", output: { x: 1000, y: 535 }, sources: [{ type: "participant", id: "p13", x: 1228, y: 480 }, { type: "participant", id: "p14", x: 1228, y: 590 }] },
+      { id: "R4", side: "right", output: { x: 1000, y: 700 }, sources: [{ type: "participant", id: "p15", x: 1228, y: 645 }, { type: "participant", id: "p16", x: 1228, y: 755 }] },
+      { id: "R5", side: "right", output: { x: 745, y: 205 }, sources: [{ type: "match", id: "R1" }, { type: "match", id: "R2" }] },
+      { id: "R6", side: "right", output: { x: 745, y: 617 }, sources: [{ type: "match", id: "R3" }, { type: "match", id: "R4" }] },
+      { id: "R7", side: "right", output: { x: 820, y: 411 }, sources: [{ type: "match", id: "R5" }, { type: "match", id: "R6" }] },
+      { id: "F1", side: "center", champion: true, output: { x: 610, y: 300 }, sources: [{ type: "match", id: "L7" }, { type: "match", id: "R7" }] }
+    ];
+
+    const matchState = Object.fromEntries(matchDefs.map((match) => [match.id, null]));
+    const downstreamMap = new Map();
+    const upstreamParentMap = new Map();
+    for (const match of matchDefs) {
+      for (const source of match.sources) {
+        if (source.type !== "match") continue;
+        if (!downstreamMap.has(source.id)) downstreamMap.set(source.id, []);
+        downstreamMap.get(source.id).push(match.id);
+        upstreamParentMap.set(source.id, match.id);
+      }
+    }
+
+    function getMatchDef(matchId) {
+      return matchDefs.find((match) => match.id === matchId) || null;
+    }
+
+    function getMatchOutputLabel(matchId) {
+      const match = getMatchDef(matchId);
+      if (!match) return "";
+      const selectedSourceId = matchState[matchId];
+      if (!selectedSourceId) return "";
+      const source = match.sources.find((item) => item.id === selectedSourceId);
+      if (!source) return "";
+      return getSourceLabel(source);
+    }
+
+    function getSourceLabel(source) {
+      if (!source) return "";
+      if (source.type === "participant") return participants[source.id] || "";
+      if (source.type === "match") return getMatchOutputLabel(source.id);
+      return "";
+    }
+
+    function clearDescendants(matchId) {
+      const children = downstreamMap.get(matchId) || [];
+      for (const childId of children) {
+        matchState[childId] = null;
+        clearDescendants(childId);
+      }
+    }
+
+    function toggleWinner(matchId, sourceId) {
+      const match = getMatchDef(matchId);
+      if (!match) return;
+      const source = match.sources.find((item) => item.id === sourceId);
+      if (!source) return;
+      const label = getSourceLabel(source);
+      if (!label) return;
+
+      if (matchState[matchId] === sourceId) {
+        matchState[matchId] = null;
+      } else {
+        matchState[matchId] = sourceId;
+      }
+      clearDescendants(matchId);
+      renderBracket();
+    }
+
+    function nodeHtml({ id, left, top, label, classes = "", disabled = false, matchId = "", sourceId = "", title = "" }) {
+      const isButton = !disabled;
+      const tag = isButton ? "button" : "div";
+      const attrs = [
+        `class="node ${classes}"`,
+        `style="left:${left}px; top:${top}px;"`,
+        title ? `title="${title.replaceAll('"', "&quot;")}"` : ""
+      ].filter(Boolean);
+      if (isButton) {
+        attrs.push(`type="button"`);
+        attrs.push(`data-match-id="${matchId}"`);
+        attrs.push(`data-source-id="${sourceId}"`);
+      }
+      return `<${tag} ${attrs.join(" ")}>${label}</${tag}>`;
+    }
+
+    function buildSourceNode(match, source) {
+      if (source.type !== "participant") return "";
+      const label = getSourceLabel(source);
+      const available = Boolean(label);
+      const selected = matchState[match.id] === source.id;
+      const hasDecision = Boolean(matchState[match.id]);
+      const classes = [
+        "source",
+        available ? "available" : "",
+        selected ? "winner" : "",
+        hasDecision && available && !selected ? "loser" : ""
+      ].filter(Boolean).join(" ");
+
+      return nodeHtml({
+        id: `${match.id}-${source.id}`,
+        left: source.x,
+        top: source.y,
+        label: label || "Pendiente",
+        classes,
+        disabled: !available,
+        matchId: match.id,
+        sourceId: source.id,
+        title: available ? "Seleccionar ganador" : "Esperando ganador anterior"
+      });
+    }
+
+    function buildOutputNode(match) {
+      const label = getMatchOutputLabel(match.id);
+      const parentMatchId = upstreamParentMap.get(match.id) || "";
+      const parentChoice = parentMatchId ? matchState[parentMatchId] : null;
+      const canAdvance = Boolean(parentMatchId && label);
+      const interactiveClasses = [
+        "output",
+        match.champion ? "champion" : "",
+        label ? "" : "empty",
+        canAdvance && parentChoice === match.id ? "winner" : "",
+        canAdvance && parentChoice && parentChoice !== match.id ? "loser" : ""
+      ].filter(Boolean).join(" ");
+
+      if (canAdvance) {
+        return nodeHtml({
+          id: `${match.id}-out`,
+          left: match.output.x,
+          top: match.output.y,
+          label,
+          classes: interactiveClasses,
+          disabled: false,
+          matchId: parentMatchId,
+          sourceId: match.id,
+          title: "Seleccionar ganador para la siguiente ronda"
+        });
+      }
+
+      const staticClasses = [
+        "output",
+        match.champion ? "champion" : "",
+        label ? "" : "empty"
+      ].filter(Boolean).join(" ");
+
+      return nodeHtml({
+        id: `${match.id}-out`,
+        left: match.output.x,
+        top: match.output.y,
+        label: label || (match.champion ? "Campeon" : "Team Name"),
+        classes: staticClasses,
+        disabled: true
+      });
+    }
+
+    function getNodeRectForSource(source) {
+      if (source.type === "participant") {
+        return { x: source.x, y: source.y, width: 180, height: 40 };
+      }
+      const match = getMatchDef(source.id);
+      return { x: match.output.x, y: match.output.y, width: match.champion ? 220 : 180, height: match.champion ? 50 : 40 };
+    }
+
+    function getOutputRect(match) {
+      return { x: match.output.x, y: match.output.y, width: match.champion ? 220 : 180, height: match.champion ? 50 : 40 };
+    }
+
+    function connectorPath(sourceRect, targetRect, side) {
+      const sourceRightX = sourceRect.x + sourceRect.width;
+      const sourceLeftX = sourceRect.x;
+      const targetLeftX = targetRect.x;
+      const targetRightX = targetRect.x + targetRect.width;
+      const startX = side === "right" ? sourceLeftX : sourceRightX;
+      const endX = side === "right" ? targetRightX : targetLeftX;
+      const startY = sourceRect.y + (sourceRect.height / 2);
+      const endY = targetRect.y + (targetRect.height / 2);
+      const midX = side === "right"
+        ? endX + ((startX - endX) * 0.55)
+        : startX + ((endX - startX) * 0.55);
+
+      return [
+        `M ${startX} ${startY}`,
+        `L ${midX} ${startY}`,
+        `L ${midX} ${endY}`,
+        `L ${endX} ${endY}`
+      ].join(" ");
+    }
+
+    function renderLines() {
+      const svg = $("bracketLines");
+      if (!svg) return;
+      const paths = [];
+
+      for (const match of matchDefs) {
+        const targetRect = getOutputRect(match);
+        for (const source of match.sources) {
+          const label = getSourceLabel(source);
+          const sourceRect = getNodeRectForSource(source);
+          const available = Boolean(label) || source.type === "participant";
+          paths.push(`
+            <path
+              d="${connectorPath(sourceRect, targetRect, match.side === "right" ? "right" : "left")}"
+              fill="none"
+              stroke="${available ? "var(--wire)" : "rgba(255,255,255,.22)"}"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          `);
+        }
+      }
+
+      svg.innerHTML = paths.join("");
+    }
+
+    function renderBracket() {
+      const layer = $("nodesLayer");
+      if (!layer) return;
+
+      const parts = [];
+      for (const match of matchDefs) {
+        for (const source of match.sources) {
+          const html = buildSourceNode(match, source);
+          if (html) parts.push(html);
+        }
+        parts.push(buildOutputNode(match));
+      }
+      layer.innerHTML = parts.join("");
+
+      for (const btn of layer.querySelectorAll("button.node")) {
+        btn.addEventListener("click", () => {
+          const matchId = btn.getAttribute("data-match-id");
+          const sourceId = btn.getAttribute("data-source-id");
+          toggleWinner(matchId, sourceId);
+        });
+      }
+
+      renderLines();
+    }
+
+    async function requireAdmin() {
+      const { data } = await sb.auth.getSession();
+      const user = data?.session?.user || null;
+      navController.setUser(user);
+      void window.BarateamApp.syncTopbarAvatar(sb, user);
+
+      if (!user) {
+        location.href = "login.html";
+        return false;
+      }
+
+      const { data: profile, error } = await sb
+        .from("profiles")
+        .select("app_role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+      }
+
+      const isAdmin = profile?.app_role === "admin";
+      $("forbiddenCard").classList.toggle("hidden", isAdmin);
+      $("ligaPanel").classList.toggle("hidden", !isAdmin);
+      return isAdmin;
+    }
+
+    (async function init() {
+      const allowed = await requireAdmin();
+      sb.auth.onAuthStateChange((_event, session) => {
+        const user = session?.user || null;
+        navController.setUser(user);
+        void window.BarateamApp.syncTopbarAvatar(sb, user);
+        if (!user) {
+          location.href = "login.html";
+        }
+      });
+      if (!allowed) return;
+      renderBracket();
+    })();
+  </script>
+</body>
+</html>
