@@ -531,10 +531,12 @@
 <body>
   <div class="topbar">
     <div class="bar with-auth-corner">
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
       <div class="brand">
         <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
         <small>leaders</small>
       </div>
+      </a>
       <div class="nav">
         <a class="btn" href="index.html">&#127968; Home</a>
         <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
@@ -1058,7 +1060,8 @@
         <div class="kpi">Rivales<b>${int(leader.matchups.length)}</b></div>
       `;
 
-      const limit = Number(matchupLimit.value || 16);
+      const limitValue = String(matchupLimit.value || "16").toLowerCase();
+      const limit = limitValue === "all" ? null : Number(limitValue || 16);
       const rawRows = [...leader.matchups]
         .map((m) => ({
           opponent: String(m?.opponent || ""),
@@ -1071,7 +1074,9 @@
           secondWr: m?.second_win_rate == null ? null : Number(m.second_win_rate),
           opponentName: leaderNameByCode(m?.opponent, leaderNameMap.get(String(m?.opponent || "")) || String(m?.opponent || ""))
         }));
-      const rows = applySort(rawRows, matchupSort, "matchups").slice(0, limit);
+      const baseRows = applySort(rawRows, { key: "games", dir: "desc" }, "matchups");
+      const visibleRows = Number.isFinite(limit) ? baseRows.slice(0, limit) : baseRows;
+      const rows = applySort(visibleRows, matchupSort, "matchups");
 
       matchupMeta.textContent = `Mostrando ${rows.length} de ${leader.matchups.length}`;
       updateSortHeaders("matchups", matchupSort.key, matchupSort.dir);

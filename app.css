@@ -89,6 +89,12 @@
   display: none;
 }
 
+.brandLink{
+  display: inline-flex;
+  text-decoration: none;
+  color: inherit;
+}
+
 .brandLogo{
   display:block;
   height: 52px;
