@@ -179,6 +179,29 @@
       position:relative;
       z-index:3;
     }
+    .stageActions{
+      margin-top:12px;
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      position:relative;
+      z-index:3;
+    }
+    .stageBtn{
+      border:1px solid rgba(255,255,255,.24);
+      border-radius:999px;
+      padding:8px 14px;
+      background:rgba(255,255,255,.10);
+      color:#fff;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.3px;
+      cursor:pointer;
+      backdrop-filter:blur(6px);
+    }
+    .stageBtn:hover{
+      background:rgba(255,255,255,.16);
+    }
     .bracketBoard{
       position:relative;
       min-height:760px;
@@ -397,6 +420,9 @@
           <p>BRACKET DE ELIMINATORIAS</p>
         </div>
         <div class="stageHint">Pulsa sobre un jugador para marcarlo como ganador del enfrentamiento en el que participa. Si vuelves a pulsar el mismo, se limpia esa ronda y las siguientes dependientes.</div>
+        <div class="stageActions">
+          <button id="btnResetBracket" class="stageBtn" type="button">Reset bracket</button>
+        </div>
 
         <div class="bracketBoard" id="bracketBoard">
           <svg class="bracketLines" id="bracketLines" viewBox="0 0 1420 760" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -433,6 +459,7 @@
 
     const BOARD_WIDTH = 1420;
     const BOARD_HEIGHT = 760;
+    const BRACKET_STORAGE_KEY = "barateam_liga_bracket_v1";
 
     const participants = {
       p1: "(1) Charko",
@@ -512,6 +539,46 @@
       }
     }
 
+    function saveBracketState() {
+      try {
+        localStorage.setItem(BRACKET_STORAGE_KEY, JSON.stringify(matchState));
+      } catch (err) {
+        console.warn("saveBracketState:", err?.message || err);
+      }
+    }
+
+    function loadBracketState() {
+      try {
+        const raw = localStorage.getItem(BRACKET_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return;
+        for (const match of matchDefs) {
+          const selected = parsed[match.id];
+          if (!selected) {
+            matchState[match.id] = null;
+            continue;
+          }
+          const source = match.sources.find((item) => item.id === selected);
+          matchState[match.id] = source ? selected : null;
+        }
+      } catch (err) {
+        console.warn("loadBracketState:", err?.message || err);
+      }
+    }
+
+    function resetBracketState() {
+      for (const match of matchDefs) {
+        matchState[match.id] = null;
+      }
+      try {
+        localStorage.removeItem(BRACKET_STORAGE_KEY);
+      } catch (err) {
+        console.warn("resetBracketState:", err?.message || err);
+      }
+      renderBracket();
+    }
+
     function toggleWinner(matchId, sourceId) {
       const match = getMatchDef(matchId);
       if (!match) return;
@@ -526,6 +593,7 @@
         matchState[matchId] = sourceId;
       }
       clearDescendants(matchId);
+      saveBracketState();
       renderBracket();
     }
 
@@ -737,6 +805,10 @@
         }
       });
       if (!allowed) return;
+      loadBracketState();
+      $("btnResetBracket")?.addEventListener("click", () => {
+        resetBracketState();
+      });
       renderBracket();
     })();
   </script>
