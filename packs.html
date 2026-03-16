@@ -1,0 +1,2975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Packs - Barateam Hub</title>
+  <link rel="stylesheet" href="app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg-1:#07131d;
+      --bg-2:#132434;
+      --bg-3:#210f12;
+      --card:#0f1d2bcc;
+      --line:rgba(255,255,255,.12);
+      --muted:#b4c2d8;
+      --shadow:0 24px 60px rgba(0,0,0,.32);
+      --accent:#f6b73c;
+      --accent-2:#49d0c9;
+      --accent-3:#ff6b57;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      color:#f8fbff;
+      font-family:"Aptos","Segoe UI Variable","Trebuchet MS",sans-serif;
+      background:#0b1220;
+      min-height:100vh;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      filter:saturate(1.1);
+      z-index:-2;
+      pointer-events:none;
+    }
+
+    body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode:overlay;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    body.modal-open{
+      overflow:hidden;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+
+    .brand small{
+      display:block;
+      font-weight:700;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.2px;
+      text-align:center;
+      padding-left:4px;
+      text-transform:none;
+    }
+
+    .hero,
+    .card{
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+    }
+
+    .hero{
+      padding:28px;
+      background:
+        linear-gradient(140deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+        linear-gradient(155deg, rgba(246,183,60,.14), rgba(73,208,201,.08) 58%, rgba(255,107,87,.1));
+      overflow:hidden;
+      position:relative;
+    }
+
+    .hero::after{
+      content:"";
+      position:absolute;
+      inset:auto -80px -100px auto;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(73,208,201,.22), transparent 68%);
+      pointer-events:none;
+    }
+
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.08), transparent 34%),
+        repeating-linear-gradient(115deg, rgba(255,255,255,.03) 0 1px, transparent 1px 22px);
+      pointer-events:none;
+      opacity:.6;
+    }
+
+    .heroHead,
+    .cardHead,
+    .productTop,
+    .historyTop{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .heroHead h1{
+      margin:0;
+      font-size:clamp(2rem, 4vw, 3rem);
+      line-height:1;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.02em;
+    }
+
+    .heroHead p,
+    .cardHead p,
+    .muted{
+      color:var(--muted);
+    }
+
+    .heroUser{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:180px;
+    }
+
+    .eyebrow{
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      font-size:.78rem;
+    }
+
+    .heroValue{
+      font-size:2rem;
+      font-weight:800;
+      line-height:1;
+    }
+
+    .heroActions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:22px;
+    }
+
+    .heroLayout{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) minmax(240px, 320px);
+      gap:18px;
+      align-items:start;
+      position:relative;
+      z-index:1;
+    }
+
+    .heroContent{
+      display:grid;
+      align-content:start;
+    }
+
+    .heroShowcase{
+      display:grid;
+      gap:14px;
+      align-content:start;
+      justify-items:end;
+    }
+
+    .packArt{
+      display:block;
+      width:100%;
+      height:auto;
+      object-fit:contain;
+      filter:drop-shadow(0 24px 44px rgba(0,0,0,.38));
+      position:relative;
+      z-index:2;
+      transition:transform .24s ease, filter .24s ease;
+    }
+
+    .packArtFallback{
+      display:grid;
+      place-items:end start;
+      width:100%;
+      aspect-ratio:5 / 8;
+      padding:18px;
+      border-radius:24px;
+      border:1px solid rgba(255,255,255,.12);
+      background:
+        linear-gradient(155deg, rgba(246,183,60,.24), rgba(73,208,201,.12) 56%, rgba(255,107,87,.16)),
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+      color:#f8fbff;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      font-size:1.4rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      box-shadow:0 18px 38px rgba(0,0,0,.24);
+    }
+
+    .heroVault,
+    .fanCard,
+    .productVisual{
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 16px 40px rgba(2,6,12,.22);
+      backdrop-filter:blur(12px);
+    }
+
+    .heroVault{
+      padding:18px;
+      border-radius:22px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.02)),
+        linear-gradient(135deg, rgba(246,183,60,.18), rgba(73,208,201,.12) 62%, rgba(255,107,87,.08));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .heroVault::after{
+      content:"";
+      position:absolute;
+      inset:auto -45px -45px auto;
+      width:130px;
+      height:130px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(255,255,255,.22), transparent 66%);
+      pointer-events:none;
+    }
+
+    .heroVault .heroValue{
+      font-size:clamp(2.2rem, 4vw, 3.4rem);
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      text-shadow:0 8px 22px rgba(246,183,60,.22);
+    }
+
+    .heroVault .muted{
+      max-width:20ch;
+    }
+
+    .heroTape{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:14px;
+    }
+
+    .heroBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(4,9,18,.34);
+      border:1px solid rgba(255,255,255,.12);
+      font-size:.82rem;
+      color:#f8fbff;
+    }
+
+    .heroFan{
+      position:relative;
+      min-height:220px;
+      padding:22px 8px 8px;
+    }
+
+    .fanCard{
+      position:absolute;
+      width:170px;
+      min-height:190px;
+      padding:14px;
+      border-radius:18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)),
+        linear-gradient(155deg, rgba(11,22,34,.92), rgba(16,36,42,.84));
+      display:grid;
+      align-content:end;
+      gap:6px;
+      overflow:hidden;
+    }
+
+    .fanCard::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(160deg, rgba(255,255,255,.14), transparent 44%);
+      pointer-events:none;
+    }
+
+    .fanCard span{
+      font-size:.76rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:rgba(255,255,255,.72);
+    }
+
+    .fanCard strong{
+      font-size:1.28rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+    }
+
+    .fanCard small{
+      color:var(--muted);
+      line-height:1.4;
+    }
+
+    .fanCard--lead{
+      left:8px;
+      bottom:10px;
+      transform:rotate(-11deg);
+      z-index:1;
+    }
+
+    .fanCard--hit{
+      left:84px;
+      bottom:4px;
+      transform:translateY(-12px);
+      z-index:3;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04)),
+        linear-gradient(150deg, rgba(246,183,60,.26), rgba(255,107,87,.16) 56%, rgba(73,208,201,.12));
+    }
+
+    .fanCard--plus{
+      right:8px;
+      bottom:14px;
+      transform:rotate(11deg);
+      z-index:2;
+    }
+
+    .statGrid,
+    .filterGrid,
+    .statsBlock{
+      display:grid;
+      gap:12px;
+    }
+
+    .statGrid{
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      margin-top:22px;
+    }
+
+    .statCard,
+    .miniStat,
+    .productStat,
+    .packItem,
+    .historyItem,
+    .cardTile{
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+    }
+
+    .statCard,
+    .miniStat,
+    .productStat{
+      padding:16px;
+    }
+
+    .statCard strong,
+    .miniStat strong{
+      display:block;
+      margin-top:8px;
+      font-size:1.8rem;
+      line-height:1;
+    }
+
+    .panelGrid{
+      display:grid;
+      grid-template-columns:minmax(0, 1.55fr) minmax(320px, .95fr);
+      gap:18px;
+      margin-top:18px;
+      align-items:start;
+    }
+
+    .stack{
+      display:grid;
+      gap:18px;
+    }
+
+    .card{
+      background:var(--card);
+      padding:20px;
+    }
+
+    .cardHead h2,
+    .cardHead h3{
+      margin:0;
+      font-size:1.2rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.02em;
+    }
+
+    .filterGrid{
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      align-items:end;
+    }
+
+    .field{
+      display:grid;
+      gap:6px;
+    }
+
+    .field label{
+      font-size:.88rem;
+      color:var(--muted);
+    }
+
+    .field input,
+    .field select{
+      width:100%;
+      min-height:44px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(4,9,18,.55);
+      color:#fff;
+      padding:0 14px;
+      font:inherit;
+      outline:none;
+    }
+
+    .btnRow,
+    .pillRow,
+    .summaryRow,
+    .cardMeta,
+    .resultMeta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+
+    .btn.soft{
+      background:rgba(255,255,255,.07);
+    }
+
+    .msg,
+    .empty{
+      margin-top:14px;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .msg{
+      display:none;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+    }
+
+    .msg.success{
+      display:block;
+      border-color:rgba(34,197,94,.35);
+      background:rgba(34,197,94,.12);
+    }
+
+    .msg.error{
+      display:block;
+      border-color:rgba(248,113,113,.35);
+      background:rgba(248,113,113,.12);
+    }
+
+    .empty{
+      color:var(--muted);
+      background:rgba(255,255,255,.04);
+      border-style:dashed;
+    }
+
+    .loading{
+      display:none;
+      margin-top:14px;
+      color:var(--muted);
+    }
+
+    .productGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));
+      gap:18px;
+    }
+
+    .productCard{
+      position:relative;
+      display:grid;
+      gap:10px;
+      justify-items:center;
+      align-content:start;
+    }
+
+    .productCard::after{
+      content:none;
+    }
+
+    .productPoster{
+      display:block;
+      width:min(210px, 100%);
+      padding:0;
+      border:0;
+      background:none;
+      color:inherit;
+      text-align:center;
+      cursor:pointer;
+    }
+
+    .productPoster:focus-visible{
+      outline:2px solid rgba(246,183,60,.8);
+      outline-offset:4px;
+    }
+
+    .productVisual{
+      display:block;
+      border:0;
+      background:none;
+      backdrop-filter:none;
+      position:relative;
+      overflow:visible;
+      transition:none;
+      box-shadow:none;
+    }
+
+    .productVisual::after{
+      content:none;
+    }
+
+    .productVisualFrame{
+      position:relative;
+      min-height:auto;
+      display:block;
+      justify-content:center;
+      padding:0;
+      z-index:1;
+    }
+
+    .productVisualFrame::before{
+      content:none;
+    }
+
+    .productVisualFrame.is-box::after{
+      content:none;
+    }
+
+    .productArtWrap{
+      position:relative;
+      width:100%;
+      min-height:auto;
+      display:grid;
+      place-items:center;
+      padding:0;
+      z-index:1;
+    }
+
+    .productArtWrap .packArt,
+    .productArtWrap .packArtFallback{
+      width:100%;
+    }
+
+    .productSetLine{
+      display:none;
+    }
+
+    .productVisual strong{
+      font-size:1.5rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.08em;
+    }
+
+    .productVisual small{
+      color:var(--muted);
+      font-size:.82rem;
+    }
+
+    .productStamp{
+      display:inline-flex;
+      width:max-content;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(4,9,18,.36);
+      border:1px solid rgba(255,255,255,.12);
+      font-size:.72rem;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+
+    .productToken{
+      z-index:3;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(6,12,22,.72);
+      font-weight:800;
+      box-shadow:0 12px 22px rgba(0,0,0,.22);
+      backdrop-filter:blur(10px);
+      margin-top:2px;
+    }
+
+    .productHover{
+      display:none;
+    }
+
+    .productHover strong{
+      font-size:1.1rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.04em;
+    }
+
+    .productHover small{
+      max-width:18ch;
+      color:rgba(248,251,255,.78);
+      line-height:1.35;
+    }
+
+    .productPoster:hover .productVisual,
+    .productPoster:focus-visible .productVisual{
+      transform:none;
+      border-color:transparent;
+      box-shadow:none;
+    }
+
+    .productPoster:hover .packArt,
+    .productPoster:focus-visible .packArt{
+      transform:translateY(-8px) scale(1.08);
+      filter:drop-shadow(0 34px 58px rgba(0,0,0,.44));
+    }
+
+    .productPoster:hover .productHover,
+    .productPoster:focus-visible .productHover{
+      opacity:1;
+    }
+
+    .pill,
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.07);
+      font-size:.84rem;
+      white-space:nowrap;
+    }
+
+    .tokenBadge{
+      font-weight:700;
+      background:linear-gradient(135deg, rgba(246,183,60,.24), rgba(73,208,201,.16));
+      border-color:rgba(255,255,255,.2);
+    }
+
+    .productStats{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:10px;
+    }
+
+    .productActions{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+
+    .productActions .muted{
+      font-size:.82rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .collectionActions{
+      margin-top:12px;
+    }
+
+    .packBreakdown{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(132px, 1fr));
+      gap:10px;
+      margin-top:16px;
+    }
+
+    .packItem{
+      padding:12px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)),
+        linear-gradient(135deg, rgba(255,255,255,.02), transparent 54%);
+    }
+
+    .packItem strong{
+      display:block;
+      margin-bottom:8px;
+    }
+
+    .resultSectionTitle{
+      margin:18px 0 10px;
+      font-size:.92rem;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .packSelector{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .packSelector .btn{
+      min-height:42px;
+    }
+
+    .cardsGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));
+      gap:12px;
+    }
+
+    .cardTile{
+      display:grid;
+      gap:10px;
+      padding:14px;
+      position:relative;
+      overflow:hidden;
+      transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .cardTile::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(155deg, rgba(255,255,255,.08), transparent 38%);
+      pointer-events:none;
+    }
+
+    .cardTile.revealCard{
+      opacity:0;
+      transform:translateY(18px) scale(.98);
+      animation:revealRise .42s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+
+    .cardTile.featured{
+      border-color:rgba(246,183,60,.38);
+      background:
+        linear-gradient(180deg, rgba(246,183,60,.16), rgba(73,208,201,.08)),
+        rgba(255,255,255,.04);
+      box-shadow:0 14px 30px rgba(10, 18, 34, .24);
+    }
+
+    .cardTile:hover{
+      transform:translateY(-4px);
+      border-color:rgba(255,255,255,.18);
+      box-shadow:0 16px 34px rgba(4,10,18,.24);
+    }
+
+    .cardTile img,
+    .artFallback{
+      width:100%;
+      aspect-ratio:5 / 7;
+      border-radius:12px;
+    }
+
+    .cardTile img{
+      object-fit:cover;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+    }
+
+    .artFallback{
+      border:1px dashed rgba(255,255,255,.18);
+      background:linear-gradient(160deg, rgba(246,183,60,.22), rgba(73,208,201,.14));
+      display:flex;
+      align-items:flex-end;
+      padding:12px;
+      font-weight:700;
+    }
+
+    .cardTile h4{
+      margin:0;
+      font-size:.98rem;
+      line-height:1.2;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+    }
+
+    .cardSub{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+      color:var(--muted);
+      font-size:.84rem;
+    }
+
+    .statsStack,
+    .historyList{
+      display:grid;
+      gap:12px;
+    }
+
+    .statsBlock{
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+    }
+
+    .historyItem{
+      display:grid;
+      gap:10px;
+      padding:14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)),
+        linear-gradient(160deg, rgba(255,255,255,.02), transparent 42%);
+    }
+
+    .catalogCard,
+    .resultCard,
+    .sideCard{
+      position:relative;
+      overflow:hidden;
+    }
+
+    .catalogCard::before,
+    .resultCard::before,
+    .sideCard::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg, rgba(255,255,255,.05), transparent 30%);
+      pointer-events:none;
+    }
+
+    .resultMeta{
+      margin-bottom:12px;
+    }
+
+    .resultCanvas:not(.empty){
+      display:grid;
+      gap:12px;
+      padding:16px;
+      border-radius:18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)),
+        linear-gradient(180deg, rgba(4,9,18,.38), rgba(4,9,18,.08));
+      border:1px solid rgba(255,255,255,.08);
+    }
+
+    .catalogOnly{
+      margin-top:18px;
+    }
+
+    .packModal{
+      position:fixed;
+      inset:0;
+      z-index:1200;
+      display:grid;
+      place-items:center;
+      padding:20px;
+    }
+
+    .packModal[hidden]{
+      display:none;
+    }
+
+    .packModalBackdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(2,6,12,.7);
+      backdrop-filter:blur(10px);
+    }
+
+    .packModalDialog{
+      position:relative;
+      z-index:1;
+      width:min(1180px, 100%);
+      max-height:none;
+      overflow:visible;
+      padding:18px;
+      border-radius:28px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(7,13,22,.22);
+      box-shadow:0 28px 80px rgba(0,0,0,.28);
+    }
+
+    .packModalClose{
+      position:absolute;
+      top:14px;
+      right:14px;
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      font-size:1.5rem;
+      cursor:pointer;
+      z-index:3;
+    }
+
+    .packModalPackShell{
+      position:relative;
+      min-height:auto;
+      display:grid;
+      place-items:center;
+      padding:0;
+      border-radius:24px;
+      overflow:visible;
+      border:0;
+      background:none;
+    }
+
+    .packModalGlow{
+      position:absolute;
+      inset:58px 38px auto;
+      height:160px;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(246,183,60,.24), rgba(73,208,201,.1) 44%, transparent 74%);
+      filter:blur(16px);
+      pointer-events:none;
+      transition:opacity .28s ease, filter .28s ease;
+    }
+
+    .packModalPack{
+      position:relative;
+      z-index:1;
+      display:grid;
+      place-items:center;
+      width:min(320px, 100%);
+      min-height:auto;
+      transition:transform .22s ease;
+    }
+
+    .packModalPack .packArt,
+    .packModalPack .packArtFallback{
+      width:100%;
+    }
+
+    .packModalPackShell.is-opening .packModalPack{
+      animation:packShake .92s cubic-bezier(.22,.8,.18,1) infinite;
+    }
+
+    .packModalPackShell.is-opening .packArt{
+      filter:drop-shadow(0 0 26px rgba(246,183,60,.46)) drop-shadow(0 24px 44px rgba(0,0,0,.38));
+    }
+
+    .packModalActions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .packModalStatus{
+      min-height:24px;
+      color:var(--muted);
+    }
+
+    .packModalBody{
+      display:grid;
+      gap:14px;
+      min-height:180px;
+      padding:0;
+      border-radius:0;
+      border:0;
+      background:none;
+    }
+
+    .packModalBody.empty{
+      display:block;
+    }
+
+    .packModalLayout{
+      grid-template-columns:1fr;
+      gap:20px;
+      justify-items:center;
+    }
+
+    .packModalStage{
+      width:min(420px, 100%);
+      min-height:auto;
+      padding:0;
+      border:0;
+      background:none;
+      text-align:center;
+    }
+
+    .packModalResultCard{
+      width:min(100%, 1000px);
+      min-height:auto;
+      padding:0;
+      border:0;
+      background:none;
+    }
+
+    .packModalDialog.is-preview .packModalResultCard,
+    .packModalDialog.is-opening .packModalResultCard{
+      display:none;
+    }
+
+    .packModalDialog.is-reveal .packModalStage{
+      display:none;
+    }
+
+    .packModalDialog.is-preview .packModalPackShell{
+      min-height:auto;
+    }
+
+    .packModalDialog.is-opening{
+      width:min(720px, 100%);
+      min-height:min(82vh, 920px);
+      display:grid;
+      place-items:center;
+    }
+
+    .packModalDialog.is-opening .packModalStage{
+      width:100%;
+      display:grid;
+      place-items:center;
+      gap:0;
+    }
+
+    .packModalDialog.is-opening #packModalEyebrow,
+    .packModalDialog.is-opening #packModalTitle,
+    .packModalDialog.is-opening #packModalSubtitle,
+    .packModalDialog.is-opening #packModalMeta,
+    .packModalDialog.is-opening .packModalActions,
+    .packModalDialog.is-opening #modalMsg,
+    .packModalDialog.is-opening #packModalStatus{
+      display:none;
+    }
+
+    .packModalDialog.is-opening .packModalPackShell{
+      min-height:min(70vh, 720px);
+    }
+
+    .packModalDialog.is-opening .packModalPack{
+      width:min(380px, 62vw);
+    }
+
+    .packModalDialog.is-reveal{
+      width:min(1180px, 100%);
+      min-height:min(86vh, 960px);
+      display:grid;
+      place-items:center;
+    }
+
+    .packModalPackShell[data-glow="c"] .packModalGlow,
+    .packModalPackShell[data-glow="uc"] .packModalGlow,
+    .packModalPackShell[data-glow="r"] .packModalGlow{
+      background:radial-gradient(circle, rgba(255,255,255,.2), transparent 72%);
+    }
+
+    .packModalPackShell[data-glow="l"] .packModalGlow{
+      background:radial-gradient(circle, rgba(73,208,201,.26), transparent 72%);
+    }
+
+    .packModalPackShell[data-glow="sr"] .packModalGlow{
+      background:radial-gradient(circle, rgba(246,183,60,.28), transparent 72%);
+    }
+
+    .packModalPackShell[data-glow="sec"] .packModalGlow{
+      background:radial-gradient(circle, rgba(255,107,87,.3), transparent 74%);
+    }
+
+    .packModalPackShell[data-glow="sp"] .packModalGlow{
+      background:radial-gradient(circle, rgba(73,208,201,.32), transparent 74%);
+    }
+
+    .packModalPackShell[data-glow="tr"] .packModalGlow,
+    .packModalPackShell[data-glow="gold"] .packModalGlow{
+      background:radial-gradient(circle, rgba(246,183,60,.36), rgba(255,255,255,.1) 46%, transparent 74%);
+    }
+
+    .packModalPackShell[data-glow="silver"] .packModalGlow{
+      background:radial-gradient(circle, rgba(191,205,223,.34), rgba(255,255,255,.08) 46%, transparent 74%);
+    }
+
+    .packModalPackShell[data-glow="manga"] .packModalGlow{
+      background:radial-gradient(circle, rgba(255,107,87,.34), rgba(246,183,60,.18) 42%, transparent 74%);
+    }
+
+    .packModalPackShell[data-glow="off"] .packModalGlow{
+      opacity:0;
+    }
+
+    .packModalPackShell.is-opening .packModalGlow{
+      animation:modalGlowPulse .74s ease-in-out infinite alternate;
+    }
+
+    .packModalPackShell.is-settled .packModalGlow{
+      opacity:0;
+      filter:blur(20px);
+    }
+
+    #packModalMeta{
+      justify-content:center;
+    }
+
+    .packModalActions{
+      justify-content:center;
+      grid-template-columns:repeat(2, minmax(0, 180px));
+    }
+
+    .packModalStatus{
+      text-align:center;
+    }
+
+    #packModalSubtitle:empty{
+      display:none;
+    }
+
+    #modalResultMeta{
+      justify-content:center;
+      margin-bottom:8px;
+    }
+
+    #modalRevealTools{
+      justify-content:center;
+      min-height:42px;
+      margin-bottom:18px;
+    }
+
+    .packModalBody{
+      background:none;
+      border:0;
+      padding:0;
+      min-height:140px;
+    }
+
+    .packModalBody.empty{
+      display:grid;
+      place-items:center;
+      min-height:140px;
+      padding:18px;
+      border-radius:20px;
+      border:1px dashed rgba(255,255,255,.14);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      text-align:center;
+    }
+
+    .revealDeck{
+      display:grid;
+      gap:14px;
+      justify-items:center;
+    }
+
+    .revealHint{
+      color:var(--muted);
+      text-align:center;
+    }
+
+    .revealStack{
+      position:relative;
+      width:min(100%, 760px);
+      min-height:560px;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .revealStack.is-complete{
+      cursor:default;
+    }
+
+    .revealCard{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:min(210px, 28vw);
+      aspect-ratio:5 / 7;
+      perspective:1400px;
+      transform-style:preserve-3d;
+      transition:transform .42s cubic-bezier(.2,.8,.2,1), z-index .2s ease;
+    }
+
+    .revealInner{
+      position:relative;
+      width:100%;
+      height:100%;
+      transition:transform .62s cubic-bezier(.2,.8,.2,1);
+      transform-style:preserve-3d;
+    }
+
+    .revealCard.is-revealed .revealInner{
+      transform:rotateY(180deg);
+    }
+
+    .revealCard.is-revealed .revealBack{
+      visibility:hidden;
+    }
+
+    .revealFace{
+      position:absolute;
+      inset:0;
+      border-radius:18px;
+      overflow:hidden;
+      backface-visibility:hidden;
+      -webkit-backface-visibility:hidden;
+      box-shadow:0 20px 36px rgba(0,0,0,.28);
+    }
+
+    .revealBack{
+      display:grid;
+      place-items:center;
+      padding:14px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.02)),
+        linear-gradient(150deg, rgba(10,20,32,.96), rgba(28,18,20,.92));
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .revealBack img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius:18px;
+    }
+
+    .revealFront{
+      transform:rotateY(180deg);
+      background:rgba(10,18,28,.94);
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .revealFront img,
+    .revealFront .artFallback{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius:18px;
+    }
+
+    .revealFront .artFallback{
+      display:grid;
+      place-items:end start;
+      padding:14px;
+      background:linear-gradient(160deg, rgba(246,183,60,.22), rgba(73,208,201,.12));
+      font-weight:700;
+    }
+
+    .revealCardTags{
+      position:absolute;
+      inset:auto 12px 12px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      z-index:2;
+    }
+
+    .revealCounter{
+      text-align:center;
+    }
+
+    @keyframes modalGlowPulse{
+      from{
+        opacity:.8;
+        transform:scale(.96);
+      }
+      to{
+        opacity:1;
+        transform:scale(1.05);
+      }
+    }
+
+    .modalOpeningSection{
+      display:grid;
+      gap:10px;
+    }
+
+    @keyframes packShake{
+      0%, 100%{
+        transform:translateY(0) rotate(0deg) scale(1);
+      }
+      25%{
+        transform:translateY(-8px) rotate(-3deg) scale(1.02);
+      }
+      50%{
+        transform:translateY(-2px) rotate(3deg) scale(1.03);
+      }
+      75%{
+        transform:translateY(-10px) rotate(-2deg) scale(1.01);
+      }
+    }
+
+    .openingSpotlight{
+      display:grid;
+      grid-template-columns:minmax(0, 180px) minmax(0, 1fr);
+      gap:16px;
+      align-items:center;
+      padding:16px;
+      border-radius:20px;
+      border:1px solid rgba(255,255,255,.1);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)),
+        linear-gradient(150deg, rgba(246,183,60,.12), rgba(73,208,201,.08) 58%, transparent);
+      overflow:hidden;
+    }
+
+    .openingSpotlightArt{
+      position:relative;
+      min-height:210px;
+      display:grid;
+      place-items:center;
+      padding:14px;
+    }
+
+    .openingSpotlightArt::before{
+      content:"";
+      position:absolute;
+      inset:18px;
+      border-radius:24px;
+      background:radial-gradient(circle, rgba(246,183,60,.2), rgba(73,208,201,.08) 44%, transparent 72%);
+      filter:blur(10px);
+      pointer-events:none;
+    }
+
+    .openingSpotlightArt .packArt,
+    .openingSpotlightArt .packArtFallback{
+      width:min(100%, 150px);
+    }
+
+    .openingSpotlightBody{
+      display:grid;
+      gap:10px;
+      align-content:center;
+    }
+
+    .openingSpotlightBody h3{
+      margin:0;
+      font-size:1.34rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.02em;
+    }
+
+    .pill.rarityPill,
+    .pill.variantPill{
+      font-weight:700;
+    }
+
+    .tone-c,
+    .tone-uc,
+    .tone-r{
+      --tone-color:rgba(181,198,224,.2);
+    }
+
+    .tone-l{
+      --tone-color:rgba(73,208,201,.2);
+    }
+
+    .tone-sr{
+      --tone-color:rgba(246,183,60,.24);
+    }
+
+    .tone-sec{
+      --tone-color:rgba(255,107,87,.22);
+    }
+
+    .tone-sp{
+      --tone-color:rgba(73,208,201,.22);
+    }
+
+    .tone-tr{
+      --tone-color:rgba(246,183,60,.22);
+    }
+
+    .tone-manga{
+      --tone-color:rgba(255,107,87,.28);
+    }
+
+    .cardTile[class*="tone-"]{
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--tone-color, rgba(255,255,255,.04)) 72%, rgba(255,255,255,.04)), rgba(255,255,255,.03)),
+        rgba(255,255,255,.03);
+    }
+
+    .pill.rarityPill[class*="tone-"],
+    .pill.variantPill[class*="tone-"]{
+      background:color-mix(in srgb, var(--tone-color, rgba(255,255,255,.07)) 82%, rgba(255,255,255,.05));
+      border-color:rgba(255,255,255,.16);
+    }
+
+    .variant-parallel{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    .variant-manga::after,
+    .variant-special::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(125deg, transparent 24%, rgba(255,255,255,.12) 46%, transparent 58%);
+      transform:translateX(-120%);
+      animation:shimmerSweep 5.2s ease-in-out infinite;
+      pointer-events:none;
+    }
+
+    .revealStack.is-complete .revealCard.variant-manga::after,
+    .revealStack.is-complete .revealCard.variant-special::after{
+      content:none;
+    }
+
+    .loginGate{
+      margin-top:18px;
+    }
+
+    .loginGate .btnRow{
+      margin-top:18px;
+    }
+
+    @keyframes revealRise{
+      from{
+        opacity:0;
+        transform:translateY(18px) scale(.98);
+      }
+      to{
+        opacity:1;
+        transform:none;
+      }
+    }
+
+    @keyframes shimmerSweep{
+      0%, 64%{
+        transform:translateX(-120%);
+      }
+      78%{
+        transform:translateX(115%);
+      }
+      100%{
+        transform:translateX(115%);
+      }
+    }
+
+    @media (max-width: 1040px){
+      .statGrid,
+      .filterGrid,
+      .statsBlock{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .panelGrid{
+        grid-template-columns:1fr;
+      }
+
+      .heroLayout{
+        grid-template-columns:1fr;
+      }
+
+      .heroHead{
+        flex-direction:column;
+      }
+
+      .heroUser{
+        text-align:left;
+      }
+
+      .heroShowcase{
+        justify-items:start;
+      }
+
+      .packModalLayout{
+        grid-template-columns:1fr;
+      }
+
+      .packModalStage{
+        position:relative;
+      }
+    }
+
+    @media (max-width: 680px){
+      .wrap{
+        padding:0 12px;
+      }
+
+      .hero,
+      .card{
+        padding:16px;
+        border-radius:22px;
+      }
+
+      .heroActions{
+        display:grid;
+        grid-template-columns:1fr;
+      }
+
+      .heroActions .btn{
+        width:100%;
+        justify-content:center;
+      }
+
+      .statGrid,
+      .filterGrid,
+      .statsBlock,
+      .productStats{
+        grid-template-columns:1fr;
+      }
+
+      .cardsGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .historyTop,
+      .productTop{
+        flex-direction:column;
+      }
+
+      .productGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:12px;
+      }
+
+      .productArtWrap{
+        width:100%;
+        max-width:140px;
+        min-height:auto;
+        padding:0;
+      }
+
+      .productArtWrap .packArt,
+      .productArtWrap .packArtFallback{
+        width:100%;
+      }
+
+      .openingSpotlight{
+        grid-template-columns:1fr;
+      }
+
+      .heroShowcase{
+        grid-template-columns:1fr;
+      }
+
+      .packModal{
+        padding:8px;
+      }
+
+      .packModalDialog{
+        width:calc(100vw - 16px);
+        max-height:calc(100dvh - 16px);
+        overflow:hidden;
+        padding:14px 14px 18px;
+        border-radius:24px;
+      }
+
+      .packModalActions{
+        grid-template-columns:1fr;
+      }
+
+      .packModalClose{
+        top:10px;
+        right:10px;
+        width:38px;
+        height:38px;
+      }
+
+      .packModalStage{
+        width:100%;
+      }
+
+      .packModalPack{
+        width:min(260px, 76vw);
+      }
+
+      .packModalDialog.is-opening{
+        min-height:calc(100dvh - 16px);
+      }
+
+      .packModalDialog.is-opening .packModalPackShell{
+        min-height:min(56vh, 520px);
+      }
+
+      .packModalDialog.is-opening .packModalPack{
+        width:min(300px, 78vw);
+      }
+
+      .packModalDialog.is-reveal{
+        width:calc(100vw - 16px);
+        min-height:auto;
+      }
+
+      .packModalResultCard{
+        width:100%;
+      }
+
+      #modalRevealTools{
+        min-height:auto;
+        margin-bottom:14px;
+      }
+
+      #modalResultMeta{
+        margin-bottom:6px;
+      }
+
+      .packModalBody{
+        min-height:0;
+      }
+
+      .revealHint{
+        max-width:28ch;
+        padding-inline:10px;
+      }
+
+      .revealStack{
+        width:min(100%, 360px);
+        min-height:390px;
+      }
+
+      .revealCard{
+        width:min(180px, 42vw);
+      }
+
+      .revealFace,
+      .revealBack img,
+      .revealFront img,
+      .revealFront .artFallback{
+        border-radius:12px;
+      }
+
+      .productPoster{
+        width:100%;
+        max-width:140px;
+      }
+    }
+
+    @media (max-width: 420px){
+      .productGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:10px;
+      }
+
+      .revealStack{
+        width:min(100%, 320px);
+        min-height:330px;
+      }
+
+      .revealCard{
+        width:min(148px, 43vw);
+      }
+
+      .revealFace,
+      .revealBack img,
+      .revealFront img,
+      .revealFront .artFallback{
+        border-radius:10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>packs - apertura</small>
+      </div>
+
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero hero-packs">
+      <div class="heroLayout">
+        <div class="heroContent">
+          <div class="heroHead">
+            <div>
+              <div class="eyebrow">Coleccion digital</div>
+              <h1>Abridor de sobres</h1>
+              <p>Abre productos desde el hub, persigue hits especiales y convierte cada sesion en progreso real dentro de tu coleccion digital.</p>
+            </div>
+          </div>
+
+          <div class="heroActions">
+            <a class="btn primary" href="collection.html" data-requires-auth="1">&#128218; Ver coleccion</a>
+            <button class="btn soft" id="jumpToCatalogBtn" type="button">Ir al catalogo</button>
+          </div>
+        </div>
+
+        <aside class="heroShowcase">
+          <div class="heroUser heroVault">
+            <div class="eyebrow">Disponible</div>
+            <div class="heroValue" id="tokenBalance">0</div>
+            <div class="muted" id="heroUserLabel">Inicia sesion para empezar</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="loginGate" class="card loginGate" style="display:none;">
+      <div class="cardHead">
+        <div>
+          <h2>Necesitas iniciar sesion</h2>
+          <p>Los packs, el saldo de tokens y tu coleccion dependen de tu usuario autenticado.</p>
+        </div>
+      </div>
+      <div class="btnRow">
+        <a class="btn primary" href="login.html">&#128274; Ir a login</a>
+        <a class="btn soft" href="index.html">&#127968; Volver al inicio</a>
+      </div>
+    </section>
+
+    <div id="dashboard" style="display:none;">
+      <section class="card catalogCard catalogOnly">
+        <div class="cardHead">
+          <div>
+            <h2>Catalogo</h2>
+            <p>Elige un producto y abre desde el popup. La pantalla principal se queda limpia y centrada en los sobres.</p>
+          </div>
+          <div class="muted" id="catalogCount">0 productos</div>
+        </div>
+
+        <div class="filterGrid">
+          <div class="field">
+            <label for="setFilter">Set</label>
+            <select id="setFilter">
+              <option value="">Todos los sets</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="kindFilter">Tipo</label>
+            <select id="kindFilter">
+              <option value="">Todos</option>
+              <option value="pack">Sobres</option>
+              <option value="box">Cajas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="searchFilter">Buscar</label>
+            <input id="searchFilter" placeholder="Ej: OP12, caja, awaken..." />
+          </div>
+          <div class="btnRow">
+            <button class="btn soft" id="clearFiltersBtn" type="button">Limpiar filtros</button>
+            <button class="btn soft" id="refreshBtn" type="button">Recargar</button>
+          </div>
+        </div>
+
+        <div class="msg" id="pageMsg"></div>
+        <div class="loading" id="loadingState">Cargando packs...</div>
+        <div class="productGrid" id="productGrid"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="packModal" id="packModal" hidden>
+    <div class="packModalBackdrop" id="packModalBackdrop"></div>
+    <div class="packModalDialog" id="packModalDialog" role="dialog" aria-modal="true" aria-labelledby="packModalTitle">
+      <button class="packModalClose" id="packModalClose" type="button" aria-label="Cerrar">&times;</button>
+
+      <div class="packModalLayout">
+        <section class="packModalStage">
+          <div class="packModalPackShell" id="packModalStageShell">
+            <div class="packModalGlow"></div>
+            <div class="packModalPack" id="packModalArtWrap">
+              <div class="packArtFallback">SET</div>
+            </div>
+          </div>
+
+          <div class="eyebrow" id="packModalEyebrow">Sobre</div>
+          <h2 id="packModalTitle">Producto</h2>
+          <p class="muted" id="packModalSubtitle">Selecciona un producto del catalogo para abrirlo aqui.</p>
+          <div class="pillRow" id="packModalMeta"></div>
+
+          <div class="packModalActions">
+            <button class="btn primary" id="packModalOpenBtn" type="button">Abrir</button>
+            <button class="btn soft" id="packModalOpenTenBtn" type="button">Abrir x10</button>
+          </div>
+
+          <div class="msg" id="modalMsg"></div>
+          <div class="packModalStatus" id="packModalStatus">Pulsa en un sobre para iniciar la apertura.</div>
+        </section>
+
+        <section class="packModalResultCard">
+          <div class="pillRow" id="modalRevealTools"></div>
+          <div class="resultMeta" id="modalResultMeta"></div>
+          <div class="packModalBody empty" id="modalBody">Selecciona un producto del catalogo para ver aqui la apertura.</div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+    const formatDateTime = window.BarateamApp.formatDateTime;
+    const formatRelativeTime = window.BarateamApp.formatRelativeTime;
+
+    window.BarateamApp.bindProtectedNavLinks(sb, { requireAdmin: true });
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => { await doLogout(); },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    const state = {
+      currentUser: null,
+      currentProfile: null,
+      sets: [],
+      setsById: new Map(),
+      products: [],
+      filteredProducts: [],
+      openings: [],
+      collectionRows: [],
+      lastOpening: null,
+      openingBusy: false,
+      showAllCards: false,
+      activePackIndex: null,
+      modalProduct: null,
+      modalOpenings: [],
+      modalStatus: "",
+      modalPhase: "preview",
+      modalPackIndex: 0,
+      modalRevealedCount: 0,
+      modalRevealBusy: false
+    };
+
+    function lower(value){
+      return String(value || "").toLowerCase();
+    }
+
+    function normalize(value){
+      return lower(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function formatTokens(value){
+      return new Intl.NumberFormat("es-ES").format(Number(value || 0));
+    }
+
+    function wait(ms){
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function formatKind(kind){
+      return kind === "box" ? "Caja" : "Sobre";
+    }
+
+    function rarityRank(rarity){
+      switch (lower(rarity).trim()){
+        case "c":
+        case "common":
+          return 10;
+        case "don":
+        case "don!!":
+          return 12;
+        case "uc":
+        case "uncommon":
+          return 20;
+        case "r":
+        case "rare":
+          return 30;
+        case "l":
+        case "leader":
+          return 35;
+        case "sr":
+        case "super rare":
+          return 40;
+        case "sec":
+        case "secret rare":
+          return 50;
+        case "sp":
+        case "special":
+          return 60;
+        case "tr":
+        case "treasure rare":
+          return 70;
+        case "parallel":
+          return 80;
+        case "aa":
+        case "alt art":
+          return 85;
+        case "manga":
+          return 100;
+        default:
+          return 25;
+      }
+    }
+
+    function cssToken(value){
+      return lower(value).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    }
+
+    function setAssetKey(setOrCode){
+      const raw = typeof setOrCode === "string" ? setOrCode : setOrCode?.code;
+      return lower(raw).replace(/[^a-z0-9]+/g, "");
+    }
+
+    function setArtPath(setOrCode){
+      const key = setAssetKey(setOrCode);
+      return key ? ("packs/" + key + ".png") : "";
+    }
+
+    function setArtMarkup(setOrCode, options){
+      const cfg = options || {};
+      const label = cfg.label || (typeof setOrCode === "string" ? setOrCode : setOrCode?.code) || "SET";
+      const path = setArtPath(setOrCode);
+      const imgClass = cfg.imgClass || "packArt";
+      const fallbackClass = cfg.fallbackClass || "packArtFallback";
+      const loading = cfg.loading || "lazy";
+      const alt = cfg.alt || (label + " booster pack");
+      const fallback = '<div class="' + escapeAttr(fallbackClass) + '"' + (path ? ' style="display:none;"' : "") + '>' + escapeHtml(label) + '</div>';
+      if (!path){
+        return fallback;
+      }
+      return (
+        '<img class="' + escapeAttr(imgClass) + '" src="' + escapeAttr(path) + '" alt="' + escapeAttr(alt) + '" loading="' + escapeAttr(loading) + '" ' +
+          'onerror="this.style.display=\'none\'; if (this.nextElementSibling) this.nextElementSibling.style.display=\'grid\';" />' +
+        fallback
+      );
+    }
+
+    function rarityToneClass(rarity, variant){
+      const normalizedVariant = lower(variant);
+      if (normalizedVariant.includes("manga")) return "tone-manga";
+      if (normalizedVariant.includes("treasure")) return "tone-tr";
+      if (normalizedVariant.includes("sp")) return "tone-sp";
+
+      switch (lower(rarity).trim()){
+        case "c":
+        case "common":
+          return "tone-c";
+        case "uc":
+        case "uncommon":
+          return "tone-uc";
+        case "r":
+        case "rare":
+          return "tone-r";
+        case "l":
+        case "leader":
+          return "tone-l";
+        case "sr":
+        case "super rare":
+          return "tone-sr";
+        case "sec":
+        case "secret rare":
+          return "tone-sec";
+        case "sp":
+        case "special":
+          return "tone-sp";
+        case "tr":
+        case "treasure rare":
+          return "tone-tr";
+        case "manga":
+          return "tone-manga";
+        default:
+          return "";
+      }
+    }
+
+    function variantToneClass(variant){
+      const normalizedVariant = lower(variant);
+      if (!normalizedVariant || normalizedVariant === "base") return "";
+      if (normalizedVariant.includes("manga")) return "variant-manga";
+      if (normalizedVariant.includes("sp") || normalizedVariant.includes("silver") || normalizedVariant.includes("gold") || normalizedVariant.includes("treasure")){
+        return "variant-special";
+      }
+      if (normalizedVariant.includes("parallel")) return "variant-parallel";
+      return "";
+    }
+
+    function productSet(product){
+      return state.setsById.get(product?.set_id) || null;
+    }
+
+    function featuredSet(){
+      const selectedCode = $("setFilter")?.value || "";
+      if (selectedCode){
+        return state.sets.find((set) => set.code === selectedCode) || state.sets[0] || null;
+      }
+      return state.sets[0] || null;
+    }
+
+    function collectionSummary(){
+      const total = state.collectionRows.reduce((sum, row) => sum + Number(row.owned_count || 0), 0);
+      const unique = state.collectionRows.filter((row) => Number(row.owned_count || 0) > 0).length;
+      return {
+        unique,
+        total,
+        duplicates: Math.max(0, total - unique)
+      };
+    }
+
+    function isFeatured(card){
+      return rarityRank(card?.rarity) >= 40 || lower(card?.variant) !== "base";
+    }
+
+    function sortRarityEntries(entries){
+      return entries.sort((a, b) => {
+        const rankDiff = rarityRank(b[0]) - rarityRank(a[0]);
+        if (rankDiff !== 0) return rankDiff;
+        return String(a[0] || "").localeCompare(String(b[0] || ""), "es");
+      });
+    }
+
+    function summaryEntries(summary, cards){
+      const byRarity = summary && typeof summary === "object" ? summary.by_rarity : null;
+      if (byRarity && typeof byRarity === "object" && !Array.isArray(byRarity)){
+        return sortRarityEntries(Object.entries(byRarity));
+      }
+      const counts = new Map();
+      (cards || []).forEach((card) => {
+        const key = card?.rarity || "?";
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+      return sortRarityEntries(Array.from(counts.entries()));
+    }
+
+    function chipsMarkup(entries){
+      if (!entries.length){
+        return '<span class="chip">Sin resumen</span>';
+      }
+      return entries.map(([label, total]) => (
+        '<span class="chip">' + escapeHtml(String(label).toUpperCase()) + ' x' + escapeHtml(String(total)) + '</span>'
+      )).join("");
+    }
+
+    function packSummaries(cards){
+      const map = new Map();
+      (cards || []).forEach((card) => {
+        const index = Number(card.pack_index || 1);
+        if (!map.has(index)){
+          map.set(index, { packIndex: index, cards: [], hits: [] });
+        }
+        const entry = map.get(index);
+        entry.cards.push(card);
+        if (isFeatured(card)){
+          entry.hits.push(card);
+        }
+      });
+      return Array.from(map.values()).sort((a, b) => a.packIndex - b.packIndex);
+    }
+
+    function sortCardsByImpact(cards){
+      return [...(cards || [])].sort((a, b) => {
+        const rarityDiff = rarityRank(b?.rarity) - rarityRank(a?.rarity);
+        if (rarityDiff !== 0) return rarityDiff;
+
+        const variantDiff = (lower(b?.variant) === "base" ? 0 : 1) - (lower(a?.variant) === "base" ? 0 : 1);
+        if (variantDiff !== 0) return variantDiff;
+
+        const packDiff = Number(a?.pack_index || 0) - Number(b?.pack_index || 0);
+        if (packDiff !== 0) return packDiff;
+
+        return String(a?.card_code || "").localeCompare(String(b?.card_code || ""), "es");
+      });
+    }
+
+    function setNavAuthUI(user){
+      navController.setUser(user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, user || null);
+    }
+
+    function showLoginGate(visible){
+      $("loginGate").style.display = visible ? "block" : "none";
+      $("dashboard").style.display = visible ? "none" : "block";
+    }
+
+    function showMsg(text, tone){
+      const el = $("pageMsg");
+      if (!text){
+        el.style.display = "none";
+        el.className = "msg";
+        el.textContent = "";
+        return;
+      }
+      el.textContent = text;
+      el.className = "msg " + (tone || "");
+      el.style.display = "block";
+    }
+
+    function setLoading(text){
+      const el = $("loadingState");
+      el.textContent = text || "";
+      el.style.display = text ? "block" : "none";
+    }
+
+    async function doLogout(){
+      await sb.auth.signOut();
+      location.href = "index.html";
+    }
+
+    async function refreshSession(){
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      const user = data?.session?.user || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      showLoginGate(!user);
+      return user;
+    }
+
+    async function loadProfile(){
+      if (!state.currentUser) return;
+      const { data, error } = await sb
+        .from("profiles")
+        .select("id, username, display_name, tokens_balance")
+        .eq("id", state.currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      state.currentProfile = data || {
+        id: state.currentUser.id,
+        username: null,
+        display_name: null,
+        tokens_balance: 0
+      };
+    }
+
+    async function loadSetsAndProducts(){
+      const [{ data: sets, error: setsError }, { data: products, error: productsError }] = await Promise.all([
+        sb.from("pack_sets").select("id, code, name, release_date, pack_size, packs_per_box, is_active").eq("is_active", true).order("release_date", { ascending: false }),
+        sb.from("pack_products").select("id, code, set_id, name, product_kind, token_cost, pack_count, reveal_mode, is_active").eq("is_active", true).order("token_cost", { ascending: true })
+      ]);
+
+      if (setsError) throw setsError;
+      if (productsError) throw productsError;
+
+      state.sets = sets || [];
+      state.setsById = new Map(state.sets.map((set) => [set.id, set]));
+      state.products = products || [];
+
+      const setFilter = $("setFilter");
+      const previous = setFilter.value;
+      setFilter.innerHTML = '<option value="">Todos los sets</option>' + state.sets.map((set) => (
+        '<option value="' + escapeAttr(set.code) + '">' + escapeHtml(set.code + " - " + set.name) + '</option>'
+      )).join("");
+      if (previous && state.sets.some((set) => set.code === previous)){
+        setFilter.value = previous;
+      }
+    }
+
+    async function loadCollection(){
+      if (!state.currentUser) return;
+      const { data, error } = await sb
+        .from("user_collection")
+        .select("card_id, owned_count")
+        .eq("profile_id", state.currentUser.id);
+
+      if (error) throw error;
+      state.collectionRows = data || [];
+    }
+
+    async function loadOpenings(){
+      if (!state.currentUser) return;
+      const { data, error } = await sb
+        .from("pack_openings")
+        .select("id, created_at, product_code_snapshot, product_name_snapshot, product_kind, pack_count, token_cost, tokens_balance_after, result_summary")
+        .eq("profile_id", state.currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      state.openings = data || [];
+    }
+
+    function renderHero(){
+      const profile = state.currentProfile;
+      $("tokenBalance").textContent = formatTokens(profile?.tokens_balance || 0);
+      $("heroUserLabel").textContent = profile
+        ? (profile.display_name || profile.username || state.currentUser?.email || "Usuario")
+        : "Inicia sesion para empezar";
+      if (!$("heroSetArtWrap")) return;
+      $("heroSetArtWrap").innerHTML = setArtMarkup(set, {
+        imgClass: "packArt",
+        fallbackClass: "packArtFallback",
+        loading: "eager",
+        alt: (set?.code || "Set") + " booster pack",
+        label: set?.code || "SET"
+      });
+      $("heroFeaturedSetCode").textContent = set?.code || "SET";
+      $("heroFeaturedSetRelease").textContent = releaseLabel;
+      $("heroFeaturedSetName").textContent = set?.name || "Set destacado";
+      $("heroFeaturedSetSummary").textContent = set
+        ? (formatTokens(setProducts.length) + " producto" + (setProducts.length === 1 ? "" : "s") + " activo" + (setProducts.length === 1 ? "" : "s") + " · " + formatTokens(packSize) + " cartas por apertura")
+        : "Importa productos y el hero mostrara aqui el sobre principal del set.";
+    }
+
+    function applyFilters(){
+      const setCode = $("setFilter").value;
+      const kind = $("kindFilter").value;
+      const query = normalize($("searchFilter").value);
+
+      state.filteredProducts = state.products
+        .filter((product) => {
+          const set = productSet(product);
+          if (setCode && set?.code !== setCode) return false;
+          if (kind && product.product_kind !== kind) return false;
+          if (!query) return true;
+
+          const haystack = normalize([
+            product.code,
+            product.name,
+            product.product_kind,
+            set?.code,
+            set?.name
+          ].join(" "));
+
+          return haystack.includes(query);
+        })
+        .sort((a, b) => {
+          const setA = productSet(a);
+          const setB = productSet(b);
+          const dateA = setA?.release_date || "";
+          const dateB = setB?.release_date || "";
+          if (dateA !== dateB){
+            return dateA < dateB ? 1 : -1;
+          }
+          if (a.product_kind !== b.product_kind){
+            return a.product_kind === "pack" ? -1 : 1;
+          }
+          return Number(a.token_cost || 0) - Number(b.token_cost || 0);
+        });
+
+      renderHero();
+      renderProducts();
+    }
+
+    function renderProducts(){
+      const grid = $("productGrid");
+      const products = state.filteredProducts;
+      $("catalogCount").textContent = products.length + " producto" + (products.length === 1 ? "" : "s");
+
+      if (!products.length){
+        grid.innerHTML = '<div class="empty">No hay productos con esos filtros. Prueba otra combinacion.</div>';
+        return;
+      }
+
+      grid.innerHTML = products.map((product) => {
+        const set = productSet(product);
+        const productClass = "kind-" + cssToken(product.product_kind || "pack");
+
+        return (
+          '<article class="productCard ' + escapeAttr(productClass) + '">' +
+            '<button class="productPoster" type="button" data-preview-product="' + escapeAttr(product.code) + '">' +
+              '<div class="productVisual">' +
+                '<div class="productVisualFrame ' + (product.product_kind === "box" ? "is-box" : "is-pack") + '">' +
+                  '<div class="productArtWrap">' +
+                    setArtMarkup(set || product.code, {
+                      imgClass: "packArt",
+                      fallbackClass: "packArtFallback",
+                      alt: (set?.code || product.code || "Set") + " booster pack",
+                      label: set?.code || product.code || "SET"
+                    }) +
+                  '</div>' +
+                  '<div class="productHover">' +
+                    '<strong>' + escapeHtml(product.product_kind === "box" ? "Abrir caja" : "Abrir sobre") + '</strong>' +
+                    '<small>' + escapeHtml(product.name || product.code || "Producto") + '</small>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</button>' +
+            '<div class="productToken">' + formatTokens(product.token_cost) + ' tokens</div>' +
+          '</article>'
+        );
+      }).join("");
+
+      grid.querySelectorAll("[data-preview-product]").forEach((button) => {
+        button.addEventListener("click", () => {
+          openProductPreview(button.dataset.previewProduct);
+        });
+      });
+    }
+
+    function renderCollection(){
+      return;
+    }
+
+    function renderHistory(){
+      return;
+    }
+
+    function cardTileMarkup(card, options){
+      const cfg = options || {};
+      const art = card?.image_url
+        ? '<img src="' + escapeAttr(card.image_url) + '" alt="' + escapeAttr(card.card_name || card.card_code || "Carta") + '" loading="lazy" />'
+        : '<div class="artFallback">' + escapeHtml(card.card_code || "Carta") + '</div>';
+      const classes = ["cardTile", "revealCard"];
+      const toneClass = rarityToneClass(card?.rarity, card?.variant);
+      const variantClass = variantToneClass(card?.variant);
+      if (toneClass) classes.push(toneClass);
+      if (variantClass) classes.push(variantClass);
+      if (cfg.featured) classes.push("featured");
+      const delay = Number(cfg.delayIndex || 0);
+      const style = ' style="animation-delay:' + Math.min(delay * 45, 520) + 'ms"';
+      const packInfo = cfg.showPackIndex && Number(card?.pack_index || 0) > 0
+        ? '<span class="pill">Sobre ' + escapeHtml(String(card.pack_index)) + '</span>'
+        : '';
+      const sourceInfo = cfg.showSourceKind && card?.source_kind
+        ? '<span class="pill">' + escapeHtml(card.source_kind === "guarantee_replacement" ? "Guarantee" : "Slot") + '</span>'
+        : '';
+
+      return (
+        '<article class="' + classes.join(" ") + '"' + style + '>' +
+          art +
+          '<div>' +
+            '<h4>' + escapeHtml(card.card_name || card.card_code || "Carta") + '</h4>' +
+            '<div class="cardSub">' +
+              '<span>' + escapeHtml(card.card_code || "-") + '</span>' +
+              '<span>&middot;</span>' +
+              '<span>' + escapeHtml(card.card_type || "Card") + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="cardMeta">' +
+            '<span class="pill rarityPill ' + escapeAttr(toneClass) + '">' + escapeHtml(card.rarity || "?") + '</span>' +
+            '<span class="pill variantPill ' + escapeAttr([toneClass, variantClass].filter(Boolean).join(" ")) + '">' + escapeHtml(card.variant || "base") + '</span>' +
+            packInfo +
+            sourceInfo +
+          '</div>' +
+        '</article>'
+      );
+    }
+
+    function showModalMsg(text, tone){
+      const el = $("modalMsg");
+      if (!text){
+        el.style.display = "none";
+        el.className = "msg";
+        el.textContent = "";
+        return;
+      }
+      el.textContent = text;
+      el.className = "msg " + (tone || "");
+      el.style.display = "block";
+    }
+
+    function modalProductSet(){
+      return productSet(state.modalProduct);
+    }
+
+    function currentModalOpening(){
+      return state.modalOpenings[state.modalPackIndex] || null;
+    }
+
+    function modalGlowKeyForCard(card){
+      const variant = lower(card?.variant);
+      if (variant.includes("manga")) return "manga";
+      if (variant.includes("gold")) return "gold";
+      if (variant.includes("silver")) return "silver";
+      if (variant.includes("treasure")) return "tr";
+      if (variant.includes("sp")) return "sp";
+
+      switch (lower(card?.rarity).trim()){
+        case "sec":
+        case "secret rare":
+          return "sec";
+        case "sr":
+        case "super rare":
+          return "sr";
+        case "r":
+        case "rare":
+          return "r";
+        case "uc":
+        case "uncommon":
+          return "uc";
+        case "l":
+        case "leader":
+          return "l";
+        default:
+          return "c";
+      }
+    }
+
+    function modalGlowKey(opening){
+      const topCard = sortCardsByImpact(Array.isArray(opening?.cards) ? opening.cards : [])[0] || null;
+      return modalGlowKeyForCard(topCard);
+    }
+
+    function revealLayoutMetrics(){
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1024;
+      if (viewportWidth <= 420){
+        return { spreadX: 56, stepY: 7, baseY: 14, hiddenX: -3, hiddenY: -4, revealRot: 3.2, hiddenRot: 0.9 };
+      }
+      if (viewportWidth <= 680){
+        return { spreadX: 72, stepY: 8, baseY: 20, hiddenX: -3, hiddenY: -4, revealRot: 3.6, hiddenRot: 1 };
+      }
+      return { spreadX: 116, stepY: 10, baseY: 42, hiddenX: -4, hiddenY: -5, revealRot: 4.5, hiddenRot: 1.1 };
+    }
+
+    function revealCardStyle(index, total, revealedCount){
+      const metrics = revealLayoutMetrics();
+      const midpoint = (total - 1) / 2;
+      const spread = index - midpoint;
+      const revealed = index < revealedCount;
+      const x = revealed ? spread * metrics.spreadX : (total - index - 1) * metrics.hiddenX;
+      const y = revealed ? (Math.abs(spread) * metrics.stepY + metrics.baseY) : ((total - index - 1) * metrics.hiddenY);
+      const rot = revealed ? (spread * metrics.revealRot) : ((total - index - 1) * metrics.hiddenRot);
+      const zIndex = revealed ? (40 + index) : (total - index);
+      return 'transform:translate(-50%, -50%) translate(' + x + 'px,' + y + 'px) rotate(' + rot + 'deg); z-index:' + zIndex + ';';
+    }
+
+    function revealCardMarkup(card, index, total, revealed){
+      const toneClass = rarityToneClass(card?.rarity, card?.variant);
+      const variantClass = variantToneClass(card?.variant);
+      const classes = ["revealCard"];
+      if (revealed) classes.push("is-revealed");
+      if (toneClass) classes.push(toneClass);
+      if (variantClass) classes.push(variantClass);
+      const frontArt = card?.image_url
+        ? '<img src="' + escapeAttr(card.image_url) + '" alt="' + escapeAttr(card.card_name || card.card_code || "Carta") + '" loading="lazy" />'
+        : '<div class="artFallback">' + escapeHtml(card.card_code || "Carta") + '</div>';
+
+      return (
+        '<article class="' + classes.join(" ") + '" style="' + escapeAttr(revealCardStyle(index, total, state.modalRevealedCount)) + '"' + (!revealed ? ' data-modal-action="reveal-next"' : '') + '>' +
+          '<div class="revealInner">' +
+            '<div class="revealFace revealBack">' +
+              '<img src="back.jpg" alt="Back card" loading="lazy" />' +
+            '</div>' +
+            '<div class="revealFace revealFront">' +
+              frontArt +
+            '</div>' +
+          '</div>' +
+        '</article>'
+      );
+    }
+
+    function bindModalRevealActions(){
+      ["modalRevealTools", "modalBody"].forEach((id) => {
+        const root = $(id);
+        if (!root) return;
+        root.querySelectorAll("[data-modal-action]").forEach((node) => {
+          node.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const action = node.dataset.modalAction;
+            if (action === "reveal-next"){
+              void revealNextCard();
+            } else if (action === "reveal-all"){
+              void revealAllCards();
+            } else if (action === "next-pack"){
+              goToNextPack();
+            }
+          });
+        });
+      });
+    }
+
+    function handleModalAction(event){
+      const actionNode = event.target.closest("[data-modal-action]");
+      if (!actionNode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const action = actionNode.dataset.modalAction;
+      if (action === "reveal-next"){
+        void revealNextCard();
+      } else if (action === "reveal-all"){
+        void revealAllCards();
+      } else if (action === "next-pack"){
+        goToNextPack();
+      }
+    }
+
+    function aggregatedOpeningCards(openings){
+      const aggregated = [];
+      (openings || []).forEach((opening, openingIndex) => {
+        (Array.isArray(opening?.cards) ? opening.cards : []).forEach((card, cardIndex) => {
+          const nextCard = { ...card, modal_opening_index: openingIndex + 1, modal_card_index: cardIndex + 1 };
+          if (opening?.product_kind !== "box" && !Number(nextCard.pack_index || 0)){
+            nextCard.pack_index = openingIndex + 1;
+          }
+          aggregated.push(nextCard);
+        });
+      });
+      return aggregated;
+    }
+
+    function modalBreakdownMarkup(openings){
+      return (
+        '<div class="resultSectionTitle">Sobres abiertos</div>' +
+        '<div class="packBreakdown">' +
+          openings.map((opening, openingIndex) => {
+            const cards = aggregatedOpeningCards([opening]);
+            const hits = sortCardsByImpact(cards.filter(isFeatured));
+            const focus = hits.length ? hits.slice(0, 2) : cards.slice(-1);
+            const labels = focus.map((card) => escapeHtml(card.card_code + " " + (card.rarity || ""))).join("<br>");
+            return (
+              '<div class="packItem">' +
+                '<strong>Sobre ' + (openingIndex + 1) + '</strong>' +
+                '<div class="muted">' + cards.length + ' cartas</div>' +
+                '<div class="muted" style="margin-top:8px;">' + labels + '</div>' +
+              '</div>'
+            );
+          }).join("") +
+        '</div>'
+      );
+    }
+
+    function modalSingleOpeningMarkup(opening){
+      const cards = aggregatedOpeningCards([opening]);
+      const isBox = opening?.product_kind === "box";
+      const packRows = isBox ? packSummaries(cards) : [];
+      const breakdown = isBox
+        ? (
+            '<div class="resultSectionTitle">Resumen por sobre</div>' +
+            '<div class="packBreakdown">' +
+              packRows.map((pack) => {
+                const focusCards = pack.hits.length ? pack.hits : pack.cards.slice(-1);
+                const labels = focusCards.map((card) => escapeHtml(card.card_code + " " + (card.rarity || ""))).join("<br>");
+                return (
+                  '<div class="packItem">' +
+                    '<strong>Sobre ' + pack.packIndex + '</strong>' +
+                    '<div class="muted">' + pack.cards.length + ' cartas</div>' +
+                    '<div class="muted" style="margin-top:8px;">' + labels + '</div>' +
+                  '</div>'
+                );
+              }).join("") +
+            '</div>'
+          )
+        : "";
+
+      return (
+        breakdown +
+        '<div class="resultSectionTitle">' + escapeHtml(isBox ? "Caja abierta" : "Cartas reveladas") + '</div>' +
+        '<div class="cardsGrid">' +
+          cards.map((card, index) => (
+            cardTileMarkup(card, {
+              delayIndex: index,
+              featured: isFeatured(card),
+              showPackIndex: isBox,
+              showSourceKind: true
+            })
+          )).join("") +
+        '</div>'
+      );
+    }
+
+    function renderModalResult(){
+      const tools = $("modalRevealTools");
+      const meta = $("modalResultMeta");
+      const body = $("modalBody");
+      const opening = currentModalOpening();
+      const totalOpenings = state.modalOpenings.length;
+      const set = modalProductSet();
+
+      if (!opening){
+        tools.innerHTML = "";
+        meta.innerHTML = "";
+        body.className = "packModalBody empty";
+        body.innerHTML = state.openingBusy
+          ? "Abriendo el sobre..."
+          : "Pulsa en abrir y las cartas apareceran aqui para darles la vuelta una a una.";
+        return;
+      }
+
+      const cards = Array.isArray(opening.cards) ? opening.cards : [];
+      const revealedCount = Math.min(state.modalRevealedCount, cards.length);
+      const isComplete = revealedCount >= cards.length;
+      const hasNextPack = state.modalPackIndex < totalOpenings - 1;
+      const bestCard = sortCardsByImpact(cards)[0] || null;
+
+      meta.innerHTML = [
+        '<span class="pill">Sobre ' + escapeHtml(String(state.modalPackIndex + 1)) + (totalOpenings > 1 ? (' / ' + escapeHtml(String(totalOpenings))) : '') + '</span>',
+        '<span class="pill">' + escapeHtml(String(revealedCount)) + '/' + escapeHtml(String(cards.length)) + ' cartas</span>',
+        '<span class="pill">' + escapeHtml(set?.code || state.modalProduct?.code || "SET") + '</span>'
+      ].join("");
+
+      if (!isComplete){
+        tools.innerHTML = [
+          '<button class="btn primary" type="button" data-modal-action="reveal-next"' + (state.modalRevealBusy ? ' disabled' : '') + '>Dar la vuelta</button>',
+          '<button class="btn soft" type="button" data-modal-action="reveal-all"' + (state.modalRevealBusy ? ' disabled' : '') + '>Revelar todo</button>'
+        ].join("");
+      } else if (hasNextPack){
+        tools.innerHTML = [
+          '<span class="pill">Sobre completado</span>',
+          '<button class="btn primary" type="button" data-modal-action="next-pack">Siguiente sobre</button>'
+        ].join("");
+      } else {
+        tools.innerHTML = '<span class="pill">Apertura completada</span>';
+      }
+
+      body.className = "packModalBody";
+      body.innerHTML =
+        '<div class="revealDeck">' +
+          '<div class="revealCounter">' +
+            '<div class="revealHint">' + escapeHtml(
+              isComplete
+                ? (hasNextPack ? "Este sobre ya esta completo. Pasa al siguiente." : "Todas las cartas de esta apertura estan reveladas.")
+                : "Haz clic sobre el mazo o usa los botones para ir girando cartas."
+            ) + '</div>' +
+          '</div>' +
+          '<div class="revealStack' + (isComplete ? ' is-complete' : '') + '"' + (!isComplete && !state.modalRevealBusy ? ' data-modal-action="reveal-next"' : '') + '>' +
+            cards.map((card, index) => revealCardMarkup(card, index, cards.length, index < revealedCount)).join("") +
+          '</div>' +
+        '</div>';
+
+      bindModalRevealActions();
+    }
+
+    function renderProductModal(){
+      const modal = $("packModal");
+      const dialog = $("packModalDialog");
+      if (!state.modalProduct){
+        modal.hidden = true;
+        document.body.classList.remove("modal-open");
+        dialog.className = "packModalDialog";
+        return;
+      }
+
+      modal.hidden = false;
+      document.body.classList.add("modal-open");
+
+      const product = state.modalProduct;
+      const set = modalProductSet();
+      const canOpenTen = product.product_kind === "pack";
+      const balance = Number(state.currentProfile?.tokens_balance || 0);
+      const cost = Number(product.token_cost || 0);
+      const opening = currentModalOpening();
+      const shell = $("packModalStageShell");
+      const phase = state.modalPhase || (opening ? "reveal" : (state.openingBusy ? "opening" : "preview"));
+      const revealComplete = Boolean(opening) && state.modalRevealedCount >= Number(opening?.cards?.length || 0);
+
+      dialog.className = "packModalDialog is-" + phase;
+
+      $("packModalEyebrow").textContent = set?.code || formatKind(product.product_kind);
+      $("packModalTitle").textContent = product.name || product.code || "Producto";
+      $("packModalSubtitle").textContent = state.openingBusy
+        ? (state.modalStatus || "Abriendo...")
+        : (opening
+            ? ("Sobre " + (state.modalPackIndex + 1) + (state.modalOpenings.length > 1 ? (" de " + state.modalOpenings.length) : ""))
+            : "");
+      $("packModalArtWrap").innerHTML = setArtMarkup(set || product.code, {
+        imgClass: "packArt",
+        fallbackClass: "packArtFallback",
+        loading: "eager",
+        alt: (set?.code || product.code || "Set") + " booster pack",
+        label: set?.code || product.code || "SET"
+      });
+      $("packModalMeta").innerHTML = [
+        '<span class="pill">Saldo: ' + formatTokens(balance) + '</span>',
+        '<span class="pill">' + formatTokens(cost) + ' tokens</span>'
+      ].join("");
+
+      $("packModalOpenBtn").textContent = "Abrir · " + formatTokens(cost);
+      $("packModalOpenBtn").disabled = state.openingBusy || state.modalRevealBusy;
+      $("packModalOpenTenBtn").style.display = canOpenTen ? "" : "none";
+      $("packModalOpenTenBtn").textContent = "Abrir x10 · " + formatTokens(cost * 10);
+      $("packModalOpenTenBtn").disabled = state.openingBusy || state.modalRevealBusy;
+      $("packModalStatus").textContent = state.modalStatus || (
+        canOpenTen
+          ? ("Disponible: " + formatTokens(balance) + " tokens · x10 = " + formatTokens(cost * 10))
+          : ("Disponible: " + formatTokens(balance) + " tokens")
+      );
+      shell.classList.toggle("is-opening", state.openingBusy);
+      shell.classList.toggle("is-settled", revealComplete);
+      $("packModalOpenBtn").textContent = "Abrir | " + formatTokens(cost);
+      $("packModalOpenTenBtn").textContent = "Abrir x10 | " + formatTokens(cost * 10);
+      $("packModalStatus").textContent = state.modalStatus || (
+        opening
+          ? (state.modalRevealedCount < (opening.cards?.length || 0)
+              ? "Haz clic en el mazo para revelar la siguiente carta."
+              : (state.modalPackIndex < state.modalOpenings.length - 1 ? "Pasa al siguiente sobre." : "Apertura terminada."))
+          : ("Saldo disponible: " + formatTokens(balance) + " tokens")
+      );
+      shell.dataset.glow = revealComplete
+        ? "off"
+        : (opening ? modalGlowKey(opening) : (state.openingBusy ? "sr" : "c"));
+
+      renderModalResult();
+    }
+
+    function openProductPreview(productCode){
+      const product = state.products.find((item) => item.code === productCode);
+      if (!product) return;
+      state.modalProduct = product;
+      state.modalOpenings = [];
+      state.modalPhase = "preview";
+      state.modalPackIndex = 0;
+      state.modalRevealedCount = 0;
+      state.modalRevealBusy = false;
+      state.modalStatus = "Pulsa abrir para iniciar la apertura.";
+      showModalMsg("");
+      renderProductModal();
+    }
+
+    function closeProductModal(){
+      if (state.openingBusy || state.modalRevealBusy) return;
+      state.modalProduct = null;
+      state.modalOpenings = [];
+      state.modalPackIndex = 0;
+      state.modalRevealedCount = 0;
+      state.modalRevealBusy = false;
+      state.modalPhase = "preview";
+      state.modalStatus = "";
+      showModalMsg("");
+      renderProductModal();
+    }
+
+    async function revealNextCard(){
+      if (state.openingBusy || state.modalRevealBusy) return;
+      const opening = currentModalOpening();
+      const totalCards = Number(opening?.cards?.length || 0);
+      if (!totalCards || state.modalRevealedCount >= totalCards) return;
+      state.modalRevealedCount += 1;
+      renderProductModal();
+      await wait(120);
+    }
+
+    async function revealAllCards(){
+      if (state.openingBusy || state.modalRevealBusy) return;
+      const opening = currentModalOpening();
+      const totalCards = Number(opening?.cards?.length || 0);
+      if (!totalCards || state.modalRevealedCount >= totalCards) return;
+      state.modalRevealBusy = true;
+      while (state.modalRevealedCount < totalCards){
+        state.modalRevealedCount += 1;
+        renderProductModal();
+        await wait(170);
+      }
+      state.modalRevealBusy = false;
+      renderProductModal();
+    }
+
+    function goToNextPack(){
+      if (state.openingBusy || state.modalRevealBusy) return;
+      if (state.modalPackIndex >= state.modalOpenings.length - 1) return;
+      state.modalPackIndex += 1;
+      state.modalRevealedCount = 0;
+      state.modalStatus = "Haz clic en el mazo para empezar el siguiente sobre.";
+      renderProductModal();
+    }
+
+    async function openProduct(productCode, requestedCount){
+      if (state.openingBusy) return;
+      const product = state.products.find((item) => item.code === productCode);
+      if (!product) return;
+      const openCount = product.product_kind === "pack"
+        ? Math.max(1, Number(requestedCount || 1))
+        : 1;
+      const totalCost = Number(product.token_cost || 0) * openCount;
+      const balance = Number(state.currentProfile?.tokens_balance || 0);
+
+      if (balance < totalCost){
+        showModalMsg(
+          "No tienes tokens suficientes. Necesitas " + formatTokens(totalCost) + " y tu saldo actual es " + formatTokens(balance) + ".",
+          "error"
+        );
+        return;
+      }
+
+      state.openingBusy = true;
+      state.modalProduct = product;
+      state.modalOpenings = [];
+      state.modalPackIndex = 0;
+      state.modalRevealedCount = 0;
+      state.modalRevealBusy = false;
+      state.modalPhase = "opening";
+      state.modalStatus = openCount === 1
+        ? "Rompiendo el sello del sobre..."
+        : ("Preparando " + formatTokens(openCount) + " sobres...");
+      showMsg("");
+      showModalMsg("");
+      renderProducts();
+      renderProductModal();
+
+      try{
+        await wait(520);
+        const openings = [];
+        for (let index = 0; index < openCount; index += 1){
+          state.modalStatus = openCount === 1
+            ? "Abriendo..."
+            : ("Abriendo sobre " + formatTokens(index + 1) + " de " + formatTokens(openCount) + "...");
+          renderProductModal();
+
+          const { data, error } = await sb.rpc("open_pack_product", {
+            p_product_code: product.code
+          });
+
+          if (error) throw error;
+          if (data) openings.push(data);
+        }
+
+        state.modalOpenings = openings;
+        state.lastOpening = openings[openings.length - 1] || null;
+        state.modalPhase = "reveal";
+        state.modalPackIndex = 0;
+        state.modalRevealedCount = 0;
+
+        await Promise.all([
+          loadProfile(),
+          loadCollection()
+        ]);
+
+        renderHero();
+        renderProducts();
+        state.modalStatus = openings.length > 1
+          ? "Empieza por el primer sobre y ve avanzando uno a uno."
+          : "Haz clic en el mazo para revelar la primera carta.";
+        renderProductModal();
+        showModalMsg(
+          (product.product_kind === "box" ? "Caja" : "Sobre") + (openCount > 1 ? "s abiertos correctamente." : " abierto correctamente."),
+          "success"
+        );
+      } catch (error){
+        showModalMsg(error?.message || "No se pudo abrir el producto.", "error");
+        state.modalStatus = "La apertura se ha detenido.";
+        renderProductModal();
+      } finally {
+        state.openingBusy = false;
+        renderProducts();
+        renderProductModal();
+      }
+    }
+
+    async function initPage(){
+      setLoading("Cargando packs...");
+      showMsg("");
+
+      try{
+        const user = await refreshSession();
+        if (!user){
+          state.currentProfile = null;
+          state.sets = [];
+          state.setsById = new Map();
+          state.products = [];
+          state.filteredProducts = [];
+          state.collectionRows = [];
+          state.openings = [];
+          state.lastOpening = null;
+          state.activePackIndex = null;
+          state.modalProduct = null;
+          state.modalOpenings = [];
+          state.modalPackIndex = 0;
+          state.modalRevealedCount = 0;
+          state.modalRevealBusy = false;
+          state.modalPhase = "preview";
+          state.modalStatus = "";
+          renderHero();
+          renderProducts();
+          renderProductModal();
+          return;
+        }
+
+        await Promise.all([
+          loadProfile(),
+          loadSetsAndProducts(),
+          loadCollection()
+        ]);
+
+        renderHero();
+        applyFilters();
+        renderProductModal();
+      } catch (error){
+        showMsg(error?.message || "No se pudo cargar la pagina de packs.", "error");
+      } finally {
+        setLoading("");
+      }
+    }
+
+    $("setFilter").addEventListener("change", applyFilters);
+    $("kindFilter").addEventListener("change", applyFilters);
+    $("searchFilter").addEventListener("input", applyFilters);
+    $("clearFiltersBtn").addEventListener("click", () => {
+      $("setFilter").value = "";
+      $("kindFilter").value = "";
+      $("searchFilter").value = "";
+      applyFilters();
+    });
+    $("refreshBtn").addEventListener("click", () => {
+      void initPage();
+    });
+    $("jumpToCatalogBtn").addEventListener("click", () => {
+      $("productGrid").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    $("packModalClose").addEventListener("click", closeProductModal);
+    $("packModalBackdrop").addEventListener("click", closeProductModal);
+    $("packModalOpenBtn").addEventListener("click", () => {
+      if (!state.modalProduct) return;
+      void openProduct(state.modalProduct.code, 1);
+    });
+    $("packModalOpenTenBtn").addEventListener("click", () => {
+      if (!state.modalProduct) return;
+      void openProduct(state.modalProduct.code, 10);
+    });
+    $("modalRevealTools").addEventListener("click", handleModalAction);
+    $("modalBody").addEventListener("click", handleModalAction);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape"){
+        closeProductModal();
+      }
+    });
+    window.addEventListener("resize", () => {
+      if (!state.modalProduct || !currentModalOpening()) return;
+      renderProductModal();
+    });
+
+    sb.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
+      const previousId = state.currentUser?.id || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      showLoginGate(!user);
+
+      if (!user){
+        state.currentProfile = null;
+        state.sets = [];
+        state.setsById = new Map();
+        state.products = [];
+        state.filteredProducts = [];
+        state.collectionRows = [];
+        state.openings = [];
+        state.lastOpening = null;
+        state.activePackIndex = null;
+        state.modalProduct = null;
+        state.modalOpenings = [];
+        state.modalPackIndex = 0;
+        state.modalRevealedCount = 0;
+        state.modalRevealBusy = false;
+        state.modalPhase = "preview";
+        state.modalStatus = "";
+        renderHero();
+        renderProducts();
+        renderProductModal();
+        return;
+      }
+
+      if (user.id !== previousId){
+        void initPage();
+      }
+    });
+
+    void initPage();
+  </script>
+</body>
+</html>

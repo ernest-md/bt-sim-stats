@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coleccion Por Expansion - Barateam Hub</title>
+  <link rel="stylesheet" href="app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg-1:#07131d;
+      --bg-2:#132434;
+      --card:#0f1d2bcc;
+      --line:rgba(255,255,255,.12);
+      --muted:#b4c2d8;
+      --shadow:0 24px 60px rgba(0,0,0,.32);
+      --accent:#f6b73c;
+      --accent-2:#49d0c9;
+      --accent-3:#ff6b57;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      color:#f8fbff;
+      font-family:"Aptos","Segoe UI Variable","Trebuchet MS",sans-serif;
+      background:#0b1220;
+      min-height:100vh;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      filter:saturate(1.1);
+      z-index:-2;
+      pointer-events:none;
+    }
+
+    body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode:overlay;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+
+    .brand small{
+      display:block;
+      font-weight:700;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.2px;
+      text-align:center;
+      padding-left:4px;
+      text-transform:none;
+    }
+
+    .hero,
+    .card{
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+    }
+
+    .hero{
+      padding:18px 22px;
+      background:
+        linear-gradient(140deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+        linear-gradient(155deg, rgba(246,183,60,.14), rgba(73,208,201,.08) 58%, rgba(255,107,87,.1));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero::after{
+      content:"";
+      position:absolute;
+      inset:auto -70px -100px auto;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(73,208,201,.22), transparent 68%);
+      pointer-events:none;
+    }
+
+    .heroHead,
+    .cardHead,
+    .setHead{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .heroHead h1,
+    .cardHead h2,
+    .setHead h2{
+      margin:0;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.02em;
+    }
+
+    .heroHead h1{
+      font-size:clamp(1.7rem, 3.8vw, 2.3rem);
+      line-height:1;
+    }
+
+    .heroHead p,
+    .cardHead p,
+    .setMeta p,
+    .muted{
+      color:var(--muted);
+    }
+
+    .heroUser{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      text-align:right;
+      gap:4px;
+      min-width:170px;
+    }
+
+    .eyebrow{
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      font-size:.78rem;
+    }
+
+    .heroValue{
+      font-size:1.45rem;
+      font-weight:800;
+      line-height:1;
+    }
+
+    .heroActions,
+    .btnRow,
+    .summaryRow,
+    .setBadges,
+    .tileMeta,
+    .jumpStrip{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+
+    .heroActions{
+      margin-top:14px;
+    }
+
+    .statGrid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .statCard,
+    .jumpButton,
+    .setSection,
+    .expansionTile{
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+    }
+
+    .statCard{
+      padding:12px 14px;
+    }
+
+    .statCard strong{
+      display:block;
+      margin-top:6px;
+      font-size:1.3rem;
+      line-height:1;
+    }
+
+    .card{
+      background:var(--card);
+      padding:20px;
+    }
+
+    .stack{
+      display:grid;
+      gap:18px;
+      margin-top:18px;
+    }
+
+    .jumpButton{
+      display:inline-grid;
+      gap:4px;
+      min-width:140px;
+      padding:12px 14px;
+      text-decoration:none;
+      color:#fff;
+      transition:transform .18s ease, border-color .18s ease;
+    }
+
+    .jumpButton:hover{
+      transform:translateY(-2px);
+      border-color:rgba(255,255,255,.18);
+    }
+
+    .jumpButton strong{
+      font-size:1rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+    }
+
+    .jumpButton small{
+      color:var(--muted);
+    }
+
+    .setSection{
+      padding:18px;
+      display:grid;
+      gap:14px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .setSection::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg, rgba(255,255,255,.05), transparent 32%);
+      pointer-events:none;
+    }
+
+    .setMeta{
+      display:grid;
+      gap:6px;
+    }
+
+    .setMeta h2{
+      font-size:1.45rem;
+    }
+
+    .setProgress{
+      display:grid;
+      gap:8px;
+      min-width:220px;
+    }
+
+    .progressTrack{
+      height:10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+
+    .progressTrack span{
+      display:block;
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(246,183,60,.95), rgba(73,208,201,.9));
+    }
+
+    .progressLabel{
+      font-size:.84rem;
+      color:var(--muted);
+    }
+
+    .setBadges .pill{
+      font-size:.76rem;
+    }
+
+    .expansionGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(112px, 1fr));
+      gap:10px;
+    }
+
+    .expansionTile{
+      display:grid;
+      gap:8px;
+      padding:10px;
+      position:relative;
+      overflow:hidden;
+      transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .expansionTile::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(150deg, rgba(255,255,255,.08), transparent 38%);
+      pointer-events:none;
+    }
+
+    .expansionTile:hover{
+      transform:translateY(-3px);
+      border-color:rgba(255,255,255,.18);
+      box-shadow:0 14px 30px rgba(4,10,18,.24);
+    }
+
+    .expansionTile img,
+    .artFallback{
+      width:100%;
+      aspect-ratio:5 / 7;
+      border-radius:12px;
+    }
+
+    .expansionTile img{
+      object-fit:cover;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      transition:filter .18s ease, transform .18s ease, opacity .18s ease;
+    }
+
+    .artFallback{
+      border:1px dashed rgba(255,255,255,.18);
+      background:linear-gradient(160deg, rgba(246,183,60,.22), rgba(73,208,201,.14));
+      display:flex;
+      align-items:flex-end;
+      padding:10px;
+      font-weight:700;
+      font-size:.8rem;
+    }
+
+    .expansionTile.is-missing img{
+      filter:grayscale(1) blur(1.8px) brightness(.58) saturate(.35);
+      opacity:.82;
+      transform:scale(1.015);
+    }
+
+    .expansionTile.is-missing .artFallback{
+      filter:grayscale(1) blur(1.4px) brightness(.62);
+      opacity:.8;
+    }
+
+    .expansionTile.is-missing .tileCode,
+    .expansionTile.is-missing .tileMeta{
+      color:rgba(255,255,255,.78);
+    }
+
+    .tileBadgeWrap{
+      position:absolute;
+      top:10px;
+      right:10px;
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:flex-end;
+    }
+
+    .countBadge,
+    .missingBadge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:28px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.2);
+      font-size:.72rem;
+      font-weight:800;
+      letter-spacing:.03em;
+      backdrop-filter:blur(10px);
+    }
+
+    .countBadge{
+      color:#07131d;
+      background:linear-gradient(135deg, rgba(246,183,60,.96), rgba(255,228,151,.92));
+      border-color:rgba(255,255,255,.72);
+      box-shadow:0 10px 24px rgba(246,183,60,.28);
+    }
+
+    .missingBadge{
+      color:#f5f8fb;
+      background:rgba(8,14,24,.62);
+      border-color:rgba(255,255,255,.16);
+    }
+
+    .tileCode{
+      font-size:.9rem;
+      font-weight:800;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      line-height:1.1;
+    }
+
+    .tileMeta{
+      font-size:.72rem;
+      color:var(--muted);
+      gap:6px;
+      line-height:1.2;
+    }
+
+    .tileMeta span:last-child{
+      overflow-wrap:anywhere;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.07);
+      font-size:.76rem;
+      white-space:nowrap;
+    }
+
+    .msg,
+    .empty{
+      margin-top:14px;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .msg{
+      display:none;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+    }
+
+    .msg.success{
+      display:block;
+      border-color:rgba(34,197,94,.35);
+      background:rgba(34,197,94,.12);
+    }
+
+    .msg.error{
+      display:block;
+      border-color:rgba(248,113,113,.35);
+      background:rgba(248,113,113,.12);
+    }
+
+    .empty{
+      color:var(--muted);
+      background:rgba(255,255,255,.04);
+      border-style:dashed;
+    }
+
+    .loading{
+      display:none;
+      margin-top:14px;
+      color:var(--muted);
+    }
+
+    .loginGate{
+      margin-top:18px;
+    }
+
+    .loginGate .btnRow{
+      margin-top:18px;
+    }
+
+    .tone-c,
+    .tone-uc,
+    .tone-r{
+      --tone-color:rgba(181,198,224,.2);
+    }
+
+    .tone-l{
+      --tone-color:rgba(73,208,201,.2);
+    }
+
+    .tone-sr{
+      --tone-color:rgba(246,183,60,.24);
+    }
+
+    .tone-sec{
+      --tone-color:rgba(255,107,87,.22);
+    }
+
+    .tone-sp{
+      --tone-color:rgba(73,208,201,.22);
+    }
+
+    .tone-tr{
+      --tone-color:rgba(246,183,60,.22);
+    }
+
+    .tone-manga{
+      --tone-color:rgba(255,107,87,.28);
+    }
+
+    .expansionTile[class*="tone-"]{
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--tone-color, rgba(255,255,255,.04)) 72%, rgba(255,255,255,.04)), rgba(255,255,255,.03)),
+        rgba(255,255,255,.03);
+    }
+
+    @media (max-width: 1040px){
+      .statGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .heroHead,
+      .setHead{
+        flex-direction:column;
+      }
+
+      .heroUser{
+        align-items:flex-start;
+        text-align:left;
+      }
+
+      .setProgress{
+        min-width:0;
+        width:100%;
+      }
+    }
+
+    @media (max-width: 680px){
+      .wrap{
+        padding:0 12px;
+      }
+
+      .hero,
+      .card{
+        padding:16px;
+        border-radius:22px;
+      }
+
+      .statGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .heroActions{
+        display:grid;
+        grid-template-columns:1fr;
+      }
+
+      .heroActions .btn{
+        width:100%;
+        justify-content:center;
+      }
+
+      .jumpStrip{
+        display:grid;
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .jumpButton{
+        min-width:0;
+      }
+
+      .setSection{
+        padding:16px;
+      }
+
+      .expansionGrid{
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:8px;
+      }
+
+      .expansionTile{
+        padding:8px;
+        gap:6px;
+      }
+
+      .tileCode{
+        font-size:.82rem;
+      }
+
+      .tileMeta{
+        font-size:.64rem;
+        gap:4px;
+      }
+
+      .countBadge,
+      .missingBadge{
+        min-height:24px;
+        padding:4px 8px;
+        font-size:.64rem;
+      }
+    }
+
+    @media (max-width: 420px){
+      .statGrid,
+      .jumpStrip,
+      .expansionGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>coleccion - por expansion</small>
+      </div>
+
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero">
+      <div class="heroHead">
+        <div>
+          <div class="eyebrow">Archivo completo</div>
+          <h1>Coleccion por expansion</h1>
+          <p>Las cartas se agrupan por set y se ordenan por codigo. Las que aun no tienes se muestran en gris y con blur para leer el hueco del set de un vistazo.</p>
+        </div>
+        <div class="heroUser">
+          <div class="eyebrow">Saldo</div>
+          <div class="heroValue" id="tokenBalance">0</div>
+          <div class="muted" id="heroUserLabel">Inicia sesion para continuar</div>
+        </div>
+      </div>
+
+      <div class="statGrid">
+        <div class="statCard">
+          <div class="eyebrow">Catalogo</div>
+          <strong id="heroCatalogCount">0</strong>
+        </div>
+        <div class="statCard">
+          <div class="eyebrow">Obtenidas</div>
+          <strong id="heroOwnedCount">0</strong>
+        </div>
+        <div class="statCard">
+          <div class="eyebrow">Faltantes</div>
+          <strong id="heroMissingCount">0</strong>
+        </div>
+        <div class="statCard">
+          <div class="eyebrow">Expansiones</div>
+          <strong id="heroSetCount">0</strong>
+        </div>
+      </div>
+
+      <div class="heroActions">
+        <a class="btn primary" href="collection.html" data-requires-auth="1">&#128218; Volver a coleccion</a>
+        <a class="btn soft" href="packs.html" data-requires-auth="1">&#128230; Abrir packs</a>
+      </div>
+    </section>
+
+    <section id="loginGate" class="card loginGate" style="display:none;">
+      <div class="cardHead">
+        <div>
+          <h2>Necesitas iniciar sesion</h2>
+          <p>La coleccion por expansion depende de tu usuario para saber que cartas faltan y cuales ya has obtenido.</p>
+        </div>
+      </div>
+      <div class="btnRow">
+        <a class="btn primary" href="login.html">&#128274; Ir a login</a>
+        <a class="btn soft" href="collection.html">&#128218; Volver a coleccion</a>
+      </div>
+    </section>
+
+    <div id="dashboard" style="display:none;">
+      <div class="stack">
+        <section class="card">
+          <div class="cardHead">
+            <div>
+              <h2>Salto rapido</h2>
+              <p>Navega entre expansiones y revisa el porcentaje completado de cada una.</p>
+            </div>
+          </div>
+          <div class="jumpStrip" id="jumpStrip"></div>
+          <div class="msg" id="pageMsg"></div>
+          <div class="loading" id="loadingState">Cargando coleccion por expansion...</div>
+        </section>
+
+        <div id="sectionsHost" class="stack"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+
+    window.BarateamApp.bindProtectedNavLinks(sb, { requireAdmin: true });
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => { await doLogout(); },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    const state = {
+      currentUser: null,
+      currentProfile: null,
+      sets: [],
+      setById: new Map(),
+      collectionRows: [],
+      ownedByCardId: new Map(),
+      cards: [],
+      catalogCards: [],
+      sections: []
+    };
+
+    function lower(value){
+      return String(value || "").toLowerCase();
+    }
+
+    function formatTokens(value){
+      return new Intl.NumberFormat("es-ES").format(Number(value || 0));
+    }
+
+    function rarityRank(rarity){
+      switch (lower(rarity).trim()){
+        case "l":
+        case "leader":
+          return 10;
+        case "c":
+        case "common":
+          return 20;
+        case "uc":
+        case "uncommon":
+          return 30;
+        case "r":
+        case "rare":
+          return 40;
+        case "sr":
+        case "super rare":
+          return 50;
+        case "sec":
+        case "secret rare":
+          return 60;
+        default:
+          return 25;
+      }
+    }
+
+    function variantRank(variant){
+      const normalizedVariant = lower(variant).trim();
+      if (!normalizedVariant || normalizedVariant === "base") return 0;
+      if (normalizedVariant.includes("manga")) return 1300;
+      if (normalizedVariant.includes("sp_gold")) return 1200;
+      if (normalizedVariant.includes("sp_silver")) return 1100;
+      if (normalizedVariant.includes("treasure")) return 1050;
+      if (normalizedVariant.includes("sp_parallel")) return 1000;
+      if (normalizedVariant.includes("parallel")) return 900;
+      return 200;
+    }
+
+    function rarityToneClass(rarity, variant){
+      const normalizedVariant = lower(variant);
+      if (normalizedVariant.includes("manga")) return "tone-manga";
+      if (normalizedVariant.includes("treasure")) return "tone-tr";
+      if (normalizedVariant.includes("sp")) return "tone-sp";
+
+      switch (lower(rarity).trim()){
+        case "c":
+        case "common":
+          return "tone-c";
+        case "uc":
+        case "uncommon":
+          return "tone-uc";
+        case "r":
+        case "rare":
+          return "tone-r";
+        case "l":
+        case "leader":
+          return "tone-l";
+        case "sr":
+        case "super rare":
+          return "tone-sr";
+        case "sec":
+        case "secret rare":
+          return "tone-sec";
+        default:
+          return "";
+      }
+    }
+
+    function cardImpactRank(card){
+      return variantRank(card?.variant) + (rarityRank(card?.rarity) * 10);
+    }
+
+    function isSpTailCard(card){
+      const rarity = lower(card?.rarity).trim();
+      const variant = lower(card?.variant).trim();
+      return rarity === "sp"
+        || rarity === "special"
+        || variant.includes("sp_parallel")
+        || variant.includes("sp_silver")
+        || variant.includes("sp_gold");
+    }
+
+    function compareCardCode(a, b){
+      return String(a || "").localeCompare(String(b || ""), "es", { numeric: true, sensitivity: "base" });
+    }
+
+    function setNavAuthUI(user){
+      navController.setUser(user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, user || null);
+    }
+
+    function showLoginGate(visible){
+      $("loginGate").style.display = visible ? "block" : "none";
+      $("dashboard").style.display = visible ? "none" : "block";
+    }
+
+    function showMsg(text, tone){
+      const el = $("pageMsg");
+      if (!text){
+        el.style.display = "none";
+        el.className = "msg";
+        el.textContent = "";
+        return;
+      }
+      el.textContent = text;
+      el.className = "msg " + (tone || "");
+      el.style.display = "block";
+    }
+
+    function setLoading(text){
+      const el = $("loadingState");
+      el.textContent = text || "";
+      el.style.display = text ? "block" : "none";
+    }
+
+    async function doLogout(){
+      await sb.auth.signOut();
+      location.href = "index.html";
+    }
+
+    async function refreshSession(){
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      const user = data?.session?.user || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      showLoginGate(!user);
+      return user;
+    }
+
+    async function loadProfile(){
+      if (!state.currentUser) return;
+      const { data, error } = await sb
+        .from("profiles")
+        .select("id, username, display_name, tokens_balance")
+        .eq("id", state.currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      state.currentProfile = data || {
+        id: state.currentUser.id,
+        username: null,
+        display_name: null,
+        tokens_balance: 0
+      };
+    }
+
+    async function loadSets(){
+      const { data, error } = await sb
+        .from("pack_sets")
+        .select("id, code, name, release_date, is_active")
+        .order("release_date", { ascending: false });
+
+      if (error) throw error;
+      state.sets = data || [];
+      state.setById = new Map(state.sets.map((set) => [set.id, set]));
+    }
+
+    async function loadCollectionRows(){
+      state.collectionRows = [];
+      state.ownedByCardId = new Map();
+
+      if (!state.currentUser) return;
+
+      const batchSize = 1000;
+      let from = 0;
+
+      while (true){
+        const { data, error } = await sb
+          .from("user_collection")
+          .select("card_id, owned_count, first_obtained_at, last_obtained_at")
+          .eq("profile_id", state.currentUser.id)
+          .order("card_id", { ascending: true })
+          .range(from, from + batchSize - 1);
+
+        if (error) throw error;
+
+        const rows = data || [];
+        state.collectionRows.push(...rows);
+        rows.forEach((row) => {
+          state.ownedByCardId.set(row.card_id, row);
+        });
+
+        if (rows.length < batchSize) break;
+        from += batchSize;
+      }
+    }
+
+    async function loadAllCards(){
+      state.cards = [];
+      const batchSize = 1000;
+      let from = 0;
+
+      while (true){
+        const { data, error } = await sb
+          .from("pack_cards")
+          .select("id, set_id, card_code, card_name, rarity, variant, card_type, image_url, is_active")
+          .eq("is_active", true)
+          .order("set_id", { ascending: true })
+          .order("card_code", { ascending: true })
+          .order("variant", { ascending: true })
+          .range(from, from + batchSize - 1);
+
+        if (error) throw error;
+
+        const rows = data || [];
+        state.cards.push(...rows);
+        if (rows.length < batchSize) break;
+        from += batchSize;
+      }
+    }
+
+    function buildSections(){
+      const grouped = new Map();
+      const uniqueCards = new Map();
+
+      state.cards.forEach((card) => {
+        const set = state.setById.get(card.set_id) || null;
+        const ownedRow = state.ownedByCardId.get(card.id) || null;
+        const item = {
+          ...card,
+          set_code: set?.code || "",
+          set_name: set?.name || "",
+          set_release_date: set?.release_date || "",
+          owned_count: Number(ownedRow?.owned_count || 0)
+        };
+
+        const dedupeKey = [
+          item.set_id || "",
+          item.card_code || "",
+          item.variant || "base"
+        ].join("::");
+
+        if (!uniqueCards.has(dedupeKey)){
+          uniqueCards.set(dedupeKey, item);
+          return;
+        }
+
+        const existing = uniqueCards.get(dedupeKey);
+        existing.owned_count = Math.max(Number(existing.owned_count || 0), Number(item.owned_count || 0));
+        if (!existing.image_url && item.image_url) existing.image_url = item.image_url;
+        if (!existing.card_name && item.card_name) existing.card_name = item.card_name;
+        if (!existing.card_type && item.card_type) existing.card_type = item.card_type;
+        if (!existing.set_code && item.set_code) existing.set_code = item.set_code;
+        if (!existing.set_name && item.set_name) existing.set_name = item.set_name;
+        if (!existing.set_release_date && item.set_release_date) existing.set_release_date = item.set_release_date;
+      });
+
+      state.catalogCards = [...uniqueCards.values()];
+
+      state.catalogCards.forEach((item) => {
+        const card = item;
+
+        if (!grouped.has(card.set_id)){
+          grouped.set(card.set_id, {
+            setId: card.set_id,
+            setCode: item.set_code,
+            setName: item.set_name,
+            setReleaseDate: item.set_release_date,
+            cards: []
+          });
+        }
+
+        grouped.get(card.set_id).cards.push(item);
+      });
+
+      state.sections = [...grouped.values()]
+        .map((section) => {
+          section.cards.sort((a, b) => {
+            const spTailDiff = Number(isSpTailCard(a)) - Number(isSpTailCard(b));
+            if (spTailDiff !== 0) return spTailDiff;
+            const codeDiff = compareCardCode(a.card_code, b.card_code);
+            if (codeDiff !== 0) return codeDiff;
+            const variantDiff = cardImpactRank(b) - cardImpactRank(a);
+            if (variantDiff !== 0) return variantDiff;
+            return String(a.variant || "").localeCompare(String(b.variant || ""), "es");
+          });
+
+          const owned = section.cards.filter((card) => card.owned_count > 0).length;
+          const total = section.cards.length;
+          section.owned = owned;
+          section.total = total;
+          section.missing = Math.max(0, total - owned);
+          section.progress = total ? Math.round((owned / total) * 1000) / 10 : 0;
+          return section;
+        })
+        .sort((a, b) => {
+          const dateA = a.setReleaseDate || "";
+          const dateB = b.setReleaseDate || "";
+          if (dateA !== dateB) return dateA < dateB ? 1 : -1;
+          return String(a.setCode || "").localeCompare(String(b.setCode || ""), "es");
+        });
+    }
+
+    function catalogSummary(){
+      const total = state.catalogCards.length;
+      const owned = state.catalogCards.filter((card) => Number(card.owned_count || 0) > 0).length;
+      return {
+        total,
+        owned,
+        missing: Math.max(0, total - owned),
+        setCount: state.sections.length
+      };
+    }
+
+    function renderHero(){
+      const summary = catalogSummary();
+      $("tokenBalance").textContent = formatTokens(state.currentProfile?.tokens_balance || 0);
+      $("heroUserLabel").textContent = state.currentProfile
+        ? (state.currentProfile.display_name || state.currentProfile.username || state.currentUser?.email || "Usuario")
+        : "Inicia sesion para continuar";
+      $("heroCatalogCount").textContent = formatTokens(summary.total);
+      $("heroOwnedCount").textContent = formatTokens(summary.owned);
+      $("heroMissingCount").textContent = formatTokens(summary.missing);
+      $("heroSetCount").textContent = formatTokens(summary.setCount);
+    }
+
+    function renderJumpStrip(){
+      const container = $("jumpStrip");
+      if (!state.sections.length){
+        container.innerHTML = '<div class="empty">No hay expansiones cargadas todavia.</div>';
+        return;
+      }
+
+      container.innerHTML = state.sections.map((section) => (
+        '<a class="jumpButton" href="#set-' + escapeAttr(section.setCode || section.setId) + '">' +
+          '<strong>' + escapeHtml(section.setCode || "SET") + '</strong>' +
+          '<small>' + formatTokens(section.owned) + '/' + formatTokens(section.total) + ' cartas &middot; ' + escapeHtml(String(section.progress.toFixed(1))) + '%</small>' +
+        '</a>'
+      )).join("");
+    }
+
+    function tileMarkup(card){
+      const toneClass = rarityToneClass(card?.rarity, card?.variant);
+      const owned = Number(card?.owned_count || 0) > 0;
+      const classes = ["expansionTile"];
+      if (toneClass) classes.push(toneClass);
+      if (!owned) classes.push("is-missing");
+
+      const badge = owned
+        ? '<span class="countBadge">x' + formatTokens(card.owned_count) + '</span>'
+        : '<span class="missingBadge">Sin obtener</span>';
+
+      const art = card?.image_url
+        ? '<img src="' + escapeAttr(card.image_url) + '" alt="' + escapeAttr(card.card_name || card.card_code || "Carta") + '" loading="lazy" />'
+        : '<div class="artFallback">' + escapeHtml(card.card_code || "Carta") + '</div>';
+
+      return (
+        '<article class="' + classes.join(" ") + '" title="' + escapeAttr((card.card_name || card.card_code || "Carta") + " [" + (card.variant || "base") + "]") + '">' +
+          '<div class="tileBadgeWrap">' + badge + '</div>' +
+          art +
+          '<div class="tileCode">' + escapeHtml(card.card_code || "-") + '</div>' +
+          '<div class="tileMeta">' +
+            '<span>' + escapeHtml((card.rarity || "?").toUpperCase()) + '</span>' +
+            '<span>&middot;</span>' +
+            '<span>' + escapeHtml(card.variant || "base") + '</span>' +
+          '</div>' +
+        '</article>'
+      );
+    }
+
+    function renderSections(){
+      const host = $("sectionsHost");
+      if (!state.sections.length){
+        host.innerHTML = '<section class="card"><div class="empty">No hay cartas activas cargadas en `pack_cards`.</div></section>';
+        return;
+      }
+
+      host.innerHTML = state.sections.map((section) => (
+        '<section class="setSection" id="set-' + escapeAttr(section.setCode || section.setId) + '">' +
+          '<div class="setHead">' +
+            '<div class="setMeta">' +
+              '<div class="eyebrow">Expansion</div>' +
+              '<h2>' + escapeHtml(section.setCode || "SET") + '</h2>' +
+              '<p>' + escapeHtml(section.setName || "Sin nombre") + '</p>' +
+              '<div class="setBadges">' +
+                '<span class="pill">' + formatTokens(section.total) + ' cartas</span>' +
+                '<span class="pill">' + formatTokens(section.owned) + ' obtenidas</span>' +
+                '<span class="pill">' + formatTokens(section.missing) + ' faltantes</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="setProgress">' +
+              '<div class="progressTrack"><span style="width:' + escapeAttr(String(Math.max(0, Math.min(section.progress, 100)))) + '%"></span></div>' +
+              '<div class="progressLabel">' + escapeHtml(String(section.progress.toFixed(1))) + '% completado</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="expansionGrid">' +
+            section.cards.map(tileMarkup).join("") +
+          '</div>' +
+        '</section>'
+      )).join("");
+    }
+
+    async function initPage(){
+      setLoading("Cargando coleccion por expansion...");
+      showMsg("");
+
+      try{
+        const user = await refreshSession();
+        if (!user){
+          state.currentProfile = null;
+          state.sets = [];
+          state.setById = new Map();
+          state.collectionRows = [];
+          state.ownedByCardId = new Map();
+          state.cards = [];
+          state.catalogCards = [];
+          state.sections = [];
+          renderHero();
+          renderJumpStrip();
+          renderSections();
+          return;
+        }
+
+        await Promise.all([
+          loadProfile(),
+          loadSets(),
+          loadCollectionRows(),
+          loadAllCards()
+        ]);
+
+        buildSections();
+        renderHero();
+        renderJumpStrip();
+        renderSections();
+      } catch (error){
+        showMsg(error?.message || "No se pudo cargar la coleccion por expansion.", "error");
+      } finally {
+        setLoading("");
+      }
+    }
+
+    sb.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
+      const previousId = state.currentUser?.id || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      showLoginGate(!user);
+
+      if (!user){
+        state.currentProfile = null;
+        state.sets = [];
+        state.setById = new Map();
+        state.collectionRows = [];
+        state.ownedByCardId = new Map();
+        state.cards = [];
+        state.catalogCards = [];
+        state.sections = [];
+        renderHero();
+        renderJumpStrip();
+        renderSections();
+        return;
+      }
+
+      if (user.id !== previousId){
+        void initPage();
+      }
+    });
+
+    void initPage();
+  </script>
+</body>
+</html>

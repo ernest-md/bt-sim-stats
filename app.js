@@ -247,11 +247,16 @@
     const loginHref = opts.loginHref || appPageHref("login.html");
     const indexHref = opts.indexHref || appPageHref("index.html");
     const allowNonMember = opts.allowNonMember === true || isIndexPage() || isProfilePage();
+    const requireAdmin = opts.requireAdmin === true;
 
     try{
       const accessState = await resolveAccessState(sb);
       if (!accessState.isLoggedIn){
         window.location.replace(loginHref);
+        return { allowed: false, redirected: true, accessState };
+      }
+      if (requireAdmin && !accessState.isAdmin){
+        window.location.replace(indexHref);
         return { allowed: false, redirected: true, accessState };
       }
       if (!accessState.isMember && !allowNonMember && !(isMembersPage() && accessState.isPrivileged)){
@@ -440,6 +445,11 @@
             href: restrictedLinks[0]?.getAttribute("href") || appPageHref("vade-back-fight.html"),
             label: "VDBF",
             icon: "V"
+          },
+          {
+            href: appPageHref("packs.html"),
+            label: "Packs",
+            icon: "P"
           },
           {
             href: appPageHref("liga.html"),
