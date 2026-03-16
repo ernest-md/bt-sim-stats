@@ -311,6 +311,18 @@
     const toggle = dock.querySelector(`#${toggleId}`);
     toggle?.addEventListener("click", (e) => {
       e.stopPropagation();
+      const nextOpen = !dock.classList.contains("open");
+      if (nextOpen){
+        const labsDock = document.getElementById("labsDock");
+        const labsLauncher = document.getElementById("labsLauncher");
+        const labsMenu = document.getElementById("labsMenu");
+        if (labsDock?.classList.contains("open")){
+          labsDock.classList.remove("open");
+          labsMenu?.classList.remove("open");
+          if (labsMenu) labsMenu.hidden = true;
+          labsLauncher?.setAttribute("aria-expanded", "false");
+        }
+      }
       const open = dock.classList.toggle("open");
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
     });

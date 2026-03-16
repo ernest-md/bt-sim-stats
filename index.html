@@ -1299,8 +1299,11 @@
       z-index: 210000;
       display:flex;
       flex-direction:column;
-      align-items:flex-end;
+      align-items:flex-start;
       gap:10px;
+    }
+    .labsDock.open .labsMenu{
+      display:block;
     }
     .labsMenu{
       min-width: 220px;
@@ -1371,13 +1374,10 @@
       justify-content:center;
       font-size: 22px;
       line-height: 1;
-      transition: transform .1s ease, box-shadow .18s ease, filter .18s ease;
+      transition: box-shadow .18s ease, filter .18s ease;
     }
     .labsLauncher:hover{
       filter: brightness(1.05);
-    }
-    .labsLauncher[aria-expanded="true"]{
-      transform: scale(1.03);
     }
 
     @media (max-width: 760px){
@@ -1533,7 +1533,7 @@
     <div class="foot">Hecho con &#10084;&#65039; para la comunidad</div>
   </div>
 
-  <div class="labsDock">
+  <div class="labsDock" id="labsDock">
     <div class="labsMenu" id="labsMenu" hidden>
       <div class="labsMenuHead">
         <strong>En pruebas</strong>
@@ -3308,8 +3308,11 @@
 
   function setLabsMenuOpen(open){
     if (!labsLauncher || !labsMenu) return;
+    $("adminModeDock")?.classList.remove("open");
+    $("adminModeToggle")?.setAttribute("aria-expanded", "false");
     labsLauncher.setAttribute("aria-expanded", open ? "true" : "false");
     labsMenu.hidden = !open;
+    $("labsDock")?.classList.toggle("open", open);
     labsMenu.classList.toggle("open", open);
   }
 

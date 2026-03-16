@@ -81,6 +81,21 @@
       padding: 18px 14px 44px;
     }
 
+    .bar{
+      padding-left: 96px;
+      padding-right: 96px;
+      box-sizing: border-box;
+    }
+
+    .authCorner{
+      position: fixed;
+      top: 12px;
+      right: 14px;
+      z-index: 200000;
+      display:flex;
+      align-items:center;
+    }
+
     .hero{
       border-radius: 24px;
       padding: 18px 16px;
@@ -119,6 +134,7 @@
       display:flex;
       flex-direction:column;
       gap:16px;
+      min-width:0;
     }
 
     .card{
@@ -127,6 +143,8 @@
       border-radius: 22px;
       box-shadow: var(--shadow);
       padding: 14px;
+      min-width:0;
+      overflow:hidden;
     }
 
     .sectionTitle{
@@ -163,11 +181,18 @@
       color:#0f172a;
     }
 
-    .field{ margin-top: 12px; }
+    .field{
+      margin-top: 12px;
+      width:100%;
+      max-width:100%;
+      min-width:0;
+      overflow:hidden;
+    }
 
     input[type="text"],
     textarea{
       width:100%;
+      max-width:100%;
       border:1px solid rgba(15,23,42,.10);
       border-radius: 16px;
       padding: 11px 12px;
@@ -175,12 +200,17 @@
       background:#fff;
       color:#0f172a;
       outline:none;
+      min-width:0;
+      box-sizing:border-box;
     }
 
     textarea{
       min-height: 290px;
       resize: vertical;
       line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap:anywhere;
+      word-break:break-word;
     }
 
     .actions{
@@ -416,6 +446,9 @@
     }
 
     @media (max-width: 760px){
+      .brand{ width:100%; margin-right:0; }
+      .brand small{ font-size: 11px; }
+      .pill{ font-size: 11px; padding: 5px 8px; }
       .layout{
         grid-template-columns: 1fr;
       }
@@ -425,10 +458,59 @@
       .grid{
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      .bar{
+        padding-left: 12px;
+        padding-right: 12px;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+        <div class="brand">
+          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+          <small>home · tools · novedades</small>
+        </div>
+      </a>
+
+      <div class="nav nav-compact">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn" href="feedback.html" data-requires-auth="1" data-admin-only="1">&#128172; Feedback</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
   <main class="page">
     <section class="hero">
       <h1>HITS deseados de OP15 + EB04</h1>
@@ -696,6 +778,28 @@ https://static.dotgg.gg/onepiece/card/OP15-119.webp</textarea>
       });
     }
 
+    function proxiedImageUrl(src) {
+      const clean = String(src || '').replace(/^https?:\/\//, '');
+      return 'https://images.weserv.nl/?url=' + encodeURIComponent(clean) + '&output=webp';
+    }
+
+    async function loadImageWithFallback(src) {
+      try {
+        return await loadImage(src);
+      } catch (_error) {
+        return loadImage(proxiedImageUrl(src));
+      }
+    }
+
+    function escapeXml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
     function roundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
       ctx.moveTo(x + radius, y);
@@ -758,6 +862,77 @@ https://static.dotgg.gg/onepiece/card/OP15-119.webp</textarea>
       ctx.fillText(label, (width - labelWidth) / 2, y + 8);
     }
 
+    function buildSvgPoster(selectedGroups, title, totalSelected) {
+      const width = 1400;
+      const cardWidth = 250;
+      const cardHeight = Math.round(cardWidth * (88 / 63));
+      const gap = 28;
+      const sectionGap = 70;
+      const columns = 4;
+      let height = 210;
+
+      selectedGroups.forEach((group, index) => {
+        if (index > 0) {
+          height += sectionGap;
+        }
+        const rows = Math.ceil(group.cards.length / columns);
+        height += (rows * cardHeight) + ((rows - 1) * gap) + 24;
+      });
+      height += 100;
+
+      let currentY = 210;
+      let body = '';
+
+      selectedGroups.forEach((group, groupIndex) => {
+        const dividerY = groupIndex === 0 ? currentY - 44 : currentY - 26;
+        body += `
+          <line x1="120" y1="${dividerY}" x2="${width - 120}" y2="${dividerY}" stroke="rgba(148,163,184,.38)" stroke-width="2" />
+          <rect x="${(width - 180) / 2}" y="${dividerY - 18}" width="180" height="36" rx="18" fill="#cbd5e1" />
+          <text x="${width / 2}" y="${dividerY + 8}" text-anchor="middle" font-size="24" font-weight="900" fill="#0f172a">${escapeXml(group.name)}</text>
+        `;
+        currentY += groupIndex === 0 ? 10 : 18;
+
+        const gridWidth = (columns * cardWidth) + ((columns - 1) * gap);
+        const startX = (width - gridWidth) / 2;
+
+        group.cards.forEach((card, index) => {
+          const row = Math.floor(index / columns);
+          const column = index % columns;
+          const x = startX + (column * (cardWidth + gap));
+          const y = currentY + (row * (cardHeight + gap));
+          const cx = x + (cardWidth / 2);
+          const cy = y + (cardHeight / 2);
+          body += `
+            <image href="${escapeXml(card.url)}" x="${x}" y="${y}" width="${cardWidth}" height="${cardHeight}" preserveAspectRatio="xMidYMid slice" />
+            <ellipse cx="${cx}" cy="${cy}" rx="${(cardWidth - 20) * 0.42}" ry="${(cardHeight - 26) * 0.45}" fill="none" stroke="${escapeXml(ringColor)}" stroke-width="8" transform="rotate(-8 ${cx} ${cy})" />
+          `;
+        });
+
+        const rows = Math.ceil(group.cards.length / columns);
+        currentY += (rows * cardHeight) + ((rows - 1) * gap) + 24;
+      });
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+    <clipPath id="frame">
+      <rect x="40" y="34" width="${width - 80}" height="${height - 68}" rx="34" ry="34" />
+    </clipPath>
+  </defs>
+  <rect width="${width}" height="${height}" fill="url(#bg)" />
+  <circle cx="140" cy="120" r="190" fill="rgba(124,58,237,.18)" />
+  <circle cx="${width - 120}" cy="150" r="170" fill="rgba(6,182,212,.14)" />
+  <rect x="40" y="34" width="${width - 80}" height="${height - 68}" rx="34" ry="34" fill="rgba(255,255,255,.08)" />
+  <text x="88" y="112" font-size="56" font-weight="900" fill="#f8fafc">${escapeXml(title)}</text>
+  <text x="90" y="154" font-size="26" fill="rgba(248,250,252,.78)">${escapeXml(totalSelected + ' cartas seleccionadas')}</text>
+  ${body}
+</svg>`;
+    }
+
     async function downloadPoster() {
       const selectedCards = cards.filter(card => card.selected);
       if (!selectedCards.length) {
@@ -769,15 +944,26 @@ https://static.dotgg.gg/onepiece/card/OP15-119.webp</textarea>
       downloadBtn.textContent = 'Preparando imagen...';
 
       try {
-        const images = await Promise.all(selectedCards.map(card => loadImage(card.url)));
+        const title = (titleInput.value || 'HITS deseados de OP15 + EB04').trim();
         const selectedGroups = [];
-        selectedCards.forEach((card, index) => {
+        selectedCards.forEach((card) => {
           const existing = selectedGroups.find(group => group.name === card.set);
+          if (existing) {
+            existing.cards.push(card);
+          } else {
+            selectedGroups.push({ name: card.set, cards: [card] });
+          }
+        });
+
+        const images = await Promise.all(selectedCards.map(card => loadImageWithFallback(card.url)));
+        const selectedGroupsWithImages = [];
+        selectedCards.forEach((card, index) => {
+          const existing = selectedGroupsWithImages.find(group => group.name === card.set);
           const item = { ...card, image: images[index] };
           if (existing) {
             existing.cards.push(item);
           } else {
-            selectedGroups.push({ name: card.set, cards: [item] });
+            selectedGroupsWithImages.push({ name: card.set, cards: [item] });
           }
         });
 
@@ -786,12 +972,10 @@ https://static.dotgg.gg/onepiece/card/OP15-119.webp</textarea>
         const cardHeight = Math.round(cardWidth * (88 / 63));
         const gap = 28;
         const sectionGap = 70;
-        const paddingX = 90;
-        const title = (titleInput.value || 'HITS deseados de OP15 + EB04').trim();
         const columns = 4;
         let height = 210;
 
-        selectedGroups.forEach((group, index) => {
+        selectedGroupsWithImages.forEach((group, index) => {
           if (index > 0) {
             height += sectionGap;
           }
@@ -820,8 +1004,11 @@ https://static.dotgg.gg/onepiece/card/OP15-119.webp</textarea>
         ctx.fillText(selectedCards.length + ' cartas seleccionadas', 90, 154);
 
         let currentY = 210;
-        selectedGroups.forEach((group, groupIndex) => {
-          if (groupIndex > 0) {
+        selectedGroupsWithImages.forEach((group, groupIndex) => {
+          if (groupIndex === 0) {
+            drawPosterSetDivider(ctx, group.name, width, currentY - 44);
+            currentY += 10;
+          } else {
             drawPosterSetDivider(ctx, group.name, width, currentY - 26);
             currentY += 18;
           }
@@ -856,7 +1043,7 @@ https://static.dotgg.gg/onepiece/card/OP15-119.webp</textarea>
         link.download = 'hits-op15-eb04.png';
         link.click();
       } catch (error) {
-        alert(error.message + '. Si alguna imagen bloquea la exportacion por permisos del servidor, te adapto la solucion.');
+        alert(error.message + '. No he podido generar el PNG ni con la carga directa ni con el fallback de imagen.');
       } finally {
         downloadBtn.disabled = false;
         downloadBtn.textContent = 'Descargar imagen';
