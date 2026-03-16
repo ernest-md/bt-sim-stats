@@ -108,6 +108,44 @@
       text-underline-offset: 2px;
       cursor:pointer;
     }
+    .heroTools{
+      margin-top: 12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .viewTabs{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .viewTab{
+      appearance:none;
+      border:0;
+      border-radius:999px;
+      padding:8px 12px;
+      background:transparent;
+      color:rgba(255,255,255,.82);
+      font:inherit;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.2px;
+      cursor:pointer;
+      transition:background .18s ease, color .18s ease, transform .18s ease;
+    }
+    .viewTab:hover{
+      color:#fff;
+    }
+    .viewTab.active{
+      background:#fff;
+      color:#0f172a;
+      box-shadow:0 10px 24px rgba(15,23,42,.18);
+    }
     .infoLinkBtn{
       appearance:none;
       border:0;
@@ -389,6 +427,15 @@
       .hero h1{ font-size: 22px; }
       .heroTop{ align-items:flex-start; gap:6px; }
       .heroSubline{ width:100%; }
+      .heroTools{ margin-top: 10px; }
+      .viewTabs{
+        width:100%;
+        justify-content:space-between;
+      }
+      .viewTab{
+        flex:1 1 0;
+        padding:8px 10px;
+      }
       .leaderGlobalPreview{ display:none !important; }
     }
   </style>
@@ -446,6 +493,12 @@
       <div class="heroNote">
         El ranking principal requiere un minimo de 40 partidas para aparecer. Si quieres mas informacion sobre el calculo, haz clic en <button id="heroEloInfoBtn" type="button">ELO</button>.
       </div>
+      <div class="heroTools">
+        <div class="viewTabs" id="rankingViewTabs" aria-label="Filtros del ranking">
+          <button class="viewTab active" type="button" data-view="principal">Principal</button>
+          <button class="viewTab" type="button" data-view="rookies">Rookies</button>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -501,6 +554,9 @@
     const escapeHtml = window.BarateamApp.escapeHtml;
     const escapeAttr = window.BarateamApp.escapeAttr;
     const RANKING_MIN_GAMES = 40;
+    const rankingViewTabs = Array.from(document.querySelectorAll("#rankingViewTabs .viewTab"));
+    let allRankingRows = [];
+    let rankingView = "principal";
 
     window.BarateamApp.bindProtectedNavLinks(sb);
     const navController = window.BarateamApp.initUserNav({
@@ -806,6 +862,7 @@
             playersMap.get(p.playerId)?.name ||
             `user-${String(p.playerId).slice(0, 8)}`,
           wr: p.games ? (p.wins / p.games) : 0,
+          isRankEligible: p.games >= RANKING_MIN_GAMES,
           wilson,
           elo: eloFromWilson(wilson),
           topLeaderByGames: chooseLeaderMostPlayed(p.leaders),
@@ -813,22 +870,35 @@
         };
       });
 
-      const memberRanking = ranking.filter((p) => p.member === true);
-      const filtered = memberRanking.filter((p) => p.games >= RANKING_MIN_GAMES);
-      const pool = filtered.length ? filtered : memberRanking;
-      pool.sort((a, b) => {
+      ranking.sort((a, b) => {
         if (b.wilson !== a.wilson) return b.wilson - a.wilson;
         if (b.games !== a.games) return b.games - a.games;
         return b.wins - a.wins;
       });
-      return pool;
+      return ranking;
     }
 
-    function renderRanking(rows){
+    function applyRankingFilters(){
+      if (!allRankingRows.length){
+        renderRanking([], rankingView);
+        return;
+      }
+      if (rankingView === "rookies"){
+        renderRanking(allRankingRows.filter((row) => !row.isRankEligible), rankingView);
+        return;
+      }
+      const eligible = allRankingRows.filter((row) => row.isRankEligible);
+      renderRanking(eligible.length ? eligible : allRankingRows, rankingView);
+    }
+
+    function renderRanking(rows, view = "principal"){
       const body = $("rankingBody");
       if (!body) return;
       if (!rows.length){
-        body.innerHTML = `<tr><td colspan="9" class="muted">No hay datos para la expansion activa.</td></tr>`;
+        const emptyText = view === "rookies"
+          ? "No hay rookies para este filtro."
+          : "No hay datos para la expansion activa.";
+        body.innerHTML = `<tr><td colspan="9" class="muted">${emptyText}</td></tr>`;
         return;
       }
       body.innerHTML = rows.map((r, idx) => `
@@ -863,18 +933,28 @@
         const profilesMap = await fetchProfilesMap(profileIds);
         const allowedPlayerIds = memberPlayerIds(playersMap, profilesMap);
         const memberMatches = matches.filter((m) => allowedPlayerIds.has(m.player_id));
-        const ranking = buildRanking(memberMatches, playersMap, profilesMap);
-        renderRanking(ranking);
+        allRankingRows = buildRanking(memberMatches, playersMap, profilesMap);
+        applyRankingFilters();
       }catch(e){
         console.warn("ranking:", e.message || e);
         $("expansionInfo").textContent = "No se pudo cargar el ranking.";
-        renderRanking([]);
+        allRankingRows = [];
+        renderRanking([], rankingView);
       }
     }
 
     (async function init(){
       initRankingInfo();
       initLeaderHoverPreview();
+      rankingViewTabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const nextView = tab.dataset.view || "principal";
+          if (nextView === rankingView) return;
+          rankingView = nextView;
+          rankingViewTabs.forEach((btn) => btn.classList.toggle("active", btn === tab));
+          applyRankingFilters();
+        });
+      });
       const { data } = await sb.auth.getSession();
       if (!data?.session?.user){
         location.replace("login.html");
