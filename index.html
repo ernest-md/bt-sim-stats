@@ -382,6 +382,54 @@
       padding: 12px;
       margin-bottom: 12px;
     }
+    .editorToggle{
+      width:100%;
+      border: 1px solid rgba(15,23,42,.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,.78);
+      color:#0f172a;
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+      font: inherit;
+      text-align:left;
+    }
+    .editorToggle:hover{
+      border-color: rgba(15,23,42,.18);
+      background: rgba(255,255,255,.92);
+    }
+    .editorToggleMain{
+      min-width:0;
+    }
+    .editorToggleTitle{
+      display:block;
+      font-size: 13px;
+      font-weight: 1000;
+      color:#0f172a;
+    }
+    .editorToggleMeta{
+      display:block;
+      margin-top: 2px;
+      font-size: 12px;
+      color:#64748b;
+      line-height:1.35;
+    }
+    .editorChevron{
+      flex: 0 0 auto;
+      font-size: 14px;
+      font-weight: 1000;
+      color:#475569;
+    }
+    .editorBody{
+      display:none;
+      margin-top: 12px;
+    }
+    .editor.open .editorBody{
+      display:block;
+    }
     .editor .row{
       display:grid;
       grid-template-columns: 1fr;
@@ -1312,40 +1360,50 @@
 
         <!-- CHAPUZA TEMPORAL: editor oculto por CSS inline -->
         <div class="editor" id="postEditor" style="display:none;">
-          <div class="row two">
-            <div>
-              <label for="post_title">Titulo</label>
-              <input id="post_title" placeholder="Ej: Nueva seccion de decks" />
-            </div>
-            <div>
-              <label for="post_tag">Tag</label>
-              <input id="post_tag" placeholder="Ej: Web / Tool / Torneo" />
-            </div>
-          </div>
+          <button class="editorToggle" id="postEditorToggle" type="button" aria-expanded="false">
+            <span class="editorToggleMain">
+              <span class="editorToggleTitle">Nuevo post</span>
+              <span class="editorToggleMeta">Visible solo para administracion. Despliega para crear una publicacion.</span>
+            </span>
+            <span class="editorChevron" id="postEditorChevron">v</span>
+          </button>
 
-          <div class="row">
-            <div>
-              <label for="post_image_file">Imagen</label>
-              <input id="post_image_file" type="file" accept="image/*" />
-              <div class="muted" style="margin-top:6px;">
-                Se subira a Supabase Storage (bucket: <strong>post-images</strong>).
+          <div class="editorBody" id="postEditorBody">
+            <div class="row two">
+              <div>
+                <label for="post_title">Titulo</label>
+                <input id="post_title" placeholder="Ej: Nueva seccion de decks" />
+              </div>
+              <div>
+                <label for="post_tag">Tag</label>
+                <input id="post_tag" placeholder="Ej: Web / Tool / Torneo" />
               </div>
             </div>
-          </div>
 
-          <div class="row">
-            <div>
-              <label for="post_body">Contenido</label>
-              <textarea id="post_body" placeholder="Escribe el post..."></textarea>
+            <div class="row">
+              <div>
+                <label for="post_image_file">Imagen</label>
+                <input id="post_image_file" type="file" accept="image/*" />
+                <div class="muted" style="margin-top:6px;">
+                  Se subira a Supabase Storage (bucket: <strong>post-images</strong>).
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div class="editorActions">
-            <span class="muted">Editor oculto por defecto.</span>
-            <button class="btn btnDark" id="btnPublish" type="button">Publicar</button>
-          </div>
+            <div class="row">
+              <div>
+                <label for="post_body">Contenido</label>
+                <textarea id="post_body" placeholder="Escribe el post..."></textarea>
+              </div>
+            </div>
 
-          <div class="msg" id="postMsg"></div>
+            <div class="editorActions">
+              <span class="muted">Visible solo para administracion.</span>
+              <button class="btn btnDark" id="btnPublish" type="button">Publicar</button>
+            </div>
+
+            <div class="msg" id="postMsg"></div>
+          </div>
         </div>
 
         <div id="postsList"></div>
@@ -1443,6 +1501,7 @@
   let currentUser = null;
   let currentAccessState = null;
   let featuredRefreshLoading = false;
+  let postEditorOpen = false;
   const profileNameCache = new Map();
   const navProfileCache = new Map();
   const POSTS_PAGE_SIZE = 3;
@@ -1477,14 +1536,28 @@
     }
   }
 
+  function setPostEditorOpen(open){
+    postEditorOpen = open === true;
+    const editor = $("postEditor");
+    const toggle = $("postEditorToggle");
+    const chev = $("postEditorChevron");
+    if (editor) editor.classList.toggle("open", postEditorOpen);
+    if (toggle) toggle.setAttribute("aria-expanded", postEditorOpen ? "true" : "false");
+    if (chev) chev.textContent = postEditorOpen ? "^" : "v";
+  }
+
   function applyMemberHomeState(){
     const isMember = currentAccessState?.isMember === true;
+    const isAdmin = currentAccessState?.isAdmin === true;
     const postsCard = $("postsCard");
     const featuredCard = $("featuredCard");
     const pendingCard = $("memberPendingCard");
+    const postEditor = $("postEditor");
     if (postsCard) postsCard.style.display = isMember ? "block" : "none";
     if (featuredCard) featuredCard.style.display = isMember ? "block" : "none";
     if (pendingCard) pendingCard.style.display = isMember ? "none" : "block";
+    if (postEditor) postEditor.style.display = isAdmin ? "block" : "none";
+    if (!isAdmin) setPostEditorOpen(false);
   }
 
   async function syncNavAvatar(user){
@@ -2775,6 +2848,10 @@
 
   $("btnPublish")?.addEventListener("click", async () => {
     await publishPost();
+  });
+
+  $("postEditorToggle")?.addEventListener("click", () => {
+    setPostEditorOpen(!postEditorOpen);
   });
 
   $("btnLoadMorePosts")?.addEventListener("click", async () => {
