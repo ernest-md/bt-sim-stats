@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>HITS deseados de OP15 + EB04 - Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card: rgba(255,255,255,.92);
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --p1:#7c3aed;
+      --p2:#06b6d4;
+      --p3:#22c55e;
+      --p4:#f59e0b;
+      --ring-color:#facc15;
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color:#0f172a;
+    }
+
+    body::before{
+      content:"";
+      position: fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.1);
+      z-index:-2;
+    }
+
+    body::after{
+      content:"";
+      position: fixed;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode: overlay;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction: column;
+      gap:2px;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right: 6px;
+      line-height: 1.1;
+    }
+
+    .brand small{
+      display:block;
+      text-align:center;
+      padding-left:4px;
+      font-weight:700;
+      color: rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
+
+    .page{
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 18px 14px 44px;
+    }
+
+    .hero{
+      border-radius: 24px;
+      padding: 18px 16px;
+      color:#fff;
+      border: 1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
+    }
+
+    .hero h1{
+      margin:0;
+      font-size: 28px;
+      font-weight: 1000;
+      line-height: 1.05;
+    }
+
+    .hero p{
+      margin: 8px 0 0;
+      color: rgba(255,255,255,.82);
+      font-size: 13px;
+      max-width: 90ch;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+      align-items:start;
+    }
+
+    .sidebar{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .sectionTitle{
+      margin: 2px 0 12px;
+      font-weight: 1000;
+      color:#0f172a;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .9px;
+      opacity: .85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .sectionTitle::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background: linear-gradient(90deg, rgba(15,23,42,.25), transparent);
+    }
+
+    .card p,
+    .card small,
+    .card label{
+      color:#475569;
+    }
+
+    .card label{
+      display:block;
+      font-weight: 900;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color:#0f172a;
+    }
+
+    .field{ margin-top: 12px; }
+
+    input[type="text"],
+    textarea{
+      width:100%;
+      border:1px solid rgba(15,23,42,.10);
+      border-radius: 16px;
+      padding: 11px 12px;
+      font:inherit;
+      background:#fff;
+      color:#0f172a;
+      outline:none;
+    }
+
+    textarea{
+      min-height: 290px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top: 14px;
+    }
+
+    .actionBtn{
+      appearance: none;
+      border: 1px solid rgba(15,23,42,.12);
+      background: #fff;
+      color:#0f172a;
+      border-radius: 14px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 900;
+      cursor:pointer;
+      box-shadow: 0 10px 20px rgba(15,23,42,.06);
+      transition: transform .08s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .actionBtn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(124,58,237,.30);
+      box-shadow: 0 12px 24px rgba(15,23,42,.1);
+    }
+
+    .actionBtn.primary{
+      color:#fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, rgba(124,58,237,.92), rgba(6,182,212,.92));
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+      margin-top: 14px;
+    }
+
+    .stat{
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: 18px;
+      background: rgba(248,250,252,.95);
+      padding: 12px;
+    }
+
+    .stat strong{
+      display:block;
+      margin-top: 6px;
+      font-size: 24px;
+      color:#0f172a;
+      line-height: 1;
+    }
+
+    .colorRow{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      margin-top: 6px;
+      flex-wrap:wrap;
+    }
+
+    .colorPicker{
+      width:58px;
+      height:58px;
+      border:0;
+      padding:0;
+      background:none;
+      cursor:pointer;
+    }
+
+    .presetList{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .preset{
+      width:30px;
+      height:30px;
+      border-radius:999px;
+      border:3px solid rgba(255,255,255,.9);
+      box-shadow: 0 0 0 1px rgba(15,23,42,.12);
+      cursor:pointer;
+    }
+
+    .preset.active{
+      box-shadow: 0 0 0 3px rgba(15,23,42,.18);
+    }
+
+    .boardTop{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-end;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+    }
+
+    .boardTop p{
+      margin:0;
+      color:#475569;
+      font-size: 13px;
+    }
+
+    .cardsBoard{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .setDivider{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-top: 6px;
+      color:#475569;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .setDivider::before,
+    .setDivider::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background: linear-gradient(90deg, rgba(124,58,237,.28), rgba(6,182,212,.15));
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .cardItem{
+      position:relative;
+      border:0;
+      padding:0;
+      border-radius: 22px;
+      overflow:hidden;
+      background:#e2e8f0;
+      cursor:pointer;
+      box-shadow: 0 14px 30px rgba(15,23,42,.16);
+      transition: transform .12s ease, box-shadow .18s ease;
+      isolation:isolate;
+    }
+
+    .cardItem:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 18px 38px rgba(15,23,42,.2);
+    }
+
+    .cardItem img{
+      display:block;
+      width:100%;
+      aspect-ratio: 63 / 88;
+      object-fit:cover;
+      background:#cbd5e1;
+    }
+
+    .cardCode{
+      position:absolute;
+      left:10px;
+      bottom:10px;
+      border-radius:999px;
+      background: rgba(15,23,42,.88);
+      color:#fff;
+      border: 1px solid rgba(255,255,255,.16);
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight:900;
+      letter-spacing:.05em;
+      opacity:0;
+      transform: translateY(6px);
+      transition: opacity .16s ease, transform .16s ease;
+      pointer-events:none;
+    }
+
+    .cardItem:hover .cardCode,
+    .cardItem:focus-visible .cardCode{
+      opacity:1;
+      transform: translateY(0);
+    }
+
+    .cardItem::after{
+      content:"";
+      position:absolute;
+      inset:14px;
+      border:6px solid transparent;
+      border-radius:50%;
+      opacity:0;
+      transform:scale(.82) rotate(-10deg);
+      transition:opacity .16s ease, transform .16s ease;
+      pointer-events:none;
+    }
+
+    .cardItem.selected::after{
+      opacity:1;
+      transform:scale(1) rotate(-8deg);
+      border-color: var(--ring-color);
+      box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--ring-color) 28%, transparent),
+        0 0 18px color-mix(in srgb, var(--ring-color) 34%, transparent);
+    }
+
+    .empty{
+      border: 1px dashed rgba(15,23,42,.18);
+      border-radius: 18px;
+      background: rgba(248,250,252,.84);
+      padding: 24px;
+      text-align:center;
+      color:#64748b;
+    }
+
+    .note{
+      margin-top: 10px;
+      font-size: 12px;
+      color:#64748b;
+    }
+
+    canvas{ display:none; }
+
+    @media (max-width: 1180px){
+      .grid{
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px){
+      .layout{
+        grid-template-columns: 1fr;
+      }
+      .stats{
+        grid-template-columns: 1fr;
+      }
+      .grid{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <h1>HITS deseados de OP15 + EB04</h1>
+      <p>Marca las cartas que quieres, elige el color del circulo y descarga una imagen para compartir tus hits sin tocar ninguna otra parte de la web.</p>
+    </section>
+
+    <section class="layout">
+      <div class="sidebar">
+        <aside class="card">
+          <div class="sectionTitle">Color del circulo</div>
+          <p>Cada persona puede elegir su propio color antes de marcar cartas. Ese color tambien se usara en la imagen descargada.</p>
+
+          <div class="colorRow">
+            <input id="ringColorInput" class="colorPicker" type="color" value="#facc15" aria-label="Color del circulo" />
+            <div id="presetList" class="presetList" aria-label="Colores predefinidos"></div>
+          </div>
+
+          <div class="note">Puedes usar un color personalizado o uno rapido de la paleta.</div>
+        </aside>
+
+        <aside class="card">
+          <div class="sectionTitle">Configurar cartas</div>
+          <p>Las URLs ya estan cargadas. Si algun dia quieres cambiar la lista, puedes hacerlo aqui.</p>
+
+          <div class="field">
+            <label for="titleInput">Titulo de la imagen final</label>
+            <input id="titleInput" type="text" value="HITS deseados de OP15 + EB04" />
+          </div>
+
+          <div class="field">
+            <label for="urlsInput">URLs de cartas</label>
+            <textarea id="urlsInput" spellcheck="false">https://static.dotgg.gg/onepiece/card/EB04-001_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-002_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-007_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-043_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-044_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-048_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-052_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-058_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-061_p1.webp
+https://static.dotgg.gg/onepiece/card/EB04-061.webp
+https://static.dotgg.gg/onepiece/card/OP15-001_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-002_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-022_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-039_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-058_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-098_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-003_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-007_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-008_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-025_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-032_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-046_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-047_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-053_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-060_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-061_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-077_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-078_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-086_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-092_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-109_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-113_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-114_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-116_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-118_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-118.webp
+https://static.dotgg.gg/onepiece/card/OP15-119_p1.webp
+https://static.dotgg.gg/onepiece/card/OP15-119.webp</textarea>
+          </div>
+
+          <div class="actions">
+            <button id="loadBtn" class="actionBtn primary" type="button">Recargar cartas</button>
+            <button id="clearBtn" class="actionBtn" type="button">Quitar seleccion</button>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <small>Total</small>
+              <strong id="totalCount">0</strong>
+            </div>
+            <div class="stat">
+              <small>Seleccionadas</small>
+              <strong id="selectedCount">0</strong>
+            </div>
+            <div class="stat">
+              <small>Listas</small>
+              <strong id="shareState">No</strong>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="downloadBtn" class="actionBtn primary" type="button">Descargar imagen</button>
+          </div>
+        </aside>
+      </div>
+
+      <section class="card boardCard">
+        <div class="boardTop">
+          <div>
+            <div class="sectionTitle" style="margin-bottom:8px;">Selecciona tus hits</div>
+            <p>El codigo solo aparece al pasar el raton por encima. Hay una separacion visible entre EB04 y OP15 tanto aqui como en la exportacion.</p>
+          </div>
+        </div>
+
+        <div id="cardsBoard" class="cardsBoard"></div>
+        <div id="emptyState" class="empty" hidden>Pega URLs y pulsa "Recargar cartas" para ver la lista.</div>
+      </section>
+    </section>
+  </main>
+
+  <canvas id="posterCanvas"></canvas>
+
+  <script>
+    const urlsInput = document.getElementById('urlsInput');
+    const titleInput = document.getElementById('titleInput');
+    const loadBtn = document.getElementById('loadBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const totalCount = document.getElementById('totalCount');
+    const selectedCount = document.getElementById('selectedCount');
+    const shareState = document.getElementById('shareState');
+    const cardsBoard = document.getElementById('cardsBoard');
+    const emptyState = document.getElementById('emptyState');
+    const posterCanvas = document.getElementById('posterCanvas');
+    const ringColorInput = document.getElementById('ringColorInput');
+    const presetList = document.getElementById('presetList');
+
+    const colorPresets = ['#facc15', '#f97316', '#06b6d4', '#22c55e', '#ec4899', '#8b5cf6', '#ef4444', '#0f172a'];
+    let cards = [];
+    let ringColor = ringColorInput.value;
+
+    function normalizeLines(value) {
+      return value
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+    }
+
+    function extractCardCode(url) {
+      const clean = url.split('?')[0].split('#')[0];
+      const filename = clean.substring(clean.lastIndexOf('/') + 1);
+      const withoutVariant = filename.replace(/_p\d+/, '');
+      const withoutExt = withoutVariant.replace(/\.[^.]+$/, '');
+      return withoutExt.toUpperCase();
+    }
+
+    function getSetName(code) {
+      const prefix = code.split('-')[0];
+      return prefix.startsWith('EB04') ? 'EB04' : prefix.startsWith('OP15') ? 'OP15' : 'OTRAS';
+    }
+
+    function buildCards() {
+      cards = normalizeLines(urlsInput.value).map((url, index) => {
+        const code = extractCardCode(url);
+        return {
+          id: index + 1,
+          url,
+          code,
+          set: getSetName(code),
+          selected: false
+        };
+      });
+      renderCards();
+      updateStats();
+    }
+
+    function renderCards() {
+      cardsBoard.innerHTML = '';
+      emptyState.hidden = cards.length > 0;
+
+      if (!cards.length) {
+        return;
+      }
+
+      const groups = [];
+      cards.forEach(card => {
+        const existing = groups.find(group => group.name === card.set);
+        if (existing) {
+          existing.cards.push(card);
+        } else {
+          groups.push({ name: card.set, cards: [card] });
+        }
+      });
+
+      groups.forEach((group, index) => {
+        if (index > 0) {
+          const divider = document.createElement('div');
+          divider.className = 'setDivider';
+          divider.textContent = group.name;
+          cardsBoard.appendChild(divider);
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+
+        group.cards.forEach(card => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'cardItem' + (card.selected ? ' selected' : '');
+          button.dataset.id = String(card.id);
+          button.setAttribute('aria-pressed', card.selected ? 'true' : 'false');
+          button.innerHTML = `
+            <img src="${card.url}" alt="${card.code}" loading="lazy">
+            <span class="cardCode">${card.code}</span>
+          `;
+          button.addEventListener('click', () => toggleCard(card.id));
+          grid.appendChild(button);
+        });
+
+        cardsBoard.appendChild(grid);
+      });
+    }
+
+    function toggleCard(id) {
+      cards = cards.map(card => card.id === id ? { ...card, selected: !card.selected } : card);
+      renderCards();
+      updateStats();
+    }
+
+    function clearSelection() {
+      cards = cards.map(card => ({ ...card, selected: false }));
+      renderCards();
+      updateStats();
+    }
+
+    function updateStats() {
+      const selected = cards.filter(card => card.selected).length;
+      totalCount.textContent = String(cards.length);
+      selectedCount.textContent = String(selected);
+      shareState.textContent = selected > 0 ? 'Si' : 'No';
+    }
+
+    function setRingColor(color) {
+      ringColor = color;
+      document.documentElement.style.setProperty('--ring-color', color);
+      ringColorInput.value = color;
+      [...presetList.children].forEach(node => {
+        node.classList.toggle('active', node.dataset.color.toLowerCase() === color.toLowerCase());
+      });
+    }
+
+    function renderColorPresets() {
+      presetList.innerHTML = '';
+      colorPresets.forEach(color => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'preset';
+        button.dataset.color = color;
+        button.style.background = color;
+        button.title = color;
+        button.addEventListener('click', () => setRingColor(color));
+        presetList.appendChild(button);
+      });
+      setRingColor(ringColor);
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('No se pudo cargar la imagen: ' + src));
+        img.src = src;
+      });
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function drawPosterBackground(ctx, width, height) {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#0f172a');
+      gradient.addColorStop(1, '#111827');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = 'rgba(124,58,237,.18)';
+      ctx.beginPath();
+      ctx.arc(140, 120, 190, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(6,182,212,.14)';
+      ctx.beginPath();
+      ctx.arc(width - 120, 150, 170, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawSelectionCircle(ctx, x, y, width, height) {
+      ctx.save();
+      ctx.translate(x + width / 2, y + height / 2);
+      ctx.rotate(-0.15);
+      ctx.strokeStyle = ringColor;
+      ctx.lineWidth = 8;
+      ctx.shadowColor = ringColor + '66';
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, width * 0.42, height * 0.45, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPosterSetDivider(ctx, label, width, y) {
+      ctx.strokeStyle = 'rgba(148,163,184,.38)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(120, y);
+      ctx.lineTo(width - 120, y);
+      ctx.stroke();
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '900 24px Segoe UI';
+      const labelWidth = ctx.measureText(label).width;
+      ctx.fillRect((width - labelWidth - 48) / 2, y - 18, labelWidth + 48, 36);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(label, (width - labelWidth) / 2, y + 8);
+    }
+
+    async function downloadPoster() {
+      const selectedCards = cards.filter(card => card.selected);
+      if (!selectedCards.length) {
+        alert('Selecciona al menos una carta antes de descargar la imagen.');
+        return;
+      }
+
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = 'Preparando imagen...';
+
+      try {
+        const images = await Promise.all(selectedCards.map(card => loadImage(card.url)));
+        const selectedGroups = [];
+        selectedCards.forEach((card, index) => {
+          const existing = selectedGroups.find(group => group.name === card.set);
+          const item = { ...card, image: images[index] };
+          if (existing) {
+            existing.cards.push(item);
+          } else {
+            selectedGroups.push({ name: card.set, cards: [item] });
+          }
+        });
+
+        const width = 1400;
+        const cardWidth = 250;
+        const cardHeight = Math.round(cardWidth * (88 / 63));
+        const gap = 28;
+        const sectionGap = 70;
+        const paddingX = 90;
+        const title = (titleInput.value || 'HITS deseados de OP15 + EB04').trim();
+        const columns = 4;
+        let height = 210;
+
+        selectedGroups.forEach((group, index) => {
+          if (index > 0) {
+            height += sectionGap;
+          }
+          const rows = Math.ceil(group.cards.length / columns);
+          height += (rows * cardHeight) + ((rows - 1) * gap);
+          height += 24;
+        });
+        height += 100;
+
+        posterCanvas.width = width;
+        posterCanvas.height = height;
+        const ctx = posterCanvas.getContext('2d');
+
+        drawPosterBackground(ctx, width, height);
+
+        ctx.fillStyle = 'rgba(255,255,255,.08)';
+        roundRect(ctx, 40, 34, width - 80, height - 68, 34);
+        ctx.fill();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '900 56px Segoe UI';
+        ctx.fillText(title, 88, 112);
+
+        ctx.fillStyle = 'rgba(248,250,252,.78)';
+        ctx.font = '26px Segoe UI';
+        ctx.fillText(selectedCards.length + ' cartas seleccionadas', 90, 154);
+
+        let currentY = 210;
+        selectedGroups.forEach((group, groupIndex) => {
+          if (groupIndex > 0) {
+            drawPosterSetDivider(ctx, group.name, width, currentY - 26);
+            currentY += 18;
+          }
+
+          const gridWidth = (columns * cardWidth) + ((columns - 1) * gap);
+          const startX = (width - gridWidth) / 2;
+
+          group.cards.forEach((card, index) => {
+            const row = Math.floor(index / columns);
+            const column = index % columns;
+            const x = startX + (column * (cardWidth + gap));
+            const y = currentY + (row * (cardHeight + gap));
+
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,.28)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetY = 8;
+            roundRect(ctx, x, y, cardWidth, cardHeight, 24);
+            ctx.clip();
+            ctx.drawImage(card.image, x, y, cardWidth, cardHeight);
+            ctx.restore();
+
+            drawSelectionCircle(ctx, x + 10, y + 12, cardWidth - 20, cardHeight - 26);
+          });
+
+          const rows = Math.ceil(group.cards.length / columns);
+          currentY += (rows * cardHeight) + ((rows - 1) * gap) + 24;
+        });
+
+        const link = document.createElement('a');
+        link.href = posterCanvas.toDataURL('image/png');
+        link.download = 'hits-op15-eb04.png';
+        link.click();
+      } catch (error) {
+        alert(error.message + '. Si alguna imagen bloquea la exportacion por permisos del servidor, te adapto la solucion.');
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Descargar imagen';
+      }
+    }
+
+    loadBtn.addEventListener('click', buildCards);
+    clearBtn.addEventListener('click', clearSelection);
+    downloadBtn.addEventListener('click', downloadPoster);
+    ringColorInput.addEventListener('input', event => setRingColor(event.target.value));
+
+    renderColorPresets();
+    buildCards();
+  </script>
+</body>
+</html>
