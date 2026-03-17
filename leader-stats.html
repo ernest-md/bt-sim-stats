@@ -379,6 +379,14 @@
     .leadersTable tbody tr[data-code]{
       cursor:pointer;
     }
+    .matchupsTable tbody tr[data-opponent-code]{
+      cursor:pointer;
+    }
+    .matchupsTable tbody tr[data-opponent-code]:focus{
+      outline:2px solid rgba(37,99,235,.62);
+      outline-offset:-2px;
+      background:#dbeafe;
+    }
     tbody tr.active{
       background:#dbeafe;
     }
@@ -417,6 +425,105 @@
       padding:8px 10px;
       margin:8px 0 0;
       display:none;
+    }
+    body.matchupModalOpen{
+      overflow:hidden;
+    }
+    .matchupModal{
+      position:fixed;
+      inset:0;
+      z-index:12000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(2,6,23,.72);
+      backdrop-filter:blur(8px);
+    }
+    .matchupModal.isOpen{
+      display:flex;
+    }
+    .matchupModalDialog{
+      width:min(1500px, calc(100vw - 36px));
+      height:min(92vh, 1080px);
+      border-radius:24px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.2);
+      background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(15,23,42,.92));
+      box-shadow:0 26px 60px rgba(0,0,0,.42);
+      display:flex;
+      flex-direction:column;
+    }
+    .matchupModalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:14px 16px;
+      color:#fff;
+      border-bottom:1px solid rgba(255,255,255,.12);
+      background:
+        radial-gradient(800px 220px at 10% 0%, rgba(124,58,237,.26), transparent 60%),
+        radial-gradient(700px 220px at 90% 0%, rgba(6,182,212,.22), transparent 60%),
+        rgba(15,23,42,.96);
+    }
+    .matchupModalTitleWrap{
+      min-width:0;
+    }
+    .matchupModalTitle{
+      font-size:18px;
+      font-weight:1000;
+      line-height:1.1;
+    }
+    .matchupModalMeta{
+      margin-top:4px;
+      color:rgba(255,255,255,.78);
+      font-size:12px;
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .matchupModalClose{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      font-size:24px;
+      line-height:1;
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+    .matchupModalBody{
+      position:relative;
+      flex:1 1 auto;
+      min-height:0;
+      background:#0b1220;
+    }
+    .matchupModalFrame{
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+      background:#0b1220;
+    }
+    .matchupModalLoading{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      background:rgba(2,6,23,.44);
+      color:#fff;
+      font-weight:900;
+      transition:opacity .14s ease;
+    }
+    .matchupModalLoading.isHidden{
+      opacity:0;
+      pointer-events:none;
     }
     .loadingOverlay{
       position: fixed;
@@ -524,6 +631,17 @@
       }
       .kpi b{
         font-size:18px;
+      }
+      .matchupModal{
+        padding:0;
+      }
+      .matchupModalDialog{
+        width:100vw;
+        height:100vh;
+        border-radius:0;
+      }
+      .matchupModalHead{
+        padding:12px;
       }
     }
   </style>
@@ -659,6 +777,25 @@
     </div>
   </div>
 
+  <div id="matchupModal" class="matchupModal" aria-hidden="true">
+    <div class="matchupModalDialog" role="dialog" aria-modal="true" aria-labelledby="matchupModalTitle">
+      <div class="matchupModalHead">
+        <div class="matchupModalTitleWrap">
+          <div id="matchupModalTitle" class="matchupModalTitle">Detalle de Matchup</div>
+          <div id="matchupModalMeta" class="matchupModalMeta"></div>
+        </div>
+        <button id="matchupModalClose" class="matchupModalClose" type="button" aria-label="Cerrar popup">&times;</button>
+      </div>
+      <div class="matchupModalBody">
+        <div id="matchupModalLoading" class="matchupModalLoading">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Cargando matchup...</span>
+        </div>
+        <iframe id="matchupModalFrame" class="matchupModalFrame" title="Detalle de matchup"></iframe>
+      </div>
+    </div>
+  </div>
+
   <script>
     const sb = window.BarateamApp.createClient();
     const escapeHtml = window.BarateamApp.escapeHtml;
@@ -697,6 +834,12 @@
     const errorBox = document.getElementById("errorBox");
     const loadingOverlay = document.getElementById("loadingOverlay");
     const loadingText = document.getElementById("loadingText");
+    const matchupModal = document.getElementById("matchupModal");
+    const matchupModalFrame = document.getElementById("matchupModalFrame");
+    const matchupModalClose = document.getElementById("matchupModalClose");
+    const matchupModalLoading = document.getElementById("matchupModalLoading");
+    const matchupModalTitle = document.getElementById("matchupModalTitle");
+    const matchupModalMeta = document.getElementById("matchupModalMeta");
     const prefersHoverPreview = window.matchMedia("(hover: hover) and (pointer: fine)");
 
     let leaders = [];
@@ -705,6 +848,8 @@
     let leaderAssetMap = new Map();
     let leaderSort = { key: "matches", dir: "desc" };
     let matchupSort = { key: "games", dir: "desc" };
+    const MATCHUP_MODAL_DEFAULT_DECKS = "3";
+    const MATCHUP_MODAL_DEFAULT_TECHS = "8";
 
     function toYmd(dateObj){
       const y = dateObj.getFullYear();
@@ -909,6 +1054,41 @@
       document.body.style.overflow = on ? "hidden" : "";
     }
 
+    function matchupLabel(code, fallback){
+      const name = leaderNameByCode(code, fallback);
+      return code && name && code !== name ? `${code} · ${name}` : (name || code || "Leader");
+    }
+
+    function buildMatchupModalUrl(playerCode, opponentCode){
+      const url = new URL("matchup-stats.html", window.location.href);
+      url.searchParams.set("embed", "1");
+      url.searchParams.set("player", playerCode);
+      url.searchParams.set("opponent", opponentCode);
+      url.searchParams.set("decks", MATCHUP_MODAL_DEFAULT_DECKS);
+      url.searchParams.set("techs", MATCHUP_MODAL_DEFAULT_TECHS);
+      url.searchParams.set("date", dateInput.value || toYmd(new Date()));
+      return url.toString();
+    }
+
+    function closeMatchupModal(){
+      matchupModal.classList.remove("isOpen");
+      matchupModal.setAttribute("aria-hidden", "true");
+      matchupModalLoading.classList.remove("isHidden");
+      document.body.classList.remove("matchupModalOpen");
+    }
+
+    function openMatchupModal(playerCode, opponentCode){
+      if (!playerCode || !opponentCode) return;
+      matchupModalTitle.textContent = "Detalle de Matchup";
+      matchupModalMeta.textContent = `${matchupLabel(playerCode, leaderNameMap.get(playerCode))} vs ${matchupLabel(opponentCode, leaderNameMap.get(opponentCode))}`;
+      matchupModalLoading.classList.remove("isHidden");
+      matchupModalFrame.src = buildMatchupModalUrl(playerCode, opponentCode);
+      matchupModal.classList.add("isOpen");
+      matchupModal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("matchupModalOpen");
+      matchupModalClose.focus();
+    }
+
     async function fetchStatsByDate(ymd){
       const compact = toCompact(ymd);
       const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/leader-stats?date=${compact}`;
@@ -1083,6 +1263,10 @@
       matchupsBody.innerHTML = "";
       for (const m of rows){
         const tr = document.createElement("tr");
+        tr.dataset.opponentCode = m.opponent;
+        tr.tabIndex = 0;
+        tr.setAttribute("role", "button");
+        tr.setAttribute("aria-label", `Abrir matchup ${leader.code} contra ${m.opponent}`);
         tr.innerHTML = `
           <td>
             <span class="leaderCell" aria-label="${escapeAttr(`${m.opponent} · ${m.opponentName}`)}">
@@ -1156,6 +1340,33 @@
       if (!row) return;
       e.preventDefault();
       selectLeaderRow(row);
+    });
+
+    matchupsBody.addEventListener("click", (e) => {
+      const row = e.target.closest("tr[data-opponent-code]");
+      if (!row || !selectedLeaderCode) return;
+      openMatchupModal(selectedLeaderCode, row.dataset.opponentCode || "");
+    });
+
+    matchupsBody.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const row = e.target.closest("tr[data-opponent-code]");
+      if (!row || !selectedLeaderCode) return;
+      e.preventDefault();
+      openMatchupModal(selectedLeaderCode, row.dataset.opponentCode || "");
+    });
+
+    matchupModalClose.addEventListener("click", closeMatchupModal);
+    matchupModal.addEventListener("click", (e) => {
+      if (e.target === matchupModal) closeMatchupModal();
+    });
+    matchupModalFrame.addEventListener("load", () => {
+      matchupModalLoading.classList.add("isHidden");
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && matchupModal.classList.contains("isOpen")){
+        closeMatchupModal();
+      }
     });
 
     document.querySelectorAll("th.sortable").forEach((th) => {

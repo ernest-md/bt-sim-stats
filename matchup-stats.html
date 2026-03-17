@@ -228,7 +228,7 @@
     .leaderImage{
       width:160px;
       height:224px;
-      border-radius:18px;
+      border-radius:8px;
       object-fit:cover;
       border:2px solid rgba(255,255,255,.14);
       background:rgba(255,255,255,.08);
@@ -304,18 +304,16 @@
     }
     .miniCard{
       width:74px;
-      min-height:102px;
-      border-radius:10px;
-      overflow:hidden;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.1);
+      border-radius:3px;
+      overflow:visible;
       position:relative;
     }
     .miniCard img, .deckCardItem img, .curveCardItem img{
       width:100%;
-      height:100%;
-      object-fit:cover;
+      height:auto;
       display:block;
+      border-radius:inherit;
+      box-shadow:0 10px 24px rgba(2,6,23,.28);
     }
     .miniCardFallback, .curveCardFallback, .deckCardFallback{
       width:100%;
@@ -373,14 +371,11 @@
     }
     .deckCardItem, .curveCardItem{
       width:58px;
-      min-height:82px;
-      border-radius:8px;
-      overflow:hidden;
+      border-radius:3px;
+      overflow:visible;
       position:relative;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.1);
     }
-    .deckCardItem{ width:50px; min-height:72px; }
+    .deckCardItem{ width:50px; }
     .deckCardItem .qty{
       position:absolute;
       left:4px;
@@ -421,6 +416,36 @@
       color:#fbbf24;
       font-weight:1000;
       text-align:center;
+    }
+    .cardZoom{
+      cursor:zoom-in;
+    }
+    .cardZoom img{
+      background:none;
+    }
+    .cardPreview{
+      position:fixed;
+      left:0;
+      top:0;
+      transform:translate3d(-9999px,-9999px,0);
+      opacity:0;
+      pointer-events:none;
+      z-index:250000;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.28);
+      background:rgba(2,6,23,.96);
+      box-shadow:0 20px 42px rgba(2,6,23,.55);
+      padding:8px;
+      transition:opacity .12s ease;
+    }
+    .cardPreview img{
+      width:220px;
+      height:auto;
+      max-height:320px;
+      object-fit:contain;
+      display:block;
+      border-radius:10px;
+      background:rgba(255,255,255,.04);
     }
     .emptyState{
       background:rgba(255,255,255,.06);
@@ -478,6 +503,40 @@
         max-width:240px;
         height:auto;
         aspect-ratio:5/7;
+      }
+      .cardPreview{ display:none !important; }
+    }
+    body.embedMode .topbar,
+    body.embedMode .authCorner{
+      display:none;
+    }
+    body.embedMode .page{
+      max-width:none;
+      margin:0;
+      padding:10px;
+    }
+    body.embedMode .hero,
+    body.embedMode .controlsCard{
+      display:none;
+    }
+    body.embedMode #datasetFilter,
+    body.embedMode #dateFilter,
+    body.embedMode #btnReload{
+      display:none !important;
+    }
+    body.embedMode .hero{
+      margin-bottom:10px;
+      border-radius:18px;
+    }
+    body.embedMode .matchPanel{
+      border-radius:20px;
+    }
+    body.embedMode .versusCard{
+      border-radius:18px;
+    }
+    @media (max-width: 760px){
+      body.embedMode .page{
+        padding:8px;
       }
     }
   </style>
@@ -542,12 +601,12 @@
           <p class="heroSub">Selecciona el líder del jugador y el líder rival para ver el cruce completo con winrates, potential tech cards, líneas de curva y decklists filtradas por matchup.</p>
         </div>
         <div class="heroControls">
-          <label class="filter">Fuente
+          <label class="filter" id="datasetFilter">Fuente
             <select id="datasetSelect">
               <option value="west_private">West (Private)</option>
             </select>
           </label>
-          <label class="filter">Fecha
+          <label class="filter" id="dateFilter">Fecha
             <input id="dateInput" type="date">
           </label>
           <button id="btnReload" class="btn2" type="button">Recargar</button>
@@ -616,6 +675,16 @@
         detectSessionInUrl: true
       }
     });
+    const API_URLS = [
+      "https://www.optcgapi.com/api/allSetCards/",
+      "https://www.optcgapi.com/api/allSTCards/",
+      "https://www.optcgapi.com/api/allPromos/"
+    ];
+    const WRAPPED_CACHE_FN_URL = `${window.BarateamApp.SUPABASE_URL}/functions/v1/optcgapi`;
+    const wrappedImageCache = new Map();
+    const wrappedImageInflight = new Map();
+    const optcgCardCatalog = new Map();
+    let optcgCatalogLoaded = false;
 
     const datasetSelect = document.getElementById("datasetSelect");
     const dateInput = document.getElementById("dateInput");
@@ -632,6 +701,27 @@
     const errorBox = document.getElementById("errorBox");
     const loadingOverlay = document.getElementById("loadingOverlay");
     const loadingText = document.getElementById("loadingText");
+    const pageParams = new URLSearchParams(window.location.search);
+    const embedMode = ["1", "true", "yes"].includes(String(pageParams.get("embed") || "").toLowerCase());
+    const initialPlayerLeader = String(pageParams.get("player") || pageParams.get("leader") || "").trim();
+    const initialOpponentLeader = String(pageParams.get("opponent") || pageParams.get("rival") || "").trim();
+    const initialDeckCount = String(pageParams.get("decks") || pageParams.get("decklists") || "3").trim();
+    const initialTechCount = String(pageParams.get("techs") || pageParams.get("tech") || "8").trim();
+    const initialDataset = String(pageParams.get("dataset") || "").trim();
+    const initialDate = String(pageParams.get("date") || "").trim();
+
+    if (embedMode){
+      document.body.classList.add("embedMode");
+    }
+    if (initialDataset && Array.from(datasetSelect.options).some((option) => option.value === initialDataset)){
+      datasetSelect.value = initialDataset;
+    }
+    if (Array.from(deckCountSelect.options).some((option) => option.value === initialDeckCount)){
+      deckCountSelect.value = initialDeckCount;
+    }
+    if (Array.from(techCountSelect.options).some((option) => option.value === initialTechCount)){
+      techCountSelect.value = initialTechCount;
+    }
 
     let state = {
       leaders: [],
@@ -641,8 +731,8 @@
       curveByLeader: new Map(),
       leaderAssetMap: new Map(),
       cardAssetMap: new Map(),
-      selectedPlayer: "",
-      selectedOpponent: "",
+      selectedPlayer: initialPlayerLeader,
+      selectedOpponent: initialOpponentLeader,
       resolvedDate: ""
     };
 
@@ -661,6 +751,190 @@
 
     function norm(value){
       return String(value || "").trim();
+    }
+
+    function normalizeCardCode(value){
+      const raw = String(value || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, "-")
+        .replace(/\s+/g, "");
+      if (!raw) return "";
+
+      const normalized = raw.replace(/_/g, "-");
+      const promoMatch = normalized.match(/^P-?0*(\d{1,3})$/);
+      if (promoMatch){
+        return `P-${promoMatch[1].padStart(3, "0")}`;
+      }
+
+      return normalized;
+    }
+
+    function cardCodeAliases(value){
+      const canonical = normalizeCardCode(value);
+      if (!canonical) return [];
+
+      const aliases = new Set([canonical, canonical.replace(/-/g, "")]);
+      const promoMatch = canonical.match(/^P-(\d{3})$/);
+      if (promoMatch){
+        const numeric = String(Number(promoMatch[1]));
+        aliases.add(`P-${numeric}`);
+        aliases.add(`P${promoMatch[1]}`);
+        aliases.add(`P${numeric}`);
+      }
+
+      return [...aliases].filter(Boolean);
+    }
+
+    function isPromoCardCode(value){
+      return /^P-\d{3}$/.test(normalizeCardCode(value));
+    }
+
+    function buildDotggCardImageUrl(value){
+      const code = normalizeCardCode(value);
+      if (!code || !isPromoCardCode(code)) return "";
+      return `https://static.dotgg.gg/onepiece/card/${encodeURIComponent(code)}.webp`;
+    }
+
+    function guessName(card){
+      return card?.card_name || card?.name || card?.cardName || card?.title || "";
+    }
+
+    function guessSetName(card){
+      return card?.set_name || card?.setName || card?.expansion || card?.set || "";
+    }
+
+    function guessSetId(card){
+      return card?.card_set_id || card?.cardSetId || card?.code || card?.cardId || card?.id || "";
+    }
+
+    function guessType(card){
+      return card?.card_type || card?.type || card?.cardType || "";
+    }
+
+    function guessImageUrl(card){
+      return card?.card_image || card?.image || card?.imageUrl || card?.cardImage || card?.img || card?.art || "";
+    }
+
+    async function fetchJson(url){
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return await res.json();
+    }
+
+    function normalizeApiArray(data){
+      return Array.isArray(data) ? data
+        : Array.isArray(data?.data) ? data.data
+        : Array.isArray(data?.cards) ? data.cards
+        : [];
+    }
+
+    function wrappedIdentity(card){
+      if (!card) return "";
+      return [
+        normalizeCardCode(card.card_set_id),
+        norm(card.name),
+        norm(card.image)
+      ].join("::");
+    }
+
+    async function resolveWrappedImageForCard(card, imageVariant = "default"){
+      if (!card) return "";
+      const cardCode = normalizeCardCode(card.card_set_id);
+      const imageUrl = norm(card.image);
+      const fallbackImageUrl = buildDotggCardImageUrl(cardCode);
+      const sourceImageUrl = imageUrl || fallbackImageUrl;
+      if (!cardCode || !sourceImageUrl) return sourceImageUrl;
+
+      const cacheKey = `${wrappedIdentity(card)}::${imageVariant}`;
+      if (wrappedImageCache.has(cacheKey)){
+        const cachedUrl = wrappedImageCache.get(cacheKey) || "";
+        if (cachedUrl) card.wrapped_image_url = cachedUrl;
+        return cachedUrl || sourceImageUrl;
+      }
+      if (card.wrapped_image_url){
+        wrappedImageCache.set(cacheKey, card.wrapped_image_url);
+        return card.wrapped_image_url;
+      }
+      if (wrappedImageInflight.has(cacheKey)){
+        const pending = wrappedImageInflight.get(cacheKey);
+        const resolved = await pending;
+        if (resolved) card.wrapped_image_url = resolved;
+        return resolved || sourceImageUrl;
+      }
+
+      const task = (async () => {
+        try{
+          const res = await fetch(WRAPPED_CACHE_FN_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: window.BarateamApp.SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${window.BarateamApp.SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              card_code: cardCode,
+              image_variant: imageVariant,
+              name: card.name || "",
+              set_name: card.set_name || "",
+              card_type: card.card_type || "",
+              image_url: sourceImageUrl
+            })
+          });
+          if (!res.ok) throw new Error(`wrapped cache ${res.status}`);
+          const data = await res.json();
+          const publicUrl = norm(data?.public_image_url || "");
+          if (publicUrl){
+            wrappedImageCache.set(cacheKey, publicUrl);
+            card.wrapped_image_url = publicUrl;
+            return publicUrl;
+          }
+        }catch(e){
+          console.warn("resolveWrappedImageForCard:", e?.message || e);
+        }
+        wrappedImageCache.set(cacheKey, sourceImageUrl);
+        return sourceImageUrl;
+      })();
+
+      wrappedImageInflight.set(cacheKey, task);
+      try{
+        const resolved = await task;
+        if (resolved) card.wrapped_image_url = resolved;
+        return resolved || sourceImageUrl;
+      } finally {
+        wrappedImageInflight.delete(cacheKey);
+      }
+    }
+
+    async function ensureOptcgCatalog(){
+      if (optcgCatalogLoaded) return;
+      const rows = [];
+      for (const url of API_URLS){
+        const data = await fetchJson(url);
+        rows.push(...normalizeApiArray(data));
+      }
+
+      for (const raw of rows){
+        const code = normalizeCardCode(guessSetId(raw));
+        if (!code) continue;
+        const nextCard = {
+          card_set_id: code,
+          name: norm(guessName(raw) || code),
+          set_name: norm(guessSetName(raw)),
+          card_type: norm(guessType(raw)),
+          image: norm(guessImageUrl(raw)) || buildDotggCardImageUrl(code),
+          wrapped_image_url: ""
+        };
+
+        for (const alias of cardCodeAliases(code)){
+          const currentCard = optcgCardCatalog.get(alias);
+          if (!currentCard || (!norm(currentCard.image) && nextCard.image)){
+            optcgCardCatalog.set(alias, nextCard);
+          }
+        }
+      }
+
+      optcgCatalogLoaded = true;
     }
 
     function pct(value){
@@ -791,8 +1065,71 @@
       return norm(asset?.parallel_image_url || asset?.image_url || "");
     }
 
+    function initCardHoverPreview(){
+      const preview = document.createElement("div");
+      preview.className = "cardPreview";
+      preview.innerHTML = `<img alt="">`;
+      document.body.appendChild(preview);
+
+      const img = preview.querySelector("img");
+      let activeAnchor = null;
+
+      function place(anchor){
+        if (!anchor) return;
+        const rect = anchor.getBoundingClientRect();
+        const margin = 12;
+        const pw = preview.offsetWidth || 236;
+        const ph = preview.offsetHeight || 336;
+        let x = rect.right + 12;
+        let y = rect.top + ((rect.height - ph) / 2);
+        if (x + pw > window.innerWidth - margin) x = rect.left - pw - 12;
+        if (y < margin) y = margin;
+        if (y + ph > window.innerHeight - margin) y = Math.max(margin, window.innerHeight - ph - margin);
+        preview.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+      }
+
+      function show(anchor){
+        const src = anchor?.dataset?.previewSrc || "";
+        if (!src){ hide(); return; }
+        activeAnchor = anchor;
+        img.src = src;
+        img.alt = anchor?.dataset?.previewLabel || "Carta";
+        preview.style.opacity = "1";
+        place(anchor);
+      }
+
+      function hide(){
+        activeAnchor = null;
+        preview.style.opacity = "0";
+        preview.style.transform = "translate3d(-9999px,-9999px,0)";
+      }
+
+      document.addEventListener("mouseover", (e) => {
+        const target = e.target instanceof Element ? e.target : null;
+        const anchor = target ? target.closest(".cardZoom[data-preview-src]") : null;
+        if (!anchor){
+          if (activeAnchor && target && !preview.contains(target)) hide();
+          return;
+        }
+        show(anchor);
+      });
+
+      document.addEventListener("mouseout", (e) => {
+        const target = e.target instanceof Element ? e.target : null;
+        const from = target ? target.closest(".cardZoom[data-preview-src]") : null;
+        if (!from) return;
+        const to = e.relatedTarget;
+        if (to instanceof Node && (from.contains(to) || preview.contains(to))) return;
+        hide();
+      });
+
+      window.addEventListener("scroll", () => { if (activeAnchor) place(activeAnchor); }, true);
+      window.addEventListener("resize", () => { if (activeAnchor) place(activeAnchor); });
+    }
+
     function cardAssetByCode(code){
-      return state.cardAssetMap.get(norm(code)) || null;
+      const canonical = normalizeCardCode(code);
+      return state.cardAssetMap.get(canonical) || null;
     }
 
     function cardImageByCode(code){
@@ -818,19 +1155,29 @@
     }
 
     async function fetchCardAssets(codes){
-      const uniqueCodes = [...new Set((codes || []).map((x) => norm(x)).filter(Boolean))];
+      const uniqueCodes = [...new Set((codes || []).map((x) => normalizeCardCode(x)).filter(Boolean))];
       const missing = uniqueCodes.filter((code) => !state.cardAssetMap.has(code));
       if (!missing.length) return;
       try{
-        const { data, error } = await sb.from("cards").select("code,name,image_url").in("code", missing);
-        if (error || !Array.isArray(data)) return;
-        for (const row of data){
-          state.cardAssetMap.set(norm(row?.code), {
-            name: norm(row?.name || row?.code),
-            image_url: norm(row?.image_url)
+        await ensureOptcgCatalog();
+        await Promise.all(missing.map(async (code) => {
+          const card = optcgCardCatalog.get(code) || null;
+          if (!card){
+            state.cardAssetMap.set(code, { name: code, image_url: buildDotggCardImageUrl(code) });
+            return;
+          }
+          const resolvedImage = await resolveWrappedImageForCard({ ...card });
+          state.cardAssetMap.set(code, {
+            name: card.name || code,
+            image_url: norm(resolvedImage || card.image || buildDotggCardImageUrl(code) || "")
           });
-        }
+        }));
       }catch(_err){
+        for (const code of missing){
+          if (!state.cardAssetMap.has(code)){
+            state.cardAssetMap.set(code, { name: code, image_url: buildDotggCardImageUrl(code) });
+          }
+        }
       }
     }
 
@@ -875,8 +1222,17 @@
       }).filter((rowItem) => rowItem.turn > 0);
     }
 
-    function splitComboCodes(combo){
-      return String(combo || "").split("+").map((part) => norm(part)).filter(Boolean);
+    function splitComboCodes(combo, { unique = false } = {}){
+      const parts = String(combo || "").split("+").map((part) => norm(part)).filter(Boolean);
+      if (!unique) return parts;
+
+      const seen = new Set();
+      return parts.filter((code) => {
+        const key = normalizeCardCode(code) || code;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     }
 
     function parseDecklist(decklistText){
@@ -926,7 +1282,7 @@
       const src = cardImageByCode(code);
       const label = cardAssetByCode(code)?.name || code;
       return src
-        ? `<div class="miniCard" title="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy">${badgeText ? `<div class="miniCardBadge">${escapeHtml(badgeText)}</div>` : ""}</div>`
+        ? `<div class="miniCard cardZoom" title="${escapeAttr(label)}" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy">${badgeText ? `<div class="miniCardBadge">${escapeHtml(badgeText)}</div>` : ""}</div>`
         : `<div class="miniCard" title="${escapeAttr(label)}"><div class="miniCardFallback">${escapeHtml(label)}</div>${badgeText ? `<div class="miniCardBadge">${escapeHtml(badgeText)}</div>` : ""}</div>`;
     }
 
@@ -934,7 +1290,7 @@
       const src = cardImageByCode(code);
       const label = cardAssetByCode(code)?.name || code;
       return src
-        ? `<div class="deckCardItem" title="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy"><span class="qty">${escapeHtml(`${qty}x`)}</span></div>`
+        ? `<div class="deckCardItem cardZoom" title="${escapeAttr(label)}" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy"><span class="qty">${escapeHtml(`${qty}x`)}</span></div>`
         : `<div class="deckCardItem" title="${escapeAttr(label)}"><div class="deckCardFallback">${escapeHtml(label)}</div><span class="qty">${escapeHtml(`${qty}x`)}</span></div>`;
     }
 
@@ -942,7 +1298,7 @@
       const src = cardImageByCode(code);
       const label = cardAssetByCode(code)?.name || code;
       return src
-        ? `<div class="curveCardItem" title="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy"></div>`
+        ? `<div class="curveCardItem cardZoom" title="${escapeAttr(label)}" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy"></div>`
         : `<div class="curveCardItem" title="${escapeAttr(label)}"><div class="curveCardFallback">${escapeHtml(label)}</div></div>`;
     }
 
@@ -966,8 +1322,9 @@
     }
 
     function renderCurveTable(turns, title){
-      if (!turns.length) return `<div class="emptyState">No hay datos de curva.</div>`;
-      return `<table class="curveTable"><thead><tr><th>Turn</th><th>${escapeHtml(title)}</th></tr></thead><tbody>${turns.map((turn) => `<tr><td>${int(turn.turn)}</td><td>${turn.combo ? `<div class="curveCards">${splitComboCodes(turn.combo).map((code) => renderCurveCard(code)).join("")}</div>${turn.isFallback ? '<div class="muted" style="margin-top:6px;font-size:11px;">Usando combo general por falta de muestra específica vs rival.</div>' : ""}` : `<span class="muted">-</span>`}</td></tr>`).join("")}</tbody></table>`;
+      const visibleTurns = (Array.isArray(turns) ? turns : []).filter((turn) => Number(turn?.turn || 0) > 0 && Number(turn?.turn || 0) <= 6);
+      if (!visibleTurns.length) return `<div class="emptyState">No hay datos de curva.</div>`;
+      return `<table class="curveTable"><thead><tr><th>Turn</th><th>${escapeHtml(title)}</th></tr></thead><tbody>${visibleTurns.map((turn) => `<tr><td>${int(turn.turn)}</td><td>${turn.combo ? `<div class="curveCards">${splitComboCodes(turn.combo, { unique: true }).map((code) => renderCurveCard(code)).join("")}</div>${turn.isFallback ? '<div class="muted" style="margin-top:6px;font-size:11px;">Usando combo general por falta de muestra específica vs rival.</div>' : ""}` : `<span class="muted">-</span>`}</td></tr>`).join("")}</tbody></table>`;
     }
 
     function renderPanel(leaderCode, opponentCode, side){
@@ -1043,15 +1400,11 @@
       if (!state.selectedPlayer || !state.leaders.some((row) => row.leader === state.selectedPlayer)){
         state.selectedPlayer = state.leaders[0].leader;
       }
-      if (!state.selectedOpponent || state.selectedOpponent === state.selectedPlayer || !state.leaders.some((row) => row.leader === state.selectedOpponent)){
+      if (!state.selectedOpponent || !state.leaders.some((row) => row.leader === state.selectedOpponent)){
         state.selectedOpponent = state.leaders.find((row) => row.leader !== state.selectedPlayer)?.leader || state.selectedPlayer;
       }
       populateLeaderSelect(playerLeaderSelect, state.selectedPlayer);
       populateLeaderSelect(opponentLeaderSelect, state.selectedOpponent);
-      if (playerLeaderSelect.value === opponentLeaderSelect.value){
-        const alternative = state.leaders.find((row) => row.leader !== playerLeaderSelect.value);
-        if (alternative) opponentLeaderSelect.value = alternative.leader;
-      }
     }
 
     async function reload(){
@@ -1104,18 +1457,10 @@
     }
 
     playerLeaderSelect.addEventListener("change", async () => {
-      if (playerLeaderSelect.value === opponentLeaderSelect.value){
-        const alternative = state.leaders.find((row) => row.leader !== playerLeaderSelect.value);
-        if (alternative) opponentLeaderSelect.value = alternative.leader;
-      }
       await renderMatchup();
     });
 
     opponentLeaderSelect.addEventListener("change", async () => {
-      if (playerLeaderSelect.value === opponentLeaderSelect.value){
-        const alternative = state.leaders.find((row) => row.leader !== opponentLeaderSelect.value);
-        if (alternative) playerLeaderSelect.value = alternative.leader;
-      }
       await renderMatchup();
     });
 
@@ -1125,7 +1470,8 @@
     datasetSelect.addEventListener("change", reload);
 
     (function init(){
-      dateInput.value = toYmd(new Date());
+      initCardHoverPreview();
+      dateInput.value = initialDate || toYmd(new Date());
       reload();
     })();
   </script>
