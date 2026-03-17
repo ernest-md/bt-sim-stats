@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Matchup Stats · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260306a" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.92);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --accent:#f59e0b;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      z-index:-2;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      color:rgba(255,255,255,.72);
+      font-weight:700;
+      text-align:center;
+      padding-left:4px;
+    }
+    .page{
+      max-width:1420px;
+      margin:14px auto 30px;
+      padding:0 14px;
+    }
+    .hero{
+      border-radius:24px;
+      padding:18px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 260px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 260px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.94), rgba(15,23,42,.72));
+      box-shadow:0 18px 50px rgba(0,0,0,.28);
+      margin-bottom:12px;
+    }
+    .heroTop{
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .heroTop h1{
+      margin:0;
+      font-size:28px;
+      font-weight:1000;
+    }
+    .heroSub{
+      margin:6px 0 0;
+      color:rgba(255,255,255,.84);
+      font-size:13px;
+      max-width:760px;
+    }
+    .heroControls{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .filter{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:800;
+      color:rgba(255,255,255,.92);
+    }
+    input[type="date"], select, button{
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.18);
+      padding:10px 11px;
+      font-size:14px;
+      background:#fff;
+      color:var(--ink);
+    }
+    .btn2{
+      border:none;
+      background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.9));
+      color:#fff;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .statusRow{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      color:rgba(255,255,255,.82);
+      font-size:13px;
+      font-weight:700;
+    }
+    .error{
+      display:none;
+      background:rgba(127,29,29,.92);
+      border:1px solid rgba(254,202,202,.25);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:12px;
+      margin-top:12px;
+      font-weight:700;
+    }
+    .controlsCard{
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:16px;
+      margin-bottom:12px;
+    }
+    .controlGrid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(180px, 1fr));
+      gap:12px;
+      align-items:end;
+    }
+    .controlField{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .controlField label{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:1000;
+      color:#475569;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) 100px minmax(0, 1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .matchPanel{
+      background:rgba(15,23,42,.78);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:24px;
+      padding:16px;
+      box-shadow:var(--shadow);
+      color:#f8fafc;
+      min-width:0;
+    }
+    .versus{
+      position:sticky;
+      top:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:180px;
+    }
+    .versusCard{
+      width:100%;
+      background:rgba(15,23,42,.88);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:20px;
+      color:#fff;
+      box-shadow:var(--shadow);
+      text-align:center;
+      padding:16px 10px;
+    }
+    .versusCard .vs{
+      color:var(--accent);
+      font-weight:1000;
+      letter-spacing:.08em;
+    }
+    .versusCard .matches{
+      font-size:38px;
+      font-weight:1000;
+      line-height:1;
+      margin:8px 0 4px;
+    }
+    .versusCard .meta{
+      color:rgba(255,255,255,.72);
+      font-weight:800;
+      font-size:13px;
+    }
+    .panelHead{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      margin-bottom:16px;
+    }
+    .leaderHero{
+      display:grid;
+      grid-template-columns:160px 1fr;
+      gap:14px;
+      align-items:start;
+    }
+    .leaderImage{
+      width:160px;
+      height:224px;
+      border-radius:18px;
+      object-fit:cover;
+      border:2px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.08);
+    }
+    .leaderFallback{
+      width:160px;
+      height:224px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(255,255,255,.08);
+      border:2px solid rgba(255,255,255,.14);
+      color:rgba(255,255,255,.72);
+      font-weight:1000;
+      text-align:center;
+      padding:14px;
+    }
+    .leaderCode{
+      font-size:13px;
+      letter-spacing:.08em;
+      color:#fbbf24;
+      font-weight:1000;
+      text-transform:uppercase;
+    }
+    .leaderName{
+      font-size:28px;
+      font-weight:1000;
+      line-height:1.05;
+      margin-top:6px;
+    }
+    .kpiGrid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+    .kpi{
+      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:10px 12px;
+    }
+    .kpi span{
+      display:block;
+      color:rgba(255,255,255,.72);
+      font-size:12px;
+      font-weight:800;
+    }
+    .kpi b{
+      display:block;
+      margin-top:4px;
+      font-size:28px;
+      font-weight:1000;
+      line-height:1;
+    }
+    .section{ margin-top:20px; }
+    .section h3{
+      margin:0 0 4px;
+      font-size:25px;
+      font-weight:1000;
+      color:#f8fafc;
+    }
+    .section p{
+      margin:0 0 10px;
+      color:#cbd5e1;
+      font-size:13px;
+    }
+    .cardStrip, .deckCards, .curveCards{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .miniCard{
+      width:74px;
+      min-height:102px;
+      border-radius:10px;
+      overflow:hidden;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+      position:relative;
+    }
+    .miniCard img, .deckCardItem img, .curveCardItem img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .miniCardFallback, .curveCardFallback, .deckCardFallback{
+      width:100%;
+      height:100%;
+      min-height:82px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:6px;
+      color:#e2e8f0;
+      font-size:10px;
+      font-weight:1000;
+      word-break:break-word;
+    }
+    .miniCardBadge{
+      position:absolute;
+      left:4px;
+      right:4px;
+      bottom:4px;
+      font-size:10px;
+      font-weight:1000;
+      color:#fff;
+      background:rgba(15,23,42,.86);
+      border-radius:6px;
+      padding:2px 4px;
+      text-align:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .deckList{ display:grid; gap:12px; }
+    .deckCard{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      padding:12px;
+    }
+    .deckMeta{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .deckMeta strong{
+      color:#fbbf24;
+      font-size:21px;
+    }
+    .deckMeta span{
+      color:#e2e8f0;
+      font-weight:800;
+      font-size:13px;
+    }
+    .deckCardItem, .curveCardItem{
+      width:58px;
+      min-height:82px;
+      border-radius:8px;
+      overflow:hidden;
+      position:relative;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .deckCardItem{ width:50px; min-height:72px; }
+    .deckCardItem .qty{
+      position:absolute;
+      left:4px;
+      bottom:4px;
+      background:rgba(15,23,42,.9);
+      color:#fff;
+      font-size:11px;
+      font-weight:1000;
+      border-radius:6px;
+      padding:1px 4px;
+    }
+    .curveGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .curveTable{
+      width:100%;
+      border-collapse:collapse;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      overflow:hidden;
+    }
+    .curveTable th, .curveTable td{
+      border-bottom:1px solid rgba(255,255,255,.1);
+      padding:8px;
+      vertical-align:top;
+    }
+    .curveTable th{
+      text-align:left;
+      color:#f8fafc;
+      background:rgba(255,255,255,.06);
+      font-size:13px;
+    }
+    .curveTable td:first-child{
+      width:54px;
+      color:#fbbf24;
+      font-weight:1000;
+      text-align:center;
+    }
+    .emptyState{
+      background:rgba(255,255,255,.06);
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:14px;
+      padding:16px;
+      color:#cbd5e1;
+      font-size:14px;
+      font-weight:700;
+    }
+    .good{ color:#4ade80; }
+    .bad{ color:#f87171; }
+    .muted{ color:#94a3b8; }
+    .loadingOverlay{
+      position:fixed;
+      inset:0;
+      background:rgba(2,6,23,.7);
+      backdrop-filter:blur(2px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:70;
+    }
+    .loadingBox{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      background:#fff;
+      border-radius:18px;
+      padding:18px 20px;
+      box-shadow:var(--shadow);
+      font-weight:900;
+      color:#0f172a;
+    }
+    .spinner{
+      width:20px;
+      height:20px;
+      border:3px solid rgba(15,23,42,.2);
+      border-top-color:#2563eb;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+    @media (max-width: 1180px){
+      .layout{ grid-template-columns:1fr; }
+      .versus{ min-height:0; position:static; }
+      .controlGrid{ grid-template-columns:repeat(2, minmax(180px, 1fr)); }
+    }
+    @media (max-width: 760px){
+      .page{ padding:0 10px; }
+      .controlGrid, .curveGrid, .leaderHero{ grid-template-columns:1fr; }
+      .panelHead{ flex-direction:column; }
+      .leaderImage, .leaderFallback{
+        width:100%;
+        max-width:240px;
+        height:auto;
+        aspect-ratio:5/7;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+        <div class="brand">
+          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+          <small>matchups</small>
+        </div>
+      </a>
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn primary active" href="matchup-stats.html">&#9876; Matchup Stats</a>
+        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">&mdash;</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loadingOverlay" class="loadingOverlay" aria-live="polite" aria-busy="true">
+    <div class="loadingBox">
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="loadingText">Cargando matchup stats...</span>
+    </div>
+  </div>
+
+  <div class="page">
+    <section class="hero">
+      <div class="heroTop">
+        <div>
+          <h1>Matchup Stats</h1>
+          <p class="heroSub">Selecciona el líder del jugador y el líder rival para ver el cruce completo con winrates, potential tech cards, líneas de curva y decklists filtradas por matchup.</p>
+        </div>
+        <div class="heroControls">
+          <label class="filter">Fuente
+            <select id="datasetSelect">
+              <option value="west_private">West (Private)</option>
+            </select>
+          </label>
+          <label class="filter">Fecha
+            <input id="dateInput" type="date">
+          </label>
+          <button id="btnReload" class="btn2" type="button">Recargar</button>
+        </div>
+      </div>
+      <div class="statusRow">
+        <span id="statusText">Preparando datos...</span>
+        <span id="sourceMeta"></span>
+      </div>
+      <div id="errorBox" class="error"></div>
+    </section>
+
+    <section class="controlsCard">
+      <div class="controlGrid">
+        <div class="controlField">
+          <label for="playerLeaderSelect">Lider jugador</label>
+          <select id="playerLeaderSelect"></select>
+        </div>
+        <div class="controlField">
+          <label for="opponentLeaderSelect">Lider rival</label>
+          <select id="opponentLeaderSelect"></select>
+        </div>
+        <div class="controlField">
+          <label for="deckCountSelect">Decklists por lado</label>
+          <select id="deckCountSelect">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+        <div class="controlField">
+          <label for="techCountSelect">Tech cards por lado</label>
+          <select id="techCountSelect">
+            <option value="6">6</option>
+            <option value="8" selected>8</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <article id="playerPanel" class="matchPanel"></article>
+      <div class="versus">
+        <div id="versusCard" class="versusCard"></div>
+      </div>
+      <article id="opponentPanel" class="matchPanel"></article>
+    </section>
+  </div>
+
+  <script>
+    const DATASETS = {
+      west_private: {
+        label: "West (Private)",
+        statsPrefix: "stats_west_p_",
+        decklistPrefix: "decklist_west_p_",
+        techPrefix: "matchuptech_west_p_",
+        curvePrefix: "curve_lw_"
+      }
+    };
+
+    const sb = window.BarateamApp.createClient({
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+
+    const datasetSelect = document.getElementById("datasetSelect");
+    const dateInput = document.getElementById("dateInput");
+    const btnReload = document.getElementById("btnReload");
+    const deckCountSelect = document.getElementById("deckCountSelect");
+    const techCountSelect = document.getElementById("techCountSelect");
+    const playerLeaderSelect = document.getElementById("playerLeaderSelect");
+    const opponentLeaderSelect = document.getElementById("opponentLeaderSelect");
+    const playerPanel = document.getElementById("playerPanel");
+    const opponentPanel = document.getElementById("opponentPanel");
+    const versusCard = document.getElementById("versusCard");
+    const statusText = document.getElementById("statusText");
+    const sourceMeta = document.getElementById("sourceMeta");
+    const errorBox = document.getElementById("errorBox");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    const loadingText = document.getElementById("loadingText");
+
+    let state = {
+      leaders: [],
+      statsByLeader: new Map(),
+      decklistsByLeader: new Map(),
+      techByPair: new Map(),
+      curveByLeader: new Map(),
+      leaderAssetMap: new Map(),
+      cardAssetMap: new Map(),
+      selectedPlayer: "",
+      selectedOpponent: "",
+      resolvedDate: ""
+    };
+
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeAttr(value){
+      return String(value ?? "").replace(/"/g, "&quot;");
+    }
+
+    function norm(value){
+      return String(value || "").trim();
+    }
+
+    function pct(value){
+      if (value == null || Number.isNaN(Number(value))) return "-";
+      return `${(Number(value) * 100).toFixed(1)}%`;
+    }
+
+    function int(value){
+      return Number(value || 0).toLocaleString("es-ES");
+    }
+
+    function wrClass(value){
+      if (value == null || Number.isNaN(Number(value))) return "muted";
+      return Number(value) >= 0.5 ? "good" : "bad";
+    }
+
+    function toYmd(date){
+      const d = date instanceof Date ? date : new Date(date);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function toCompact(ymd){
+      return String(ymd || "").replaceAll("-", "");
+    }
+
+    function setLoading(on, text){
+      if (text) loadingText.textContent = text;
+      loadingOverlay.style.display = on ? "flex" : "none";
+      document.body.style.overflow = on ? "hidden" : "";
+    }
+
+    function showError(text){
+      errorBox.style.display = "block";
+      errorBox.textContent = text;
+    }
+
+    function clearError(){
+      errorBox.style.display = "none";
+      errorBox.textContent = "";
+    }
+
+    async function fetchJson(url){
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`No disponible (${res.status})`);
+      return res.json();
+    }
+
+    async function loadDatasetWithFallback(ymd, datasetKey){
+      const compact = toCompact(ymd);
+      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/matchup-stats?dataset=${encodeURIComponent(datasetKey)}&date=${compact}`;
+      const payload = await fetchJson(url);
+      const data = payload?.data || {};
+      if (!Array.isArray(data.stats) || !Array.isArray(data.decklist) || !Array.isArray(data.tech) || !Array.isArray(data.curve)) {
+        throw new Error("Formato inesperado del proxy matchup-stats");
+      }
+      return {
+        ymd: payload?.date ? `${String(payload.date).slice(0, 4)}-${String(payload.date).slice(4, 6)}-${String(payload.date).slice(6, 8)}` : ymd,
+        stats: data.stats,
+        decklist: data.decklist,
+        tech: data.tech,
+        curve: data.curve
+      };
+    }
+
+    function normalizeStatsRows(rows){
+      return (Array.isArray(rows) ? rows : []).map((row) => ({
+        leader: norm(row?.leader),
+        leaderName: norm(row?.leaderName || row?.leader),
+        wins: Number(row?.wins || 0),
+        number_of_matches: Number(row?.number_of_matches || 0),
+        raw_win_rate: row?.raw_win_rate == null ? null : Number(row.raw_win_rate),
+        first_win_rate: row?.first_win_rate == null ? null : Number(row.first_win_rate),
+        second_win_rate: row?.second_win_rate == null ? null : Number(row.second_win_rate),
+        matchups: Array.isArray(row?.matchups) ? row.matchups.map((m) => ({
+          opponent: norm(m?.opponent),
+          wins: Number(m?.wins || 0),
+          total_games: Number(m?.total_games || 0),
+          matchup_win_rate: m?.matchup_win_rate == null ? null : Number(m.matchup_win_rate),
+          first_wins: Number(m?.first_wins || 0),
+          first_games: Number(m?.first_games || 0),
+          first_win_rate: m?.first_win_rate == null ? null : Number(m.first_win_rate),
+          second_wins: Number(m?.second_wins || 0),
+          second_games: Number(m?.second_games || 0),
+          second_win_rate: m?.second_win_rate == null ? null : Number(m.second_win_rate)
+        })) : []
+      })).filter((row) => row.leader);
+    }
+
+    function normalizeDecklistRows(rows){
+      return (Array.isArray(rows) ? rows : []).map((row) => ({
+        leader: norm(row?.leader),
+        leaderName: norm(row?.leaderName || row?.leader),
+        best_decklists: Array.isArray(row?.best_decklists) ? row.best_decklists : []
+      })).filter((row) => row.leader);
+    }
+
+    function normalizeTechRows(rows){
+      return (Array.isArray(rows) ? rows : []).map((row) => ({
+        winnerLeader: norm(row?.winnerLeader),
+        loserLeader: norm(row?.loserLeader),
+        tech_cards: Array.isArray(row?.tech_cards) ? row.tech_cards : []
+      })).filter((row) => row.winnerLeader && row.loserLeader);
+    }
+
+    function normalizeCurveRows(rows){
+      return (Array.isArray(rows) ? rows : []).map((row) => ({
+        leader: norm(row?.leader),
+        gameMode: Number(row?.gameMode || 0),
+        first: Array.isArray(row?.first) ? row.first : [],
+        second: Array.isArray(row?.second) ? row.second : []
+      })).filter((row) => row.leader);
+    }
+
+    function pairKey(a, b){
+      return `${norm(a)}__${norm(b)}`;
+    }
+
+    function leaderNameByCode(code){
+      const key = norm(code);
+      return state.leaderAssetMap.get(key)?.name || state.statsByLeader.get(key)?.leaderName || key || "Leader";
+    }
+
+    function leaderImageByCode(code){
+      const asset = state.leaderAssetMap.get(norm(code)) || null;
+      return norm(asset?.parallel_image_url || asset?.image_url || "");
+    }
+
+    function cardAssetByCode(code){
+      return state.cardAssetMap.get(norm(code)) || null;
+    }
+
+    function cardImageByCode(code){
+      return norm(cardAssetByCode(code)?.image_url || "");
+    }
+
+    async function fetchLeaderAssets(codes){
+      const uniqueCodes = [...new Set((codes || []).map((x) => norm(x)).filter(Boolean))];
+      if (!uniqueCodes.length){
+        state.leaderAssetMap = new Map();
+        return;
+      }
+      const { data, error } = await sb.from("leaders").select("code,name,image_url,parallel_image_url").in("code", uniqueCodes);
+      if (error || !Array.isArray(data)){
+        state.leaderAssetMap = new Map();
+        return;
+      }
+      state.leaderAssetMap = new Map(data.map((row) => [norm(row?.code), {
+        name: norm(row?.name || row?.code),
+        image_url: norm(row?.image_url),
+        parallel_image_url: norm(row?.parallel_image_url)
+      }]));
+    }
+
+    async function fetchCardAssets(codes){
+      const uniqueCodes = [...new Set((codes || []).map((x) => norm(x)).filter(Boolean))];
+      const missing = uniqueCodes.filter((code) => !state.cardAssetMap.has(code));
+      if (!missing.length) return;
+      try{
+        const { data, error } = await sb.from("cards").select("code,name,image_url").in("code", missing);
+        if (error || !Array.isArray(data)) return;
+        for (const row of data){
+          state.cardAssetMap.set(norm(row?.code), {
+            name: norm(row?.name || row?.code),
+            image_url: norm(row?.image_url)
+          });
+        }
+      }catch(_err){
+      }
+    }
+
+    function populateLeaderSelect(select, selectedCode){
+      select.innerHTML = state.leaders.map((row) => {
+        const selected = row.leader === selectedCode ? " selected" : "";
+        return `<option value="${escapeAttr(row.leader)}"${selected}>[${escapeHtml(row.leader)}] ${escapeHtml(row.leaderName)}</option>`;
+      }).join("");
+      if (!select.value && state.leaders[0]) select.value = state.leaders[0].leader;
+    }
+
+    function getMatchupSummary(leaderCode, opponentCode){
+      return state.statsByLeader.get(norm(leaderCode))?.matchups.find((row) => row.opponent === norm(opponentCode)) || null;
+    }
+
+    function findTechEntry(winnerCode, loserCode){
+      return state.techByPair.get(pairKey(winnerCode, loserCode)) || null;
+    }
+
+    function scoreCurveRowForOpponent(row, opponentCode){
+      return [row?.first || [], row?.second || []].flat().reduce((count, turnRow) => {
+        const hit = Array.isArray(turnRow?.vs_opp) && turnRow.vs_opp.some((item) => norm(item?.opp_leader) === norm(opponentCode));
+        return count + (hit ? 1 : 0);
+      }, 0);
+    }
+
+    function getCurveRow(leaderCode, opponentCode){
+      const rows = state.curveByLeader.get(norm(leaderCode)) || [];
+      return [...rows].sort((a, b) => scoreCurveRowForOpponent(b, opponentCode) - scoreCurveRowForOpponent(a, opponentCode))[0] || null;
+    }
+
+    function getCurveTurns(leaderCode, opponentCode, orderKey){
+      const row = getCurveRow(leaderCode, opponentCode);
+      const turns = Array.isArray(row?.[orderKey]) ? row[orderKey] : [];
+      return turns.map((turnRow) => {
+        const hit = Array.isArray(turnRow?.vs_opp) ? turnRow.vs_opp.find((item) => norm(item?.opp_leader) === norm(opponentCode)) : null;
+        return {
+          turn: Number(turnRow?.turn || 0),
+          combo: norm(hit?.top?.combo || turnRow?.overall?.combo || ""),
+          isFallback: !hit && !!norm(turnRow?.overall?.combo || "")
+        };
+      }).filter((rowItem) => rowItem.turn > 0);
+    }
+
+    function splitComboCodes(combo){
+      return String(combo || "").split("+").map((part) => norm(part)).filter(Boolean);
+    }
+
+    function parseDecklist(decklistText){
+      return String(decklistText || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
+        const match = line.match(/^(\d+)x(.+)$/i);
+        return match ? { qty: Number(match[1] || 0), code: norm(match[2]) } : null;
+      }).filter(Boolean);
+    }
+
+    function getDecklistsForMatchup(leaderCode, opponentCode, limit){
+      const row = state.decklistsByLeader.get(norm(leaderCode)) || null;
+      if (!row) return [];
+      return row.best_decklists.map((deck) => {
+        const matchup = Array.isArray(deck?.matchup_stats) ? deck.matchup_stats.find((item) => norm(item?.oppLeader) === norm(opponentCode)) : null;
+        return matchup ? { ...deck, matchup } : null;
+      }).filter(Boolean).sort((a, b) => {
+        const wrDiff = Number(b.matchup?.win_rate || 0) - Number(a.matchup?.win_rate || 0);
+        return wrDiff || (Number(b.matchup?.games_played || 0) - Number(a.matchup?.games_played || 0));
+      }).slice(0, limit);
+    }
+
+    function collectCardCodesForCurrentView(playerCode, opponentCode){
+      const codes = new Set();
+      const techLimit = Number(techCountSelect.value || 8);
+      const deckLimit = Number(deckCountSelect.value || 3);
+      for (const entry of [findTechEntry(playerCode, opponentCode), findTechEntry(opponentCode, playerCode)]){
+        for (const tech of (entry?.tech_cards || []).slice(0, techLimit)) if (tech?.card) codes.add(norm(tech.card));
+      }
+      for (const deck of [...getDecklistsForMatchup(playerCode, opponentCode, deckLimit), ...getDecklistsForMatchup(opponentCode, playerCode, deckLimit)]){
+        for (const item of parseDecklist(deck?.decklist || "")) if (item?.code) codes.add(item.code);
+      }
+      for (const turn of [...getCurveTurns(playerCode, opponentCode, "first"), ...getCurveTurns(playerCode, opponentCode, "second"), ...getCurveTurns(opponentCode, playerCode, "first"), ...getCurveTurns(opponentCode, playerCode, "second")]){
+        for (const code of splitComboCodes(turn.combo)) codes.add(code);
+      }
+      return [...codes];
+    }
+
+    function renderLeaderVisual(code){
+      const src = leaderImageByCode(code);
+      const name = leaderNameByCode(code);
+      return src
+        ? `<img class="leaderImage" src="${escapeAttr(src)}" alt="${escapeAttr(name)}" loading="lazy">`
+        : `<div class="leaderFallback">${escapeHtml(name)}</div>`;
+    }
+
+    function renderMiniCard(code, badgeText){
+      const src = cardImageByCode(code);
+      const label = cardAssetByCode(code)?.name || code;
+      return src
+        ? `<div class="miniCard" title="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy">${badgeText ? `<div class="miniCardBadge">${escapeHtml(badgeText)}</div>` : ""}</div>`
+        : `<div class="miniCard" title="${escapeAttr(label)}"><div class="miniCardFallback">${escapeHtml(label)}</div>${badgeText ? `<div class="miniCardBadge">${escapeHtml(badgeText)}</div>` : ""}</div>`;
+    }
+
+    function renderDeckCard(code, qty){
+      const src = cardImageByCode(code);
+      const label = cardAssetByCode(code)?.name || code;
+      return src
+        ? `<div class="deckCardItem" title="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy"><span class="qty">${escapeHtml(`${qty}x`)}</span></div>`
+        : `<div class="deckCardItem" title="${escapeAttr(label)}"><div class="deckCardFallback">${escapeHtml(label)}</div><span class="qty">${escapeHtml(`${qty}x`)}</span></div>`;
+    }
+
+    function renderCurveCard(code){
+      const src = cardImageByCode(code);
+      const label = cardAssetByCode(code)?.name || code;
+      return src
+        ? `<div class="curveCardItem" title="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy"></div>`
+        : `<div class="curveCardItem" title="${escapeAttr(label)}"><div class="curveCardFallback">${escapeHtml(label)}</div></div>`;
+    }
+
+    function renderTechCards(entry){
+      const limit = Number(techCountSelect.value || 8);
+      const techCards = Array.isArray(entry?.tech_cards) ? entry.tech_cards.slice(0, limit) : [];
+      return techCards.length
+        ? `<div class="cardStrip">${techCards.map((card) => renderMiniCard(card.card, `${pct(card.frequency_difference)} diff`)).join("")}</div>`
+        : `<div class="emptyState">No hay tech cards especificas para este lado del matchup.</div>`;
+    }
+
+    function renderDecklists(leaderCode, opponentCode){
+      const decks = getDecklistsForMatchup(leaderCode, opponentCode, Number(deckCountSelect.value || 3));
+      if (!decks.length) return `<div class="emptyState">No hay decklists top con datos suficientes contra este rival.</div>`;
+      return `<div class="deckList">${decks.map((deck, index) => {
+        const items = parseDecklist(deck.decklist || "");
+        const firstWr = deck.matchup?.turn_order_stats?.first_games ? deck.matchup.turn_order_stats.first_wins / deck.matchup.turn_order_stats.first_games : null;
+        const secondWr = deck.matchup?.turn_order_stats?.second_games ? deck.matchup.turn_order_stats.second_wins / deck.matchup.turn_order_stats.second_games : null;
+        return `<div class="deckCard"><div class="deckMeta"><div><strong>#${index + 1} · ${pct(deck.matchup?.win_rate)}</strong><span> (${int(deck.matchup?.games_played)} games)</span></div><span>WR 1st ${pct(firstWr)} · WR 2nd ${pct(secondWr)}</span></div><div class="deckCards">${items.map((item) => renderDeckCard(item.code, item.qty)).join("")}</div></div>`;
+      }).join("")}</div>`;
+    }
+
+    function renderCurveTable(turns, title){
+      if (!turns.length) return `<div class="emptyState">No hay datos de curva.</div>`;
+      return `<table class="curveTable"><thead><tr><th>Turn</th><th>${escapeHtml(title)}</th></tr></thead><tbody>${turns.map((turn) => `<tr><td>${int(turn.turn)}</td><td>${turn.combo ? `<div class="curveCards">${splitComboCodes(turn.combo).map((code) => renderCurveCard(code)).join("")}</div>${turn.isFallback ? '<div class="muted" style="margin-top:6px;font-size:11px;">Usando combo general por falta de muestra específica vs rival.</div>' : ""}` : `<span class="muted">-</span>`}</td></tr>`).join("")}</tbody></table>`;
+    }
+
+    function renderPanel(leaderCode, opponentCode, side){
+      const summary = getMatchupSummary(leaderCode, opponentCode);
+      const leaderStat = state.statsByLeader.get(norm(leaderCode)) || null;
+      const tech = findTechEntry(leaderCode, opponentCode);
+      const sideLabel = side === "player" ? "Jugador" : "Rival";
+      return `
+        <div class="panelHead">
+          <div>
+            <div class="leaderCode">${escapeHtml(sideLabel)}</div>
+            <div class="leaderHero">
+              <div>${renderLeaderVisual(leaderCode)}</div>
+              <div>
+                <div class="leaderCode">${escapeHtml(leaderCode)}</div>
+                <div class="leaderName">${escapeHtml(leaderNameByCode(leaderCode))}</div>
+                <div class="kpiGrid">
+                  <div class="kpi"><span>Win Rate</span><b class="${wrClass(summary?.matchup_win_rate)}">${pct(summary?.matchup_win_rate)}</b></div>
+                  <div class="kpi"><span>Partidas</span><b>${int(summary?.total_games)}</b></div>
+                  <div class="kpi"><span>1st Winrate</span><b class="${wrClass(summary?.first_win_rate)}">${pct(summary?.first_win_rate)}</b></div>
+                  <div class="kpi"><span>2nd Winrate</span><b class="${wrClass(summary?.second_win_rate)}">${pct(summary?.second_win_rate)}</b></div>
+                </div>
+                <div class="muted" style="margin-top:10px;font-size:12px;">Global del lider: ${pct(leaderStat?.raw_win_rate)} en ${int(leaderStat?.number_of_matches)} partidas.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <section class="section">
+          <h3>Potential Tech Cards</h3>
+          <p>Cartas que aparecen con mayor frecuencia en las victorias de este líder contra el rival seleccionado.</p>
+          ${renderTechCards(tech)}
+        </section>
+        <section class="section">
+          <h3>Top Decklists vs ${escapeHtml(leaderNameByCode(opponentCode))}</h3>
+          <p>Decklists del líder filtradas por matchup directo contra este rival.</p>
+          ${renderDecklists(leaderCode, opponentCode)}
+        </section>
+        <section class="section">
+          <h3>Curve into ${escapeHtml(leaderNameByCode(opponentCode))}</h3>
+          <p>Se usan las líneas específicas contra el rival y, si faltan, se cae al combo general de ese turno.</p>
+          <div class="curveGrid">
+            <div>${renderCurveTable(getCurveTurns(leaderCode, opponentCode, "first"), "Going 1st")}</div>
+            <div>${renderCurveTable(getCurveTurns(leaderCode, opponentCode, "second"), "Going 2nd")}</div>
+          </div>
+        </section>
+      `;
+    }
+
+    async function renderMatchup(){
+      const playerCode = norm(playerLeaderSelect.value);
+      const opponentCode = norm(opponentLeaderSelect.value);
+      state.selectedPlayer = playerCode;
+      state.selectedOpponent = opponentCode;
+      if (!playerCode || !opponentCode){
+        playerPanel.innerHTML = `<div class="emptyState">Selecciona ambos líderes.</div>`;
+        opponentPanel.innerHTML = `<div class="emptyState">Selecciona ambos líderes.</div>`;
+        versusCard.innerHTML = `<div class="vs">VS</div><div class="meta">Sin seleccion</div>`;
+        return;
+      }
+      await fetchCardAssets(collectCardCodesForCurrentView(playerCode, opponentCode));
+      playerPanel.innerHTML = renderPanel(playerCode, opponentCode, "player");
+      opponentPanel.innerHTML = renderPanel(opponentCode, playerCode, "opponent");
+      const games = Math.max(Number(getMatchupSummary(playerCode, opponentCode)?.total_games || 0), Number(getMatchupSummary(opponentCode, playerCode)?.total_games || 0));
+      versusCard.innerHTML = `<div class="vs">VS</div><div class="matches">${int(games)}</div><div class="meta"># Matches</div>`;
+    }
+
+    function syncSelects(){
+      if (!state.leaders.length){
+        playerLeaderSelect.innerHTML = "";
+        opponentLeaderSelect.innerHTML = "";
+        return;
+      }
+      if (!state.selectedPlayer || !state.leaders.some((row) => row.leader === state.selectedPlayer)){
+        state.selectedPlayer = state.leaders[0].leader;
+      }
+      if (!state.selectedOpponent || state.selectedOpponent === state.selectedPlayer || !state.leaders.some((row) => row.leader === state.selectedOpponent)){
+        state.selectedOpponent = state.leaders.find((row) => row.leader !== state.selectedPlayer)?.leader || state.selectedPlayer;
+      }
+      populateLeaderSelect(playerLeaderSelect, state.selectedPlayer);
+      populateLeaderSelect(opponentLeaderSelect, state.selectedOpponent);
+      if (playerLeaderSelect.value === opponentLeaderSelect.value){
+        const alternative = state.leaders.find((row) => row.leader !== playerLeaderSelect.value);
+        if (alternative) opponentLeaderSelect.value = alternative.leader;
+      }
+    }
+
+    async function reload(){
+      clearError();
+      setLoading(true, "Cargando matchup stats...");
+      statusText.textContent = "Cargando JSONs de CardKaizoku...";
+      sourceMeta.textContent = "";
+      try{
+        const requestedDate = dateInput.value || toYmd(new Date());
+        const loaded = await loadDatasetWithFallback(requestedDate, datasetSelect.value || "west_private");
+        const statRows = normalizeStatsRows(loaded.stats);
+        const deckRows = normalizeDecklistRows(loaded.decklist);
+        const techRows = normalizeTechRows(loaded.tech);
+        const curveRows = normalizeCurveRows(loaded.curve);
+
+        state.resolvedDate = loaded.ymd;
+        state.leaders = [...statRows].sort((a, b) => b.number_of_matches - a.number_of_matches);
+        state.statsByLeader = new Map(statRows.map((row) => [row.leader, row]));
+        state.decklistsByLeader = new Map(deckRows.map((row) => [row.leader, row]));
+        state.techByPair = new Map(techRows.map((row) => [pairKey(row.winnerLeader, row.loserLeader), row]));
+
+        const curveMap = new Map();
+        for (const row of curveRows){
+          const list = curveMap.get(row.leader) || [];
+          list.push(row);
+          curveMap.set(row.leader, list);
+        }
+        state.curveByLeader = curveMap;
+
+        const leaderCodes = new Set();
+        for (const row of statRows){
+          leaderCodes.add(row.leader);
+          for (const matchup of row.matchups) if (matchup?.opponent) leaderCodes.add(matchup.opponent);
+        }
+        await fetchLeaderAssets([...leaderCodes]);
+        syncSelects();
+        await renderMatchup();
+
+        statusText.textContent = `Fuente cargada: ${DATASETS[datasetSelect.value || "west_private"].label}`;
+        sourceMeta.textContent = `Fecha usada: ${loaded.ymd}${loaded.ymd !== requestedDate ? ` · fallback desde ${requestedDate}` : ""}`;
+      }catch(err){
+        playerPanel.innerHTML = `<div class="emptyState">No se pudieron cargar los datos.</div>`;
+        opponentPanel.innerHTML = `<div class="emptyState">No se pudieron cargar los datos.</div>`;
+        versusCard.innerHTML = `<div class="vs">VS</div><div class="meta">Error</div>`;
+        showError((err?.message || "No se pudieron cargar matchup stats") + ". Revisa si la edge function 'matchup-stats' esta desplegada.");
+        statusText.textContent = "Error cargando matchup stats";
+      }finally{
+        setLoading(false);
+      }
+    }
+
+    playerLeaderSelect.addEventListener("change", async () => {
+      if (playerLeaderSelect.value === opponentLeaderSelect.value){
+        const alternative = state.leaders.find((row) => row.leader !== playerLeaderSelect.value);
+        if (alternative) opponentLeaderSelect.value = alternative.leader;
+      }
+      await renderMatchup();
+    });
+
+    opponentLeaderSelect.addEventListener("change", async () => {
+      if (playerLeaderSelect.value === opponentLeaderSelect.value){
+        const alternative = state.leaders.find((row) => row.leader !== opponentLeaderSelect.value);
+        if (alternative) playerLeaderSelect.value = alternative.leader;
+      }
+      await renderMatchup();
+    });
+
+    deckCountSelect.addEventListener("change", renderMatchup);
+    techCountSelect.addEventListener("change", renderMatchup);
+    btnReload.addEventListener("click", reload);
+    datasetSelect.addEventListener("change", reload);
+
+    (function init(){
+      dateInput.value = toYmd(new Date());
+      reload();
+    })();
+  </script>
+</body>
+</html>
