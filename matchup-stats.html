@@ -392,6 +392,12 @@
       grid-template-columns:1fr 1fr;
       gap:12px;
     }
+    .curveDesktop{
+      display:block;
+    }
+    .curveMobile{
+      display:none;
+    }
     .curveTable{
       width:100%;
       border-collapse:collapse;
@@ -416,6 +422,17 @@
       color:#fbbf24;
       font-weight:1000;
       text-align:center;
+    }
+    .curveTableCompact th,
+    .curveTableCompact td{
+      text-align:center;
+    }
+    .curveTableCompact td:first-child{
+      width:48px;
+    }
+    .curveTableCompact .curveCards{
+      justify-content:center;
+      gap:4px;
     }
     .cardZoom{
       cursor:zoom-in;
@@ -497,12 +514,62 @@
     @media (max-width: 760px){
       .page{ padding:0 10px; }
       .controlGrid, .curveGrid, .leaderHero{ grid-template-columns:1fr; }
-      .panelHead{ flex-direction:column; }
+      .curveDesktop{ display:none; }
+      .curveMobile{ display:block; }
+      .panelHead{
+        flex-direction:column;
+        align-items:center;
+      }
+      .panelHead > div{
+        width:100%;
+        max-width:340px;
+        margin:0 auto;
+      }
+      .leaderHero{
+        width:100%;
+        max-width:340px;
+        margin:0 auto;
+        justify-items:center;
+      }
       .leaderImage, .leaderFallback{
         width:100%;
         max-width:240px;
         height:auto;
         aspect-ratio:5/7;
+      }
+      .leaderHero > div:last-child{
+        width:100%;
+        max-width:340px;
+        margin:0 auto;
+        text-align:center;
+      }
+      .leaderCode,
+      .leaderName{
+        text-align:center;
+      }
+      .leaderHero .muted{
+        text-align:center;
+      }
+      .kpiGrid{
+        max-width:340px;
+        margin:12px auto 0;
+      }
+      .kpi{
+        text-align:center;
+      }
+      .section{
+        text-align:center;
+      }
+      .section p{
+        max-width:520px;
+        margin-left:auto;
+        margin-right:auto;
+      }
+      .cardStrip, .deckCards, .curveCards{
+        justify-content:center;
+      }
+      .curveTableCompact .curveCardItem{
+        width:44px;
       }
       .cardPreview{ display:none !important; }
     }
@@ -533,6 +600,95 @@
     }
     body.embedMode .versusCard{
       border-radius:18px;
+    }
+    .mobileCompareBar{
+      display:none;
+    }
+    body.embedMode.mobileCompare .mobileCompareBar{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
+      gap:10px;
+      align-items:center;
+      position:sticky;
+      top:0;
+      z-index:15;
+      margin-bottom:10px;
+      padding:8px;
+      border-radius:18px;
+      background:rgba(15,23,42,.92);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:0 14px 30px rgba(2,6,23,.28);
+      backdrop-filter:blur(10px);
+    }
+    .mobileCompareTab{
+      min-width:0;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#cbd5e1;
+      border-radius:14px;
+      padding:10px 12px;
+      text-align:left;
+      cursor:pointer;
+    }
+    .mobileCompareTab.isActive{
+      background:linear-gradient(135deg, rgba(37,99,235,.94), rgba(14,165,233,.9));
+      color:#fff;
+      border-color:rgba(255,255,255,.22);
+      box-shadow:0 10px 22px rgba(37,99,235,.26);
+    }
+    .mobileCompareTabTitle{
+      display:block;
+      font-size:11px;
+      font-weight:1000;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      opacity:.8;
+    }
+    .mobileCompareTabLabel{
+      display:block;
+      margin-top:4px;
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .mobileCompareCenter{
+      min-width:74px;
+      text-align:center;
+      color:#fff;
+    }
+    .mobileCompareCenter .vs{
+      display:block;
+      color:#fbbf24;
+      font-size:12px;
+      font-weight:1000;
+      letter-spacing:.08em;
+    }
+    .mobileCompareCenter .matches{
+      display:block;
+      margin-top:4px;
+      font-size:18px;
+      font-weight:1000;
+      line-height:1;
+    }
+    .mobileCompareCenter .meta{
+      display:block;
+      margin-top:2px;
+      font-size:10px;
+      font-weight:800;
+      color:rgba(255,255,255,.64);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    body.embedMode.mobileCompare .layout{
+      display:block;
+    }
+    body.embedMode.mobileCompare .versus{
+      display:none;
+    }
+    body.embedMode.mobileCompare .matchPanel.isCompareHidden{
+      display:none;
     }
     @media (max-width: 760px){
       body.embedMode .page{
@@ -648,6 +804,22 @@
       </div>
     </section>
 
+    <section id="mobileCompareBar" class="mobileCompareBar" aria-label="Cambiar lado del matchup">
+      <button id="mobileComparePlayerTab" class="mobileCompareTab isActive" type="button">
+        <span class="mobileCompareTabTitle">Jugador</span>
+        <span id="mobileComparePlayerLabel" class="mobileCompareTabLabel">-</span>
+      </button>
+      <div class="mobileCompareCenter" aria-hidden="true">
+        <span class="vs">VS</span>
+        <span id="mobileCompareMatches" class="matches">-</span>
+        <span class="meta">Matches</span>
+      </div>
+      <button id="mobileCompareOpponentTab" class="mobileCompareTab" type="button">
+        <span class="mobileCompareTabTitle">Rival</span>
+        <span id="mobileCompareOpponentLabel" class="mobileCompareTabLabel">-</span>
+      </button>
+    </section>
+
     <section class="layout">
       <article id="playerPanel" class="matchPanel"></article>
       <div class="versus">
@@ -696,6 +868,12 @@
     const playerPanel = document.getElementById("playerPanel");
     const opponentPanel = document.getElementById("opponentPanel");
     const versusCard = document.getElementById("versusCard");
+    const mobileCompareBar = document.getElementById("mobileCompareBar");
+    const mobileComparePlayerTab = document.getElementById("mobileComparePlayerTab");
+    const mobileCompareOpponentTab = document.getElementById("mobileCompareOpponentTab");
+    const mobileComparePlayerLabel = document.getElementById("mobileComparePlayerLabel");
+    const mobileCompareOpponentLabel = document.getElementById("mobileCompareOpponentLabel");
+    const mobileCompareMatches = document.getElementById("mobileCompareMatches");
     const statusText = document.getElementById("statusText");
     const sourceMeta = document.getElementById("sourceMeta");
     const errorBox = document.getElementById("errorBox");
@@ -735,6 +913,7 @@
       selectedOpponent: initialOpponentLeader,
       resolvedDate: ""
     };
+    let activeCompareSide = "player";
 
     function escapeHtml(value){
       return String(value ?? "")
@@ -1055,6 +1234,39 @@
       return `${norm(a)}__${norm(b)}`;
     }
 
+    function mobileCompareEnabled(){
+      return embedMode && window.innerWidth <= 760;
+    }
+
+    function mobileCompareLabel(code, fallback){
+      const name = leaderNameByCode(code);
+      return norm(name || fallback || code || "-");
+    }
+
+    function updateMobileCompareBar(games = null){
+      const enabled = mobileCompareEnabled();
+      document.body.classList.toggle("mobileCompare", enabled);
+      playerPanel.classList.toggle("isCompareHidden", enabled && activeCompareSide !== "player");
+      opponentPanel.classList.toggle("isCompareHidden", enabled && activeCompareSide !== "opponent");
+
+      if (!enabled) return;
+
+      mobileComparePlayerLabel.textContent = mobileCompareLabel(state.selectedPlayer, "Jugador");
+      mobileCompareOpponentLabel.textContent = mobileCompareLabel(state.selectedOpponent, "Rival");
+      mobileCompareMatches.textContent = games == null ? "-" : int(games);
+      mobileComparePlayerTab.classList.toggle("isActive", activeCompareSide === "player");
+      mobileCompareOpponentTab.classList.toggle("isActive", activeCompareSide === "opponent");
+    }
+
+    function setActiveCompareSide(side){
+      activeCompareSide = side === "opponent" ? "opponent" : "player";
+      const games = Math.max(
+        Number(getMatchupSummary(state.selectedPlayer, state.selectedOpponent)?.total_games || 0),
+        Number(getMatchupSummary(state.selectedOpponent, state.selectedPlayer)?.total_games || 0)
+      );
+      updateMobileCompareBar(games);
+    }
+
     function leaderNameByCode(code){
       const key = norm(code);
       return state.leaderAssetMap.get(key)?.name || state.statsByLeader.get(key)?.leaderName || key || "Leader";
@@ -1327,6 +1539,27 @@
       return `<table class="curveTable"><thead><tr><th>Turn</th><th>${escapeHtml(title)}</th></tr></thead><tbody>${visibleTurns.map((turn) => `<tr><td>${int(turn.turn)}</td><td>${turn.combo ? `<div class="curveCards">${splitComboCodes(turn.combo, { unique: true }).map((code) => renderCurveCard(code)).join("")}</div>${turn.isFallback ? '<div class="muted" style="margin-top:6px;font-size:11px;">Usando combo general por falta de muestra específica vs rival.</div>' : ""}` : `<span class="muted">-</span>`}</td></tr>`).join("")}</tbody></table>`;
     }
 
+    function renderCurveCell(turn){
+      if (!turn?.combo) return `<span class="muted">-</span>`;
+      return `${`<div class="curveCards">${splitComboCodes(turn.combo, { unique: true }).map((code) => renderCurveCard(code)).join("")}</div>`}${turn.isFallback ? '<div class="muted" style="margin-top:6px;font-size:11px;">Fallback</div>' : ""}`;
+    }
+
+    function renderCurveCombinedTable(firstTurns, secondTurns){
+      const firstMap = new Map((Array.isArray(firstTurns) ? firstTurns : []).map((turn) => [Number(turn?.turn || 0), turn]));
+      const secondMap = new Map((Array.isArray(secondTurns) ? secondTurns : []).map((turn) => [Number(turn?.turn || 0), turn]));
+      const rows = [];
+
+      for (let turn = 1; turn <= 6; turn += 1){
+        const first = firstMap.get(turn) || null;
+        const second = secondMap.get(turn) || null;
+        if (!first && !second) continue;
+        rows.push({ turn, first, second });
+      }
+
+      if (!rows.length) return `<div class="emptyState">No hay datos de curva.</div>`;
+      return `<table class="curveTable curveTableCompact"><thead><tr><th>Turn</th><th>1st</th><th>2nd</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${int(row.turn)}</td><td>${renderCurveCell(row.first)}</td><td>${renderCurveCell(row.second)}</td></tr>`).join("")}</tbody></table>`;
+    }
+
     function renderPanel(leaderCode, opponentCode, side){
       const summary = getMatchupSummary(leaderCode, opponentCode);
       const leaderStat = state.statsByLeader.get(norm(leaderCode)) || null;
@@ -1365,9 +1598,14 @@
         <section class="section">
           <h3>Curve into ${escapeHtml(leaderNameByCode(opponentCode))}</h3>
           <p>Se usan las líneas específicas contra el rival y, si faltan, se cae al combo general de ese turno.</p>
-          <div class="curveGrid">
-            <div>${renderCurveTable(getCurveTurns(leaderCode, opponentCode, "first"), "Going 1st")}</div>
-            <div>${renderCurveTable(getCurveTurns(leaderCode, opponentCode, "second"), "Going 2nd")}</div>
+          <div class="curveDesktop">
+            <div class="curveGrid">
+              <div>${renderCurveTable(getCurveTurns(leaderCode, opponentCode, "first"), "Going 1st")}</div>
+              <div>${renderCurveTable(getCurveTurns(leaderCode, opponentCode, "second"), "Going 2nd")}</div>
+            </div>
+          </div>
+          <div class="curveMobile">
+            ${renderCurveCombinedTable(getCurveTurns(leaderCode, opponentCode, "first"), getCurveTurns(leaderCode, opponentCode, "second"))}
           </div>
         </section>
       `;
@@ -1382,6 +1620,7 @@
         playerPanel.innerHTML = `<div class="emptyState">Selecciona ambos líderes.</div>`;
         opponentPanel.innerHTML = `<div class="emptyState">Selecciona ambos líderes.</div>`;
         versusCard.innerHTML = `<div class="vs">VS</div><div class="meta">Sin seleccion</div>`;
+        updateMobileCompareBar(null);
         return;
       }
       await fetchCardAssets(collectCardCodesForCurrentView(playerCode, opponentCode));
@@ -1389,6 +1628,7 @@
       opponentPanel.innerHTML = renderPanel(opponentCode, playerCode, "opponent");
       const games = Math.max(Number(getMatchupSummary(playerCode, opponentCode)?.total_games || 0), Number(getMatchupSummary(opponentCode, playerCode)?.total_games || 0));
       versusCard.innerHTML = `<div class="vs">VS</div><div class="matches">${int(games)}</div><div class="meta"># Matches</div>`;
+      updateMobileCompareBar(games);
     }
 
     function syncSelects(){
@@ -1462,6 +1702,21 @@
 
     opponentLeaderSelect.addEventListener("change", async () => {
       await renderMatchup();
+    });
+
+    mobileComparePlayerTab.addEventListener("click", () => {
+      setActiveCompareSide("player");
+    });
+
+    mobileCompareOpponentTab.addEventListener("click", () => {
+      setActiveCompareSide("opponent");
+    });
+
+    window.addEventListener("resize", () => {
+      updateMobileCompareBar(Math.max(
+        Number(getMatchupSummary(state.selectedPlayer, state.selectedOpponent)?.total_games || 0),
+        Number(getMatchupSummary(state.selectedOpponent, state.selectedPlayer)?.total_games || 0)
+      ));
     });
 
     deckCountSelect.addEventListener("change", renderMatchup);
