@@ -274,6 +274,7 @@
       border:1px solid rgba(15,23,42,.08);
       background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(248,250,252,.92));
       box-shadow:0 14px 28px rgba(15,23,42,.08);
+      cursor:pointer;
     }
     .leaderArtWrap{
       position:relative;
@@ -349,6 +350,86 @@
       font-weight:700;
       padding:18px 0;
     }
+    .modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(2,6,23,.72);
+      backdrop-filter:blur(6px);
+      z-index:12000;
+    }
+    .modal.open{
+      display:flex;
+    }
+    .modalCard{
+      width:min(520px, calc(100vw - 24px));
+      max-height:min(92vh, 960px);
+      overflow:auto;
+      border-radius:20px;
+      border:1px solid rgba(255,255,255,.16);
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96));
+      box-shadow:0 30px 70px rgba(0,0,0,.35);
+      padding:14px;
+    }
+    .modalLayout{
+      display:grid;
+      justify-items:center;
+      gap:12px;
+    }
+    .modalArt{
+      width:100%;
+      max-width:360px;
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid rgba(15,23,42,.08);
+      background:#fff;
+    }
+    .modalArt img{
+      width:100%;
+      height:auto;
+      display:block;
+    }
+    .modalInfo{
+      display:grid;
+      gap:10px;
+      align-content:start;
+      justify-items:center;
+      text-align:center;
+    }
+    .modalInfo h3{
+      margin:0;
+      font-size:28px;
+      line-height:1.04;
+      color:#0f172a;
+      font-weight:1000;
+    }
+    .modalCode{
+      color:#64748b;
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .modalCloseRow{
+      display:flex;
+      justify-content:flex-end;
+      margin-bottom:8px;
+    }
+    .modalClose{
+      width:40px;
+      height:40px;
+      border:none;
+      border-radius:999px;
+      background:#e2e8f0;
+      color:#0f172a;
+      font-size:24px;
+      line-height:1;
+      cursor:pointer;
+      font-weight:900;
+    }
     .loginGate{
       margin-top:14px;
     }
@@ -372,6 +453,8 @@
       .colorGrid{ grid-template-columns:1fr; }
       .leaderGrid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
       .leaderName{ font-size:15px; }
+      .modalInfo h3{ font-size:22px; }
+      .modalArt{ max-width:320px; }
     }
   </style>
 </head>
@@ -418,7 +501,7 @@
   <div class="page">
     <section class="hero">
       <h1>Lideres</h1>
-      <p>Filtra leaders por colores, expansion y si son mono o bicolor. A la derecha veras directamente el arte alternativo de los que coincidan.</p>
+      <p>Filtra líderes por colores, expansion y si son mono o bicolor. Si marcas bicolor y los 2 colores, te saldrán solo líderes que sean exactamente esa combinación.</p>
     </section>
 
     <div class="loginGate card" id="loginGate" style="display:none;">
@@ -491,6 +574,22 @@
     </div>
   </div>
 
+  <div class="modal" id="leaderModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalCloseRow">
+        <button class="modalClose" id="leaderModalClose" type="button" aria-label="Cerrar detalle">&times;</button>
+      </div>
+      <div class="modalLayout">
+        <div class="modalArt" id="leaderModalArt"></div>
+        <div class="modalInfo">
+          <div class="modalCode" id="leaderModalCode">-</div>
+          <h3 id="leaderModalName">Leader</h3>
+          <div class="tagRow" id="leaderModalTags"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const sb = window.BarateamApp.createClient();
     const COLORS = [
@@ -517,6 +616,7 @@
       { value: "OP13", label: "OP13" },
       { value: "OP14", label: "OP14" },
       { value: "OP15", label: "OP15" },
+      { value: "EB", label: "Todos los EB" },
       { value: "ST", label: "Todos los ST" },
       { value: "P", label: "Promo" }
     ];
@@ -569,6 +669,7 @@
     function buildExpansionGroup(code){
       const prefix = String(code || "").trim().toUpperCase();
       if (/^OP(0[1-9]|1[0-5])/.test(prefix)) return prefix.slice(0, 4);
+      if (/^EB\d{2}/.test(prefix)) return "EB";
       if (/^ST\d+/.test(prefix)) return "ST";
       if (/^P-/.test(prefix)) return "P";
       return "OTHER";
@@ -587,9 +688,13 @@
       return Number.isFinite(stNumber) && stNumber >= 1 && stNumber <= 9;
     }
 
-    function leaderMatchesColors(leader, selectedColors){
+    function leaderMatchesColors(leader, selectedColors, selectedTypes){
       if (!selectedColors.length) return true;
       const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
+      const strictDualMatch = selectedTypes.includes("dual") && !selectedTypes.includes("mono") && selectedColors.length > 1;
+      if (strictDualMatch) {
+        return selectedColors.every((color) => colors.includes(color));
+      }
       return selectedColors.some((color) => colors.includes(color));
     }
 
@@ -615,11 +720,15 @@
       const art = String(leader.parallel_image_url || leader.image_url || "").trim();
       const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
       const expansionGroup = buildExpansionGroup(leader.code);
-      const expansionLabel = expansionGroup === "P" ? "Promo" : (expansionGroup === "ST" ? "ST" : expansionGroup);
+      const expansionLabel = expansionGroup === "P"
+        ? "Promo"
+        : (expansionGroup === "ST"
+          ? "ST"
+          : (expansionGroup === "EB" ? "EB" : expansionGroup));
       const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
 
       return `
-        <article class="leaderTile">
+        <article class="leaderTile" data-code="${escapeAttr(leader.code || "")}">
           <div class="leaderArtWrap">
             ${art
               ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader.name || leader.code || "Leader")}" loading="lazy">`
@@ -648,7 +757,7 @@
 
       state.filteredLeaders = state.leaders
         .filter((leader) => !hideRotated || !isRotatedLeader(leader.code))
-        .filter((leader) => leaderMatchesColors(leader, selectedColors))
+        .filter((leader) => leaderMatchesColors(leader, selectedColors, selectedTypes))
         .filter((leader) => leaderMatchesExpansions(leader, selectedExpansions))
         .filter((leader) => leaderMatchesTypes(leader, selectedTypes))
         .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""), "es"));
@@ -673,6 +782,36 @@
         input.checked = false;
       });
       applyFilters();
+    }
+
+    function openLeaderModal(leader){
+      if (!leader) return;
+      const art = String(leader.parallel_image_url || leader.image_url || "").trim();
+      const expansionGroup = buildExpansionGroup(leader.code);
+      const expansionLabel = expansionGroup === "P"
+        ? "Promo"
+        : (expansionGroup === "ST" ? "ST" : (expansionGroup === "EB" ? "EB" : expansionGroup));
+      const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
+      const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
+
+      $("leaderModalCode").textContent = leader.code || "-";
+      $("leaderModalName").textContent = leader.name || leader.code || "Leader";
+      $("leaderModalTags").innerHTML = [
+        `<span class="tag">${escapeHtml(expansionLabel)}</span>`,
+        `<span class="tag">${escapeHtml(typeLabel)}</span>`,
+        ...colors.map((color) => `<span class="tag">${escapeHtml(color)}</span>`)
+      ].join("");
+      $("leaderModalArt").innerHTML = art
+        ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader.name || leader.code || "Leader")}">`
+        : `<div class="leaderFallback">${escapeHtml(leader.name || leader.code || "Leader")}</div>`;
+
+      $("leaderModal").classList.add("open");
+      $("leaderModal").setAttribute("aria-hidden", "false");
+    }
+
+    function closeLeaderModal(){
+      $("leaderModal").classList.remove("open");
+      $("leaderModal").setAttribute("aria-hidden", "true");
     }
 
     async function loadLeaders(){
@@ -752,6 +891,19 @@
           ? `${getCheckedValues("expansionFilters").length} marcadas`
           : "Abrir";
       }
+    });
+    $("leaderGrid").addEventListener("click", (event) => {
+      const tile = event.target.closest(".leaderTile[data-code]");
+      if (!tile) return;
+      const leader = state.filteredLeaders.find((item) => item.code === tile.dataset.code);
+      openLeaderModal(leader || null);
+    });
+    $("leaderModalClose").addEventListener("click", closeLeaderModal);
+    $("leaderModal").addEventListener("click", (event) => {
+      if (event.target === $("leaderModal")) closeLeaderModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeLeaderModal();
     });
 
     sb.auth.onAuthStateChange((_event, session) => {
