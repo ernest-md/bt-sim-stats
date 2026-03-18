@@ -1,4 +1,4 @@
-import { getPlayersForStats, getMatchesByPlayer, getExpansions, getViewerStatsContext } from './api.js'
+import { getPlayerEloHistory, getPlayersForStats, getMatchesByPlayer, getExpansions, getViewerStatsContext } from './api.js'
 import { supabase } from './supabaseClient.js'
 
 const playerSelect = document.getElementById("playerSelect")
@@ -8,14 +8,25 @@ const syncAllButton = document.getElementById("syncAllMatchesBtn")
 const summaryView = document.getElementById("summaryView")
 const leaderView = document.getElementById("leaderView")
 const backButton = document.getElementById("backToSummary")
+const eloValue = document.getElementById("eloValue")
+const eloToggleBtn = document.getElementById("eloToggleBtn")
+const eloChartPanel = document.getElementById("eloChartPanel")
+const eloChart = document.getElementById("eloChart")
+const eloChartInfo = document.getElementById("eloChartInfo")
+const eloChartEmpty = document.getElementById("eloChartEmpty")
+const eloInfoBtn = document.getElementById("eloInfoBtn")
+const eloInfoModal = document.getElementById("eloInfoModal")
+const eloInfoClose = document.getElementById("eloInfoClose")
 
 let allMatches = []
 let allExpansions = []
 let currentFilteredMatches = []
+let allEloHistory = []
 let selectedLeaderCode = null
 let allowedPlayerIds = new Set()
 let viewerRole = "user"
 let isSyncRunning = false
+let isEloChartOpen = false
 
 function pickLeaderImage(leader) {
   return String(leader?.parallel_image_url || leader?.image_url || "").trim()
@@ -157,10 +168,16 @@ async function callSyncMatches(playerId) {
 async function loadPlayer(playerId) {
   if (!allowedPlayerIds.has(playerId)) {
     allMatches = []
+    allEloHistory = []
     calculateStats()
     return
   }
-  allMatches = await getMatchesByPlayer(playerId)
+  const [matches, eloHistory] = await Promise.all([
+    getMatchesByPlayer(playerId),
+    getPlayerEloHistory(playerId)
+  ])
+  allMatches = matches
+  allEloHistory = eloHistory
   calculateStats()
 }
 
@@ -196,9 +213,144 @@ function calculateStats() {
   document.getElementById("wins").textContent = wins
   document.getElementById("losses").textContent = losses
   document.getElementById("wr").textContent = winRate + "%"
+  updateEloSummary()
+  renderEloChart()
 
   buildLeaderStats(filteredMatches)
   buildGlobalMatchups(filteredMatches)
+}
+
+function getSelectedExpansion() {
+  const selectedExpansion = expansionSelect.value
+  if (selectedExpansion === "all") return null
+  return allExpansions.find((e) => e.id === selectedExpansion) || null
+}
+
+function getFilteredEloHistory() {
+  const expansion = getSelectedExpansion()
+  if (!expansion) return [...allEloHistory]
+
+  const start = new Date(`${expansion.start_date}T00:00:00`)
+  const end = new Date(`${expansion.end_date}T23:59:59.999`)
+  return allEloHistory.filter((row) => {
+    const day = new Date(`${row.snapshot_date}T12:00:00`)
+    return day >= start && day <= end
+  })
+}
+
+function updateEloSummary() {
+  const history = getFilteredEloHistory()
+  const latest = history[history.length - 1] || null
+  eloValue.textContent = latest ? Number(latest.elo_visual || 1000).toFixed(1) : "-"
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+}
+
+function formatChartDay(value) {
+  const raw = String(value || "")
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  return `${raw.slice(8, 10)}/${raw.slice(5, 7)}`
+}
+
+function renderEloChart() {
+  if (!eloChart || !eloChartPanel) return
+
+  const history = getFilteredEloHistory()
+  const expansion = getSelectedExpansion()
+  const title = expansion
+    ? `Mostrando snapshots diarios de ${expansion.name}.`
+    : "Mostrando snapshots diarios de todas las expansiones."
+  if (eloChartInfo) eloChartInfo.textContent = title
+
+  if (history.length === 0) {
+    eloChart.innerHTML = ""
+    if (eloChartEmpty) eloChartEmpty.hidden = false
+    return
+  }
+
+  if (eloChartEmpty) eloChartEmpty.hidden = true
+
+  const width = 900
+  const height = 260
+  const left = 60
+  const right = 18
+  const top = 18
+  const bottom = 36
+  const innerWidth = width - left - right
+  const innerHeight = height - top - bottom
+  const values = history.map((row) => Number(row.elo_visual || 1000))
+  const minValue = Math.min(...values)
+  const maxValue = Math.max(...values)
+  const yMin = Math.max(0, Math.floor((minValue - 100) / 10) * 10)
+  const yMax = Math.ceil((maxValue + 100) / 10) * 10
+  const yRange = Math.max(1, yMax - yMin)
+  const pointCount = Math.max(history.length - 1, 1)
+
+  const xForIndex = (index) => left + (index / pointCount) * innerWidth
+  const yForValue = (value) => top + innerHeight - ((value - yMin) / yRange) * innerHeight
+
+  const yTicks = 4
+  const grid = []
+  for (let i = 0; i <= yTicks; i++) {
+    const value = yMin + ((yRange / yTicks) * i)
+    const y = yForValue(value)
+    grid.push(`
+      <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="rgba(148,163,184,.35)" stroke-dasharray="4 5" />
+      <text x="${left - 10}" y="${y + 4}" text-anchor="end" font-size="11" font-family="Segoe UI, Arial, sans-serif" fill="#64748b">${Math.round(value)}</text>
+    `)
+  }
+
+  const xLabels = history.map((row, index) => {
+    const x = xForIndex(index)
+    const label = formatChartDay(row.snapshot_date)
+    return `<text x="${x}" y="${height - 12}" text-anchor="middle" font-size="11" font-family="Segoe UI, Arial, sans-serif" fill="#475569">${escapeHtml(label)}</text>`
+  }).join("")
+
+  const points = history.map((row, index) => {
+    const value = Number(row.elo_visual || 1000)
+    const x = xForIndex(index)
+    const y = yForValue(value)
+    return `
+      <circle cx="${x}" cy="${y}" r="5" fill="#ffffff" stroke="#2563eb" stroke-width="3" />
+      <text x="${x}" y="${Math.max(14, y - 10)}" text-anchor="middle" font-size="11" font-family="Segoe UI, Arial, sans-serif" fill="#0f172a">${value.toFixed(1)}</text>
+    `
+  }).join("")
+
+  const linePath = history.map((row, index) => {
+    const value = Number(row.elo_visual || 1000)
+    const x = xForIndex(index)
+    const y = yForValue(value)
+    return `${index === 0 ? "M" : "L"} ${x} ${y}`
+  }).join(" ")
+
+  eloChart.innerHTML = `
+    <defs>
+      <linearGradient id="eloLineAreaGradient" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="rgba(37,99,235,.22)" />
+        <stop offset="100%" stop-color="rgba(37,99,235,0)" />
+      </linearGradient>
+    </defs>
+    ${grid.join("")}
+    <line x1="${left}" y1="${top + innerHeight}" x2="${width - right}" y2="${top + innerHeight}" stroke="rgba(15,23,42,.35)" />
+    <path d="${linePath}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    ${points}
+    ${xLabels}
+  `
+}
+
+function toggleEloChart(forceOpen) {
+  isEloChartOpen = typeof forceOpen === "boolean" ? forceOpen : !isEloChartOpen
+  eloChartPanel.hidden = !isEloChartOpen
+  eloToggleBtn.textContent = isEloChartOpen ? "Cerrar" : "Evolucion"
+  eloToggleBtn.setAttribute("aria-expanded", isEloChartOpen ? "true" : "false")
+  if (isEloChartOpen) renderEloChart()
 }
 
 /* ================= BUILD LEADER TABLE ================= */
@@ -400,6 +552,24 @@ backButton.addEventListener("click", () => {
   leaderView.style.display = "none"
   summaryView.style.display = "block"
   selectedLeaderCode = null
+})
+
+eloToggleBtn.addEventListener("click", () => {
+  toggleEloChart()
+})
+
+eloInfoBtn.addEventListener("click", () => {
+  eloInfoModal.hidden = false
+})
+
+eloInfoClose.addEventListener("click", () => {
+  eloInfoModal.hidden = true
+})
+
+eloInfoModal.addEventListener("click", (e) => {
+  if (e.target === eloInfoModal) {
+    eloInfoModal.hidden = true
+  }
 })
 
 /* ================= BUILD LEADER DETAIL ================= */
