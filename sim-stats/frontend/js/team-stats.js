@@ -6,6 +6,13 @@ const teamFilterBlock = document.getElementById("teamFilterBlock")
 const summaryTitle = document.getElementById("teamSummaryTitle")
 const summaryBody = document.getElementById("teamSummaryBody")
 const pageTitle = document.getElementById("teamPageTitle")
+const crowLeadsModal = document.getElementById("crowLeadsModal")
+const crowLeadsModalFrame = document.getElementById("crowLeadsModalFrame")
+const crowLeadsModalClose = document.getElementById("crowLeadsModalClose")
+const crowLeadsModalLoading = document.getElementById("crowLeadsModalLoading")
+
+const CROW_TEAM_NAME = "BARATEAM"
+const CROW_LEADS_URL = "../../crow-leads.html?embed=1"
 
 let allMatches = []
 let allExpansions = []
@@ -14,6 +21,14 @@ let currentUserTeam = "SIN EQUIPO"
 let selectedTeam = "SIN EQUIPO"
 let canViewAllTeams = false
 let viewerContext = null
+
+function normalizedTeamName(value) {
+  return String(value || "").trim().toUpperCase()
+}
+
+function isCrowTeamSelected() {
+  return normalizedTeamName(selectedTeam || currentUserTeam) === CROW_TEAM_NAME
+}
 
 function wilsonScore(wins, games, z = 1.96) {
   if (!games) return 0
@@ -233,6 +248,13 @@ function renderTeamSummary(matches) {
   })
 
   const top = list[0]
+  const crowButtonHtml = isCrowTeamSelected()
+    ? `
+      <button class="teamCrowBtn" type="button" data-open-crow-leads="1" aria-label="Abrir Crow Leads">
+        <img src="../../LOGO_APP.png" alt="Crow Leads" loading="lazy" />
+      </button>
+    `
+    : ""
   const rowsHtml = list.map((p, idx) => `
     <tr class="rankRow rank-${idx + 1}">
       <td class="rankPos">${idx + 1}</td>
@@ -249,9 +271,14 @@ function renderTeamSummary(matches) {
 
   summaryBody.innerHTML = `
     <div class="teamHighlight">
-      <div class="teamHighlightTop">Jugador destacado del equipo</div>
-      <h4 class="teamHighlightName">${escapeHtml(top.name)}</h4>
-      <p class="teamHighlightSub">Mejor WR con volumen de partidas en el filtro actual</p>
+      <div class="teamHighlightHead">
+        <div class="teamHighlightCopy">
+          <div class="teamHighlightTop">Jugador destacado del equipo</div>
+          <h4 class="teamHighlightName">${escapeHtml(top.name)}</h4>
+          <p class="teamHighlightSub">Mejor WR con volumen de partidas en el filtro actual</p>
+        </div>
+        ${crowButtonHtml}
+      </div>
         <div class="teamKpis">
           <div class="teamKpi"><div class="teamKpiLabel">Partidas</div><div class="teamKpiValue">${top.games}</div></div>
           <div class="teamKpi"><div class="teamKpiLabel">Winrate</div><div class="teamKpiValue">${top.wr.toFixed(1)}%</div></div>
@@ -284,6 +311,26 @@ function renderTeamSummary(matches) {
 
 function renderEmpty(text) {
   summaryBody.innerHTML = `<div class="teamHighlight"><p class="teamHighlightSub">${escapeHtml(text)}</p></div>`
+}
+
+function openCrowLeadsModal() {
+  if (!crowLeadsModal || !crowLeadsModalFrame || !crowLeadsModalLoading) return
+  crowLeadsModal.classList.add("isOpen")
+  crowLeadsModal.setAttribute("aria-hidden", "false")
+  crowLeadsModalLoading.classList.remove("isHidden")
+  crowLeadsModalFrame.src = CROW_LEADS_URL
+  document.body.classList.add("teamCrowModalOpen")
+  document.body.style.overflow = "hidden"
+  if (crowLeadsModalClose) crowLeadsModalClose.focus()
+}
+
+function closeCrowLeadsModal() {
+  if (!crowLeadsModal || !crowLeadsModalLoading) return
+  crowLeadsModal.classList.remove("isOpen")
+  crowLeadsModal.setAttribute("aria-hidden", "true")
+  crowLeadsModalLoading.classList.remove("isHidden")
+  document.body.classList.remove("teamCrowModalOpen")
+  document.body.style.overflow = ""
 }
 
 function leaderMiniCardHtml(leader, metric) {
@@ -320,6 +367,34 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;")
 }
+
+summaryBody.addEventListener("click", (event) => {
+  const trigger = event.target.closest("[data-open-crow-leads='1']")
+  if (!trigger) return
+  openCrowLeadsModal()
+})
+
+if (crowLeadsModalClose) {
+  crowLeadsModalClose.addEventListener("click", closeCrowLeadsModal)
+}
+
+if (crowLeadsModal) {
+  crowLeadsModal.addEventListener("click", (event) => {
+    if (event.target === crowLeadsModal) closeCrowLeadsModal()
+  })
+}
+
+if (crowLeadsModalFrame && crowLeadsModalLoading) {
+  crowLeadsModalFrame.addEventListener("load", () => {
+    crowLeadsModalLoading.classList.add("isHidden")
+  })
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && crowLeadsModal?.classList.contains("isOpen")) {
+    closeCrowLeadsModal()
+  }
+})
 
 expansionSelect.addEventListener("change", () => {
   renderTeamSummary(applyExpansionFilter(allMatches))
