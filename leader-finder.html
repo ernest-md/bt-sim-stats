@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lideres · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260306a" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.92);
+      --card-soft:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.16);
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --blue:#2563eb;
+      --red:#dc2626;
+      --green:#16a34a;
+      --purple:#7c3aed;
+      --yellow:#ca8a04;
+      --black:#111827;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      min-height:100vh;
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      z-index:-2;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      color:rgba(255,255,255,.72);
+      font-weight:700;
+      text-align:center;
+      padding-left:4px;
+    }
+    .page{
+      max-width:1480px;
+      margin:14px auto 28px;
+      padding:0 14px;
+    }
+    .hero{
+      border-radius:24px;
+      padding:18px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 250px at 10% 10%, rgba(124,58,237,.55), transparent 60%),
+        radial-gradient(700px 250px at 90% 20%, rgba(6,182,212,.42), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72));
+      box-shadow:0 18px 50px rgba(0,0,0,.28);
+      margin-bottom:12px;
+    }
+    .hero h1{
+      margin:0;
+      font-size:28px;
+      line-height:1.08;
+      font-weight:1000;
+    }
+    .hero p{
+      margin:8px 0 0;
+      color:rgba(255,255,255,.84);
+      max-width:760px;
+      font-size:14px;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:330px minmax(0,1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .filtersCard{
+      position:sticky;
+      top:14px;
+    }
+    .sectionTitle{
+      margin:2px 0 12px;
+      font-weight:1000;
+      color:#0f172a;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.9px;
+      opacity:.85;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .sectionTitle::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background:linear-gradient(90deg, rgba(15,23,42,.25), transparent);
+    }
+    .filterBlock + .filterBlock{
+      margin-top:16px;
+      padding-top:16px;
+      border-top:1px solid rgba(15,23,42,.08);
+    }
+    .filterBlock h2{
+      margin:0 0 10px;
+      font-size:15px;
+      font-weight:1000;
+      color:#0f172a;
+    }
+    .checkboxGrid{
+      display:grid;
+      gap:8px;
+    }
+    .accordion{
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:16px;
+      background:#fff;
+      overflow:hidden;
+    }
+    .accordionToggle{
+      width:100%;
+      border:none;
+      background:#fff;
+      color:#0f172a;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      font-size:14px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .accordionToggle span:last-child{
+      color:#64748b;
+      font-size:12px;
+    }
+    .accordionPanel{
+      padding:0 12px 12px;
+      border-top:1px solid rgba(15,23,42,.08);
+    }
+    .accordionPanelScroll{
+      max-height:240px;
+      overflow:auto;
+      padding-top:12px;
+    }
+    .checkboxItem{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(15,23,42,.08);
+      background:#fff;
+      color:#1e293b;
+      font-weight:700;
+    }
+    .checkboxItem input{
+      margin:0;
+      width:16px;
+      height:16px;
+      accent-color:#2563eb;
+    }
+    .colorGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .colorSwatch{
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.16);
+      flex:0 0 auto;
+    }
+    .color-red{ background:var(--red); }
+    .color-blue{ background:var(--blue); }
+    .color-green{ background:var(--green); }
+    .color-purple{ background:var(--purple); }
+    .color-yellow{ background:var(--yellow); }
+    .color-black{ background:var(--black); }
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+    .btn2{
+      border:none;
+      border-radius:12px;
+      padding:10px 14px;
+      font-size:14px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .btnPrimary{
+      background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.9));
+      color:#fff;
+    }
+    .btnSoft{
+      background:#e2e8f0;
+      color:#0f172a;
+    }
+    .resultsHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .resultsHead h2{
+      margin:0;
+      font-size:20px;
+      font-weight:1000;
+      color:#0f172a;
+    }
+    .resultsMeta{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      color:#475569;
+      font-weight:700;
+      font-size:13px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.08);
+      background:#f8fafc;
+    }
+    .leaderGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(188px, 1fr));
+      gap:12px;
+    }
+    .leaderTile{
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid rgba(15,23,42,.08);
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(248,250,252,.92));
+      box-shadow:0 14px 28px rgba(15,23,42,.08);
+    }
+    .leaderArtWrap{
+      position:relative;
+      aspect-ratio:5 / 7;
+      background:linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.02));
+      overflow:hidden;
+    }
+    .leaderArtWrap img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .leaderFallback{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      text-align:center;
+      color:#475569;
+      font-weight:900;
+      background:linear-gradient(135deg, rgba(37,99,235,.14), rgba(124,58,237,.12));
+    }
+    .leaderBody{
+      padding:12px;
+      display:grid;
+      gap:8px;
+    }
+    .leaderCode{
+      color:#64748b;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .leaderName{
+      margin:0;
+      font-size:17px;
+      line-height:1.2;
+      font-weight:1000;
+      color:#0f172a;
+    }
+    .tagRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 9px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      border:1px solid rgba(15,23,42,.08);
+      background:#fff;
+      color:#334155;
+    }
+    .emptyState{
+      padding:30px 18px;
+      text-align:center;
+      border:1px dashed rgba(15,23,42,.16);
+      border-radius:18px;
+      color:#64748b;
+      background:#f8fafc;
+      font-weight:700;
+    }
+    .loadingState{
+      color:#475569;
+      font-weight:700;
+      padding:18px 0;
+    }
+    .loginGate{
+      margin-top:14px;
+    }
+    .loginGate .btnRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+    @media (max-width: 1040px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+      .filtersCard{
+        position:static;
+      }
+    }
+    @media (max-width: 640px){
+      .page{ padding:0 10px; }
+      .hero, .card{ border-radius:18px; padding:14px; }
+      .colorGrid{ grid-template-columns:1fr; }
+      .leaderGrid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+      .leaderName{ font-size:15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>lideres</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="matchup-stats.html">&#9876; Matchup Stats</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">&mdash;</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <section class="hero">
+      <h1>Lideres</h1>
+      <p>Filtra leaders por colores, expansion y si son mono o bicolor. A la derecha veras directamente el arte alternativo de los que coincidan.</p>
+    </section>
+
+    <div class="loginGate card" id="loginGate" style="display:none;">
+      <div class="sectionTitle">Acceso</div>
+      <p>Necesitas iniciar sesion para usar esta pagina en pruebas.</p>
+      <div class="btnRow">
+        <a class="btn" href="login.html">&#128274; Ir a login</a>
+        <a class="btn" href="index.html">&#127968; Volver a home</a>
+      </div>
+    </div>
+
+    <div id="dashboard">
+      <div class="layout">
+        <aside class="card filtersCard">
+          <div class="sectionTitle">Filtros</div>
+
+          <section class="filterBlock">
+            <h2>Colores</h2>
+            <div class="colorGrid" id="colorFilters"></div>
+          </section>
+
+          <section class="filterBlock">
+            <h2>Tipo de color</h2>
+            <div class="checkboxGrid" id="typeFilters"></div>
+          </section>
+
+          <section class="filterBlock">
+            <h2>Rotacion</h2>
+            <div class="checkboxGrid">
+              <label class="checkboxItem">
+                <input type="checkbox" id="hideRotatedToggle" checked>
+                <span>Ocultar leaders rotados</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="filterBlock">
+            <h2>Expansion</h2>
+            <div class="accordion">
+              <button class="accordionToggle" id="expansionToggle" type="button" aria-expanded="false" aria-controls="expansionPanel">
+                <span>Seleccionar expansiones</span>
+                <span id="expansionToggleLabel">Abrir</span>
+              </button>
+              <div class="accordionPanel" id="expansionPanel" hidden>
+                <div class="accordionPanelScroll">
+                  <div class="checkboxGrid" id="expansionFilters"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="actions">
+            <button class="btn2 btnSoft" id="clearFiltersBtn" type="button">Limpiar filtros</button>
+            <button class="btn2 btnPrimary" id="refreshBtn" type="button">Recargar leaders</button>
+          </div>
+        </aside>
+
+        <section class="card">
+          <div class="resultsHead">
+            <h2>Resultados</h2>
+            <div class="resultsMeta">
+              <span class="pill" id="resultCount">0 leaders</span>
+              <span class="pill" id="activeSummary">Sin filtros activos</span>
+            </div>
+          </div>
+          <div class="loadingState" id="loadingState">Cargando leaders...</div>
+          <div class="leaderGrid" id="leaderGrid"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const COLORS = [
+      { value: "Red", label: "Rojo", className: "color-red" },
+      { value: "Blue", label: "Azul", className: "color-blue" },
+      { value: "Green", label: "Verde", className: "color-green" },
+      { value: "Purple", label: "Morado", className: "color-purple" },
+      { value: "Yellow", label: "Amarillo", className: "color-yellow" },
+      { value: "Black", label: "Negro", className: "color-black" }
+    ];
+    const EXPANSIONS = [
+      { value: "OP01", label: "OP01" },
+      { value: "OP02", label: "OP02" },
+      { value: "OP03", label: "OP03" },
+      { value: "OP04", label: "OP04" },
+      { value: "OP05", label: "OP05" },
+      { value: "OP06", label: "OP06" },
+      { value: "OP07", label: "OP07" },
+      { value: "OP08", label: "OP08" },
+      { value: "OP09", label: "OP09" },
+      { value: "OP10", label: "OP10" },
+      { value: "OP11", label: "OP11" },
+      { value: "OP12", label: "OP12" },
+      { value: "OP13", label: "OP13" },
+      { value: "OP14", label: "OP14" },
+      { value: "OP15", label: "OP15" },
+      { value: "ST", label: "Todos los ST" },
+      { value: "P", label: "Promo" }
+    ];
+    const TYPE_OPTIONS = [
+      { value: "mono", label: "Monocolor" },
+      { value: "dual", label: "Bicolor" }
+    ];
+
+    const state = {
+      leaders: [],
+      filteredLeaders: [],
+      currentUser: null
+    };
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => { await sb.auth.signOut(); location.href = "index.html"; },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    void window.BarateamApp.enforcePageAccess(sb, { requireAdmin: true });
+    window.BarateamApp.bindProtectedNavLinks(sb, { requireAdmin: true });
+
+    function $(id){
+      return document.getElementById(id);
+    }
+
+    function escapeHtml(value){
+      return window.BarateamApp.escapeHtml(value);
+    }
+
+    function escapeAttr(value){
+      return window.BarateamApp.escapeAttr(value);
+    }
+
+    function setNavAuthUI(user){
+      navController.setUser(user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, user || null);
+    }
+
+    function getCheckedValues(containerId){
+      return Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`)).map((input) => input.value);
+    }
+
+    function renderCheckboxGroup(containerId, items, renderer){
+      const container = $(containerId);
+      container.innerHTML = items.map((item) => renderer(item)).join("");
+    }
+
+    function buildExpansionGroup(code){
+      const prefix = String(code || "").trim().toUpperCase();
+      if (/^OP(0[1-9]|1[0-5])/.test(prefix)) return prefix.slice(0, 4);
+      if (/^ST\d+/.test(prefix)) return "ST";
+      if (/^P-/.test(prefix)) return "P";
+      return "OTHER";
+    }
+
+    function getLeaderType(leader){
+      return leader?.color_secondary ? "dual" : "mono";
+    }
+
+    function isRotatedLeader(code){
+      const value = String(code || "").trim().toUpperCase();
+      if (/^OP0[1-4]-/.test(value)) return true;
+      const stMatch = value.match(/^ST(\d{2})-/);
+      if (!stMatch) return false;
+      const stNumber = Number(stMatch[1]);
+      return Number.isFinite(stNumber) && stNumber >= 1 && stNumber <= 9;
+    }
+
+    function leaderMatchesColors(leader, selectedColors){
+      if (!selectedColors.length) return true;
+      const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
+      return selectedColors.some((color) => colors.includes(color));
+    }
+
+    function leaderMatchesExpansions(leader, selectedExpansions){
+      if (!selectedExpansions.length) return true;
+      return selectedExpansions.includes(buildExpansionGroup(leader.code));
+    }
+
+    function leaderMatchesTypes(leader, selectedTypes){
+      if (!selectedTypes.length) return true;
+      return selectedTypes.includes(getLeaderType(leader));
+    }
+
+    function activeFiltersSummary(colors, expansions, types){
+      const parts = [];
+      if (colors.length) parts.push(`${colors.length} color${colors.length === 1 ? "" : "es"}`);
+      if (expansions.length) parts.push(`${expansions.length} expansion${expansions.length === 1 ? "" : "es"}`);
+      if (types.length) parts.push(`${types.length} tipo${types.length === 1 ? "" : "s"}`);
+      return parts.length ? parts.join(" · ") : "Sin filtros activos";
+    }
+
+    function renderLeaderTile(leader){
+      const art = String(leader.parallel_image_url || leader.image_url || "").trim();
+      const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
+      const expansionGroup = buildExpansionGroup(leader.code);
+      const expansionLabel = expansionGroup === "P" ? "Promo" : (expansionGroup === "ST" ? "ST" : expansionGroup);
+      const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
+
+      return `
+        <article class="leaderTile">
+          <div class="leaderArtWrap">
+            ${art
+              ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader.name || leader.code || "Leader")}" loading="lazy">`
+              : `<div class="leaderFallback">${escapeHtml(leader.name || leader.code || "Leader")}</div>`}
+          </div>
+          <div class="leaderBody">
+            <div class="leaderCode">${escapeHtml(leader.code || "-")}</div>
+            <h3 class="leaderName">${escapeHtml(leader.name || leader.code || "Leader")}</h3>
+            <div class="tagRow">
+              <span class="tag">${escapeHtml(expansionLabel)}</span>
+              <span class="tag">${escapeHtml(typeLabel)}</span>
+            </div>
+            <div class="tagRow">
+              ${colors.map((color) => `<span class="tag">${escapeHtml(color)}</span>`).join("")}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function applyFilters(){
+      const selectedColors = getCheckedValues("colorFilters");
+      const selectedExpansions = getCheckedValues("expansionFilters");
+      const selectedTypes = getCheckedValues("typeFilters");
+      const hideRotated = $("hideRotatedToggle").checked;
+
+      state.filteredLeaders = state.leaders
+        .filter((leader) => !hideRotated || !isRotatedLeader(leader.code))
+        .filter((leader) => leaderMatchesColors(leader, selectedColors))
+        .filter((leader) => leaderMatchesExpansions(leader, selectedExpansions))
+        .filter((leader) => leaderMatchesTypes(leader, selectedTypes))
+        .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""), "es"));
+
+      $("resultCount").textContent = `${state.filteredLeaders.length} leader${state.filteredLeaders.length === 1 ? "" : "s"}`;
+      $("activeSummary").textContent = activeFiltersSummary(selectedColors, selectedExpansions, selectedTypes);
+      $("expansionToggleLabel").textContent = selectedExpansions.length
+        ? `${selectedExpansions.length} marcadas`
+        : "Abrir";
+
+      const grid = $("leaderGrid");
+      if (!state.filteredLeaders.length) {
+        grid.innerHTML = '<div class="emptyState">No hay leaders que coincidan con los filtros seleccionados.</div>';
+        return;
+      }
+
+      grid.innerHTML = state.filteredLeaders.map(renderLeaderTile).join("");
+    }
+
+    function resetFilters(){
+      document.querySelectorAll('#colorFilters input[type="checkbox"], #expansionFilters input[type="checkbox"], #typeFilters input[type="checkbox"]').forEach((input) => {
+        input.checked = false;
+      });
+      applyFilters();
+    }
+
+    async function loadLeaders(){
+      $("loadingState").textContent = "Cargando leaders...";
+      $("loadingState").style.display = "block";
+      $("leaderGrid").innerHTML = "";
+
+      const { data, error } = await sb
+        .from("leaders")
+        .select("code,name,image_url,parallel_image_url,color_primary,color_secondary")
+        .order("code");
+
+      if (error) throw error;
+
+      state.leaders = Array.isArray(data) ? data : [];
+      applyFilters();
+      $("loadingState").style.display = "none";
+    }
+
+    function setupFilters(){
+      renderCheckboxGroup("colorFilters", COLORS, (item) => `
+        <label class="checkboxItem">
+          <input type="checkbox" value="${escapeAttr(item.value)}">
+          <span class="colorSwatch ${escapeAttr(item.className)}"></span>
+          <span>${escapeHtml(item.label)}</span>
+        </label>
+      `);
+
+      renderCheckboxGroup("expansionFilters", EXPANSIONS, (item) => `
+        <label class="checkboxItem">
+          <input type="checkbox" value="${escapeAttr(item.value)}">
+          <span>${escapeHtml(item.label)}</span>
+        </label>
+      `);
+
+      renderCheckboxGroup("typeFilters", TYPE_OPTIONS, (item) => `
+        <label class="checkboxItem">
+          <input type="checkbox" value="${escapeAttr(item.value)}">
+          <span>${escapeHtml(item.label)}</span>
+        </label>
+      `);
+
+      document.querySelectorAll('#colorFilters input[type="checkbox"], #expansionFilters input[type="checkbox"], #typeFilters input[type="checkbox"]').forEach((input) => {
+        input.addEventListener("change", applyFilters);
+      });
+      $("hideRotatedToggle").addEventListener("change", applyFilters);
+    }
+
+    async function refreshSession(){
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      const user = data?.session?.user || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      $("loginGate").style.display = user ? "none" : "block";
+      $("dashboard").style.display = user ? "block" : "none";
+      return user;
+    }
+
+    async function initPage(){
+      setupFilters();
+      const user = await refreshSession();
+      if (!user) return;
+      await loadLeaders();
+    }
+
+    $("clearFiltersBtn").addEventListener("click", resetFilters);
+    $("refreshBtn").addEventListener("click", () => { void loadLeaders(); });
+    $("expansionToggle").addEventListener("click", () => {
+      const panel = $("expansionPanel");
+      const toggle = $("expansionToggle");
+      const nextOpen = panel.hidden;
+      panel.hidden = !nextOpen;
+      toggle.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+      if (!nextOpen) {
+        $("expansionToggleLabel").textContent = getCheckedValues("expansionFilters").length
+          ? `${getCheckedValues("expansionFilters").length} marcadas`
+          : "Abrir";
+      }
+    });
+
+    sb.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      $("loginGate").style.display = user ? "none" : "block";
+      $("dashboard").style.display = user ? "block" : "none";
+      if (user) {
+        void loadLeaders();
+      }
+    });
+
+    void initPage();
+  </script>
+</body>
+</html>
