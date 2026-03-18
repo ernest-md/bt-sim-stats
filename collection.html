@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coleccion - Barateam Hub</title>
+  <link rel="stylesheet" href="app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg-1:#07131d;
+      --bg-2:#132434;
+      --bg-3:#210f12;
+      --card:#0f1d2bcc;
+      --line:rgba(255,255,255,.12);
+      --muted:#b4c2d8;
+      --shadow:0 24px 60px rgba(0,0,0,.32);
+      --accent:#f6b73c;
+      --accent-2:#49d0c9;
+      --accent-3:#ff6b57;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      color:#f8fbff;
+      font-family:"Aptos","Segoe UI Variable","Trebuchet MS",sans-serif;
+      background:#0b1220;
+      min-height:100vh;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+      filter:saturate(1.1);
+      z-index:-2;
+      pointer-events:none;
+    }
+
+    body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode:overlay;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+
+    .brand small{
+      display:block;
+      font-weight:700;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.2px;
+      text-align:center;
+      padding-left:4px;
+      text-transform:none;
+    }
+
+    .hero,
+    .card{
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+    }
+
+    .hero{
+      padding:28px;
+      background:
+        linear-gradient(140deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+        linear-gradient(155deg, rgba(246,183,60,.14), rgba(73,208,201,.08) 58%, rgba(255,107,87,.1));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero::after{
+      content:"";
+      position:absolute;
+      inset:auto -80px -110px auto;
+      width:240px;
+      height:240px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(73,208,201,.22), transparent 68%);
+      pointer-events:none;
+    }
+
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.08), transparent 34%),
+        repeating-linear-gradient(115deg, rgba(255,255,255,.03) 0 1px, transparent 1px 22px);
+      pointer-events:none;
+      opacity:.6;
+    }
+
+    .heroHead,
+    .cardHead,
+    .historyTop{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .heroHead h1{
+      margin:0;
+      font-size:clamp(2rem, 4vw, 3rem);
+      line-height:1;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.02em;
+    }
+
+    .heroHead p,
+    .cardHead p,
+    .muted{
+      color:var(--muted);
+    }
+
+    .heroUser{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:180px;
+    }
+
+    .eyebrow{
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      font-size:.78rem;
+    }
+
+    .heroValue{
+      font-size:2rem;
+      font-weight:800;
+      line-height:1;
+    }
+
+    .heroActions,
+    .btnRow,
+    .pillRow,
+    .summaryRow,
+    .cardMeta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+
+    .heroActions{
+      margin-top:22px;
+    }
+
+    .heroSimple{
+      padding:18px 22px;
+    }
+
+    .heroSimple .heroHead{
+      align-items:center;
+    }
+
+    .heroSimple .heroHead p{
+      margin:8px 0 0;
+      max-width:62ch;
+    }
+
+    .heroSimple .heroUser{
+      align-items:flex-end;
+      text-align:right;
+      gap:4px;
+    }
+
+    .heroSimple .heroValue{
+      font-size:1.5rem;
+    }
+
+    .heroSimple .statGrid{
+      margin-top:14px;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+    }
+
+    .heroSimple .statCard{
+      padding:12px 14px;
+      border-radius:16px;
+    }
+
+    .heroSimple .statCard strong{
+      margin-top:6px;
+      font-size:1.3rem;
+    }
+
+    .heroSimple .heroActions{
+      margin-top:14px;
+    }
+
+    .heroLayout{
+      display:grid;
+      grid-template-columns:minmax(0, 1.45fr) minmax(290px, .9fr);
+      gap:18px;
+      align-items:stretch;
+      position:relative;
+      z-index:1;
+    }
+
+    .heroContent{
+      display:grid;
+      align-content:start;
+    }
+
+    .heroShowcase{
+      display:grid;
+      gap:14px;
+      align-content:start;
+    }
+
+    .heroVault,
+    .archiveMini{
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 16px 40px rgba(2,6,12,.22);
+      backdrop-filter:blur(12px);
+    }
+
+    .heroVault{
+      padding:18px;
+      border-radius:22px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.02)),
+        linear-gradient(135deg, rgba(246,183,60,.18), rgba(73,208,201,.12) 62%, rgba(255,107,87,.08));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .heroVault::after{
+      content:"";
+      position:absolute;
+      inset:auto -45px -45px auto;
+      width:130px;
+      height:130px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(255,255,255,.22), transparent 66%);
+      pointer-events:none;
+    }
+
+    .heroVault .heroValue{
+      font-size:clamp(2.2rem, 4vw, 3.4rem);
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      text-shadow:0 8px 22px rgba(246,183,60,.22);
+    }
+
+    .heroTape{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:14px;
+    }
+
+    .heroBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(4,9,18,.34);
+      border:1px solid rgba(255,255,255,.12);
+      font-size:.82rem;
+      color:#f8fbff;
+    }
+
+    .archiveMiniGrid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:12px;
+    }
+
+    .archiveMini{
+      min-height:138px;
+      padding:14px;
+      border-radius:18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)),
+        linear-gradient(145deg, rgba(11,22,34,.94), rgba(18,33,40,.88));
+      position:relative;
+      overflow:hidden;
+      display:grid;
+      align-content:end;
+      gap:6px;
+    }
+
+    .archiveMini::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(160deg, rgba(255,255,255,.14), transparent 44%);
+      pointer-events:none;
+    }
+
+    .archiveMini strong{
+      font-size:1.16rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+    }
+
+    .archiveMini span{
+      font-size:.74rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:rgba(255,255,255,.72);
+    }
+
+    .archiveMini small{
+      color:var(--muted);
+      line-height:1.4;
+    }
+
+    .statGrid,
+    .filterGrid,
+    .statsBlock{
+      display:grid;
+      gap:12px;
+    }
+
+    .statGrid{
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      margin-top:22px;
+    }
+
+    .statCard,
+    .miniStat,
+    .collectionTile,
+    .sideItem{
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+    }
+
+    .statCard,
+    .miniStat{
+      padding:16px;
+    }
+
+    .statCard strong,
+    .miniStat strong{
+      display:block;
+      margin-top:8px;
+      font-size:1.8rem;
+      line-height:1;
+    }
+
+    .panelGrid{
+      display:grid;
+      grid-template-columns:minmax(0, 1.55fr) minmax(320px, .95fr);
+      gap:18px;
+      margin-top:18px;
+      align-items:start;
+    }
+
+    .stack{
+      display:grid;
+      gap:18px;
+    }
+
+    .card{
+      background:var(--card);
+      padding:20px;
+    }
+
+    .cardHead h2,
+    .cardHead h3{
+      margin:0;
+      font-size:1.2rem;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+      letter-spacing:.02em;
+    }
+
+    .filterGrid{
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      align-items:end;
+    }
+
+    .filterGridSearch{
+      margin-top:12px;
+    }
+
+    .filterSearchField{
+      grid-column:1 / span 3;
+    }
+
+    .filterActionRow{
+      grid-column:4 / span 2;
+      justify-content:flex-end;
+    }
+
+    .field{
+      display:grid;
+      gap:6px;
+    }
+
+    .field label{
+      font-size:.88rem;
+      color:var(--muted);
+    }
+
+    .field input,
+    .field select{
+      width:100%;
+      min-height:44px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(4,9,18,.55);
+      color:#fff;
+      padding:0 14px;
+      font:inherit;
+      outline:none;
+    }
+
+    .btn.soft{
+      background:rgba(255,255,255,.07);
+    }
+
+    .msg,
+    .empty{
+      margin-top:14px;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .msg{
+      display:none;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+    }
+
+    .msg.success{
+      display:block;
+      border-color:rgba(34,197,94,.35);
+      background:rgba(34,197,94,.12);
+    }
+
+    .msg.error{
+      display:block;
+      border-color:rgba(248,113,113,.35);
+      background:rgba(248,113,113,.12);
+    }
+
+    .empty{
+      color:var(--muted);
+      background:rgba(255,255,255,.04);
+      border-style:dashed;
+    }
+
+    .loading{
+      display:none;
+      margin-top:14px;
+      color:var(--muted);
+    }
+
+    .pill,
+    .chip,
+    .countBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.07);
+      font-size:.84rem;
+      white-space:nowrap;
+    }
+
+    .countBadge{
+      font-weight:700;
+      background:linear-gradient(135deg, rgba(139,92,246,.3), rgba(34,211,238,.16));
+      border-color:rgba(255,255,255,.2);
+    }
+
+    .collectionGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(128px, 1fr));
+      gap:10px;
+    }
+
+    .collectionTile{
+      display:grid;
+      gap:8px;
+      padding:10px;
+      position:relative;
+      overflow:hidden;
+      transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .collectionTile::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(155deg, rgba(255,255,255,.08), transparent 38%);
+      pointer-events:none;
+    }
+
+    .collectionTile:hover{
+      transform:translateY(-4px);
+      border-color:rgba(255,255,255,.18);
+      box-shadow:0 16px 34px rgba(4,10,18,.24);
+    }
+
+    .collectionTile img,
+    .artFallback{
+      width:100%;
+      aspect-ratio:5 / 7;
+      border-radius:12px;
+    }
+
+    .collectionTile img{
+      object-fit:cover;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+    }
+
+    .artFallback{
+      border:1px dashed rgba(255,255,255,.18);
+      background:linear-gradient(160deg, rgba(246,183,60,.22), rgba(73,208,201,.14));
+      display:flex;
+      align-items:flex-end;
+      padding:12px;
+      font-weight:700;
+    }
+
+    .collectionTile h4{
+      margin:0;
+      font-size:1rem;
+      line-height:1.2;
+      font-family:Bahnschrift,"Aptos Display","Trebuchet MS",sans-serif;
+    }
+
+    .countBadgeWrap{
+      position:absolute;
+      top:10px;
+      right:10px;
+      z-index:2;
+    }
+
+    .cardSub{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      color:var(--muted);
+      font-size:.76rem;
+    }
+
+    .tileFoot{
+      display:grid;
+      gap:4px;
+      color:var(--muted);
+      font-size:.82rem;
+    }
+
+    .statsStack,
+    .sideList{
+      display:grid;
+      gap:12px;
+    }
+
+    .statsBlock{
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+    }
+
+    .sideItem{
+      padding:14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)),
+        linear-gradient(160deg, rgba(255,255,255,.02), transparent 42%);
+    }
+
+    .collectionTile .pill{
+      padding:5px 8px;
+      font-size:.72rem;
+    }
+
+    .collectionTile h4{
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:2;
+      overflow:hidden;
+      min-height:2.3em;
+    }
+
+    .countBadge{
+      color:#07131d;
+      background:linear-gradient(135deg, rgba(246,183,60,.96), rgba(255,228,151,.92));
+      border-color:rgba(255,255,255,.72);
+      box-shadow:0 10px 24px rgba(246,183,60,.28);
+      text-shadow:none;
+    }
+
+    .sideItem strong{
+      display:block;
+      margin-bottom:6px;
+    }
+
+    .loginGate{
+      margin-top:18px;
+    }
+
+    .loginGate .btnRow{
+      margin-top:18px;
+    }
+
+    .filtersCard,
+    .collectionBoard,
+    .sideCard{
+      position:relative;
+      overflow:hidden;
+    }
+
+    .filtersCard::before,
+    .collectionBoard::before,
+    .sideCard::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg, rgba(255,255,255,.05), transparent 30%);
+      pointer-events:none;
+    }
+
+    .pill.rarityPill,
+    .pill.variantPill{
+      font-weight:700;
+    }
+
+    .tone-c,
+    .tone-uc,
+    .tone-r{
+      --tone-color:rgba(181,198,224,.2);
+    }
+
+    .tone-l{
+      --tone-color:rgba(73,208,201,.2);
+    }
+
+    .tone-sr{
+      --tone-color:rgba(246,183,60,.24);
+    }
+
+    .tone-sec{
+      --tone-color:rgba(255,107,87,.22);
+    }
+
+    .tone-sp{
+      --tone-color:rgba(73,208,201,.22);
+    }
+
+    .tone-tr{
+      --tone-color:rgba(246,183,60,.22);
+    }
+
+    .tone-manga{
+      --tone-color:rgba(255,107,87,.28);
+    }
+
+    .collectionTile[class*="tone-"]{
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--tone-color, rgba(255,255,255,.04)) 72%, rgba(255,255,255,.04)), rgba(255,255,255,.03)),
+        rgba(255,255,255,.03);
+    }
+
+    .pill.rarityPill[class*="tone-"],
+    .pill.variantPill[class*="tone-"]{
+      background:color-mix(in srgb, var(--tone-color, rgba(255,255,255,.07)) 82%, rgba(255,255,255,.05));
+      border-color:rgba(255,255,255,.16);
+    }
+
+    .variant-parallel{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    .variant-manga::after,
+    .variant-special::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(125deg, transparent 24%, rgba(255,255,255,.12) 46%, transparent 58%);
+      transform:translateX(-120%);
+      animation:shimmerSweep 5.2s ease-in-out infinite;
+      pointer-events:none;
+    }
+
+    @keyframes shimmerSweep{
+      0%, 64%{
+        transform:translateX(-120%);
+      }
+      78%{
+        transform:translateX(115%);
+      }
+      100%{
+        transform:translateX(115%);
+      }
+    }
+
+    @media (max-width: 1040px){
+      .statGrid,
+      .filterGrid,
+      .statsBlock{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .panelGrid{
+        grid-template-columns:1fr;
+      }
+
+      .heroLayout{
+        grid-template-columns:1fr;
+      }
+
+      .heroSimple .heroHead{
+        align-items:flex-start;
+      }
+
+      .heroSimple .heroUser{
+        align-items:flex-start;
+        text-align:left;
+      }
+
+      .heroHead{
+        flex-direction:column;
+      }
+
+      .heroUser{
+        text-align:left;
+      }
+
+      .archiveMiniGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .filterSearchField,
+      .filterActionRow{
+        grid-column:1 / -1;
+      }
+
+      .filterActionRow{
+        justify-content:flex-start;
+      }
+    }
+
+    @media (max-width: 680px){
+      .wrap{
+        padding:0 12px;
+      }
+
+      .hero,
+      .card{
+        padding:16px;
+        border-radius:22px;
+      }
+
+      .filterGrid,
+      .statsBlock{
+        grid-template-columns:1fr;
+      }
+
+      .statGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .collectionGrid{
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:8px;
+      }
+
+      .archiveMiniGrid{
+        grid-template-columns:1fr;
+      }
+
+      .historyTop{
+        flex-direction:column;
+      }
+
+      .heroSimple{
+        padding:16px;
+      }
+
+      .heroSimple .heroValue{
+        font-size:1.3rem;
+      }
+
+      .heroActions{
+        display:grid;
+        grid-template-columns:1fr;
+      }
+
+      .heroActions .btn,
+      .filterActionRow .btn{
+        width:100%;
+        justify-content:center;
+      }
+
+      .collectionTile{
+        padding:8px;
+        gap:6px;
+      }
+
+      .collectionTile h4{
+        font-size:.82rem;
+        min-height:2.15em;
+      }
+
+      .cardSub{
+        font-size:.68rem;
+      }
+
+      .collectionTile .pill{
+        padding:4px 6px;
+        font-size:.64rem;
+      }
+
+      .collectionTile .variantPill{
+        white-space:normal;
+        overflow-wrap:anywhere;
+        line-height:1.1;
+      }
+
+      .countBadge{
+        min-height:24px;
+        padding:4px 8px;
+        font-size:.68rem;
+      }
+    }
+
+    @media (max-width: 420px){
+      .statGrid,
+      .collectionGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <div class="brand">
+        <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+        <small>coleccion - catalogo personal</small>
+      </div>
+
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn" href="vade-back-fight.html" data-requires-auth="1" data-vdbf-only="1">&#128293; VDBF</a>
+        <a class="btn" href="op-wrapped.html">&#127873; OP Wrapped</a>
+        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+        <a class="btn" href="encuestas.html">&#128499;&#65039; Encuestas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero heroSimple">
+      <div class="heroHead">
+        <div>
+          <div class="eyebrow">Archivo personal</div>
+          <h1>Mi coleccion</h1>
+          <p>Vista compacta de tu archivo para navegar cartas, duplicados y sets sin ruido extra.</p>
+        </div>
+        <div class="heroUser">
+          <div class="eyebrow">Saldo</div>
+          <div class="heroValue" id="tokenBalance">0</div>
+          <div class="muted" id="heroUserLabel">Inicia sesion para continuar</div>
+        </div>
+      </div>
+
+      <div class="statGrid">
+        <div class="statCard">
+          <div class="eyebrow">Cartas unicas</div>
+          <strong id="heroUniqueCount">0</strong>
+        </div>
+        <div class="statCard">
+          <div class="eyebrow">Copias totales</div>
+          <strong id="heroTotalCount">0</strong>
+        </div>
+        <div class="statCard">
+          <div class="eyebrow">Duplicadas</div>
+          <strong id="heroDuplicateCount">0</strong>
+        </div>
+        <div class="statCard">
+          <div class="eyebrow">Sets presentes</div>
+          <strong id="heroSetCount">0</strong>
+        </div>
+      </div>
+
+      <div class="heroActions">
+        <a class="btn primary" href="packs.html" data-requires-auth="1">&#128230; Abrir packs</a>
+        <a class="btn soft" href="collection-expansion.html" data-requires-auth="1">&#128451; Coleccion por expansion</a>
+        <button class="btn soft" id="resetFiltersBtn" type="button">Resetear filtros</button>
+      </div>
+    </section>
+
+    <section id="loginGate" class="card loginGate" style="display:none;">
+      <div class="cardHead">
+        <div>
+          <h2>Necesitas iniciar sesion</h2>
+          <p>La coleccion esta asociada a tu usuario y solo puede mostrarse con sesion iniciada.</p>
+        </div>
+      </div>
+      <div class="btnRow">
+        <a class="btn primary" href="login.html">&#128274; Ir a login</a>
+        <a class="btn soft" href="packs.html">&#128230; Volver a packs</a>
+      </div>
+    </section>
+
+    <div id="dashboard" style="display:none;">
+      <div class="stack">
+          <section class="card filtersCard">
+            <div class="cardHead">
+              <div>
+                <h2>Filtros</h2>
+                <p>Encuentra rapido una carta concreta o reduce la vista a solo duplicadas, variantes o un set.</p>
+              </div>
+              <div class="muted" id="collectionCount">0 cartas</div>
+            </div>
+
+            <div class="filterGrid">
+              <div class="field">
+                <label for="setFilter">Set</label>
+                <select id="setFilter">
+                  <option value="">Todos los sets</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="rarityFilter">Rareza</label>
+                <select id="rarityFilter">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="variantFilter">Variante</label>
+                <select id="variantFilter">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="ownedFilter">Copias</label>
+                <select id="ownedFilter">
+                  <option value="">Todas</option>
+                  <option value="duplicates">Solo duplicadas</option>
+                  <option value="4plus">4 o mas copias</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="sortFilter">Orden</label>
+                <select id="sortFilter">
+                  <option value="recent">Ultima obtenida</option>
+                  <option value="copies_desc">Mas copias</option>
+                  <option value="rarity_desc">Mayor rareza / variante</option>
+                  <option value="code_asc">Codigo A-Z</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filterGrid filterGridSearch">
+              <div class="field filterSearchField">
+                <label for="searchFilter">Buscar</label>
+                <input id="searchFilter" placeholder="Ej: OP12-001, luffy, parallel..." />
+              </div>
+              <div class="btnRow filterActionRow">
+                <button class="btn soft" id="clearFiltersBtn" type="button">Limpiar filtros</button>
+                <button class="btn soft" id="refreshBtn" type="button">Recargar</button>
+              </div>
+            </div>
+
+            <div class="msg" id="pageMsg"></div>
+            <div class="loading" id="loadingState">Cargando coleccion...</div>
+          </section>
+
+          <section class="card collectionBoard">
+            <div class="cardHead">
+              <div>
+                <h2>Cartas</h2>
+                <p>Vista completa de tu coleccion actual.</p>
+              </div>
+            </div>
+            <div class="collectionGrid" id="collectionGrid"></div>
+          </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.BarateamApp.createClient();
+    const $ = window.BarateamApp.byId;
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+    const formatDateTime = window.BarateamApp.formatDateTime;
+    const formatRelativeTime = window.BarateamApp.formatRelativeTime;
+
+    window.BarateamApp.bindProtectedNavLinks(sb, { requireAdmin: true });
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => { await doLogout(); },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    const state = {
+      currentUser: null,
+      currentProfile: null,
+      sets: [],
+      setsById: new Map(),
+      collectionRows: [],
+      cardsById: new Map(),
+      items: [],
+      filteredItems: []
+    };
+
+    function lower(value){
+      return String(value || "").toLowerCase();
+    }
+
+    function normalize(value){
+      return lower(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function formatTokens(value){
+      return new Intl.NumberFormat("es-ES").format(Number(value || 0));
+    }
+
+    function rarityRank(rarity){
+      switch (lower(rarity).trim()){
+        case "l":
+        case "leader":
+          return 10;
+        case "c":
+        case "common":
+          return 20;
+        case "don":
+        case "don!!":
+          return 25;
+        case "uc":
+        case "uncommon":
+          return 30;
+        case "r":
+        case "rare":
+          return 40;
+        case "sr":
+        case "super rare":
+          return 50;
+        case "sec":
+        case "secret rare":
+          return 60;
+        case "sp":
+        case "special":
+          return 70;
+        case "tr":
+        case "treasure rare":
+          return 80;
+        case "parallel":
+          return 90;
+        case "aa":
+        case "alt art":
+          return 95;
+        case "manga":
+          return 100;
+        default:
+          return 25;
+      }
+    }
+
+    function rarityToneClass(rarity, variant){
+      const normalizedVariant = lower(variant);
+      if (normalizedVariant.includes("manga")) return "tone-manga";
+      if (normalizedVariant.includes("treasure")) return "tone-tr";
+      if (normalizedVariant.includes("sp")) return "tone-sp";
+
+      switch (lower(rarity).trim()){
+        case "c":
+        case "common":
+          return "tone-c";
+        case "uc":
+        case "uncommon":
+          return "tone-uc";
+        case "r":
+        case "rare":
+          return "tone-r";
+        case "l":
+        case "leader":
+          return "tone-l";
+        case "sr":
+        case "super rare":
+          return "tone-sr";
+        case "sec":
+        case "secret rare":
+          return "tone-sec";
+        case "sp":
+        case "special":
+          return "tone-sp";
+        case "tr":
+        case "treasure rare":
+          return "tone-tr";
+        case "manga":
+          return "tone-manga";
+        default:
+          return "";
+      }
+    }
+
+    function variantToneClass(variant){
+      const normalizedVariant = lower(variant);
+      if (!normalizedVariant || normalizedVariant === "base") return "";
+      if (normalizedVariant.includes("manga")) return "variant-manga";
+      if (normalizedVariant.includes("sp") || normalizedVariant.includes("silver") || normalizedVariant.includes("gold") || normalizedVariant.includes("treasure")){
+        return "variant-special";
+      }
+      if (normalizedVariant.includes("parallel")) return "variant-parallel";
+      return "";
+    }
+
+    function variantRank(variant){
+      const normalizedVariant = lower(variant).trim();
+      if (!normalizedVariant || normalizedVariant === "base") return 0;
+      if (normalizedVariant.includes("manga")) return 900;
+      if (normalizedVariant.includes("sp_gold")) return 860;
+      if (normalizedVariant.includes("sp_silver")) return 840;
+      if (normalizedVariant.includes("treasure")) return 820;
+      if (normalizedVariant.includes("sp_parallel")) return 800;
+      if (normalizedVariant.includes("parallel")) return 700;
+      return 180;
+    }
+
+    function cardImpactRank(item){
+      const rarity = lower(item?.rarity).trim();
+      const variant = lower(item?.variant).trim();
+
+      if (variant.includes("manga")) return 1300;
+      if (variant.includes("sp_gold")) return 1200;
+      if (variant.includes("sp_silver")) return 1100;
+      if (variant.includes("treasure")) return 1050;
+      if (variant.includes("sp_parallel")) return 1000;
+
+      if (variant.includes("parallel")){
+        switch (rarity){
+          case "sec":
+          case "secret rare":
+            return 930;
+          case "l":
+          case "leader":
+            return 920;
+          case "sr":
+          case "super rare":
+            return 910;
+          case "r":
+          case "rare":
+            return 900;
+          default:
+            return 880;
+        }
+      }
+
+      switch (rarity){
+        case "sec":
+        case "secret rare":
+          return 800;
+        case "sr":
+        case "super rare":
+          return 700;
+        case "r":
+        case "rare":
+          return 600;
+        case "uc":
+        case "uncommon":
+          return 500;
+        case "c":
+        case "common":
+          return 400;
+        case "l":
+        case "leader":
+          return 300;
+        default:
+          return 450;
+      }
+    }
+
+    function chunk(array, size){
+      const result = [];
+      for (let index = 0; index < array.length; index += size){
+        result.push(array.slice(index, index + size));
+      }
+      return result;
+    }
+
+    function setNavAuthUI(user){
+      navController.setUser(user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, user || null);
+    }
+
+    function showLoginGate(visible){
+      $("loginGate").style.display = visible ? "block" : "none";
+      $("dashboard").style.display = visible ? "none" : "block";
+    }
+
+    function showMsg(text, tone){
+      const el = $("pageMsg");
+      if (!text){
+        el.style.display = "none";
+        el.className = "msg";
+        el.textContent = "";
+        return;
+      }
+      el.textContent = text;
+      el.className = "msg " + (tone || "");
+      el.style.display = "block";
+    }
+
+    function setLoading(text){
+      const el = $("loadingState");
+      el.textContent = text || "";
+      el.style.display = text ? "block" : "none";
+    }
+
+    async function doLogout(){
+      await sb.auth.signOut();
+      location.href = "index.html";
+    }
+
+    async function refreshSession(){
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      const user = data?.session?.user || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      showLoginGate(!user);
+      return user;
+    }
+
+    async function loadProfile(){
+      if (!state.currentUser) return;
+      const { data, error } = await sb
+        .from("profiles")
+        .select("id, username, display_name, tokens_balance")
+        .eq("id", state.currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      state.currentProfile = data || {
+        id: state.currentUser.id,
+        username: null,
+        display_name: null,
+        tokens_balance: 0
+      };
+    }
+
+    async function loadSets(){
+      const { data, error } = await sb
+        .from("pack_sets")
+        .select("id, code, name, release_date, is_active")
+        .order("release_date", { ascending: false });
+
+      if (error) throw error;
+      state.sets = data || [];
+      state.setsById = new Map(state.sets.map((set) => [set.id, set]));
+    }
+
+    async function loadCollectionRows(){
+      if (!state.currentUser) return;
+      const { data, error } = await sb
+        .from("user_collection")
+        .select("card_id, owned_count, first_obtained_at, last_obtained_at")
+        .eq("profile_id", state.currentUser.id);
+
+      if (error) throw error;
+      state.collectionRows = data || [];
+    }
+
+    async function loadCollectionCards(){
+      const cardIds = [...new Set(state.collectionRows.map((row) => row.card_id).filter(Boolean))];
+      state.cardsById = new Map();
+
+      if (!cardIds.length){
+        return;
+      }
+
+      const chunks = chunk(cardIds, 150);
+      const responses = await Promise.all(chunks.map((ids) => (
+        sb
+          .from("pack_cards")
+          .select("id, set_id, card_code, card_name, rarity, variant, card_type, image_url, is_active")
+          .in("id", ids)
+      )));
+
+      responses.forEach(({ data, error }) => {
+        if (error) throw error;
+        (data || []).forEach((card) => {
+          state.cardsById.set(card.id, card);
+        });
+      });
+    }
+
+    function buildCollectionItems(){
+      state.items = state.collectionRows
+        .map((row) => {
+          const card = state.cardsById.get(row.card_id);
+          if (!card) return null;
+          const set = state.setsById.get(card.set_id) || null;
+          return {
+            ...row,
+            ...card,
+            set_code: set?.code || "",
+            set_name: set?.name || "",
+            set_release_date: set?.release_date || null
+          };
+        })
+        .filter(Boolean);
+
+      populateFilterOptions();
+    }
+
+    function populateFilterOptions(){
+      const setOptions = [...new Map(state.items.map((item) => [item.set_code, item.set_name]))]
+        .filter(([code]) => code)
+        .sort((a, b) => a[0].localeCompare(b[0], "es"));
+
+      const rarityOptions = [...new Set(state.items.map((item) => item.rarity).filter(Boolean))]
+        .sort((a, b) => rarityRank(b) - rarityRank(a) || String(a).localeCompare(String(b), "es"));
+
+      const variantOptions = [...new Set(state.items.map((item) => item.variant).filter(Boolean))]
+        .sort((a, b) => {
+          if (a === "base") return -1;
+          if (b === "base") return 1;
+          return variantRank(b) - variantRank(a) || String(a).localeCompare(String(b), "es");
+        });
+
+      const setFilter = $("setFilter");
+      const rarityFilter = $("rarityFilter");
+      const variantFilter = $("variantFilter");
+      const prevSet = setFilter.value;
+      const prevRarity = rarityFilter.value;
+      const prevVariant = variantFilter.value;
+
+      setFilter.innerHTML = '<option value="">Todos los sets</option>' + setOptions.map(([code, name]) => (
+        '<option value="' + escapeAttr(code) + '">' + escapeHtml(code + " - " + name) + '</option>'
+      )).join("");
+
+      rarityFilter.innerHTML = '<option value="">Todas</option>' + rarityOptions.map((value) => (
+        '<option value="' + escapeAttr(value) + '">' + escapeHtml(String(value).toUpperCase()) + '</option>'
+      )).join("");
+
+      variantFilter.innerHTML = '<option value="">Todas</option>' + variantOptions.map((value) => (
+        '<option value="' + escapeAttr(value) + '">' + escapeHtml(value) + '</option>'
+      )).join("");
+
+      if (prevSet && setOptions.some(([code]) => code === prevSet)) setFilter.value = prevSet;
+      if (prevRarity && rarityOptions.includes(prevRarity)) rarityFilter.value = prevRarity;
+      if (prevVariant && variantOptions.includes(prevVariant)) variantFilter.value = prevVariant;
+    }
+
+    function collectionSummary(items){
+      const target = items || state.items;
+      const total = target.reduce((sum, item) => sum + Number(item.owned_count || 0), 0);
+      const unique = target.length;
+      const setCount = new Set(target.map((item) => item.set_code).filter(Boolean)).size;
+      return {
+        unique,
+        total,
+        duplicates: Math.max(0, total - unique),
+        setCount
+      };
+    }
+
+    function renderHero(){
+      const summary = collectionSummary();
+      $("tokenBalance").textContent = formatTokens(state.currentProfile?.tokens_balance || 0);
+      $("heroUserLabel").textContent = state.currentProfile
+        ? (state.currentProfile.display_name || state.currentProfile.username || state.currentUser?.email || "Usuario")
+        : "Inicia sesion para continuar";
+      $("heroUniqueCount").textContent = formatTokens(summary.unique);
+      $("heroTotalCount").textContent = formatTokens(summary.total);
+      $("heroDuplicateCount").textContent = formatTokens(summary.duplicates);
+      $("heroSetCount").textContent = formatTokens(summary.setCount);
+    }
+
+    function applyFilters(){
+      const setCode = $("setFilter").value;
+      const rarity = $("rarityFilter").value;
+      const variant = $("variantFilter").value;
+      const owned = $("ownedFilter").value;
+      const sort = $("sortFilter").value;
+      const query = normalize($("searchFilter").value);
+
+      state.filteredItems = state.items
+        .filter((item) => {
+          if (setCode && item.set_code !== setCode) return false;
+          if (rarity && item.rarity !== rarity) return false;
+          if (variant && item.variant !== variant) return false;
+          if (owned === "duplicates" && Number(item.owned_count || 0) < 2) return false;
+          if (owned === "4plus" && Number(item.owned_count || 0) < 4) return false;
+          if (!query) return true;
+
+          const haystack = normalize([
+            item.card_code,
+            item.card_name,
+            item.rarity,
+            item.variant,
+            item.card_type,
+            item.set_code,
+            item.set_name
+          ].join(" "));
+
+          return haystack.includes(query);
+        })
+        .sort((a, b) => {
+          switch (sort){
+            case "copies_desc":
+              return Number(b.owned_count || 0) - Number(a.owned_count || 0) || String(a.card_code).localeCompare(String(b.card_code), "es");
+            case "rarity_desc":
+              return cardImpactRank(b) - cardImpactRank(a)
+                || String(a.card_code || "").localeCompare(String(b.card_code || ""), "es");
+            case "code_asc":
+              return String(a.card_code || "").localeCompare(String(b.card_code || ""), "es");
+            case "recent":
+            default:
+              return String(b.last_obtained_at || "").localeCompare(String(a.last_obtained_at || ""), "es");
+          }
+        });
+
+      renderCollectionGrid();
+    }
+
+    function tileMarkup(item){
+      const art = item?.image_url
+        ? '<img src="' + escapeAttr(item.image_url) + '" alt="' + escapeAttr(item.card_name || item.card_code || "Carta") + '" loading="lazy" />'
+        : '<div class="artFallback">' + escapeHtml(item.card_code || "Carta") + '</div>';
+      const toneClass = rarityToneClass(item?.rarity, item?.variant);
+      const variantClass = variantToneClass(item?.variant);
+      const classes = ["collectionTile"];
+      if (toneClass) classes.push(toneClass);
+      if (variantClass) classes.push(variantClass);
+
+      return (
+        '<article class="' + classes.join(" ") + '">' +
+          '<div class="countBadgeWrap"><span class="countBadge">x' + formatTokens(item.owned_count) + '</span></div>' +
+          art +
+          '<div>' +
+            '<h4>' + escapeHtml(item.card_name || item.card_code || "Carta") + '</h4>' +
+            '<div class="cardSub">' +
+              '<span>' + escapeHtml(item.set_code || "-") + '</span>' +
+              '<span>&middot;</span>' +
+              '<span>' + escapeHtml(item.card_code || "-") + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="cardMeta">' +
+            '<span class="pill rarityPill ' + escapeAttr(toneClass) + '">' + escapeHtml(item.rarity || "?") + '</span>' +
+            '<span class="pill variantPill ' + escapeAttr([toneClass, variantClass].filter(Boolean).join(" ")) + '">' + escapeHtml(item.variant || "base") + '</span>' +
+          '</div>' +
+        '</article>'
+      );
+    }
+
+    function renderCollectionGrid(){
+      const grid = $("collectionGrid");
+      $("collectionCount").textContent = state.filteredItems.length + " carta" + (state.filteredItems.length === 1 ? "" : "s");
+
+      if (!state.filteredItems.length){
+        grid.innerHTML = '<div class="empty">No hay cartas con esos filtros. Ajustalos o abre mas packs.</div>';
+        return;
+      }
+
+      grid.innerHTML = state.filteredItems.map(tileMarkup).join("");
+    }
+
+    async function initPage(){
+      setLoading("Cargando coleccion...");
+      showMsg("");
+
+      try{
+        const user = await refreshSession();
+        if (!user){
+          state.currentProfile = null;
+          state.sets = [];
+          state.setsById = new Map();
+          state.collectionRows = [];
+          state.cardsById = new Map();
+          state.items = [];
+          state.filteredItems = [];
+          renderHero();
+          renderCollectionGrid();
+          return;
+        }
+
+        await Promise.all([
+          loadProfile(),
+          loadSets(),
+          loadCollectionRows()
+        ]);
+        await loadCollectionCards();
+        buildCollectionItems();
+        renderHero();
+        applyFilters();
+      } catch (error){
+        showMsg(error?.message || "No se pudo cargar la coleccion.", "error");
+      } finally {
+        setLoading("");
+      }
+    }
+
+    $("setFilter").addEventListener("change", applyFilters);
+    $("rarityFilter").addEventListener("change", applyFilters);
+    $("variantFilter").addEventListener("change", applyFilters);
+    $("ownedFilter").addEventListener("change", applyFilters);
+    $("sortFilter").addEventListener("change", applyFilters);
+    $("searchFilter").addEventListener("input", applyFilters);
+    $("clearFiltersBtn").addEventListener("click", () => {
+      $("setFilter").value = "";
+      $("rarityFilter").value = "";
+      $("variantFilter").value = "";
+      $("ownedFilter").value = "";
+      $("sortFilter").value = "recent";
+      $("searchFilter").value = "";
+      applyFilters();
+    });
+    $("resetFiltersBtn").addEventListener("click", () => {
+      $("clearFiltersBtn").click();
+    });
+    $("refreshBtn").addEventListener("click", () => {
+      void initPage();
+    });
+
+    sb.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
+      const previousId = state.currentUser?.id || null;
+      state.currentUser = user;
+      setNavAuthUI(user);
+      showLoginGate(!user);
+
+      if (!user){
+        state.currentProfile = null;
+        state.sets = [];
+        state.setsById = new Map();
+        state.collectionRows = [];
+        state.cardsById = new Map();
+        state.items = [];
+        state.filteredItems = [];
+        renderHero();
+        renderCollectionGrid();
+        return;
+      }
+
+      if (user.id !== previousId){
+        void initPage();
+      }
+    });
+
+    void initPage();
+  </script>
+</body>
+</html>

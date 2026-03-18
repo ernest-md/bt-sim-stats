@@ -247,11 +247,16 @@
     const loginHref = opts.loginHref || appPageHref("login.html");
     const indexHref = opts.indexHref || appPageHref("index.html");
     const allowNonMember = opts.allowNonMember === true || isIndexPage() || isProfilePage();
+    const requireAdmin = opts.requireAdmin === true;
 
     try{
       const accessState = await resolveAccessState(sb);
       if (!accessState.isLoggedIn){
         window.location.replace(loginHref);
+        return { allowed: false, redirected: true, accessState };
+      }
+      if (requireAdmin && !accessState.isAdmin){
+        window.location.replace(indexHref);
         return { allowed: false, redirected: true, accessState };
       }
       if (!accessState.isMember && !allowNonMember && !(isMembersPage() && accessState.isPrivileged)){
@@ -311,6 +316,18 @@
     const toggle = dock.querySelector(`#${toggleId}`);
     toggle?.addEventListener("click", (e) => {
       e.stopPropagation();
+      const nextOpen = !dock.classList.contains("open");
+      if (nextOpen){
+        const labsDock = document.getElementById("labsDock");
+        const labsLauncher = document.getElementById("labsLauncher");
+        const labsMenu = document.getElementById("labsMenu");
+        if (labsDock?.classList.contains("open")){
+          labsDock.classList.remove("open");
+          labsMenu?.classList.remove("open");
+          if (labsMenu) labsMenu.hidden = true;
+          labsLauncher?.setAttribute("aria-expanded", "false");
+        }
+      }
       const open = dock.classList.toggle("open");
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
     });
@@ -440,6 +457,16 @@
             href: restrictedLinks[0]?.getAttribute("href") || appPageHref("vade-back-fight.html"),
             label: "VDBF",
             icon: "V"
+          },
+          {
+            href: appPageHref("packs.html"),
+            label: "Packs",
+            icon: "P"
+          },
+          {
+            href: appPageHref("liga.html"),
+            label: "Liga",
+            icon: "L"
           },
           {
             href: adminLinks[0]?.getAttribute("href") || appPageHref("feedback.html"),
