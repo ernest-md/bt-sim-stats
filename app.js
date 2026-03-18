@@ -3,8 +3,6 @@
 
   const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
-  const VDBF_ALLOWED_USERS = new Set(["estereo", "coquito"]);
-
   function createClient(options){
     if (!window.supabase || typeof window.supabase.createClient !== "function"){
       throw new Error("Supabase client is not available.");
@@ -422,6 +420,7 @@
     const restrictedLinks = Array.from(document.querySelectorAll('a[data-vdbf-only="1"]'));
     const adminLinks = Array.from(document.querySelectorAll('a[data-admin-only="1"]'));
     const privilegedLinks = Array.from(document.querySelectorAll('a[data-privileged-only="1"]'));
+    const labsDock = document.getElementById("labsDock");
 
     restrictedLinks.forEach((a) => {
       a.style.display = "none";
@@ -432,6 +431,9 @@
     privilegedLinks.forEach((a) => {
       a.style.display = "none";
     });
+    if (labsDock) {
+      labsDock.style.display = "none";
+    }
 
     if (!sb) return;
 
@@ -446,6 +448,9 @@
 
       const isAdmin = accessState.isAdmin;
       const isPrivileged = accessState.isPrivileged === true;
+      if (labsDock) {
+        labsDock.style.display = isAdmin ? "" : "none";
+      }
 
       privilegedLinks.forEach((a) => {
         a.style.display = isPrivileged ? "" : "none";
@@ -462,11 +467,6 @@
             href: appPageHref("packs.html"),
             label: "Packs",
             icon: "P"
-          },
-          {
-            href: appPageHref("liga.html"),
-            label: "Liga",
-            icon: "L"
           },
           {
             href: adminLinks[0]?.getAttribute("href") || appPageHref("feedback.html"),
