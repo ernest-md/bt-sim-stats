@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crow Leads · Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260306a" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.92);
+      --line:rgba(148,163,184,.18);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --shadow:0 20px 50px rgba(0,0,0,.35);
+    }
+    html{
+      background:var(--bg);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      overflow-x:hidden;
+    }
+    body.embedMode{
+      background:transparent;
+    }
+    body.embedMode::before{
+      opacity:.82;
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-2;
+      background:
+        radial-gradient(1100px 700px at 10% 10%, rgba(59,130,246,.22), transparent 60%),
+        radial-gradient(900px 600px at 90% 0%, rgba(6,182,212,.2), transparent 60%),
+        radial-gradient(900px 700px at 50% 100%, rgba(245,158,11,.16), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.86), rgba(11,18,32,.86)),
+        url("bg.png");
+      background-size:cover;
+      background-position:center;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      color:rgba(255,255,255,.72);
+      font-weight:700;
+      text-align:center;
+      padding-left:4px;
+    }
+    .page{
+      max-width:1480px;
+      margin:14px auto 28px;
+      padding:0 14px;
+    }
+    body.embedMode .page{
+      max-width:none;
+      margin:0;
+      padding:0;
+    }
+    .hero{
+      border-radius:24px;
+      padding:18px;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(700px 240px at 10% 10%, rgba(59,130,246,.4), transparent 60%),
+        radial-gradient(700px 240px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        linear-gradient(135deg, rgba(15,23,42,.94), rgba(15,23,42,.72));
+      box-shadow:var(--shadow);
+      margin-bottom:12px;
+    }
+    .heroTop{
+      display:flex;
+      gap:16px;
+      justify-content:space-between;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+    .hero h1{
+      margin:0;
+      font-size:30px;
+      font-weight:1000;
+      letter-spacing:.2px;
+    }
+    .heroSub{
+      margin:8px 0 0;
+      max-width:820px;
+      color:rgba(255,255,255,.84);
+      font-size:14px;
+      line-height:1.45;
+    }
+    .heroMeta{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .pill{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.08);
+      color:#e2e8f0;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .content{
+      background:transparent;
+      border:none;
+      border-radius:0;
+      box-shadow:none;
+      padding:0;
+    }
+    body.embedMode .topbar,
+    body.embedMode .authCorner,
+    body.embedMode .hero,
+    body.embedMode .toolbar{
+      display:none !important;
+    }
+    body.embedMode .content{
+      padding:10px 10px 14px;
+    }
+    body.embedMode .groups{
+      gap:10px;
+    }
+    body.embedMode .group{
+      border-radius:18px;
+    }
+    .toolbar{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .sectionTitle{
+      margin:0;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      font-weight:1000;
+      color:#475569;
+    }
+    .status{
+      color:#334155;
+      font-size:13px;
+      font-weight:700;
+    }
+    .error{
+      display:none;
+      margin:0 0 12px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(239,68,68,.25);
+      background:rgba(254,226,226,.8);
+      color:#991b1b;
+      font-weight:800;
+    }
+    .groups{
+      display:grid;
+      gap:14px;
+    }
+    .group{
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:14px;
+      background:
+        linear-gradient(180deg, rgba(248,250,252,.92), rgba(241,245,249,.78));
+    }
+    .groupHead{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+      flex-wrap:wrap;
+    }
+    .groupHead h2{
+      margin:0;
+      font-size:22px;
+      font-weight:1000;
+      letter-spacing:.01em;
+      color:#0f172a;
+    }
+    .groupCount{
+      color:#475569;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .leadersGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(94px, 1fr));
+      gap:12px;
+    }
+    .leaderThumb{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      aspect-ratio:5/7;
+      border:none;
+      border-radius:8px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.65), rgba(226,232,240,.3)),
+        rgba(15,23,42,.04);
+      box-shadow:0 12px 26px rgba(15,23,42,.14);
+      overflow:hidden;
+      cursor:default;
+    }
+    .leaderThumb.canZoom{
+      cursor:zoom-in;
+    }
+    .leaderThumb img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:contain;
+      border-radius:8px;
+      transition:transform .18s ease, filter .18s ease, opacity .18s ease;
+    }
+    .leaderThumb.canZoom:hover img{
+      transform:scale(1.045);
+    }
+    .leaderThumb.isFallback img{
+      filter:grayscale(1) saturate(.12) blur(1.6px) brightness(.96);
+      opacity:.88;
+      transform:scale(1.02);
+    }
+    .leaderThumb.isMissing{
+      border:1px dashed rgba(148,163,184,.4);
+      background:
+        linear-gradient(180deg, rgba(226,232,240,.8), rgba(203,213,225,.65));
+    }
+    .leaderThumb.isMissing::before{
+      content:attr(data-code);
+      color:#475569;
+      font-size:11px;
+      font-weight:1000;
+      letter-spacing:.05em;
+      text-align:center;
+      padding:0 8px;
+    }
+    .leaderPreview{
+      position:fixed;
+      left:0;
+      top:0;
+      transform:translate3d(-9999px,-9999px,0);
+      opacity:0;
+      pointer-events:none;
+      z-index:250000;
+      padding:8px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(2,6,23,.96);
+      box-shadow:0 24px 46px rgba(2,6,23,.44);
+      transition:opacity .12s ease;
+    }
+    .leaderPreview img{
+      width:220px;
+      height:auto;
+      display:block;
+      border-radius:14px;
+      object-fit:contain;
+      background:rgba(255,255,255,.04);
+    }
+    .loadingState{
+      display:grid;
+      place-items:center;
+      min-height:220px;
+      color:#475569;
+      font-weight:900;
+      text-align:center;
+    }
+    .loadingState .spinner{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:2px solid rgba(37,99,235,.18);
+      border-top-color:#2563eb;
+      animation:spin .8s linear infinite;
+      margin-bottom:10px;
+    }
+    @keyframes spin{
+      to{ transform:rotate(360deg); }
+    }
+    @media (max-width: 760px){
+      body.embedMode .content{
+        padding:8px 8px 12px;
+      }
+      .page{
+        padding:0 10px;
+      }
+      .hero{
+        border-radius:18px;
+        padding:14px;
+      }
+      .hero h1{
+        font-size:26px;
+      }
+      .content{
+        border-radius:18px;
+        padding:12px;
+      }
+      .leadersGrid{
+        grid-template-columns:repeat(auto-fill, minmax(82px, 1fr));
+        gap:10px;
+      }
+      .group{
+        padding:12px;
+      }
+      .groupHead h2{
+        font-size:19px;
+      }
+      .leaderPreview{
+        display:none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+        <div class="brand">
+          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+          <small>crow leads</small>
+        </div>
+      </a>
+      <div class="nav">
+        <a class="btn" href="index.html">&#127968; Home</a>
+        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
+        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
+        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
+        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
+        <a class="btn primary active" href="nuevo.html">&#128065; Crow Leads</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">&mdash;</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <section class="hero">
+      <div class="heroTop">
+        <div>
+          <h1>Crow Leads</h1>
+          <p class="heroSub">Listado completo de líderes agrupados por expansión origen.</p>
+        </div>
+        <div class="heroMeta">
+          <span class="pill" id="leaderCountPill">0 leaders</span>
+          <span class="pill" id="groupCountPill">0 grupos</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="content">
+      <div id="errorBox" class="error"></div>
+      <div class="toolbar">
+        <div class="sectionTitle">Listado visual</div>
+        <div id="statusText" class="status">Preparando leaders...</div>
+      </div>
+      <div id="groups" class="groups">
+        <div class="loadingState">
+          <div>
+            <div class="spinner" aria-hidden="true"></div>
+            Cargando leaders...
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const embedMode = new URLSearchParams(window.location.search).get("embed") === "1";
+    if (embedMode) {
+      document.body.classList.add("embedMode");
+    }
+
+    const sb = window.BarateamApp.createClient();
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+    window.BarateamApp.bindProtectedNavLinks(sb);
+
+    const navController = window.BarateamApp.initUserNav({
+      onLogout: async () => {
+        await sb.auth.signOut();
+        location.href = "login.html";
+      },
+      formatLabel: (user) => (user?.email || "Usuario").split("@")[0] || "Usuario",
+      formatEmail: (user) => user?.email || "user"
+    });
+
+    (async function initNav(){
+      const { data } = await sb.auth.getSession();
+      navController.setUser(data?.session?.user || null);
+      void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
+      sb.auth.onAuthStateChange((_event, session) => {
+        navController.setUser(session?.user || null);
+        void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
+      });
+    })();
+
+    const groupsRoot = document.getElementById("groups");
+    const errorBox = document.getElementById("errorBox");
+    const statusText = document.getElementById("statusText");
+    const leaderCountPill = document.getElementById("leaderCountPill");
+    const groupCountPill = document.getElementById("groupCountPill");
+    const collator = new Intl.Collator("es", { numeric: true, sensitivity: "base" });
+    const supportsHoverPreview = window.matchMedia("(hover: hover) and (pointer: fine)");
+
+    function norm(value){
+      return String(value || "").trim();
+    }
+
+    function showError(text){
+      errorBox.style.display = "block";
+      errorBox.textContent = text;
+    }
+
+    function clearError(){
+      errorBox.style.display = "none";
+      errorBox.textContent = "";
+    }
+
+    function originGroup(code){
+      const raw = norm(code).toUpperCase();
+      if (!raw) return "Otros";
+      if (/^P-\d+/.test(raw)) return "Promos";
+      const match = raw.match(/^([A-Z]+\d+)/);
+      return match ? match[1] : "Otros";
+    }
+
+    function groupSortValue(label){
+      if (label === "Promos") return "ZZZ-Promos";
+      return label;
+    }
+
+    function localCrowLeadSrc(code){
+      return `crow-leads/${encodeURIComponent(code)}.png`;
+    }
+
+    function fallbackLeaderSrc(row){
+      return norm(row?.image_url || row?.parallel_image_url || "");
+    }
+
+    function sortedLeaders(rows){
+      return [...rows].sort((a, b) => collator.compare(norm(a.code), norm(b.code)));
+    }
+
+    function renderLeaderThumb(row){
+      const code = norm(row.code);
+      const name = norm(row.name || row.code || "Leader");
+      const fallback = fallbackLeaderSrc(row);
+      const localSrc = localCrowLeadSrc(code);
+      return `
+        <div class="leaderThumb" title="${escapeAttr(`${code} · ${name}`)}" data-code="${escapeAttr(code)}">
+          <img
+            src="${escapeAttr(localCrowLeadSrc(code))}"
+            alt="${escapeAttr(name)}"
+            loading="lazy"
+            data-fallback="${escapeAttr(fallback)}"
+            data-mode="local"
+            onerror="window.handleCrowLeadFallback(this)">
+        </div>
+      `;
+    }
+
+    function renderLeaderThumbWithZoom(row){
+      const code = norm(row.code);
+      const name = norm(row.name || row.code || "Leader");
+      const fallback = fallbackLeaderSrc(row);
+      const localSrc = localCrowLeadSrc(code);
+      const label = `${code} · ${name}`;
+      return `
+        <div class="leaderThumb canZoom" title="${escapeAttr(label)}" data-code="${escapeAttr(code)}" data-preview-src="${escapeAttr(localSrc)}">
+          <img
+            src="${escapeAttr(localSrc)}"
+            alt="${escapeAttr(name)}"
+            loading="lazy"
+            data-fallback="${escapeAttr(fallback)}"
+            data-mode="local"
+            onerror="window.handleCrowLeadFallback(this)">
+        </div>
+      `;
+    }
+
+    function renderGroups(rows){
+      if (!rows.length){
+        groupsRoot.innerHTML = `<div class="loadingState">No hay leaders disponibles.</div>`;
+        leaderCountPill.textContent = "0 leaders";
+        groupCountPill.textContent = "0 grupos";
+        statusText.textContent = "Sin datos";
+        return;
+      }
+
+      const map = new Map();
+      for (const row of sortedLeaders(rows)){
+        const key = originGroup(row.code);
+        const list = map.get(key) || [];
+        list.push(row);
+        map.set(key, list);
+      }
+
+      const groups = Array.from(map.entries()).sort((a, b) => collator.compare(groupSortValue(a[0]), groupSortValue(b[0])));
+
+      groupsRoot.innerHTML = groups.map(([group, items]) => `
+        <section class="group">
+          <div class="groupHead">
+            <h2>${escapeHtml(group)}</h2>
+            <span class="groupCount">${items.length} leaders</span>
+          </div>
+          <div class="leadersGrid">
+            ${items.map((row) => renderLeaderThumbWithZoom(row)).join("")}
+          </div>
+        </section>
+      `).join("");
+
+      leaderCountPill.textContent = `${rows.length} leaders`;
+      groupCountPill.textContent = `${groups.length} grupos`;
+      statusText.textContent = `Agrupados por expansión origen y ordenados por código.`;
+    }
+
+    function initCrowLeadHoverPreview(){
+      if (!supportsHoverPreview.matches) return;
+
+      const preview = document.createElement("div");
+      preview.className = "leaderPreview";
+      preview.innerHTML = `<img alt="">`;
+      document.body.appendChild(preview);
+
+      const img = preview.querySelector("img");
+      let activeThumb = null;
+
+      function place(node){
+        if (!node) return;
+        const rect = node.getBoundingClientRect();
+        const margin = 12;
+        const pw = preview.offsetWidth || 236;
+        const ph = preview.offsetHeight || 324;
+        let x = rect.right + 12;
+        let y = rect.top + ((rect.height - ph) / 2);
+        if (x + pw > window.innerWidth - margin) x = rect.left - pw - 12;
+        if (y < margin) y = margin;
+        if (y + ph > window.innerHeight - margin) y = Math.max(margin, window.innerHeight - ph - margin);
+        preview.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+      }
+
+      function show(node){
+        const src = norm(node?.dataset?.previewSrc);
+        if (!src || node.classList.contains("isFallback") || node.classList.contains("isMissing")){
+          hide();
+          return;
+        }
+        activeThumb = node;
+        img.src = src;
+        img.alt = node.dataset.code || "Leader";
+        preview.style.opacity = "1";
+        place(node);
+      }
+
+      function hide(){
+        activeThumb = null;
+        preview.style.opacity = "0";
+        preview.style.transform = "translate3d(-9999px,-9999px,0)";
+      }
+
+      document.addEventListener("mouseover", (e) => {
+        const node = e.target instanceof Element ? e.target.closest(".leaderThumb.canZoom[data-preview-src]") : null;
+        if (!node){
+          if (activeThumb) hide();
+          return;
+        }
+        show(node);
+      });
+
+      document.addEventListener("mouseout", (e) => {
+        const from = e.target instanceof Element ? e.target.closest(".leaderThumb.canZoom[data-preview-src]") : null;
+        if (!from) return;
+        const to = e.relatedTarget;
+        if (to instanceof Node && from.contains(to)) return;
+        hide();
+      });
+
+      window.addEventListener("scroll", () => { if (activeThumb) place(activeThumb); }, true);
+      window.addEventListener("resize", () => { if (activeThumb) place(activeThumb); });
+    }
+
+    window.handleCrowLeadFallback = function handleCrowLeadFallback(img){
+      if (!(img instanceof HTMLImageElement)) return;
+      const fallback = norm(img.dataset.fallback);
+      const parent = img.closest(".leaderThumb");
+      if (!parent) return;
+
+      if (img.dataset.mode === "fallback"){
+        parent.classList.remove("isFallback");
+        parent.classList.remove("canZoom");
+        delete parent.dataset.previewSrc;
+        parent.classList.add("isMissing");
+        img.remove();
+        return;
+      }
+
+      if (fallback){
+        img.dataset.mode = "fallback";
+        parent.classList.add("isFallback");
+        parent.classList.remove("canZoom");
+        delete parent.dataset.previewSrc;
+        img.src = fallback;
+        return;
+      }
+
+      parent.classList.remove("canZoom");
+      delete parent.dataset.previewSrc;
+      parent.classList.add("isMissing");
+      img.remove();
+    };
+
+    async function loadLeaders(){
+      clearError();
+      statusText.textContent = "Cargando leaders desde Supabase...";
+
+      const { data, error } = await sb
+        .from("leaders")
+        .select("code,name,image_url,parallel_image_url");
+
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      renderGroups(rows.filter((row) => norm(row?.code)));
+    }
+
+    (async function init(){
+      try{
+        initCrowLeadHoverPreview();
+        await loadLeaders();
+      }catch(err){
+        groupsRoot.innerHTML = `<div class="loadingState">No se pudieron cargar los leaders.</div>`;
+        statusText.textContent = "Error cargando leaders";
+        showError(err?.message || "No se pudieron cargar los leaders");
+      }
+    })();
+  </script>
+</body>
+</html>

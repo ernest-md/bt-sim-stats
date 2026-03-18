@@ -247,6 +247,25 @@
     </div>
   </div>
 
+  <div id="crowLeadsModal" class="loadingOverlay teamCrowModal" aria-hidden="true">
+    <div class="teamCrowDialog" role="dialog" aria-modal="true" aria-labelledby="crowLeadsModalTitle">
+      <div class="teamCrowDialogHead">
+        <div>
+          <div id="crowLeadsModalTitle" class="teamCrowDialogTitle">Crow Leads</div>
+          <div class="teamCrowDialogSub">Barateam visual roster</div>
+        </div>
+        <button id="crowLeadsModalClose" class="teamCrowDialogClose" type="button" aria-label="Cerrar popup">&times;</button>
+      </div>
+      <div class="teamCrowDialogBody">
+        <div id="crowLeadsModalLoading" class="teamCrowDialogLoading">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Cargando Crow Leads...</span>
+        </div>
+        <iframe id="crowLeadsModalFrame" class="teamCrowDialogFrame" title="Crow Leads"></iframe>
+      </div>
+    </div>
+  </div>
+
   <script>
     const sb = window.BarateamApp.createClient();
     window.BarateamApp.bindProtectedNavLinks(sb);
