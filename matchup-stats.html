@@ -360,6 +360,15 @@
       flex-wrap:wrap;
       margin-bottom:10px;
     }
+    .deckMetaMain{
+      min-width:0;
+    }
+    .deckMetaActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-left:auto;
+    }
     .deckMeta strong{
       color:#fbbf24;
       font-size:21px;
@@ -368,6 +377,35 @@
       color:#e2e8f0;
       font-weight:800;
       font-size:13px;
+    }
+    .deckCopyBtn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      color:#f8fafc;
+      width:36px;
+      height:36px;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:background .14s ease, border-color .14s ease, transform .14s ease;
+    }
+    .deckCopyBtn svg{
+      width:16px;
+      height:16px;
+      display:block;
+    }
+    .deckCopyBtn:hover{
+      background:rgba(255,255,255,.14);
+      border-color:rgba(255,255,255,.26);
+    }
+    .deckCopyBtn.isCopied{
+      background:rgba(16,185,129,.16);
+      border-color:rgba(16,185,129,.38);
+      color:#d1fae5;
     }
     .deckCardItem, .curveCardItem{
       width:58px;
@@ -567,6 +605,15 @@
       }
       .cardStrip, .deckCards, .curveCards{
         justify-content:center;
+      }
+      .deckMetaActions{
+        width:100%;
+        justify-content:space-between;
+        margin-left:0;
+      }
+      .deckCopyBtn{
+        width:34px;
+        height:34px;
       }
       .curveTableCompact .curveCardItem{
         width:44px;
@@ -1462,6 +1509,56 @@
       }).filter(Boolean);
     }
 
+    function deckCopyButtonIcon(state = "copy"){
+      if (state === "check"){
+        return `<svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg>`;
+      }
+      return `<svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3.5" width="9" height="11" rx="2"></rect><path d="M5 7.5H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-1"></path></svg>`;
+    }
+
+    function formatDecklistForClipboard(items, leaderCode){
+      const normalizedLeaderCode = normalizeCardCode(leaderCode) || norm(leaderCode);
+      const lines = (Array.isArray(items) ? items : [])
+        .filter((item) => item && item.qty > 0 && item.code)
+        .map((item) => `${Number(item.qty)}x${norm(item.code)}`)
+      if (normalizedLeaderCode && !lines.some((line) => normalizeCardCode(line.replace(/^\d+x/i, "")) === normalizedLeaderCode)){
+        lines.unshift(`1x${normalizedLeaderCode}`);
+      }
+      return lines.join("\n");
+    }
+
+    async function copyTextToClipboard(text){
+      const content = String(text || "");
+      if (!content) return false;
+
+      if (navigator.clipboard?.writeText){
+        try{
+          await navigator.clipboard.writeText(content);
+          return true;
+        }catch(_err){
+        }
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      textarea.style.pointerEvents = "none";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      let copied = false;
+      try{
+        copied = document.execCommand("copy");
+      }catch(_err){
+        copied = false;
+      }
+      textarea.remove();
+      return copied;
+    }
+
     function getDecklistsForMatchup(leaderCode, opponentCode, limit){
       const row = state.decklistsByLeader.get(norm(leaderCode)) || null;
       if (!row) return [];
@@ -1540,7 +1637,8 @@
         const items = parseDecklist(deck.decklist || "");
         const firstWr = deck.matchup?.turn_order_stats?.first_games ? deck.matchup.turn_order_stats.first_wins / deck.matchup.turn_order_stats.first_games : null;
         const secondWr = deck.matchup?.turn_order_stats?.second_games ? deck.matchup.turn_order_stats.second_wins / deck.matchup.turn_order_stats.second_games : null;
-        return `<div class="deckCard"><div class="deckMeta"><div><strong>#${index + 1} · ${pct(deck.matchup?.win_rate)}</strong><span> (${int(deck.matchup?.games_played)} games)</span></div><span>WR 1st ${pct(firstWr)} · WR 2nd ${pct(secondWr)}</span></div><div class="deckCards">${items.map((item) => renderDeckCard(item.code, item.qty)).join("")}</div></div>`;
+        const clipboardText = formatDecklistForClipboard(items, leaderCode);
+        return `<div class="deckCard"><div class="deckMeta"><div class="deckMetaMain"><strong>#${index + 1} · ${pct(deck.matchup?.win_rate)}</strong><span> (${int(deck.matchup?.games_played)} games)</span></div><div class="deckMetaActions"><span>WR 1st ${pct(firstWr)} · WR 2nd ${pct(secondWr)}</span>${clipboardText ? `<button class="deckCopyBtn" type="button" title="Copiar decklist" aria-label="Copiar decklist" data-copy-decklist="${escapeAttr(encodeURIComponent(clipboardText))}">${deckCopyButtonIcon("copy")}</button>` : ""}</div></div><div class="deckCards">${items.map((item) => renderDeckCard(item.code, item.qty)).join("")}</div></div>`;
       }).join("")}</div>`;
     }
 
@@ -1728,6 +1826,31 @@
         Number(getMatchupSummary(state.selectedPlayer, state.selectedOpponent)?.total_games || 0),
         Number(getMatchupSummary(state.selectedOpponent, state.selectedPlayer)?.total_games || 0)
       ));
+    });
+
+    document.addEventListener("click", async (event) => {
+      const button = event.target instanceof Element ? event.target.closest(".deckCopyBtn[data-copy-decklist]") : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+
+      const encoded = button.dataset.copyDecklist || "";
+      const text = encoded ? decodeURIComponent(encoded) : "";
+      if (!text) return;
+
+      const originalLabel = button.dataset.originalLabel || button.getAttribute("aria-label") || "Copiar decklist";
+      button.dataset.originalLabel = originalLabel;
+      const copied = await copyTextToClipboard(text);
+
+      button.innerHTML = deckCopyButtonIcon(copied ? "check" : "copy");
+      button.setAttribute("aria-label", copied ? "Decklist copiada" : "Error al copiar");
+      button.setAttribute("title", copied ? "Decklist copiada" : "Error al copiar");
+      button.classList.toggle("isCopied", copied);
+
+      window.setTimeout(() => {
+        button.innerHTML = deckCopyButtonIcon("copy");
+        button.setAttribute("aria-label", originalLabel);
+        button.setAttribute("title", originalLabel);
+        button.classList.remove("isCopied");
+      }, copied ? 1400 : 1800);
     });
 
     deckCountSelect.addEventListener("change", renderMatchup);

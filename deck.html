@@ -123,6 +123,44 @@
       font-size: 12px;
       line-height: 1;
     }
+    .copyIconBtn{
+      appearance:none;
+      border:1px solid rgba(15,23,42,.16);
+      border-radius:999px;
+      background:rgba(15,23,42,.06);
+      color:#0f172a;
+      width:36px;
+      height:36px;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:background .14s ease, border-color .14s ease, transform .14s ease, color .14s ease;
+    }
+    .copyIconBtn svg{
+      width:16px;
+      height:16px;
+      display:block;
+    }
+    .copyIconBtn:hover{
+      background:rgba(15,23,42,.10);
+      border-color:rgba(15,23,42,.26);
+    }
+    .copyIconBtn.shareCopyBtn{
+      border-color:rgba(37,99,235,.20);
+      background:rgba(37,99,235,.06);
+      color:#1d4ed8;
+    }
+    .copyIconBtn.shareCopyBtn:hover{
+      background:rgba(37,99,235,.12);
+      border-color:rgba(37,99,235,.30);
+    }
+    .copyIconBtn.isCopied{
+      background:rgba(16,185,129,.12);
+      border-color:rgba(16,185,129,.30);
+      color:#047857;
+    }
     .leaderRow{ display:flex; align-items:center; gap:12px; }
     .leaderImg{
       width: calc(96px * 0.72);
@@ -414,7 +452,13 @@
     <div class="card">
       <div class="headRow">
         <h1 class="title" id="deckName">Deck</h1>
-        <button class="btn btnLight" id="btnCopyDeckLink" type="button">Copiar enlace</button>
+        <button class="copyIconBtn shareCopyBtn" id="btnCopyDeckLink" type="button" title="Copiar enlace para compartir" aria-label="Copiar enlace para compartir">
+          <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4h4v4"></path>
+            <path d="M8 12 16 4"></path>
+            <rect x="4" y="8" width="8" height="8" rx="2"></rect>
+          </svg>
+        </button>
       </div>
       <div class="meta">
         <span id="deckAuthor">Autor: -</span>
@@ -449,7 +493,12 @@
         <div class="panel">
           <div class="panelHead">
             <h3>Sim paste</h3>
-            <button class="btn btnLight btnTiny" id="btnCopySimPaste" type="button">Copiar lista</button>
+            <button class="copyIconBtn" id="btnCopySimPaste" type="button" title="Copiar lista" aria-label="Copiar lista">
+              <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="7" y="3.5" width="9" height="11" rx="2"></rect>
+                <path d="M5 7.5H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-1"></path>
+              </svg>
+            </button>
           </div>
           <pre id="simPaste">-</pre>
         </div>
@@ -1119,12 +1168,49 @@ async function loadDeck(){
     }
 
     async function copyDeckLink(){
+      const button = $("btnCopyDeckLink");
       try{
         await navigator.clipboard.writeText(window.location.href);
-        window.BarateamApp.showMessage("msg", "Enlace copiado", { baseClass: "msg", type: "ok" });
+        if (button){
+          button.innerHTML = copyIconSvg("check");
+          button.classList.add("isCopied");
+          button.setAttribute("aria-label", "Enlace copiado");
+          button.setAttribute("title", "Enlace copiado");
+          window.setTimeout(() => {
+            button.innerHTML = copyIconSvg("share");
+            button.classList.remove("isCopied");
+            button.setAttribute("aria-label", "Copiar enlace para compartir");
+            button.setAttribute("title", "Copiar enlace para compartir");
+          }, 1400);
+        }
       }catch(_e){
         showError("No pude copiar el enlace.");
       }
+    }
+
+    function copyIconSvg(state = "copy"){
+      if (state === "check"){
+        return `
+          <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 10.5l4 4 8-9"></path>
+          </svg>
+        `;
+      }
+      if (state === "share"){
+        return `
+          <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4h4v4"></path>
+            <path d="M8 12 16 4"></path>
+            <rect x="4" y="8" width="8" height="8" rx="2"></rect>
+          </svg>
+        `;
+      }
+      return `
+        <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="7" y="3.5" width="9" height="11" rx="2"></rect>
+          <path d="M5 7.5H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-1"></path>
+        </svg>
+      `;
     }
 
     async function copySimPaste(){
@@ -1133,9 +1219,21 @@ async function loadDeck(){
         showError("No hay lista para copiar.");
         return;
       }
+      const button = $("btnCopySimPaste");
       try{
         await navigator.clipboard.writeText(text);
-        window.BarateamApp.showMessage("msg", "Lista copiada", { baseClass: "msg", type: "ok" });
+        if (button){
+          button.innerHTML = copyIconSvg("check");
+          button.classList.add("isCopied");
+          button.setAttribute("aria-label", "Lista copiada");
+          button.setAttribute("title", "Lista copiada");
+          window.setTimeout(() => {
+            button.innerHTML = copyIconSvg("copy");
+            button.classList.remove("isCopied");
+            button.setAttribute("aria-label", "Copiar lista");
+            button.setAttribute("title", "Copiar lista");
+          }, 1400);
+        }
       }catch(_e){
         showError("No pude copiar la lista.");
       }
