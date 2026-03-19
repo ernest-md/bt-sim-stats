@@ -625,7 +625,6 @@
 
   <script>
     const sb = window.BarateamApp.createClient();
-    const LIMITLESS_PROXY_PREFIX = "https://corsproxy.io/?";
     const TOPDECK_SOURCES = [
       {
         label: "Asia OP15",
@@ -772,12 +771,6 @@
       return String(value || "").trim().toUpperCase();
     }
 
-    function buildLimitlessUrl(url){
-      const raw = String(url || "").trim();
-      if (!raw) return "";
-      return `${LIMITLESS_PROXY_PREFIX}${encodeURIComponent(raw)}`;
-    }
-
     function decodeTopDecksDeckString(encoded){
       const matches = Array.from(String(encoded || "").matchAll(/(?:^|a)(\d+)n([A-Z0-9-]+)/g));
       return matches.map((match) => ({
@@ -900,18 +893,24 @@
       if (!cacheKey) throw new Error("El leader no tiene codigo valido.");
       if (state.deckCache.has(cacheKey)) return state.deckCache.get(cacheKey);
 
-      let best = null;
-      for (const source of TOPDECK_SOURCES){
-        const res = await fetch(buildLimitlessUrl(source.url));
-        if (!res.ok) continue;
-        const html = await res.text();
-        const candidate = parseTopDecksPage(html, cacheKey, source);
-        best = chooseLatestDeckEntry(best, candidate);
+      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/topdecks-decklists?leader=${encodeURIComponent(cacheKey)}`;
+      const res = await fetch(url);
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.error || "No he encontrado decklists recientes para este leader en las fuentes configuradas.");
       }
 
-      if (!best) throw new Error("No he encontrado decklists recientes para este leader en las fuentes configuradas.");
-      state.deckCache.set(cacheKey, best);
-      return best;
+      const entry = {
+        label: String(payload?.label || ""),
+        sourceUrl: String(payload?.sourceUrl || ""),
+        deckText: String(payload?.deckText || ""),
+      };
+      if (!entry.deckText) {
+        throw new Error("La fuente no devolvio ninguna decklist.");
+      }
+
+      state.deckCache.set(cacheKey, entry);
+      return entry;
     }
 
     function renderLeaderModalArt(leader){
