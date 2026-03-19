@@ -1518,7 +1518,7 @@
       const limit = Number(techCountSelect.value || 8);
       const techCards = Array.isArray(entry?.tech_cards) ? entry.tech_cards.slice(0, limit) : [];
       return techCards.length
-        ? `<div class="cardStrip">${techCards.map((card) => renderMiniCard(card.card, `${pct(card.frequency_difference)} diff`)).join("")}</div>`
+        ? `<div class="cardStrip">${techCards.map((card) => renderMiniCard(card.card)).join("")}</div>`
         : `<div class="emptyState">No hay tech cards especificas para este lado del matchup.</div>`;
     }
 
