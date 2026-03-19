@@ -971,7 +971,7 @@
 
     function buildDotggCardImageUrl(value){
       const code = normalizeCardCode(value);
-      if (!code || !isPromoCardCode(code)) return "";
+      if (!code) return "";
       return `https://static.dotgg.gg/onepiece/card/${encodeURIComponent(code)}.webp`;
     }
 
