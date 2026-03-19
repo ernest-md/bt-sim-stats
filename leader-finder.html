@@ -274,7 +274,6 @@
       border:1px solid rgba(15,23,42,.08);
       background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(248,250,252,.92));
       box-shadow:0 14px 28px rgba(15,23,42,.08);
-      cursor:pointer;
     }
     .leaderArtWrap{
       position:relative;
@@ -358,51 +357,64 @@
       justify-content:center;
       padding:18px;
       background:rgba(2,6,23,.72);
-      backdrop-filter:blur(6px);
-      z-index:12000;
+      backdrop-filter:blur(8px);
+      z-index:60;
     }
     .modal.open{
       display:flex;
     }
     .modalCard{
-      width:min(520px, calc(100vw - 24px));
-      max-height:min(92vh, 960px);
+      width:min(980px, 100%);
+      max-height:min(90vh, 860px);
       overflow:auto;
-      border-radius:20px;
-      border:1px solid rgba(255,255,255,.16);
+      border-radius:24px;
       background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96));
-      box-shadow:0 30px 70px rgba(0,0,0,.35);
-      padding:14px;
+      border:1px solid rgba(255,255,255,.24);
+      box-shadow:0 24px 70px rgba(2,6,23,.45);
+      padding:18px;
+    }
+    .modalCloseRow{
+      display:flex;
+      justify-content:flex-end;
+      margin-bottom:10px;
+    }
+    .modalClose{
+      width:40px;
+      height:40px;
+      border:none;
+      border-radius:999px;
+      background:#e2e8f0;
+      color:#0f172a;
+      font-size:24px;
+      font-weight:900;
+      cursor:pointer;
     }
     .modalLayout{
       display:grid;
-      justify-items:center;
-      gap:12px;
+      grid-template-columns:minmax(220px, 280px) minmax(0, 1fr);
+      gap:18px;
     }
     .modalArt{
-      width:100%;
-      max-width:360px;
-      border-radius:18px;
+      border-radius:20px;
       overflow:hidden;
-      border:1px solid rgba(15,23,42,.08);
-      background:#fff;
+      background:linear-gradient(180deg, rgba(15,23,42,.06), rgba(15,23,42,.02));
+      min-height:280px;
     }
     .modalArt img{
       width:100%;
-      height:auto;
+      height:100%;
+      object-fit:cover;
       display:block;
     }
     .modalInfo{
       display:grid;
-      gap:10px;
-      align-content:start;
-      justify-items:center;
-      text-align:center;
+      gap:12px;
+      min-width:0;
     }
     .modalInfo h3{
       margin:0;
-      font-size:28px;
-      line-height:1.04;
+      font-size:30px;
+      line-height:1.05;
       color:#0f172a;
       font-weight:1000;
     }
@@ -413,22 +425,34 @@
       letter-spacing:.08em;
       text-transform:uppercase;
     }
-    .modalCloseRow{
+    .modalMeta{
       display:flex;
-      justify-content:flex-end;
-      margin-bottom:8px;
+      flex-wrap:wrap;
+      gap:8px;
     }
-    .modalClose{
-      width:40px;
-      height:40px;
-      border:none;
-      border-radius:999px;
-      background:#e2e8f0;
-      color:#0f172a;
-      font-size:24px;
-      line-height:1;
-      cursor:pointer;
-      font-weight:900;
+    .deckActions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    .deckStatus{
+      color:#475569;
+      font-size:13px;
+      font-weight:700;
+      min-height:18px;
+    }
+    .deckOutput{
+      width:100%;
+      min-height:260px;
+      resize:vertical;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:16px;
+      background:#0f172a;
+      color:#e2e8f0;
+      padding:14px;
+      font:700 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space:pre;
     }
     .loginGate{
       margin-top:14px;
@@ -453,8 +477,11 @@
       .colorGrid{ grid-template-columns:1fr; }
       .leaderGrid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
       .leaderName{ font-size:15px; }
-      .modalInfo h3{ font-size:22px; }
-      .modalArt{ max-width:320px; }
+      .modal{ padding:10px; }
+      .modalCard{ padding:14px; border-radius:18px; }
+      .modalLayout{ grid-template-columns:1fr; }
+      .modalInfo h3{ font-size:24px; }
+      .deckOutput{ min-height:220px; }
     }
   </style>
 </head>
@@ -501,7 +528,7 @@
   <div class="page">
     <section class="hero">
       <h1>Lideres</h1>
-      <p>Filtra líderes por colores, expansion y si son mono o bicolor. Si marcas bicolor y los 2 colores, te saldrán solo líderes que sean exactamente esa combinación.</p>
+      <p>Filtra leaders por colores, expansion y si son mono o bicolor. A la derecha veras directamente el arte alternativo de los que coincidan.</p>
     </section>
 
     <div class="loginGate card" id="loginGate" style="display:none;">
@@ -575,7 +602,7 @@
   </div>
 
   <div class="modal" id="leaderModal" aria-hidden="true">
-    <div class="modalCard">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="leaderModalTitle">
       <div class="modalCloseRow">
         <button class="modalClose" id="leaderModalClose" type="button" aria-label="Cerrar detalle">&times;</button>
       </div>
@@ -583,8 +610,14 @@
         <div class="modalArt" id="leaderModalArt"></div>
         <div class="modalInfo">
           <div class="modalCode" id="leaderModalCode">-</div>
-          <h3 id="leaderModalName">Leader</h3>
-          <div class="tagRow" id="leaderModalTags"></div>
+          <h3 id="leaderModalTitle">Leader</h3>
+          <div class="modalMeta" id="leaderModalTags"></div>
+          <div class="deckActions">
+            <button class="btn2 btnPrimary" id="copyDeckBtn" type="button">Copiar decklist</button>
+            <a class="btn2 btnSoft" id="openLimitlessLink" href="#" target="_blank" rel="noopener noreferrer">Abrir fuente</a>
+          </div>
+          <div class="deckStatus" id="deckStatus">Selecciona un leader para generar la lista del simulador.</div>
+          <textarea class="deckOutput" id="deckOutput" readonly placeholder="Aqui aparecera la decklist en formato simulador."></textarea>
         </div>
       </div>
     </div>
@@ -592,6 +625,25 @@
 
   <script>
     const sb = window.BarateamApp.createClient();
+    const LIMITLESS_PROXY_PREFIX = "https://corsproxy.io/?";
+    const TOPDECK_SOURCES = [
+      {
+        label: "Asia OP15",
+        url: "https://onepiecetopdecks.com/deck-list/japan-op-15-deck-list-adventure-on-kamis-island/"
+      },
+      {
+        label: "Ingles EB03",
+        url: "https://onepiecetopdecks.com/deck-list/english-eb-03-deck-list-one-piece-heroines-edition/"
+      },
+      {
+        label: "Ingles OP14 + EB04",
+        url: "https://onepiecetopdecks.com/deck-list/english-op-14-eb-04-deck-list-the-azure-sea-seven/"
+      },
+      {
+        label: "Asia OP14 + EB03",
+        url: "https://onepiecetopdecks.com/deck-list/japan-eb-04-deck-list-egghead-crisis/"
+      }
+    ];
     const COLORS = [
       { value: "Red", label: "Rojo", className: "color-red" },
       { value: "Blue", label: "Azul", className: "color-blue" },
@@ -616,7 +668,6 @@
       { value: "OP13", label: "OP13" },
       { value: "OP14", label: "OP14" },
       { value: "OP15", label: "OP15" },
-      { value: "EB", label: "Todos los EB" },
       { value: "ST", label: "Todos los ST" },
       { value: "P", label: "Promo" }
     ];
@@ -628,7 +679,9 @@
     const state = {
       leaders: [],
       filteredLeaders: [],
-      currentUser: null
+      currentUser: null,
+      selectedLeader: null,
+      deckCache: new Map()
     };
 
     const navController = window.BarateamApp.initUserNav({
@@ -669,7 +722,6 @@
     function buildExpansionGroup(code){
       const prefix = String(code || "").trim().toUpperCase();
       if (/^OP(0[1-9]|1[0-5])/.test(prefix)) return prefix.slice(0, 4);
-      if (/^EB\d{2}/.test(prefix)) return "EB";
       if (/^ST\d+/.test(prefix)) return "ST";
       if (/^P-/.test(prefix)) return "P";
       return "OTHER";
@@ -692,8 +744,8 @@
       if (!selectedColors.length) return true;
       const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
       const strictDualMatch = selectedTypes.includes("dual") && !selectedTypes.includes("mono") && selectedColors.length > 1;
-      if (strictDualMatch) {
-        return selectedColors.every((color) => colors.includes(color));
+      if (strictDualMatch){
+        return colors.length === selectedColors.length && selectedColors.every((color) => colors.includes(color));
       }
       return selectedColors.some((color) => colors.includes(color));
     }
@@ -716,19 +768,226 @@
       return parts.length ? parts.join(" · ") : "Sin filtros activos";
     }
 
+    function normalizeCardCode(value){
+      return String(value || "").trim().toUpperCase();
+    }
+
+    function buildLimitlessUrl(url){
+      const raw = String(url || "").trim();
+      if (!raw) return "";
+      return `${LIMITLESS_PROXY_PREFIX}${encodeURIComponent(raw)}`;
+    }
+
+    function decodeTopDecksDeckString(encoded){
+      const matches = Array.from(String(encoded || "").matchAll(/(?:^|a)(\d+)n([A-Z0-9-]+)/g));
+      return matches.map((match) => ({
+        quantity: Number(match[1]),
+        code: normalizeCardCode(match[2])
+      })).filter((card) => card.quantity > 0 && card.code);
+    }
+
+    function formatIsoDate(dateValue){
+      const d = dateValue instanceof Date ? dateValue : new Date(dateValue);
+      if (Number.isNaN(d.getTime())) return "";
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function parseTopDecksDate(value){
+      const match = String(value || "").match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (!match) return null;
+      const month = Number(match[1]);
+      const day = Number(match[2]);
+      const year = Number(match[3]);
+      const date = new Date(year, month - 1, day);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function parseTopDecksLine(line, leaderCode, sourceLabel, sourceUrl){
+      const normalizedLeaderCode = normalizeCardCode(leaderCode);
+      const trimmed = String(line || "").trim();
+      if (!trimmed.startsWith(`1n${normalizedLeaderCode}`)) return null;
+
+      const deckMatch = trimmed.match(/^(1n[A-Z0-9-]+(?:a\d+n[A-Z0-9-]+)*)/);
+      const dateMatch = trimmed.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+      if (!deckMatch || !dateMatch) return null;
+
+      const encodedDeck = deckMatch[1];
+      const dateText = dateMatch[1];
+      const parsedDate = parseTopDecksDate(dateText);
+      if (!parsedDate) return null;
+
+      const beforeDate = trimmed.slice(encodedDeck.length, dateMatch.index).replace(/【\d+†.*?】/g, " ").trim();
+      const metaTokens = beforeDate.split(/\s+/).filter(Boolean);
+      const deckName = metaTokens.length >= 3 ? metaTokens.slice(2).join(" ") : normalizedLeaderCode;
+      const label = `${sourceLabel} - ${deckName} - ${formatIsoDate(parsedDate)}`;
+      const deckCards = decodeTopDecksDeckString(encodedDeck);
+      if (!deckCards.length) return null;
+
+      return {
+        label,
+        date: parsedDate,
+        sourceUrl,
+        deckText: deckCards.map((card) => `${card.quantity}x${card.code}`).join("\n")
+      };
+    }
+
+    function chooseLatestDeckEntry(currentBest, candidate){
+      if (!candidate) return currentBest;
+      if (!currentBest) return candidate;
+      if (candidate.date.getTime() > currentBest.date.getTime()) return candidate;
+      return currentBest;
+    }
+
+    function htmlToLines(html){
+      const parser = new DOMParser();
+      const htmlWithBreaks = String(html || "")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(a|div|p|li|section|article|header|footer|h[1-6]|tr|td|th|ul|ol|main|aside|nav)>/gi, "$&\n");
+      const doc = parser.parseFromString(htmlWithBreaks, "text/html");
+      const rawText = String(doc.body?.textContent || doc.documentElement?.textContent || "");
+      return rawText
+        .split(/\r?\n/)
+        .map((line) => line.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+    }
+
+    function parseTopDecksPage(html, leaderCode, source){
+      const normalizedLeaderCode = normalizeCardCode(leaderCode);
+      const text = htmlToLines(html).join("\n");
+      const deckRegex = /1n[A-Z0-9-]+(?:a\d+n[A-Z0-9-]+)*/g;
+      const matches = Array.from(text.matchAll(deckRegex));
+      let best = null;
+
+      for (let i = 0; i < matches.length; i += 1){
+        const encodedDeck = matches[i][0];
+        if (!encodedDeck.startsWith(`1n${normalizedLeaderCode}`)) continue;
+
+        const start = matches[i].index ?? 0;
+        const end = i + 1 < matches.length ? (matches[i + 1].index ?? text.length) : text.length;
+        const chunk = text.slice(start, end).trim();
+        const dateMatch = chunk.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+        if (!dateMatch) continue;
+
+        const parsedDate = parseTopDecksDate(dateMatch[1]);
+        if (!parsedDate) continue;
+
+        const beforeDate = chunk.slice(encodedDeck.length, dateMatch.index)
+          .replace(/【\d+†.*?】/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        const metaTokens = beforeDate.split(/\s+/).filter(Boolean);
+        const deckName = metaTokens.length >= 3 ? metaTokens.slice(2).join(" ") : normalizedLeaderCode;
+        const deckCards = decodeTopDecksDeckString(encodedDeck);
+        if (!deckCards.length) continue;
+
+        const candidate = {
+          label: `${source.label} - ${deckName} - ${formatIsoDate(parsedDate)}`,
+          date: parsedDate,
+          sourceUrl: source.url,
+          deckText: deckCards.map((card) => `${card.quantity}x${card.code}`).join("\n")
+        };
+        best = chooseLatestDeckEntry(best, candidate);
+      }
+
+      return best;
+    }
+
+    async function fetchLeaderDecklist(leader){
+      const cacheKey = normalizeCardCode(leader?.code);
+      if (!cacheKey) throw new Error("El leader no tiene codigo valido.");
+      if (state.deckCache.has(cacheKey)) return state.deckCache.get(cacheKey);
+
+      let best = null;
+      for (const source of TOPDECK_SOURCES){
+        const res = await fetch(buildLimitlessUrl(source.url));
+        if (!res.ok) continue;
+        const html = await res.text();
+        const candidate = parseTopDecksPage(html, cacheKey, source);
+        best = chooseLatestDeckEntry(best, candidate);
+      }
+
+      if (!best) throw new Error("No he encontrado decklists recientes para este leader en las fuentes configuradas.");
+      state.deckCache.set(cacheKey, best);
+      return best;
+    }
+
+    function renderLeaderModalArt(leader){
+      const art = String(leader?.parallel_image_url || leader?.image_url || "").trim();
+      if (art){
+        return `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader?.name || leader?.code || "Leader")}">`;
+      }
+      return `<div class="leaderFallback">${escapeHtml(leader?.name || leader?.code || "Leader")}</div>`;
+    }
+
+    function renderLeaderModalTags(leader){
+      const expansionGroup = buildExpansionGroup(leader?.code);
+      const expansionLabel = expansionGroup === "P" ? "Promo" : (expansionGroup === "ST" ? "ST" : expansionGroup);
+      const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
+      const tags = [expansionLabel, typeLabel, leader?.color_primary, leader?.color_secondary].filter(Boolean);
+      return tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+    }
+
+    async function openLeaderModal(leader){
+      state.selectedLeader = leader || null;
+      $("leaderModalArt").innerHTML = renderLeaderModalArt(leader);
+      $("leaderModalCode").textContent = leader?.code || "-";
+      $("leaderModalTitle").textContent = leader?.name || leader?.code || "Leader";
+      $("leaderModalTags").innerHTML = renderLeaderModalTags(leader);
+      $("openLimitlessLink").href = "#";
+      $("openLimitlessLink").style.pointerEvents = "none";
+      $("openLimitlessLink").style.opacity = ".55";
+      $("deckOutput").value = "";
+      $("deckStatus").textContent = "Buscando la decklist mas reciente en One Piece Top Decks...";
+      $("copyDeckBtn").disabled = true;
+      $("leaderModal").classList.add("open");
+      $("leaderModal").setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+
+      try{
+        const deckEntry = await fetchLeaderDecklist(leader);
+        if (state.selectedLeader?.code !== leader.code) return;
+        $("deckOutput").value = deckEntry.deckText;
+        $("deckStatus").textContent = deckEntry.label;
+        $("openLimitlessLink").href = deckEntry.sourceUrl || "#";
+        $("openLimitlessLink").style.pointerEvents = deckEntry.sourceUrl ? "auto" : "none";
+        $("openLimitlessLink").style.opacity = deckEntry.sourceUrl ? "1" : ".55";
+        $("copyDeckBtn").disabled = false;
+      }catch(err){
+        if (state.selectedLeader?.code !== leader.code) return;
+        $("deckOutput").value = "";
+        $("deckStatus").textContent = err?.message || "No se pudo generar la decklist.";
+      }
+    }
+
+    function closeLeaderModal(){
+      $("leaderModal").classList.remove("open");
+      $("leaderModal").setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      state.selectedLeader = null;
+    }
+
+    async function copyCurrentDecklist(){
+      const text = $("deckOutput").value.trim();
+      if (!text){
+        $("deckStatus").textContent = "No hay decklist disponible para copiar.";
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      $("deckStatus").textContent = "Decklist copiada al portapapeles.";
+    }
+
     function renderLeaderTile(leader){
       const art = String(leader.parallel_image_url || leader.image_url || "").trim();
       const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
       const expansionGroup = buildExpansionGroup(leader.code);
-      const expansionLabel = expansionGroup === "P"
-        ? "Promo"
-        : (expansionGroup === "ST"
-          ? "ST"
-          : (expansionGroup === "EB" ? "EB" : expansionGroup));
+      const expansionLabel = expansionGroup === "P" ? "Promo" : (expansionGroup === "ST" ? "ST" : expansionGroup);
       const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
 
       return `
-        <article class="leaderTile" data-code="${escapeAttr(leader.code || "")}">
+        <article class="leaderTile" data-code="${escapeAttr(leader.code || "")}" tabindex="0" role="button" aria-label="Abrir detalle de ${escapeAttr(leader.name || leader.code || "Leader")}">
           <div class="leaderArtWrap">
             ${art
               ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader.name || leader.code || "Leader")}" loading="lazy">`
@@ -784,36 +1043,6 @@
       applyFilters();
     }
 
-    function openLeaderModal(leader){
-      if (!leader) return;
-      const art = String(leader.parallel_image_url || leader.image_url || "").trim();
-      const expansionGroup = buildExpansionGroup(leader.code);
-      const expansionLabel = expansionGroup === "P"
-        ? "Promo"
-        : (expansionGroup === "ST" ? "ST" : (expansionGroup === "EB" ? "EB" : expansionGroup));
-      const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
-      const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
-
-      $("leaderModalCode").textContent = leader.code || "-";
-      $("leaderModalName").textContent = leader.name || leader.code || "Leader";
-      $("leaderModalTags").innerHTML = [
-        `<span class="tag">${escapeHtml(expansionLabel)}</span>`,
-        `<span class="tag">${escapeHtml(typeLabel)}</span>`,
-        ...colors.map((color) => `<span class="tag">${escapeHtml(color)}</span>`)
-      ].join("");
-      $("leaderModalArt").innerHTML = art
-        ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader.name || leader.code || "Leader")}">`
-        : `<div class="leaderFallback">${escapeHtml(leader.name || leader.code || "Leader")}</div>`;
-
-      $("leaderModal").classList.add("open");
-      $("leaderModal").setAttribute("aria-hidden", "false");
-    }
-
-    function closeLeaderModal(){
-      $("leaderModal").classList.remove("open");
-      $("leaderModal").setAttribute("aria-hidden", "true");
-    }
-
     async function loadLeaders(){
       $("loadingState").textContent = "Cargando leaders...";
       $("loadingState").style.display = "block";
@@ -821,7 +1050,7 @@
 
       const { data, error } = await sb
         .from("leaders")
-        .select("code,name,image_url,parallel_image_url,color_primary,color_secondary")
+        .select("code,name,image_url,parallel_image_url,color_primary,color_secondary,limitless")
         .order("code");
 
       if (error) throw error;
@@ -880,6 +1109,14 @@
 
     $("clearFiltersBtn").addEventListener("click", resetFilters);
     $("refreshBtn").addEventListener("click", () => { void loadLeaders(); });
+    $("copyDeckBtn").addEventListener("click", () => { void copyCurrentDecklist(); });
+    $("leaderModalClose").addEventListener("click", closeLeaderModal);
+    $("leaderModal").addEventListener("click", (event) => {
+      if (event.target === $("leaderModal")) closeLeaderModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && $("leaderModal").classList.contains("open")) closeLeaderModal();
+    });
     $("expansionToggle").addEventListener("click", () => {
       const panel = $("expansionPanel");
       const toggle = $("expansionToggle");
@@ -892,18 +1129,21 @@
           : "Abrir";
       }
     });
+
     $("leaderGrid").addEventListener("click", (event) => {
-      const tile = event.target.closest(".leaderTile[data-code]");
+      const tile = event.target.closest(".leaderTile");
       if (!tile) return;
       const leader = state.filteredLeaders.find((item) => item.code === tile.dataset.code);
-      openLeaderModal(leader || null);
+      if (leader) void openLeaderModal(leader);
     });
-    $("leaderModalClose").addEventListener("click", closeLeaderModal);
-    $("leaderModal").addEventListener("click", (event) => {
-      if (event.target === $("leaderModal")) closeLeaderModal();
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeLeaderModal();
+
+    $("leaderGrid").addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const tile = event.target.closest(".leaderTile");
+      if (!tile) return;
+      event.preventDefault();
+      const leader = state.filteredLeaders.find((item) => item.code === tile.dataset.code);
+      if (leader) void openLeaderModal(leader);
     });
 
     sb.auth.onAuthStateChange((_event, session) => {
