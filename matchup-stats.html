@@ -796,8 +796,9 @@
         <div class="controlField">
           <label for="techCountSelect">Tech cards por lado</label>
           <select id="techCountSelect">
+            <option value="all" selected>Todas</option>
             <option value="6">6</option>
-            <option value="8" selected>8</option>
+            <option value="8">8</option>
             <option value="10">10</option>
           </select>
         </div>
@@ -884,7 +885,7 @@
     const initialPlayerLeader = String(pageParams.get("player") || pageParams.get("leader") || "").trim();
     const initialOpponentLeader = String(pageParams.get("opponent") || pageParams.get("rival") || "").trim();
     const initialDeckCount = String(pageParams.get("decks") || pageParams.get("decklists") || "3").trim();
-    const initialTechCount = String(pageParams.get("techs") || pageParams.get("tech") || "8").trim();
+    const initialTechCount = String(pageParams.get("techs") || pageParams.get("tech") || "all").trim();
     const initialDataset = String(pageParams.get("dataset") || "").trim();
     const initialDate = String(pageParams.get("date") || "").trim();
 
@@ -1119,6 +1120,13 @@
     function pct(value){
       if (value == null || Number.isNaN(Number(value))) return "-";
       return `${(Number(value) * 100).toFixed(1)}%`;
+    }
+
+    function getTechCardsLimit(){
+      const raw = String(techCountSelect.value || "").trim().toLowerCase();
+      if (!raw || raw === "all" || raw === "todas") return Number.POSITIVE_INFINITY;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.POSITIVE_INFINITY;
     }
 
     function int(value){
@@ -1468,10 +1476,11 @@
 
     function collectCardCodesForCurrentView(playerCode, opponentCode){
       const codes = new Set();
-      const techLimit = Number(techCountSelect.value || 8);
+      const techLimit = getTechCardsLimit();
       const deckLimit = Number(deckCountSelect.value || 3);
       for (const entry of [findTechEntry(playerCode, opponentCode), findTechEntry(opponentCode, playerCode)]){
-        for (const tech of (entry?.tech_cards || []).slice(0, techLimit)) if (tech?.card) codes.add(norm(tech.card));
+        const visibleTechs = Number.isFinite(techLimit) ? (entry?.tech_cards || []).slice(0, techLimit) : (entry?.tech_cards || []);
+        for (const tech of visibleTechs) if (tech?.card) codes.add(norm(tech.card));
       }
       for (const deck of [...getDecklistsForMatchup(playerCode, opponentCode, deckLimit), ...getDecklistsForMatchup(opponentCode, playerCode, deckLimit)]){
         for (const item of parseDecklist(deck?.decklist || "")) if (item?.code) codes.add(item.code);
@@ -1515,8 +1524,10 @@
     }
 
     function renderTechCards(entry){
-      const limit = Number(techCountSelect.value || 8);
-      const techCards = Array.isArray(entry?.tech_cards) ? entry.tech_cards.slice(0, limit) : [];
+      const limit = getTechCardsLimit();
+      const techCards = Array.isArray(entry?.tech_cards)
+        ? (Number.isFinite(limit) ? entry.tech_cards.slice(0, limit) : entry.tech_cards)
+        : [];
       return techCards.length
         ? `<div class="cardStrip">${techCards.map((card) => renderMiniCard(card.card)).join("")}</div>`
         : `<div class="emptyState">No hay tech cards especificas para este lado del matchup.</div>`;
