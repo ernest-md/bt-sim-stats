@@ -166,7 +166,7 @@
     }
     .layout{
       display:grid;
-      grid-template-columns:minmax(0, 1fr) 100px minmax(0, 1fr);
+      grid-template-columns:minmax(0, 1fr) 120px minmax(0, 1fr);
       gap:14px;
       align-items:start;
     }
@@ -203,10 +203,13 @@
       letter-spacing:.08em;
     }
     .versusCard .matches{
-      font-size:38px;
+      font-size:clamp(24px, 2vw, 34px);
       font-weight:1000;
-      line-height:1;
+      line-height:.94;
+      letter-spacing:-.04em;
+      font-variant-numeric:tabular-nums;
       margin:8px 0 4px;
+      white-space:nowrap;
     }
     .versusCard .meta{
       color:rgba(255,255,255,.72);
@@ -1565,7 +1568,7 @@
       return row.best_decklists.map((deck) => {
         const matchup = Array.isArray(deck?.matchup_stats) ? deck.matchup_stats.find((item) => norm(item?.oppLeader) === norm(opponentCode)) : null;
         return matchup ? { ...deck, matchup } : null;
-      }).filter(Boolean).sort((a, b) => {
+      }).filter((deck) => deck && Number(deck.matchup?.games_played || 0) >= 3).sort((a, b) => {
         const wrDiff = Number(b.matchup?.win_rate || 0) - Number(a.matchup?.win_rate || 0);
         return wrDiff || (Number(b.matchup?.games_played || 0) - Number(a.matchup?.games_played || 0));
       }).slice(0, limit);
