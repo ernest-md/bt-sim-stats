@@ -722,74 +722,77 @@
       window.addEventListener("resize", () => { if (activeAnchor) place(activeAnchor); });
     }
     async function fetchCurrentExpansion(){
-      const today = new Date();
-      const isoDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       const { data, error } = await sb
         .from("expansions")
         .select("id,name,start_date,end_date")
-        .lte("start_date", isoDay)
-        .gte("end_date", isoDay)
-        .order("start_date", { ascending: false })
-        .limit(1);
+        .order("start_date", { ascending: true });
       if (error) throw error;
-      return (data && data[0]) || null;
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return (data || []).find((exp) => {
+        const start = new Date(exp.start_date);
+        const end = new Date(exp.end_date);
+        const dayStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const dayEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        return today >= dayStart && today <= dayEnd;
+      }) || null;
     }
 
-    async function fetchMatches(expansion){
+    async function fetchRankingMatches(){
       const pageSize = 1000;
-      const maxRows = 6000;
+      const maxRows = 20000;
       let from = 0;
       const rows = [];
-      const startIso = expansion?.start_date ? `${expansion.start_date}T00:00:00` : null;
-      const endIso = expansion?.end_date ? `${expansion.end_date}T23:59:59.999` : null;
 
       while (from < maxRows){
         const to = from + pageSize - 1;
-        let query = sb
-          .from("matches")
-          .select(`
-            id,
-            player_id,
-            player_leader,
-            result,
-            match_date,
-            player:leaders!matches_player_leader_fkey (code,name,image_url,parallel_image_url)
-          `)
-          .order("match_date", { ascending: false });
+        const { data, error } = await sb
+          .rpc("get_global_ranking_matches_v2", {
+            p_start_at: null,
+            p_end_at: null
+          })
+          .range(from, to);
 
-        if (startIso) query = query.gte("match_date", startIso);
-        if (endIso) query = query.lte("match_date", endIso);
+        if (error){
+          const message = String(error.message || error.details || "");
+          if (
+            message.toLowerCase().includes("get_global_ranking_matches") ||
+            message.toLowerCase().includes("get_global_ranking_matches_v2") ||
+            message.toLowerCase().includes("schema cache")
+          ){
+            throw new Error("Falta desplegar la SQL del ranking global en Supabase.");
+          }
+          throw error;
+        }
 
-        const { data, error } = await query.range(from, to);
-        if (error) throw error;
-        const batch = data || [];
+        const batch = Array.isArray(data) ? data : [];
         rows.push(...batch);
         if (batch.length < pageSize) break;
         from += pageSize;
       }
+
       return rows;
     }
 
-    async function fetchPlayersMap(playerIds){
-      const ids = Array.from(new Set((playerIds || []).filter(Boolean)));
-      if (!ids.length) return new Map();
-      const { data, error } = await sb.from("players").select("id,name,profile_id").in("id", ids);
-      if (error){
-        console.warn("players:", error.message);
-        return new Map();
-      }
-      return new Map((data || []).map((p) => [p.id, p]));
+    function filterMatchesByExpansion(matches, expansion){
+      let filtered = Array.isArray(matches) ? [...matches] : [];
+      if (!expansion) return filtered;
+
+      const start = new Date(expansion.start_date);
+      const end = new Date(expansion.end_date);
+      filtered = filtered.filter((m) => {
+        const matchDate = new Date(m.match_date);
+        return matchDate >= start && matchDate <= end;
+      });
+      return filtered;
     }
 
-    async function fetchProfilesMap(profileIds){
-      const ids = Array.from(new Set((profileIds || []).filter(Boolean)));
-      if (!ids.length) return new Map();
-      const { data, error } = await sb.from("profiles").select("id,username,display_name,member").in("id", ids);
-      if (error){
-        console.warn("profiles:", error.message);
-        return new Map();
-      }
-      return new Map((data || []).map((p) => [p.id, p]));
+    function rankingPlayerName(row){
+      return row?.profile_username ||
+        row?.profile_display_name ||
+        row?.player_name ||
+        `user-${String(row?.player_id || "").slice(0, 8)}`;
     }
 
     function profileHrefById(userId){
@@ -797,17 +800,7 @@
       return `user.html?id=${encodeURIComponent(userId)}`;
     }
 
-    function memberPlayerIds(playersMap, profilesMap){
-      const allowed = new Set();
-      for (const [playerId, player] of (playersMap || new Map()).entries()){
-        const profileId = player?.profile_id || null;
-        const profile = profileId ? profilesMap.get(profileId) : null;
-        if (profile?.member === true) allowed.add(playerId);
-      }
-      return allowed;
-    }
-
-    function buildRanking(matches, playersMap, profilesMap){
+    function buildRanking(matches){
       const players = new Map();
 
       for (const row of (matches || [])){
@@ -817,6 +810,9 @@
         if (!players.has(playerId)){
           players.set(playerId, {
             playerId,
+            profileId: row?.profile_id || null,
+            member: row?.profile_member === true,
+            name: rankingPlayerName(row),
             games: 0,
             wins: 0,
             losses: 0,
@@ -830,13 +826,13 @@
         if (won) p.wins += 1;
         else p.losses += 1;
 
-        const code = String(row?.player_leader || row?.player?.code || "unknown").trim();
+        const code = String(row?.player_leader || row?.leader_code || "unknown").trim();
         if (!p.leaders.has(code)){
           p.leaders.set(code, {
             code,
-            name: row?.player?.name || code || "Leader",
-            parallel_image_url: row?.player?.parallel_image_url || "",
-            image_url: row?.player?.image_url || "",
+            name: row?.leader_name || code || "Leader",
+            parallel_image_url: row?.leader_parallel_image_url || "",
+            image_url: row?.leader_image_url || "",
             games: 0,
             wins: 0
           });
@@ -844,23 +840,14 @@
         const l = p.leaders.get(code);
         l.games += 1;
         if (won) l.wins += 1;
-        if (!l.parallel_image_url && row?.player?.parallel_image_url) l.parallel_image_url = row.player.parallel_image_url;
-        if (!l.image_url && row?.player?.image_url) l.image_url = row.player.image_url;
+        if (!l.parallel_image_url && row?.leader_parallel_image_url) l.parallel_image_url = row.leader_parallel_image_url;
+        if (!l.image_url && row?.leader_image_url) l.image_url = row.leader_image_url;
       }
 
       const ranking = Array.from(players.values()).map((p) => {
-        const profileId = playersMap.get(p.playerId)?.profile_id || null;
-        const profile = profilesMap.get(profileId || "") || null;
         const wilson = wilsonScore(p.wins, p.games);
         return {
-          profileId,
-          member: profile?.member === true,
           ...p,
-          name:
-            profile?.username ||
-            profile?.display_name ||
-            playersMap.get(p.playerId)?.name ||
-            `user-${String(p.playerId).slice(0, 8)}`,
           wr: p.games ? (p.wins / p.games) : 0,
           isRankEligible: p.games >= RANKING_MIN_GAMES,
           wilson,
@@ -926,18 +913,13 @@
         }
         $("expansionInfo").textContent = `Expansion activa: ${expansion.name} (${expansion.start_date} - ${expansion.end_date})`;
 
-        const matches = await fetchMatches(expansion);
-        const playerIds = matches.map((m) => m.player_id);
-        const playersMap = await fetchPlayersMap(playerIds);
-        const profileIds = Array.from(new Set(Array.from(playersMap.values()).map((p) => p?.profile_id).filter(Boolean)));
-        const profilesMap = await fetchProfilesMap(profileIds);
-        const allowedPlayerIds = memberPlayerIds(playersMap, profilesMap);
-        const memberMatches = matches.filter((m) => allowedPlayerIds.has(m.player_id));
-        allRankingRows = buildRanking(memberMatches, playersMap, profilesMap);
+        const matches = await fetchRankingMatches();
+        const filteredMatches = filterMatchesByExpansion(matches, expansion);
+        allRankingRows = buildRanking(filteredMatches);
         applyRankingFilters();
       }catch(e){
         console.warn("ranking:", e.message || e);
-        $("expansionInfo").textContent = "No se pudo cargar el ranking.";
+        $("expansionInfo").textContent = e?.message || "No se pudo cargar el ranking.";
         allRankingRows = [];
         renderRanking([], rankingView);
       }
