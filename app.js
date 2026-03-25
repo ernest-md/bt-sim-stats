@@ -181,7 +181,7 @@
 
   function isAccessGuardExemptPage(){
     const page = currentPageName();
-    return page === "login.html" || page === "reset-password.html";
+    return page === "login.html" || page === "reset-password.html" || page === "hits.html";
   }
 
   function isMembersPage(){
