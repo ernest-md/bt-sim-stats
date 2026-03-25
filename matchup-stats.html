@@ -809,7 +809,8 @@
         <div class="heroControls">
           <label class="filter" id="datasetFilter">Fuente
             <select id="datasetSelect">
-              <option value="west_private">West (Private)</option>
+              <option value="standard">Standard</option>
+              <option value="standard_last_week">Standard Last Week</option>
             </select>
           </label>
           <label class="filter" id="dateFilter">Fecha
@@ -882,11 +883,18 @@
 
   <script>
     const DATASETS = {
-      west_private: {
-        label: "West (Private)",
-        statsPrefix: "stats_west_p_",
-        decklistPrefix: "decklist_west_p_",
-        techPrefix: "matchuptech_west_p_",
+      standard: {
+        label: "Standard",
+        statsPrefix: "stats_west_",
+        decklistPrefix: "decklist_west_",
+        techPrefix: "matchuptech_west_",
+        curvePrefix: "curve_lw_"
+      },
+      standard_last_week: {
+        label: "Standard Last Week",
+        statsPrefix: "stats_lw_",
+        decklistPrefix: "decklist_lw_",
+        techPrefix: "matchuptech_lw_",
         curvePrefix: "curve_lw_"
       }
     };
@@ -1766,7 +1774,7 @@
       sourceMeta.textContent = "";
       try{
         const requestedDate = dateInput.value || toYmd(new Date());
-        const loaded = await loadDatasetWithFallback(requestedDate, datasetSelect.value || "west_private");
+        const loaded = await loadDatasetWithFallback(requestedDate, datasetSelect.value || "standard");
         const statRows = normalizeStatsRows(loaded.stats);
         const deckRows = normalizeDecklistRows(loaded.decklist);
         const techRows = normalizeTechRows(loaded.tech);
@@ -1795,7 +1803,7 @@
         syncSelects();
         await renderMatchup();
 
-        statusText.textContent = `Fuente cargada: ${DATASETS[datasetSelect.value || "west_private"].label}`;
+        statusText.textContent = `Fuente cargada: ${DATASETS[datasetSelect.value || "standard"].label}`;
         sourceMeta.textContent = `Fecha usada: ${loaded.ymd}${loaded.ymd !== requestedDate ? ` · fallback desde ${requestedDate}` : ""}`;
       }catch(err){
         playerPanel.innerHTML = `<div class="emptyState">No se pudieron cargar los datos.</div>`;
