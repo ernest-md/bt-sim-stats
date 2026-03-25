@@ -238,10 +238,22 @@ function getFilteredEloHistory() {
   })
 }
 
+function getBaseEloValue() {
+  const expansion = getSelectedExpansion()
+  if (!expansion) return null
+  return 1000
+}
+
 function updateEloSummary() {
   const history = getFilteredEloHistory()
   const latest = history[history.length - 1] || null
-  eloValue.textContent = latest ? Number(latest.elo_visual || 1000).toFixed(1) : "-"
+  if (latest) {
+    eloValue.textContent = Number(latest.elo_visual || 1000).toFixed(1)
+    return
+  }
+
+  const baseElo = getBaseEloValue()
+  eloValue.textContent = baseElo !== null ? Number(baseElo).toFixed(1) : "-"
 }
 
 function escapeHtml(value) {
