@@ -1264,7 +1264,7 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="bar">
+    <div class="bar with-auth-corner">
       <a class="brandLink" href="index.html" aria-label="Ir a la home">
         <div class="brand">
           <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
@@ -1272,14 +1272,32 @@
         </div>
       </a>
 
-      <div class="nav nav-compact">
-        <a class="btn" href="index.html">&#127968; Home</a>
-        <a class="btn" href="sim-stats/frontend/stats.html" data-requires-auth="1">&#128202; SIM Stats</a>
-        <a class="btn" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">&#128101; Team Stats</a>
-        <a class="btn" href="ranking.html" data-requires-auth="1">&#127942; Ranking</a>
-        <a class="btn" href="leader-stats.html">&#129504; Leader Stats</a>
-        <a class="btn active" href="cards.html">&#128209; Cards</a>
-        <a class="btn" href="decks.html">&#127183; DeckLists</a>
+      <div class="nav hubNavFlow">
+        <a class="navInlineLink" href="index.html">Home</a>
+        <div class="navInlineGroup">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="simStatsMenu" aria-haspopup="true">
+            <span>SIM Stats</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="simStatsMenu">
+            <a class="navInlineMenuLink" href="sim-stats/frontend/stats.html" data-requires-auth="1">Stats Propios</a>
+            <a class="navInlineMenuLink" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">Team Stats</a>
+            <a class="navInlineMenuLink" href="leader-stats.html">Global Leader Stats</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="ranking.html" data-requires-auth="1">Ranking</a>
+        <div class="navInlineGroup is-current">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="cardToolsMenu" aria-haspopup="true">
+            <span>Card Tools</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="cardToolsMenu">
+            <a class="navInlineMenuLink is-current" href="cards.html">Card List</a>
+            <a class="navInlineMenuLink" href="decks.html">DeckLists</a>
+            <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
     </div>
   </div>

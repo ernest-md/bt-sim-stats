@@ -535,6 +535,59 @@
     node.textContent = `${prefix}${y}-${m}-${day}`;
   }
 
+  function initInlineTopbarMenus(){
+    const groups = Array.from(document.querySelectorAll(".navInlineGroup"));
+    if (!groups.length) return;
+
+    const closeAll = (exceptGroup = null) => {
+      groups.forEach((group) => {
+        if (group === exceptGroup) return;
+        group.classList.remove("open");
+        group.querySelector(".navInlineButton")?.setAttribute("aria-expanded", "false");
+      });
+    };
+
+    groups.forEach((group) => {
+      if (group.dataset.inlineMenuBound === "1") return;
+      group.dataset.inlineMenuBound = "1";
+
+      const button = group.querySelector(".navInlineButton");
+      const menu = group.querySelector(".navInlineMenu");
+      if (!button || !menu) return;
+
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const nextOpen = !group.classList.contains("open");
+        closeAll(group);
+        group.classList.toggle("open", nextOpen);
+        button.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+      });
+
+      menu.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+
+      menu.querySelectorAll("a").forEach((link) => {
+        if (link.dataset.inlineMenuCloseBound === "1") return;
+        link.dataset.inlineMenuCloseBound = "1";
+        link.addEventListener("click", () => {
+          closeAll();
+        });
+      });
+    });
+
+    if (document.body && document.body.dataset.inlineMenuDocBound !== "1"){
+      document.body.dataset.inlineMenuDocBound = "1";
+      document.addEventListener("click", () => {
+        closeAll();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeAll();
+      });
+    }
+  }
+
   function initMobileTopbarToggle(){
     const bars = document.querySelectorAll(".topbar .bar");
     if (!bars.length) return;
@@ -563,6 +616,10 @@
       toggle.setAttribute("aria-expanded", "false");
 
       const close = () => {
+        nav.querySelectorAll(".navInlineGroup.open").forEach((group) => {
+          group.classList.remove("open");
+          group.querySelector(".navInlineButton")?.setAttribute("aria-expanded", "false");
+        });
         nav.classList.remove("open");
         toggle.classList.remove("open");
         toggle.setAttribute("aria-expanded", "false");
@@ -763,6 +820,7 @@
     clearAccessStateCache,
     applyRestrictedNavVisibility,
     bindProtectedNavLinks,
+    initInlineTopbarMenus,
     initMobileTopbarToggle,
     setTopbarDate,
     initUserNav,
@@ -771,6 +829,7 @@
 
   if (document.readyState === "loading"){
     document.addEventListener("DOMContentLoaded", () => {
+      initInlineTopbarMenus();
       initMobileTopbarToggle();
       try{
         initGlobalAccessGuard(createClient());
@@ -779,6 +838,7 @@
       }
     });
   } else {
+    initInlineTopbarMenus();
     initMobileTopbarToggle();
     try{
       initGlobalAccessGuard(createClient());
