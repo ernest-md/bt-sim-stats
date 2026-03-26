@@ -134,6 +134,8 @@
   font-weight: 900;
   letter-spacing: .12px;
   cursor: pointer;
+  box-sizing: border-box;
+  max-width: 100%;
   transition: color .18s ease, opacity .18s ease;
 }
 
@@ -201,6 +203,8 @@
   gap: 4px;
   z-index: 1600;
   backdrop-filter: blur(14px);
+  box-sizing: border-box;
+  max-width: min(320px, calc(100vw - 24px));
 }
 
 .navInlineGroup.open .navInlineMenu{
@@ -218,6 +222,8 @@
   font-size: 14px;
   font-weight: 800;
   line-height: 1.2;
+  box-sizing: border-box;
+  max-width: 100%;
   transition: background .18s ease;
 }
 
@@ -476,12 +482,21 @@ html, body{
     gap: 8px;
   }
 
-  .brand{
+  .topbar .brandLink{
     order: 1;
     width: 100%;
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     min-width: 0;
-    padding-left: 52px;
-    padding-right: 52px;
+  }
+
+  .brand{
+    width: 100%;
+    min-width: 0;
+    padding-left: 56px;
+    padding-right: 56px;
     box-sizing: border-box;
     margin-right: 0 !important;
     margin-left: 0 !important;
@@ -577,8 +592,8 @@ html, body{
     gap: 6px;
     position: absolute;
     top: calc(100% + 6px);
-    left: 0;
-    right: 0;
+    left: max(4px, env(safe-area-inset-left));
+    right: max(4px, env(safe-area-inset-right));
     z-index: 180000;
     border-radius: 12px;
     border: 1px solid rgba(255,255,255,.18);
@@ -615,16 +630,18 @@ html, body{
     width: 100%;
     min-width: 0;
     margin-top: 2px;
-    padding: 6px 0 0 12px;
+    padding: 6px 0 0;
     border: 0;
     background: transparent;
     box-shadow: none;
     backdrop-filter: none;
+    overflow: hidden;
   }
   .navInlineMenuLink{
     width: 100%;
     justify-content: flex-start;
     background: rgba(255,255,255,.08);
+    padding: 10px 12px;
   }
   .logoutButton {
     width: 100% !important;
