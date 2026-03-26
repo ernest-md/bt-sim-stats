@@ -770,6 +770,48 @@
       margin-top:18px;
     }
 
+    .loadingOverlay{
+      position:fixed;
+      inset:0;
+      z-index:250000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(9,14,28,.55);
+      backdrop-filter:blur(4px);
+      padding:20px;
+    }
+
+    .loadingBox{
+      min-width:280px;
+      max-width:min(92vw, 520px);
+      border-radius:18px;
+      padding:14px 16px;
+      border:1px solid rgba(255,255,255,.28);
+      background:linear-gradient(135deg, rgba(15,23,42,.95), rgba(30,64,175,.88));
+      color:#eef4ff;
+      box-shadow:0 20px 44px rgba(0,0,0,.35);
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .spinner{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:2px solid rgba(255,255,255,.28);
+      border-top-color:#fff;
+      animation:cardsSpinnerSpin .8s linear infinite;
+      flex:0 0 auto;
+    }
+
+    .loadingText{
+      font-size:14px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+
     .cardModal{
       position:fixed;
       inset:0;
@@ -891,6 +933,10 @@
     @keyframes artShimmer{
       0%{ background-position:200% 0, 0 0; }
       100%{ background-position:-200% 0, 0 0; }
+    }
+
+    @keyframes cardsSpinnerSpin{
+      to{ transform:rotate(360deg); }
     }
 
     .modalInfo{
@@ -1323,6 +1369,13 @@
     </div>
   </div>
 
+  <div id="loadingOverlay" class="loadingOverlay" aria-live="polite" aria-busy="true">
+    <div class="loadingBox">
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="loadingText" class="loadingText">Cargando catalogo de cartas...</span>
+    </div>
+  </div>
+
   <main class="page">
     <section class="hero">
       <h1>Buscador de cartas</h1>
@@ -1580,9 +1633,66 @@
     let filterTimer = 0;
     const MOBILE_FILTERS_MEDIA = window.matchMedia("(max-width: 760px)");
     let mobileFiltersOpen = false;
+    const loadedArtUrls = new Set();
+    const failedArtUrls = new Set();
 
     function normalize(value){
       return String(value ?? "").replace(/\s+/g, " ").trim();
+    }
+
+    function rememberLoadedArt(url){
+      const key = normalize(url);
+      if (!key) return;
+      loadedArtUrls.add(key);
+      failedArtUrls.delete(key);
+    }
+
+    function rememberFailedArt(url){
+      const key = normalize(url);
+      if (!key || loadedArtUrls.has(key)) return;
+      failedArtUrls.add(key);
+    }
+
+    function rememberArtFromImage(img, stateName){
+      if (!(img instanceof HTMLImageElement)) return;
+      const liveSrc = normalize(img.currentSrc || img.src);
+      const declaredSrc = normalize(img.getAttribute("src"));
+      if (stateName === "loaded"){
+        rememberLoadedArt(liveSrc);
+        if (declaredSrc && declaredSrc !== liveSrc) rememberLoadedArt(declaredSrc);
+        return;
+      }
+      rememberFailedArt(liveSrc);
+      if (declaredSrc && declaredSrc !== liveSrc) rememberFailedArt(declaredSrc);
+    }
+
+    function getCardArtSource(card){
+      const primary = normalize(card?.image);
+      const fallback = normalize(card?.fallbackImage);
+      if (primary && !failedArtUrls.has(primary)){
+        return {
+          src: primary,
+          fallback: fallback && fallback !== primary ? fallback : "",
+          isWarm: loadedArtUrls.has(primary)
+        };
+      }
+      if (fallback && fallback !== primary){
+        return {
+          src: fallback,
+          fallback: "",
+          isWarm: loadedArtUrls.has(fallback)
+        };
+      }
+      return { src: "", fallback: "", isWarm: false };
+    }
+
+    function setLoading(on, text){
+      const overlay = $("loadingOverlay");
+      const label = $("loadingText");
+      if (!overlay || !label) return;
+      if (text) label.textContent = text;
+      overlay.style.display = on ? "flex" : "none";
+      overlay.setAttribute("aria-busy", on ? "true" : "false");
     }
 
     function compactSearch(value){
@@ -2341,14 +2451,15 @@
     }
 
     function cardMarkup(card){
-      const imageMarkup = card.image
-        ? `<div class="artLoader" aria-hidden="true"><span>Cargando imagen</span></div>` +
-          `<img src="${escapeAttr(card.image)}" alt="${escapeAttr(card.name)}" loading="lazy" data-fallback-src="${escapeAttr(card.fallbackImage)}" />`
+      const art = getCardArtSource(card);
+      const imageMarkup = art.src
+        ? `${art.isWarm ? "" : `<div class="artLoader" aria-hidden="true"><span>Cargando imagen</span></div>`}` +
+          `<img src="${escapeAttr(art.src)}" alt="${escapeAttr(card.name)}" loading="lazy" data-card-code="${escapeAttr(card.code)}" data-fallback-src="${escapeAttr(art.fallback)}" />`
         : `<div class="cardArtFallback">${escapeHtml(card.code)}</div>`;
 
       return (
         `<button class="catalogCard" type="button" data-card-code="${escapeAttr(card.code)}" title="${escapeAttr(card.name + ' (' + card.code + ')')}" aria-label="${escapeAttr('Ver detalle de ' + card.name)}">` +
-          `<div class="cardArtWrap" data-art-host="1">` +
+          `<div class="cardArtWrap${art.isWarm ? " is-loaded" : ""}" data-art-host="1">` +
             imageMarkup +
           `</div>` +
         `</button>`
@@ -2362,9 +2473,10 @@
       const colorSummary = card.colors.length
         ? card.colors.map((color) => humanColor(color)).join("/")
         : "Sin color";
-      const imageMarkup = card.image
-        ? `<div class="artLoader" aria-hidden="true"><span>Cargando imagen</span></div>` +
-          `<img src="${escapeAttr(card.image)}" alt="${escapeAttr(card.name)}" loading="lazy" data-fallback-src="${escapeAttr(card.fallbackImage)}" />`
+      const art = getCardArtSource(card);
+      const imageMarkup = art.src
+        ? `${art.isWarm ? "" : `<div class="artLoader" aria-hidden="true"><span>Cargando imagen</span></div>`}` +
+          `<img src="${escapeAttr(art.src)}" alt="${escapeAttr(card.name)}" loading="lazy" data-card-code="${escapeAttr(card.code)}" data-fallback-src="${escapeAttr(art.fallback)}" />`
         : `<div class="cardArtFallback">${escapeHtml(card.code)}</div>`;
       const specs = [
         [
@@ -2393,12 +2505,12 @@
       }
 
       return (
-        `<div class="cardModalBody">` +
-          `<div class="modalArtColumn">` +
-            `<div class="modalArt" data-art-host="1">` +
-              imageMarkup +
+          `<div class="cardModalBody">` +
+            `<div class="modalArtColumn">` +
+              `<div class="modalArt${art.isWarm ? " is-loaded" : ""}" data-art-host="1">` +
+                imageMarkup +
+              `</div>` +
             `</div>` +
-          `</div>` +
           `<div class="modalInfo">` +
             `<div class="modalMetaStrip">` +
               `<span class="tag">${escapeHtml(card.type)}</span>` +
@@ -2454,13 +2566,19 @@
           wrapper.classList.add("is-loaded");
           return;
         }
-        wrapper.classList.toggle("is-loaded", !!(img.complete && img.naturalWidth > 0));
+        const isLoaded = !!(img.complete && img.naturalWidth > 0);
+        if (isLoaded){
+          rememberArtFromImage(img, "loaded");
+        }
+        const srcKey = normalize(img.currentSrc || img.getAttribute("src") || img.src);
+        wrapper.classList.toggle("is-loaded", isLoaded || loadedArtUrls.has(srcKey));
       });
     }
 
     function handleImageLoad(event){
       const img = event.target;
       if (!(img instanceof HTMLImageElement)) return;
+       rememberArtFromImage(img, "loaded");
       const wrapper = img.closest("[data-art-host]");
       if (!wrapper) return;
       wrapper.classList.add("is-loaded");
@@ -2469,14 +2587,12 @@
     function handleImageLoadError(event){
       const img = event.target;
       if (!(img instanceof HTMLImageElement)) return;
+      rememberArtFromImage(img, "failed");
       const fallback = normalize(img.dataset.fallbackSrc);
-      if (fallback && img.src !== fallback){
+      const currentSrc = normalize(img.currentSrc || img.src);
+      if (fallback && currentSrc !== fallback){
         img.src = fallback;
-        return;
-      }
-      const tile = img.closest(".catalogCard");
-      if (tile && $("cardsGrid").contains(tile)){
-        tile.remove();
+        img.dataset.fallbackSrc = "";
         return;
       }
       const wrapper = img.closest("[data-art-host]");
@@ -2522,6 +2638,8 @@
       state.filteredCards = [];
       state.cardsByCode = new Map();
       state.visibleCount = BATCH_SIZE;
+      failedArtUrls.clear();
+      setLoading(true, "Cargando catalogo de cartas...");
       setStatus("Cargando datos locales...");
       setPartialStatus();
       $("cardsGrid").innerHTML = "";
@@ -2531,6 +2649,7 @@
 
       try{
         const results = await Promise.allSettled(SOURCE_DEFS.map(loadPunkSource));
+        setLoading(true, "Preparando filtros y cartas...");
 
         const mappedByCode = new Map();
         let maxDate = "";
@@ -2609,6 +2728,7 @@
         $("emptyState").innerHTML = "<strong>Error al cargar</strong><div>No se pudo construir el catalogo desde los datos locales.</div>";
       } finally {
         state.loading = false;
+        setLoading(false);
       }
     }
 
