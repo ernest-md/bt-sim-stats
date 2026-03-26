@@ -167,6 +167,53 @@
       min-width:0;
     }
 
+    .filtersToggle{
+      display:none;
+      width:100%;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:0;
+      border:0;
+      background:transparent;
+      text-align:left;
+      color:inherit;
+      cursor:pointer;
+    }
+
+    .filtersToggle .sectionTitle{
+      margin:0;
+      min-width:0;
+      flex:1;
+    }
+
+    .filtersToggleMeta{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#64748b;
+      white-space:nowrap;
+    }
+
+    .filtersToggleMeta::after{
+      content:"▾";
+      font-size:12px;
+      line-height:1;
+      transition:transform .18s ease;
+    }
+
+    .filtersCard.is-open .filtersToggleMeta::after{
+      transform:rotate(180deg);
+    }
+
+    .filtersContent{
+      min-width:0;
+    }
+
     .card{
       background:var(--card);
       border:1px solid rgba(255,255,255,.20);
@@ -989,6 +1036,40 @@
         padding:18px 14px;
       }
 
+      .sidebar{
+        order:0;
+      }
+
+      .filtersDesktopTitle{
+        display:none;
+      }
+
+      .filtersToggle{
+        display:flex;
+      }
+
+      .filtersCard{
+        padding:12px;
+      }
+
+      .filtersCard.is-collapsed .filtersContent{
+        display:none;
+      }
+
+      .boardCard{
+        order:1;
+        min-height:0;
+      }
+
+      .boardTop{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .boardMeta{
+        display:none;
+      }
+
       .fieldGrid,
       .summaryGrid,
       .statsRow{
@@ -996,19 +1077,36 @@
       }
 
       .cardsGrid{
-        grid-template-columns:repeat(3, minmax(0, 1fr));
+        grid-template-columns:repeat(4, minmax(0, 1fr));
+        gap:8px;
+      }
+
+      .catalogCard{
+        border-radius:10px;
+      }
+
+      .activeFilters{
+        gap:6px;
       }
 
       .cardModalTop{
-        padding:24px 60px 18px;
+        justify-content:flex-start;
+        text-align:left;
+        padding:20px 58px 16px 18px;
       }
 
       #cardModalContent{
-        padding:22px 18px 20px;
+        padding:18px 16px 16px;
       }
 
       .cardModalBody{
         grid-template-columns:1fr;
+        gap:18px;
+      }
+
+      .modalArtColumn{
+        width:min(320px, 100%);
+        margin:0 auto;
       }
 
       .modalSpecRow{
@@ -1024,31 +1122,142 @@
         grid-template-columns:1fr;
       }
 
+      .page{
+        padding:12px 8px 28px;
+      }
+
+      .hero{
+        border-radius:22px;
+        padding:16px 14px;
+      }
+
+      .hero h1{
+        font-size:clamp(1.8rem, 9vw, 2.3rem);
+      }
+
+      .hero p{
+        font-size:14px;
+      }
+
+      .colorFilterGroup{
+        gap:8px;
+      }
+
       .cardsGrid{
-        grid-template-columns:repeat(2, minmax(0, 1fr));
+        grid-template-columns:repeat(4, minmax(0, 1fr));
+        gap:6px;
       }
 
       .cardModal{
-        padding:12px;
+        padding:8px;
+      }
+
+      .cardModalDialog{
+        width:100%;
+        max-height:calc(100dvh - 16px);
+        border-radius:20px;
+      }
+
+      #cardModalContent{
+        padding:14px 12px 12px;
+      }
+
+      .cardModalBody{
+        grid-template-columns:1fr;
+        gap:12px;
+        align-items:start;
+      }
+
+      .modalArtColumn{
+        width:min(320px, 100%);
+        margin:0 auto;
+      }
+
+      .modalArt{
+        border-radius:16px;
       }
 
       .cardModalTop{
-        padding:20px 52px 16px;
+        padding:18px 54px 14px 16px;
       }
 
       .cardModalTop h2{
-        font-size:clamp(1.8rem, 9vw, 2.4rem);
+        font-size:clamp(1.6rem, 8vw, 2.1rem);
+      }
+
+      .cardModalTop p{
+        font-size:11px;
+        letter-spacing:.1em;
+      }
+
+      .modalClose{
+        top:12px;
+        right:12px;
+        width:36px;
+        height:36px;
+        font-size:22px;
+      }
+
+      .modalInfo{
+        gap:12px;
+      }
+
+      .modalMetaStrip{
+        gap:4px;
+      }
+
+      .modalSpecs{
+        display:grid;
+        gap:8px;
+        border-top:0;
+        border-bottom:0;
+      }
+
+      .modalSpecRow{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:8px;
+        padding:0;
+        border-top:0;
+      }
+
+      .modalSection strong,
+      .modalSetCard strong{
+        font-size:.95rem;
+      }
+
+      .modalText{
+        font-size:13px;
+        line-height:1.48;
       }
 
       .modalSpecItem{
         grid-template-columns:1fr;
+        gap:4px;
+        align-items:start;
+        padding:9px 10px;
+        border:1px solid rgba(15,23,42,.08);
+        border-radius:12px;
+        background:rgba(248,250,252,.92);
+      }
+
+      .modalSpecItem strong{
+        font-size:.96rem;
+        line-height:1.22;
+      }
+
+      .modalSection{
         gap:6px;
+        padding-bottom:12px;
+      }
+
+      .modalSetCard{
+        padding:12px 14px;
       }
     }
 
-    @media (max-width: 420px){
-      .cardsGrid{
-        grid-template-columns:1fr;
+    @media (max-width: 360px){
+      .modalArtColumn{
+        width:min(280px, 100%);
       }
     }
   </style>
@@ -1104,8 +1313,13 @@
 
     <section class="layout">
       <aside class="sidebar">
-        <section class="card">
-          <div class="sectionTitle">Filtros</div>
+        <section class="card filtersCard" id="filtersCard">
+          <div class="sectionTitle filtersDesktopTitle">Filtros</div>
+          <button class="filtersToggle" id="filtersToggle" type="button" aria-expanded="false" aria-controls="filtersContent">
+            <span class="sectionTitle">Filtros</span>
+            <span class="filtersToggleMeta" id="filtersToggleLabel">Mostrar</span>
+          </button>
+          <div class="filtersContent" id="filtersContent">
           <div class="field">
             <label for="searchInput">Buscador</label>
             <input id="searchInput" type="text" placeholder="Ej: perona, straw hat, event, OP15..." autocomplete="off" />
@@ -1174,6 +1388,7 @@
           <div class="actions">
             <button id="btnResetFilters" class="actionBtn" type="button">Limpiar filtros</button>
             <button id="btnReload" class="actionBtn primary" type="button">Recargar catalogo</button>
+          </div>
           </div>
         </section>
       </aside>
@@ -1345,6 +1560,8 @@
     };
 
     let filterTimer = 0;
+    const MOBILE_FILTERS_MEDIA = window.matchMedia("(max-width: 760px)");
+    let mobileFiltersOpen = false;
 
     function normalize(value){
       return String(value ?? "").replace(/\s+/g, " ").trim();
@@ -2393,6 +2610,23 @@
       applyFilters({ resetVisible: true });
     }
 
+    function syncFiltersAccordion(){
+      const card = $("filtersCard");
+      const content = $("filtersContent");
+      const toggle = $("filtersToggle");
+      const label = $("filtersToggleLabel");
+      if (!card || !content || !toggle || !label) return;
+
+      const isMobile = MOBILE_FILTERS_MEDIA.matches;
+      const isOpen = isMobile ? mobileFiltersOpen : true;
+
+      card.classList.toggle("is-open", isOpen);
+      card.classList.toggle("is-collapsed", isMobile && !isOpen);
+      content.hidden = isMobile && !isOpen;
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      label.textContent = isOpen ? "Ocultar" : "Mostrar";
+    }
+
     function bindUi(){
       ["searchInput", "expansionFilter", "counterFilter", "typeFilter", "rarityFilter", "costFilter", "blockIconFilter", "sortFilter"]
         .forEach((id) => {
@@ -2410,6 +2644,19 @@
 
       $("btnResetFilters").addEventListener("click", resetFilters);
       $("btnReload").addEventListener("click", () => { void loadCatalog(); });
+      $("filtersToggle").addEventListener("click", () => {
+        if (!MOBILE_FILTERS_MEDIA.matches) return;
+        mobileFiltersOpen = !mobileFiltersOpen;
+        syncFiltersAccordion();
+      });
+
+      const handleFiltersMediaChange = () => syncFiltersAccordion();
+      if (typeof MOBILE_FILTERS_MEDIA.addEventListener === "function"){
+        MOBILE_FILTERS_MEDIA.addEventListener("change", handleFiltersMediaChange);
+      } else if (typeof MOBILE_FILTERS_MEDIA.addListener === "function"){
+        MOBILE_FILTERS_MEDIA.addListener(handleFiltersMediaChange);
+      }
+
       $("btnLoadMore").addEventListener("click", () => {
         state.visibleCount += BATCH_SIZE;
         renderCards();
@@ -2441,6 +2688,7 @@
       $("cardModal").addEventListener("load", handleImageLoad, true);
       $("cardsGrid").addEventListener("error", handleImageLoadError, true);
       $("cardModal").addEventListener("error", handleImageLoadError, true);
+      syncFiltersAccordion();
     }
 
     state.cardsPerRow = Number($("cardsPerRowSelect")?.value || 5);
