@@ -3564,21 +3564,55 @@
 
   (async function(){
     let first = true;
+    let lastAuthUserId = "";
+    let lastAuthAccessToken = "";
+
+    function updateAuthSnapshot(session){
+      lastAuthUserId = session?.user?.id || "";
+      lastAuthAccessToken = session?.access_token || "";
+    }
+
     sb.auth.onAuthStateChange(async (event, session) => {
-      window.BarateamApp.clearAccessStateCache(session?.user?.id || null);
+      const nextUser = session?.user || null;
+      const nextUserId = nextUser?.id || "";
+      const nextAccessToken = session?.access_token || "";
+      const previousUserId = currentUser?.id || lastAuthUserId || "";
+      const sameUser = !!nextUserId && nextUserId === previousUserId;
+      const sameToken = !!nextAccessToken && nextAccessToken === lastAuthAccessToken;
+
+      window.BarateamApp.clearAccessStateCache(nextUserId || previousUserId || null);
       currentUser = session?.user || null;
       window.__barateamCurrentUser = currentUser;
       setNavAuthUI(currentUser);
       renderFeedbackBar();
       applyMemberHomeState();
 
-      if (first) return;           // evita el doble disparo inicial
-      if (event === "TOKEN_REFRESHED"){
+      if (first){
+        updateAuthSnapshot(session);
+        return;           // evita el doble disparo inicial
+      }
+      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION"){
+        updateAuthSnapshot(session);
         return;
       }
+      if (event === "SIGNED_IN" && sameUser){
+        updateAuthSnapshot(session);
+        return;
+      }
+      if (event === "USER_UPDATED" && sameUser && sameToken){
+        updateAuthSnapshot(session);
+        return;
+      }
+      updateAuthSnapshot(session);
       await refreshHome({ refreshFeatured: false });
     });
     await refreshHome({ refreshFeatured: true });
+    try{
+      const { data } = await sb.auth.getSession();
+      updateAuthSnapshot(data?.session || null);
+    }catch(_err){
+      updateAuthSnapshot(null);
+    }
     first = false;
   })();
 </script>
