@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Deck · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260306a" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js?v=20260305c"></script>
@@ -34,30 +35,7 @@
       background-position: center;
       z-index:-1;
     }
-    .topbar{
-      position: sticky;
-      top:0;
-      z-index:10;
-      backdrop-filter: blur(14px);
-      background: rgba(15, 23, 42, .55);
-      border-bottom: 1px solid rgba(255,255,255,.12);
-      padding: 12px 14px;
-    }
-    .bar{ max-width:1100px; margin:0 auto; display:flex; align-items:center; gap:10px; }
-    .btn{
-      border:1px solid rgba(255,255,255,.22);
-      background: rgba(255,255,255,.12);
-      color:#fff;
-      padding:9px 12px;
-      border-radius:12px;
-      text-decoration:none;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      cursor:pointer;
-      font: inherit;
-    }
-    .wrap{ max-width:1100px; margin:16px auto 28px; padding:0 14px; }
+    .wrap{ max-width:1280px; margin:16px auto 28px; padding:0 14px; }
     .card{
       background: var(--card);
       border: 1px solid rgba(255,255,255,.20);
@@ -74,6 +52,13 @@
       flex-wrap:wrap;
     }
     .headRow .title{ margin:0; }
+    .headActions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      flex-wrap:wrap;
+    }
     .meta{ color:#475569; font-size:13px; display:flex; gap:12px; flex-wrap:wrap; }
     .grid{ display:grid; grid-template-columns:1fr; gap:14px; margin-top:14px; }
     @media (min-width: 980px){ .grid{ grid-template-columns: 1fr 1fr; } }
@@ -548,7 +533,39 @@
 <body>
   <div class="topbar">
     <div class="bar">
-      <a class="btn" href="decks.html">Volver a decks</a>
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+        <div class="brand">
+          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+          <small>cards | decks | wrapped</small>
+        </div>
+      </a>
+      <div class="nav hubNavFlow">
+        <a class="navInlineLink" href="index.html">Home</a>
+        <div class="navInlineGroup">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="simStatsMenu" aria-haspopup="true">
+            <span>SIM Stats</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="simStatsMenu">
+            <a class="navInlineMenuLink" href="sim-stats/frontend/stats.html" data-requires-auth="1">Stats Propios</a>
+            <a class="navInlineMenuLink" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">Team Stats</a>
+            <a class="navInlineMenuLink" href="leader-stats.html">Global Leader Stats</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="ranking.html" data-requires-auth="1">Ranking</a>
+        <div class="navInlineGroup is-current">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="cardToolsMenu" aria-haspopup="true">
+            <span>Card Tools</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="cardToolsMenu">
+            <a class="navInlineMenuLink" href="cards.html">Card List</a>
+            <a class="navInlineMenuLink is-current" href="decks.html">DeckLists</a>
+            <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="encuestas.html">Encuestas</a>
+      </div>
     </div>
   </div>
 
@@ -556,13 +573,16 @@
     <div class="card">
       <div class="headRow">
         <h1 class="title" id="deckName">Deck</h1>
-        <button class="copyIconBtn shareCopyBtn" id="btnCopyDeckLink" type="button" title="Copiar enlace para compartir" aria-label="Copiar enlace para compartir">
-          <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 4h4v4"></path>
-            <path d="M8 12 16 4"></path>
-            <rect x="4" y="8" width="8" height="8" rx="2"></rect>
-          </svg>
-        </button>
+        <div class="headActions">
+          <a class="btn btnLight btnTiny" href="decks.html">&#8592; Volver a decks</a>
+          <button class="copyIconBtn shareCopyBtn" id="btnCopyDeckLink" type="button" title="Copiar enlace para compartir" aria-label="Copiar enlace para compartir">
+            <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4h4v4"></path>
+              <path d="M8 12 16 4"></path>
+              <rect x="4" y="8" width="8" height="8" rx="2"></rect>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="meta">
         <span id="deckAuthor">Autor: -</span>
@@ -668,6 +688,7 @@
 
   <script>
     const sb = window.BarateamApp.createClient();
+    window.BarateamApp.bindProtectedNavLinks(sb);
 
     const $ = window.BarateamApp.byId;
 
