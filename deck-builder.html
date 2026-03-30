@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deck Builder - Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:rgba(12,18,30,.88);
+      --panel-soft:rgba(18,27,43,.82);
+      --line:rgba(255,255,255,.12);
+      --text:#f8fafc;
+      --muted:#94a3b8;
+      --accent:#f97316;
+      --accent-soft:rgba(249,115,22,.18);
+      --shadow:0 24px 60px rgba(0,0,0,.36);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(249,115,22,.18), transparent 60%),
+        radial-gradient(900px 680px at 90% 16%, rgba(59,130,246,.18), transparent 60%),
+        radial-gradient(1100px 760px at 48% 100%, rgba(34,197,94,.12), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.92), rgba(11,18,32,.96)),
+        url("bg.png");
+      background-position:center;
+      background-size:cover;
+      z-index:-2;
+    }
+    body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        linear-gradient(transparent 97%, rgba(255,255,255,.03) 100%),
+        linear-gradient(90deg, transparent 97%, rgba(255,255,255,.03) 100%);
+      background-size:32px 32px;
+      opacity:.22;
+      z-index:-1;
+      pointer-events:none;
+    }
+    .page{
+      max-width:1600px;
+      margin:0 auto;
+      padding:18px 18px 28px;
+    }
+    .hero{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:22px;
+      background:
+        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72)),
+        radial-gradient(circle at top right, rgba(249,115,22,.18), transparent 45%);
+      box-shadow:var(--shadow);
+    }
+    .hero h1{
+      margin:0;
+      font-size:clamp(2rem, 4vw, 3rem);
+      line-height:1;
+      font-weight:1000;
+      letter-spacing:-.03em;
+    }
+    .hero p{
+      margin:10px 0 0;
+      max-width:74ch;
+      color:rgba(248,250,252,.76);
+      line-height:1.45;
+      font-size:14px;
+    }
+    .heroBadges{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .pill, .statusTag, .miniTag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+    }
+    .pill{
+      min-height:36px;
+      padding:8px 12px;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(320px, 35%) minmax(0, 65%);
+      gap:16px;
+      margin-top:16px;
+      align-items:start;
+    }
+    .panel{
+      border:1px solid var(--line);
+      border-radius:24px;
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-width:0;
+    }
+    .panelHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      padding:18px 18px 14px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+    }
+    .panelHead h2{
+      margin:0;
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:-.02em;
+    }
+    .panelHead p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+    }
+    .panelBody{ padding:16px 18px 18px; }
+    .searchBar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom:14px;
+    }
+    .searchBar input{
+      width:100%;
+      min-width:0;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      padding:12px 14px;
+      font-size:14px;
+      outline:none;
+    }
+    .searchBar input::placeholder{ color:#94a3b8; }
+    .btn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      border-radius:14px;
+      padding:11px 14px;
+      cursor:pointer;
+      font-weight:800;
+      transition:transform .14s ease, background .14s ease, border-color .14s ease, opacity .14s ease;
+    }
+    .btn:hover{
+      transform:translateY(-1px);
+      background:rgba(255,255,255,.1);
+    }
+    .btnAccent{
+      background:var(--accent-soft);
+      border-color:rgba(249,115,22,.34);
+      color:#fed7aa;
+    }
+    .statusRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:14px;
+    }
+    .statusTag{
+      min-height:30px;
+      padding:6px 10px;
+      color:#dbeafe;
+      border-color:rgba(255,255,255,.08);
+      font-size:12px;
+      font-weight:700;
+    }
+    .cardGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(148px, 1fr));
+      gap:12px;
+    }
+    .deckGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));
+      gap:12px;
+    }
+    .cardTile{
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      padding:8px;
+      background:var(--panel-soft);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width:0;
+    }
+    .cardTile.is-leader{
+      border-color:rgba(250,204,21,.34);
+      box-shadow:inset 0 0 0 1px rgba(250,204,21,.12);
+    }
+    .artWrap{
+      position:relative;
+      aspect-ratio:63 / 88;
+      border-radius:12px;
+      overflow:hidden;
+      background:linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .artWrap img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .artFallback{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:8px;
+      color:#cbd5e1;
+      font-weight:800;
+      font-size:12px;
+    }
+    .cardMeta{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .cardName{
+      font-size:13px;
+      font-weight:900;
+      color:#fff;
+      line-height:1.2;
+      min-height:32px;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+    .cardCode{
+      color:#cbd5e1;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.03em;
+    }
+    .cardCodeOverlay{
+      position:absolute;
+      left:8px;
+      bottom:8px;
+      z-index:1;
+      padding:5px 7px;
+      border-radius:10px;
+      background:rgba(2,6,23,.82);
+      color:#e2e8f0;
+      border:1px solid rgba(255,255,255,.08);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.05em;
+    }
+    .metaRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .miniTag{
+      min-height:24px;
+      padding:4px 8px;
+      color:#e2e8f0;
+      border-color:rgba(255,255,255,.08);
+      font-size:11px;
+      font-weight:800;
+    }
+    .miniTag.leaderTag{
+      color:#fde68a;
+      border-color:rgba(250,204,21,.24);
+      background:rgba(250,204,21,.12);
+    }
+    .colorDots{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .colorDot{
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      box-shadow:0 0 0 2px rgba(255,255,255,.08);
+    }
+    .color-red{ background:#ef4444; }
+    .color-green{ background:#22c55e; }
+    .color-blue{ background:#3b82f6; }
+    .color-purple{ background:#a855f7; }
+    .color-black{ background:#111827; }
+    .color-yellow{ background:#facc15; }
+    .qtyRow{
+      display:grid;
+      grid-template-columns:36px 1fr 36px;
+      gap:8px;
+      align-items:center;
+    }
+    .qtyButton{
+      appearance:none;
+      width:36px;
+      height:36px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      font-size:20px;
+      line-height:1;
+      cursor:pointer;
+      transition:transform .14s ease, background .14s ease, opacity .14s ease;
+    }
+    .qtyButton:hover{
+      transform:translateY(-1px);
+      background:rgba(255,255,255,.12);
+    }
+    .qtyButton.minus{ color:#fda4af; }
+    .qtyButton.plus{ color:#fdba74; }
+    .qtyButton[disabled], .btn[disabled]{
+      opacity:.28;
+      cursor:not-allowed;
+      transform:none;
+    }
+    .qtyBadge{
+      min-height:36px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,.2);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:#fff;
+      font-weight:900;
+      font-size:15px;
+    }
+    .qtyLabel{
+      color:#94a3b8;
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .deckSummary{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .deckToolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:14px;
+      flex-wrap:wrap;
+    }
+    .toolbarTypes{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .toolbarType{
+      min-height:36px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      color:#fff;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.04em;
+    }
+    .toolbarActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .summaryCard{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      padding:12px;
+      background:rgba(255,255,255,.04);
+    }
+    .summaryCard span{
+      display:block;
+      color:#94a3b8;
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .summaryCard strong{
+      display:block;
+      margin-top:4px;
+      font-size:24px;
+      font-weight:1000;
+      color:#fff;
+    }
+    .leaderSlot{
+      display:grid;
+      grid-template-columns:120px minmax(0, 1fr);
+      gap:14px;
+      align-items:center;
+      padding:14px;
+      border-radius:18px;
+      border:1px solid rgba(250,204,21,.22);
+      background:linear-gradient(135deg, rgba(250,204,21,.09), rgba(255,255,255,.04));
+      margin-bottom:14px;
+    }
+    .leaderSlot.is-empty{
+      grid-template-columns:1fr;
+      border-style:dashed;
+      border-color:rgba(255,255,255,.12);
+      background:rgba(255,255,255,.03);
+    }
+    .leaderArt{
+      aspect-ratio:63 / 88;
+      border-radius:14px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.06);
+    }
+    .leaderArt img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .leaderInfo h3{
+      margin:0;
+      font-size:22px;
+      font-weight:1000;
+      letter-spacing:-.03em;
+    }
+    .leaderInfo p{
+      margin:8px 0 0;
+      color:#cbd5e1;
+      font-size:13px;
+      line-height:1.5;
+    }
+    .leaderActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+    .emptyState{
+      padding:18px;
+      border-radius:18px;
+      border:1px dashed rgba(255,255,255,.14);
+      background:rgba(255,255,255,.03);
+      color:#cbd5e1;
+      text-align:center;
+      line-height:1.5;
+    }
+    .helper{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+      margin-top:10px;
+    }
+    .detailOverlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(2,6,23,.72);
+      backdrop-filter:blur(8px);
+      z-index:1000;
+    }
+    .detailOverlay.is-open{
+      display:flex;
+    }
+    .detailModal{
+      width:min(720px, 100%);
+      max-height:min(90vh, 860px);
+      overflow:auto;
+      border-radius:24px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(15,23,42,.96);
+      box-shadow:var(--shadow);
+    }
+    .detailHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:18px 18px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .detailHead h3{
+      margin:0;
+      font-size:24px;
+      font-weight:1000;
+    }
+    .detailHead p{
+      margin:6px 0 0;
+      color:#94a3b8;
+      font-size:13px;
+    }
+    .closeButton{
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      font-size:20px;
+      cursor:pointer;
+    }
+    .detailBody{
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    .chartWrap{
+      display:grid;
+      grid-template-columns:repeat(11, minmax(0, 1fr));
+      gap:10px;
+      align-items:end;
+      min-height:220px;
+      padding:18px 12px 12px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+    }
+    .chartCol{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+    }
+    .chartValue{
+      color:#cbd5e1;
+      font-size:11px;
+      font-weight:800;
+    }
+    .chartBarTrack{
+      width:100%;
+      height:150px;
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      padding:6px;
+      display:flex;
+      align-items:flex-end;
+    }
+    .chartBar{
+      width:100%;
+      border-radius:10px;
+      background:linear-gradient(180deg, #fb923c, #f97316);
+      min-height:6px;
+    }
+    .chartLabel{
+      color:#94a3b8;
+      font-size:11px;
+      font-weight:900;
+    }
+    .detailStats{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:10px;
+    }
+    .detailStat{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      padding:14px;
+      background:rgba(255,255,255,.04);
+    }
+    .detailStat span{
+      display:block;
+      color:#94a3b8;
+      font-size:11px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .detailStat strong{
+      display:block;
+      margin-top:6px;
+      font-size:28px;
+      font-weight:1000;
+      color:#fff;
+    }
+    .loading{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(2,6,23,.76);
+      backdrop-filter:blur(6px);
+      z-index:999;
+    }
+    .loadingBox{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:14px;
+      padding:22px 26px;
+      border-radius:20px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(15,23,42,.9);
+      box-shadow:var(--shadow);
+    }
+    .spinner{
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      border:3px solid rgba(255,255,255,.14);
+      border-top-color:#fb923c;
+      animation:spin .8s linear infinite;
+    }
+    @keyframes spin{
+      to{ transform:rotate(360deg); }
+    }
+    @media (max-width: 1080px){
+      .layout{ grid-template-columns:1fr; }
+    }
+    @media (max-width: 760px){
+      .page{ padding:14px 12px 24px; }
+      .hero{ padding:18px; }
+      .heroBadges{ justify-content:flex-start; }
+      .deckSummary{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .detailStats{ grid-template-columns:1fr; }
+      .leaderSlot{ grid-template-columns:92px minmax(0, 1fr); }
+      .cardGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .deckGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div>
+        <h1>Deck Builder</h1>
+        <p>Primera base del constructor. A la izquierda tienes el buscador y a la derecha el mazo. Empieza eligiendo un leader: en cuanto lo selecciones, el catálogo se bloqueará a cartas que compartan color con ese leader.</p>
+      </div>
+      <div class="heroBadges">
+        <div class="pill" id="catalogPill">Catalogo: ...</div>
+        <div class="pill" id="leaderModePill">Modo: leaders</div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="panelHead">
+          <div>
+            <h2>Buscador de Cartas</h2>
+            <p id="searchIntro">Solo se muestran leaders hasta que elijas uno.</p>
+          </div>
+          <div class="statusTag" id="availableCountTag">0 visibles</div>
+        </div>
+        <div class="panelBody">
+          <div class="searchBar">
+            <input id="searchInput" type="text" placeholder="Buscar por nombre o codigo" autocomplete="off" />
+            <button class="btn" id="reloadButton" type="button">Recargar</button>
+          </div>
+          <div class="statusRow" id="searchStatusRow"></div>
+          <div id="availableGrid" class="cardGrid"></div>
+          <div id="availableEmpty" class="emptyState" style="display:none;"></div>
+          <div class="helper">Reglas de esta version: 1 leader maximo, 4 copias por carta y filtro de color basado en el leader seleccionado.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead">
+          <div>
+            <h2>Mazo en Construccion</h2>
+            <p>La zona derecha mantiene el leader y las copias elegidas. Si quitas el leader, se vacia el mazo para evitar cartas fuera de color.</p>
+          </div>
+          <div class="statusTag" id="deckStatusTag">Sin leader</div>
+        </div>
+        <div class="panelBody">
+          <div class="deckToolbar">
+            <div class="toolbarTypes">
+              <div class="toolbarType">Characters <span id="characterCount">0</span></div>
+              <div class="toolbarType">Events <span id="eventCount">0</span></div>
+              <div class="toolbarType">Stage <span id="stageCount">0</span></div>
+            </div>
+            <div class="toolbarActions">
+              <button class="btn" id="detailButton" type="button">Detalle</button>
+            </div>
+          </div>
+          <div class="deckSummary">
+            <div class="summaryCard"><span>Total del Mazo</span><strong id="deckTotalCount">0</strong></div>
+            <div class="summaryCard"><span>Cartas Distintas</span><strong id="uniqueCount">0</strong></div>
+            <div class="summaryCard"><span>Main Deck</span><strong id="mainDeckCount">0</strong></div>
+            <div class="summaryCard"><span>Maximo</span><strong id="deckLimit">51</strong></div>
+          </div>
+          <div id="leaderSlot"></div>
+          <div id="deckGrid" class="deckGrid"></div>
+          <div id="deckEmpty" class="emptyState">Todavia no has anadido cartas al mazo.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="loading" id="loadingOverlay" aria-hidden="true">
+    <div class="loadingBox">
+      <div class="spinner" aria-hidden="true"></div>
+      <strong id="loadingText">Cargando catalogo...</strong>
+    </div>
+  </div>
+
+  <div class="detailOverlay" id="detailOverlay" aria-hidden="true">
+    <div class="detailModal" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="detailHead">
+        <div>
+          <h3 id="detailTitle">Detalle del mazo</h3>
+          <p>Curva de costes y resumen rapido del main deck.</p>
+        </div>
+        <button class="closeButton" id="detailCloseButton" type="button" aria-label="Cerrar detalle">×</button>
+      </div>
+      <div class="detailBody">
+        <div id="costCurve" class="chartWrap"></div>
+        <div class="detailStats">
+          <div class="detailStat"><span>Bricks</span><strong id="brickCount">0</strong></div>
+          <div class="detailStat"><span>+1000</span><strong id="counter1000Count">0</strong></div>
+          <div class="detailStat"><span>+2000</span><strong id="counter2000Count">0</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SOURCE_DEFS = [
+      { key: "english", label: "English", basePath: "punkrecords/english" },
+      { key: "english-asia", label: "English Asia", basePath: "punkrecords/english-asia" }
+    ];
+    const COLOR_ORDER = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"];
+    const COLOR_LABELS = {
+      Red: "Rojo",
+      Green: "Verde",
+      Blue: "Azul",
+      Purple: "Lila",
+      Black: "Negro",
+      Yellow: "Amarillo"
+    };
+    const PUNK_RARITY_MAP = {
+      Leader: "L",
+      Common: "C",
+      Uncommon: "UC",
+      Rare: "R",
+      SuperRare: "SR",
+      SecretRare: "SEC",
+      Special: "SP",
+      TreasureRare: "TR"
+    };
+    const HTML_ENTITY_DECODER = document.createElement("textarea");
+    const WINDOWS_1252_OVERRIDES = {
+      8364: 128, 8218: 130, 402: 131, 8222: 132, 8230: 133, 8224: 134, 8225: 135,
+      710: 136, 8240: 137, 352: 138, 8249: 139, 338: 140, 381: 142, 8216: 145,
+      8217: 146, 8220: 147, 8221: 148, 8226: 149, 8211: 150, 8212: 151, 732: 152,
+      8482: 153, 353: 154, 8250: 155, 339: 156, 382: 158, 376: 159
+    };
+    const collator = new Intl.Collator("es", { sensitivity: "base", numeric: true });
+    const state = {
+      allCards: [],
+      cardsByCode: new Map(),
+      selectedLeaderCode: "",
+      deckCounts: new Map(),
+      search: "",
+      partialFailures: [],
+      detailOpen: false
+    };
+
+    function $(id){ return document.getElementById(id); }
+    function normalize(value){ return String(value ?? "").replace(/\s+/g, " ").trim(); }
+    function escapeHtml(value){
+      return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+    function compactSearch(value){ return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+    function normalizeApiArray(data){
+      return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : Array.isArray(data?.cards) ? data.cards : [];
+    }
+    function fetchJson(url){
+      return fetch(url, { cache: "no-store" }).then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      });
+    }
+    function sourceFilePath(source, filePath){ return `${source.basePath}/${filePath}`; }
+    function decodeHtmlEntities(value){
+      const raw = String(value ?? "");
+      if (!raw) return "";
+      HTML_ENTITY_DECODER.innerHTML = raw;
+      return HTML_ENTITY_DECODER.value;
+    }
+    function decodeWindows1252ToUtf8(value){
+      const bytes = Uint8Array.from(Array.from(String(value ?? "")), (char) => {
+        const code = char.charCodeAt(0);
+        if (code <= 0xff) return code;
+        const mapped = WINDOWS_1252_OVERRIDES[code];
+        if (mapped !== undefined) return mapped;
+        throw new Error("Unsupported character");
+      });
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    }
+    function normalizePunkText(value){
+      let repaired = String(value ?? "");
+      if (!repaired) return "";
+      for (let index = 0; index < 2; index += 1){
+        if (!/[\u00c2\u00c3\u00e2]/.test(repaired)) break;
+        try{
+          const next = decodeWindows1252ToUtf8(repaired);
+          if (!next || next === repaired) break;
+          repaired = next;
+        }catch(_error){
+          break;
+        }
+      }
+      return repaired;
+    }
+    function punkInlineText(value){ return normalize(decodeHtmlEntities(normalizePunkText(value))); }
+    function punkMultilineText(value){
+      return decodeHtmlEntities(normalizePunkText(String(value ?? "").replace(/<br\s*\/?>/gi, "\n")))
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map((line) => normalize(line))
+        .filter((line, index, rows) => line || (index > 0 && rows[index - 1]))
+        .join("\n")
+        .trim();
+    }
+    function punkListText(value){
+      if (Array.isArray(value)){
+        return punkInlineText(value.map((entry) => decodeHtmlEntities(normalizePunkText(entry))).join(" / "));
+      }
+      return punkInlineText(value);
+    }
+    function normalizeCardCode(value){
+      const raw = String(value || "").trim().toUpperCase().replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, "-").replace(/\s+/g, "");
+      if (!raw) return "";
+      const normalized = raw.replace(/_/g, "-");
+      const promoMatch = normalized.match(/^P-?0*(\d{1,3})$/);
+      if (promoMatch) return `P-${promoMatch[1].padStart(3, "0")}`;
+      return normalized;
+    }
+    function punkBaseCardCode(value){ return normalizeCardCode(String(value || "").replace(/_(?:p|r)\d+$/i, "")); }
+    function buildDotggCardImageUrl(value){
+      const code = normalizeCardCode(value);
+      if (!code) return "";
+      return `https://static.dotgg.gg/onepiece/card/${encodeURIComponent(code)}.webp`;
+    }
+    function toIntOrNull(value){
+      if (value === null || value === undefined || value === "") return null;
+      const normalized = String(value).replace(/[^\d-]/g, "");
+      if (!normalized) return null;
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    function colorListFromRaw(value){
+      const raw = normalize(value);
+      if (!raw) return [];
+      const found = COLOR_ORDER.filter((color) => new RegExp(`\\b${color}\\b`, "i").test(raw));
+      if (found.length) return found;
+      return raw.split(/[\/,&]+|\s{2,}/).map((entry) => normalize(entry)).filter(Boolean);
+    }
+    function humanColor(color){ return COLOR_LABELS[color] || color; }
+    function punkRarity(value){
+      const normalized = punkInlineText(value);
+      return PUNK_RARITY_MAP[normalized] || normalized.toUpperCase() || "-";
+    }
+    function formatUnixDate(value){
+      const seconds = Number(value);
+      if (!Number.isFinite(seconds)) return "";
+      return new Date(seconds * 1000).toISOString().slice(0, 10);
+    }
+    function buildPunkText(raw){
+      const effect = punkMultilineText(raw?.effect);
+      const trigger = punkMultilineText(raw?.trigger);
+      return [effect && effect !== "-" ? effect : "", trigger && trigger !== "-" ? (trigger.startsWith("[Trigger]") ? trigger : `[Trigger] ${trigger}`) : ""]
+        .filter(Boolean)
+        .join("\n\n");
+    }
+    function normalizePunkPackLabel(pack){ return punkInlineText(pack?.title_parts?.label || ""); }
+    function buildPunkApiRecord(raw, pack, source, manifest){
+      const rawId = normalize(raw?.id || raw?.card_id || "");
+      const code = punkBaseCardCode(rawId);
+      const category = punkInlineText(raw?.category);
+      const packTitle = punkInlineText(pack?.title_parts?.title || pack?.raw_title || "");
+      const packLabel = normalizePunkPackLabel(pack);
+      const numericCost = toIntOrNull(raw?.cost);
+
+      return {
+        name: punkInlineText(raw?.name),
+        code,
+        id: code,
+        type: category,
+        rarity: punkRarity(raw?.rarity),
+        set_name: packTitle || "Sin expansion",
+        set_id: packLabel,
+        card_color: Array.isArray(raw?.colors) ? raw.colors.join(" / ") : raw?.colors,
+        counter_amount: raw?.counter,
+        card_cost: category === "Leader" ? "" : (numericCost === null ? "" : String(numericCost)),
+        life: category === "Leader" ? (numericCost === null ? "" : String(numericCost)) : "",
+        card_power: raw?.power === null || raw?.power === undefined ? "" : String(raw?.power),
+        attribute: punkListText(raw?.attributes),
+        sub_types: punkListText(raw?.types),
+        card_text: buildPunkText(raw),
+        card_image: normalize(raw?.img_full_url || raw?.img_url || ""),
+        card_image_id: rawId,
+        date_scraped: formatUnixDate(manifest?.generated_at),
+        block_number: raw?.block_number
+      };
+    }
+    async function loadPunkSource(source){
+      const [manifest, packs] = await Promise.all([
+        fetchJson(sourceFilePath(source, "manifest.json")),
+        fetchJson(sourceFilePath(source, "packs.json"))
+      ]);
+      const packIds = Object.keys(packs || {});
+      const packResults = await Promise.allSettled(
+        packIds.map(async (packId) => {
+          const data = await fetchJson(sourceFilePath(source, `data/${packId}.json`));
+          return { packId, rows: normalizeApiArray(data) };
+        })
+      );
+      return { source, manifest, packs, packResults };
+    }
+    function refreshCardSearchIndex(card){
+      const haystack = normalize([card?.name, card?.type, card?.subTypes, card?.code, card?.expansionName, card?.expansionCode, card?.rarity].join(" "));
+      card.searchable = haystack.toLowerCase();
+      card.searchableCompact = compactSearch(haystack);
+      return card;
+    }
+    function variantPenaltyForCard(card){
+      const imageId = normalize(card.imageId).toLowerCase();
+      const text = `${normalize(card.name)} ${normalize(card.expansionName)} ${imageId}`.toLowerCase();
+      let penalty = 0;
+      if (/_p\d+/.test(imageId)) penalty += 18;
+      if (/_r\d+/.test(imageId)) penalty += 9;
+      if (/\bparallel\b/.test(text)) penalty += 24;
+      if (/\balternate art\b|\bfull art\b|\bsigned\b/.test(text)) penalty += 26;
+      return penalty;
+    }
+    function preferredCardScore(card){
+      let score = 0;
+      if (card.image) score += 40;
+      if (card.imageId) score += 24;
+      if (normalizeCardCode(card.imageId) === card.code) score += 90;
+      score -= card.variantPenalty;
+      score -= Math.min(card.name.length, 60) / 10;
+      return score;
+    }
+    function shouldReplacePreferredCard(existing, candidate){
+      if (!existing) return true;
+      if (candidate.preferredScore !== existing.preferredScore){
+        return candidate.preferredScore > existing.preferredScore;
+      }
+      if (candidate.name.length !== existing.name.length){
+        return candidate.name.length < existing.name.length;
+      }
+      return collator.compare(candidate.name, existing.name) < 0;
+    }
+    function createCardRecord(raw, source){
+      const code = normalizeCardCode(raw?.code || raw?.id || "");
+      const name = normalize(raw?.name);
+      if (!code || !name) return null;
+
+      const card = {
+        key: code,
+        sourceKey: source.key,
+        sourceLabel: source.label,
+        name,
+        code,
+        type: normalize(raw?.type || "Unknown"),
+        rarity: normalize(raw?.rarity || "-"),
+        expansionName: normalize(raw?.set_name || "Sin expansion"),
+        expansionCode: normalize(raw?.set_id || ""),
+        colors: colorListFromRaw(raw?.card_color),
+        counter: toIntOrNull(raw?.counter_amount),
+        cost: normalize(raw?.card_cost),
+        life: normalize(raw?.life),
+        power: normalize(raw?.card_power),
+        attribute: normalize(raw?.attribute),
+        subTypes: normalize(raw?.sub_types),
+        text: normalize(raw?.card_text),
+        imageId: normalize(raw?.card_image_id),
+        image: normalize(raw?.card_image) || buildDotggCardImageUrl(code),
+        fallbackImage: buildDotggCardImageUrl(code),
+        dateScraped: normalize(raw?.date_scraped),
+        blockIcon: normalize(raw?.block_number),
+        searchable: "",
+        searchableCompact: "",
+        costSort: toIntOrNull(raw?.card_cost) ?? Number.MAX_SAFE_INTEGER,
+        variantPenalty: 0,
+        preferredScore: 0
+      };
+
+      card.variantPenalty = variantPenaltyForCard(card);
+      refreshCardSearchIndex(card);
+      card.preferredScore = preferredCardScore(card);
+      return card;
+    }
+    function mergeSourceVariants(sourceMap){
+      const english = sourceMap.get("english") || null;
+      const englishAsia = sourceMap.get("english-asia") || null;
+      const base = englishAsia || english;
+      if (!base) return null;
+      const imageSource = (english && normalize(english.image)) ? english : ((englishAsia && normalize(englishAsia.image)) ? englishAsia : base);
+      return {
+        ...base,
+        image: imageSource.image || base.image,
+        imageId: imageSource.imageId || base.imageId,
+        fallbackImage: imageSource.fallbackImage || base.fallbackImage,
+        sourceKey: imageSource.sourceKey,
+        sourceLabel: imageSource.sourceLabel,
+        life: base.life || english?.life || "",
+        cost: base.cost || english?.cost || "",
+        power: base.power || english?.power || "",
+        attribute: base.attribute || english?.attribute || "",
+        subTypes: base.subTypes || english?.subTypes || "",
+        text: base.text || english?.text || ""
+      };
+    }
+    function setLoading(on, text){
+      $("loadingOverlay").style.display = on ? "flex" : "none";
+      $("loadingOverlay").setAttribute("aria-hidden", on ? "false" : "true");
+      if (text) $("loadingText").textContent = text;
+    }
+    function selectedLeader(){ return state.cardsByCode.get(state.selectedLeaderCode) || null; }
+    function activeDeckEntries(){
+      return Array.from(state.deckCounts.entries())
+        .filter(([, qty]) => qty > 0)
+        .map(([code, qty]) => ({ card: state.cardsByCode.get(code), qty }))
+        .filter((entry) => entry.card);
+    }
+    function leaderColors(){ return selectedLeader()?.colors || []; }
+    function mainDeckEntries(){
+      return activeDeckEntries().filter((entry) => entry.card.type !== "Leader");
+    }
+    function buildDeckStats(){
+      const mainEntries = mainDeckEntries();
+      const typeCounts = { Character: 0, Event: 0, Stage: 0 };
+      const costCurve = Array.from({ length: 11 }, () => 0);
+      let bricks = 0;
+      let plus1000 = 0;
+      let plus2000 = 0;
+
+      mainEntries.forEach((entry) => {
+        const { card, qty } = entry;
+        if (typeCounts[card.type] !== undefined){
+          typeCounts[card.type] += qty;
+        }
+
+        const cost = Number(card.cost);
+        if (Number.isFinite(cost) && cost >= 0 && cost <= 10){
+          costCurve[cost] += qty;
+        }
+
+        if (card.counter === null){
+          bricks += qty;
+        } else if (card.counter === 1000){
+          plus1000 += qty;
+        } else if (card.counter === 2000){
+          plus2000 += qty;
+        }
+      });
+
+      return { typeCounts, costCurve, bricks, plus1000, plus2000 };
+    }
+    function matchesLeaderColors(card){
+      const colors = leaderColors();
+      if (!colors.length) return false;
+      return card.colors.some((color) => colors.includes(color));
+    }
+    function availableCards(){
+      const query = normalize(state.search).toLowerCase();
+      const compactQuery = compactSearch(query);
+      let rows = [];
+
+      if (!state.selectedLeaderCode){
+        rows = state.allCards.filter((card) => card.type === "Leader");
+      } else {
+        rows = state.allCards.filter((card) => card.type !== "Leader" && matchesLeaderColors(card));
+      }
+
+      if (query){
+        rows = rows.filter((card) => card.searchable.includes(query) || card.searchableCompact.includes(compactQuery));
+      }
+
+      rows.sort((a, b) => {
+        if (a.type === "Leader" && b.type !== "Leader") return -1;
+        if (a.type !== "Leader" && b.type === "Leader") return 1;
+        if (a.costSort !== b.costSort) return a.costSort - b.costSort;
+        return collator.compare(a.name, b.name) || collator.compare(a.code, b.code);
+      });
+      return rows;
+    }
+    function formatColorDots(colors){
+      if (!colors.length) return '<span class="miniTag">Sin color</span>';
+      return `<div class="colorDots">${colors.map((color) => `<span class="colorDot color-${escapeHtml(color.toLowerCase())}" title="${escapeHtml(humanColor(color))}"></span>`).join("")}</div>`;
+    }
+    function cardTileMarkup(card, qty, context){
+      const maxCopies = card.type === "Leader" ? 1 : 4;
+      const canAdd = qty < maxCopies && (card.type !== "Leader" || !state.selectedLeaderCode || state.selectedLeaderCode === card.code);
+      const canRemove = qty > 0;
+      const imageMarkup = card.image
+        ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="if(this.dataset.fallbackApplied==='1'){return;}this.dataset.fallbackApplied='1';this.src='${escapeHtml(card.fallbackImage || "")}';" /><div class="cardCodeOverlay">${escapeHtml(card.code)}</div>`
+        : `<div class="artFallback">${escapeHtml(card.code)}</div>`;
+
+      return (
+        `<article class="cardTile${card.type === "Leader" ? " is-leader" : ""}" data-card-code="${escapeHtml(card.code)}" data-context="${escapeHtml(context)}">` +
+          `<div class="artWrap">${imageMarkup}</div>` +
+          `<div class="cardMeta">` +
+            `<div class="cardName">${escapeHtml(card.name)}</div>` +
+            `<div class="qtyRow">` +
+              `<button class="qtyButton minus" type="button" data-action="remove" ${canRemove ? "" : "disabled"}>-</button>` +
+              `<div class="qtyBadge"><span class="qtyLabel">copias</span><span>${qty}</span></div>` +
+              `<button class="qtyButton plus" type="button" data-action="add" ${canAdd ? "" : "disabled"}>+</button>` +
+            `</div>` +
+          `</div>` +
+        `</article>`
+      );
+    }
+    function renderSearchStatus(){
+      const statusRow = $("searchStatusRow");
+      const leader = selectedLeader();
+      const tags = [];
+      if (!leader){
+        tags.push(`<div class="statusTag">Selecciona un leader para desbloquear el resto del catalogo</div>`);
+      } else {
+        tags.push(`<div class="statusTag">Leader activo: ${escapeHtml(leader.name)}</div>`);
+        tags.push(`<div class="statusTag">Colores: ${escapeHtml(leader.colors.map(humanColor).join(" / ") || "-")}</div>`);
+      }
+      if (state.partialFailures.length){
+        tags.push(`<div class="statusTag">Carga parcial: ${escapeHtml(state.partialFailures.join(", "))}</div>`);
+      }
+      statusRow.innerHTML = tags.join("");
+    }
+    function renderAvailable(){
+      const rows = availableCards();
+      $("availableCountTag").textContent = `${rows.length} visibles`;
+      $("catalogPill").textContent = `Catalogo: ${state.allCards.length}`;
+      $("leaderModePill").textContent = state.selectedLeaderCode ? "Modo: color del leader" : "Modo: leaders";
+      $("searchIntro").textContent = state.selectedLeaderCode
+        ? "Solo se muestran cartas que comparten color con tu leader."
+        : "Solo se muestran leaders hasta que elijas uno.";
+      renderSearchStatus();
+
+      if (!rows.length){
+        $("availableGrid").innerHTML = "";
+        $("availableEmpty").style.display = "block";
+        $("availableEmpty").innerHTML = state.selectedLeaderCode
+          ? "No hay cartas que coincidan con el leader y la busqueda actual."
+          : "No se han encontrado leaders con esa busqueda.";
+        return;
+      }
+
+      $("availableEmpty").style.display = "none";
+      $("availableGrid").innerHTML = rows.map((card) => cardTileMarkup(card, state.deckCounts.get(card.code) || 0, "available")).join("");
+    }
+    function renderLeaderSlot(){
+      const leader = selectedLeader();
+      if (!leader){
+        $("leaderSlot").innerHTML = (
+          `<div class="leaderSlot is-empty"><div class="emptyState">Tu leader ira aqui. En esta version el builder empieza bloqueado en leaders para que el color del mazo quede fijado desde el principio.</div></div>`
+        );
+        return;
+      }
+
+      const imageMarkup = leader.image
+        ? `<img src="${escapeHtml(leader.image)}" alt="${escapeHtml(leader.name)}" loading="lazy" onerror="if(this.dataset.fallbackApplied==='1'){return;}this.dataset.fallbackApplied='1';this.src='${escapeHtml(leader.fallbackImage || "")}';" />`
+        : `<div class="artFallback">${escapeHtml(leader.code)}</div>`;
+
+      $("leaderSlot").innerHTML = (
+        `<div class="leaderSlot">` +
+          `<div class="leaderArt">${imageMarkup}</div>` +
+          `<div class="leaderInfo">` +
+            `<h3>${escapeHtml(leader.name)}</h3>` +
+            `<p>${escapeHtml(leader.code)} · ${escapeHtml(leader.colors.map(humanColor).join(" / ") || "Sin color")} · Leader unico del mazo</p>` +
+            `<div class="leaderActions"><button class="btn btnAccent" type="button" id="clearLeaderButton">Quitar leader y vaciar mazo</button></div>` +
+          `</div>` +
+        `</div>`
+      );
+      $("clearLeaderButton").addEventListener("click", clearLeaderAndDeck);
+    }
+    function renderDeck(){
+      const entries = activeDeckEntries();
+      const leaderEntry = entries.find((entry) => entry.card.type === "Leader") || null;
+      const mainEntries = entries.filter((entry) => entry.card.type !== "Leader");
+      const mainTotal = mainEntries.reduce((sum, entry) => sum + entry.qty, 0);
+      const deckTotal = mainTotal + (leaderEntry ? 1 : 0);
+      const uniqueTotal = mainEntries.length;
+      const stats = buildDeckStats();
+
+      $("deckTotalCount").textContent = String(deckTotal);
+      $("mainDeckCount").textContent = String(mainTotal);
+      $("uniqueCount").textContent = String(uniqueTotal);
+      $("characterCount").textContent = String(stats.typeCounts.Character);
+      $("eventCount").textContent = String(stats.typeCounts.Event);
+      $("stageCount").textContent = String(stats.typeCounts.Stage);
+      $("brickCount").textContent = String(stats.bricks);
+      $("counter1000Count").textContent = String(stats.plus1000);
+      $("counter2000Count").textContent = String(stats.plus2000);
+      $("deckStatusTag").textContent = leaderEntry ? `Leader: ${leaderEntry.card.name}` : "Sin leader";
+      renderCostCurve(stats.costCurve);
+      renderLeaderSlot();
+
+      if (!mainEntries.length){
+        $("deckGrid").innerHTML = "";
+        $("deckEmpty").style.display = "block";
+        $("deckEmpty").textContent = leaderEntry
+          ? "Tu leader ya esta fijado. Ahora añade cartas del mismo color desde el panel izquierdo."
+          : "Todavia no has anadido cartas al mazo.";
+        return;
+      }
+
+      $("deckEmpty").style.display = "none";
+      $("deckGrid").innerHTML = mainEntries
+        .sort((a, b) => (a.card.costSort - b.card.costSort) || collator.compare(a.card.name, b.card.name))
+        .map((entry) => cardTileMarkup(entry.card, entry.qty, "deck"))
+        .join("");
+    }
+    function renderCostCurve(curve){
+      const max = Math.max(1, ...curve);
+      $("costCurve").innerHTML = curve.map((value, cost) => {
+        const height = Math.max(6, Math.round((value / max) * 138));
+        return (
+          `<div class="chartCol">` +
+            `<div class="chartValue">${value}</div>` +
+            `<div class="chartBarTrack"><div class="chartBar" style="height:${height}px"></div></div>` +
+            `<div class="chartLabel">${cost}</div>` +
+          `</div>`
+        );
+      }).join("");
+    }
+    function openDetail(){
+      state.detailOpen = true;
+      $("detailOverlay").classList.add("is-open");
+      $("detailOverlay").setAttribute("aria-hidden", "false");
+    }
+    function closeDetail(){
+      state.detailOpen = false;
+      $("detailOverlay").classList.remove("is-open");
+      $("detailOverlay").setAttribute("aria-hidden", "true");
+    }
+    function render(){
+      renderAvailable();
+      renderDeck();
+    }
+    function setLeader(card){
+      state.selectedLeaderCode = card.code;
+      state.deckCounts = new Map([[card.code, 1]]);
+      render();
+    }
+    function clearLeaderAndDeck(){
+      state.selectedLeaderCode = "";
+      state.deckCounts = new Map();
+      render();
+    }
+    function setCardQuantity(card, nextQty){
+      const qty = Math.max(0, nextQty);
+      const mainTotal = mainDeckEntries().reduce((sum, entry) => sum + entry.qty, 0);
+      if (card.type === "Leader"){
+        if (qty <= 0){
+          clearLeaderAndDeck();
+          return;
+        }
+        setLeader(card);
+        return;
+      }
+
+      if (!state.selectedLeaderCode) return;
+      if (!matchesLeaderColors(card)) return;
+      if (qty > (state.deckCounts.get(card.code) || 0) && (mainTotal + 1) >= 51) return;
+      if (qty <= 0){
+        state.deckCounts.delete(card.code);
+      } else {
+        state.deckCounts.set(card.code, Math.min(4, qty));
+      }
+      render();
+    }
+    function handleQuantityAction(code, action){
+      const card = state.cardsByCode.get(code);
+      if (!card) return;
+      const currentQty = state.deckCounts.get(code) || 0;
+
+      if (action === "add"){
+        if (card.type === "Leader"){
+          if (!state.selectedLeaderCode || state.selectedLeaderCode === card.code){
+            setLeader(card);
+          }
+          return;
+        }
+        setCardQuantity(card, currentQty + 1);
+        return;
+      }
+
+      if (action === "remove"){
+        setCardQuantity(card, currentQty - 1);
+      }
+    }
+    async function loadCatalog(){
+      state.partialFailures = [];
+      state.allCards = [];
+      state.cardsByCode = new Map();
+      state.selectedLeaderCode = "";
+      state.deckCounts = new Map();
+      setLoading(true, "Cargando catalogo local...");
+
+      try{
+        const results = await Promise.allSettled(SOURCE_DEFS.map(loadPunkSource));
+        const mappedByCode = new Map();
+
+        results.forEach((result, sourceIndex) => {
+          if (result.status !== "fulfilled"){
+            state.partialFailures.push(SOURCE_DEFS[sourceIndex].label);
+            return;
+          }
+
+          const { source, manifest, packs, packResults } = result.value;
+          let sourceHadFailure = false;
+
+          packResults.forEach((packResult) => {
+            if (packResult.status !== "fulfilled"){
+              sourceHadFailure = true;
+              return;
+            }
+
+            const { packId, rows } = packResult.value;
+            const pack = packs?.[packId] || null;
+
+            rows.forEach((raw) => {
+              const normalizedRaw = buildPunkApiRecord(raw, pack, source, manifest);
+              const card = createCardRecord(normalizedRaw, source);
+              if (!card) return;
+
+              let sourceMap = mappedByCode.get(card.code);
+              if (!sourceMap){
+                sourceMap = new Map();
+                mappedByCode.set(card.code, sourceMap);
+              }
+
+              const existing = sourceMap.get(card.sourceKey);
+              if (!existing || shouldReplacePreferredCard(existing, card)){
+                sourceMap.set(card.sourceKey, card);
+              }
+            });
+          });
+
+          if (sourceHadFailure){
+            state.partialFailures.push(source.label);
+          }
+        });
+
+        state.allCards = Array.from(mappedByCode.values())
+          .map((sourceMap) => mergeSourceVariants(sourceMap))
+          .filter(Boolean)
+          .sort((a, b) => {
+            if (a.type === "Leader" && b.type !== "Leader") return -1;
+            if (a.type !== "Leader" && b.type === "Leader") return 1;
+            return collator.compare(a.name, b.name) || collator.compare(a.code, b.code);
+          });
+        state.cardsByCode = new Map(state.allCards.map((card) => [card.code, card]));
+        render();
+      } catch (error){
+        console.error(error);
+        $("availableGrid").innerHTML = "";
+        $("deckGrid").innerHTML = "";
+        $("availableEmpty").style.display = "block";
+        $("availableEmpty").textContent = "No se ha podido cargar el catalogo local para el deck builder.";
+        $("deckEmpty").style.display = "block";
+        $("deckEmpty").textContent = normalize(error?.message) || "Error desconocido";
+      } finally {
+        setLoading(false);
+      }
+    }
+    $("searchInput").addEventListener("input", (event) => {
+      state.search = event.target.value || "";
+      renderAvailable();
+    });
+    $("reloadButton").addEventListener("click", () => {
+      state.search = "";
+      $("searchInput").value = "";
+      void loadCatalog();
+    });
+    $("detailButton").addEventListener("click", openDetail);
+    $("detailCloseButton").addEventListener("click", closeDetail);
+    $("detailOverlay").addEventListener("click", (event) => {
+      if (event.target === $("detailOverlay")){
+        closeDetail();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && state.detailOpen){
+        closeDetail();
+      }
+    });
+    $("availableGrid").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const tile = button.closest("[data-card-code]");
+      if (!tile) return;
+      handleQuantityAction(tile.dataset.cardCode || "", button.dataset.action || "");
+    });
+    $("deckGrid").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const tile = button.closest("[data-card-code]");
+      if (!tile) return;
+      handleQuantityAction(tile.dataset.cardCode || "", button.dataset.action || "");
+    });
+    render();
+    void loadCatalog();
+  </script>
+</body>
+</html>
