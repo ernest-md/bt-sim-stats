@@ -3,6 +3,14 @@
 
   const SUPABASE_URL = "https://ceunhkqhskwnsoqyunze.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNldW5oa3Foc2t3bnNvcXl1bnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQ0ODcsImV4cCI6MjA4ODAyMDQ4N30.qBGXYYQXlyQwFGeyaeMOtLPHrjBy-eU05AO37yLvi5o";
+  const VDBF_ALLOWED_USERS = new Set(["estereo", "coquito"]);
+  const ROLE_VIEW_STORAGE_KEY = "barateam.roleViewOverrides";
+  const ROLE_VIEW_OPTIONS = [
+    { value: "user", label: "User" },
+    { value: "vdj", label: "VDJ" },
+    { value: "admin", label: "Admin" }
+  ];
+
   function createClient(options){
     if (!window.supabase || typeof window.supabase.createClient !== "function"){
       throw new Error("Supabase client is not available.");
@@ -155,6 +163,152 @@
     return String(value || "").trim().toLowerCase();
   }
 
+  function safeStorageGet(key){
+    try{
+      return window.localStorage.getItem(key);
+    }catch(_err){
+      return null;
+    }
+  }
+
+  function safeStorageSet(key, value){
+    try{
+      window.localStorage.setItem(key, value);
+      return true;
+    }catch(_err){
+      return false;
+    }
+  }
+
+  function readRoleViewOverrides(){
+    const raw = safeStorageGet(ROLE_VIEW_STORAGE_KEY);
+    if (!raw) return {};
+    try{
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    }catch(_err){
+      return {};
+    }
+  }
+
+  function writeRoleViewOverrides(map){
+    return safeStorageSet(ROLE_VIEW_STORAGE_KEY, JSON.stringify(map || {}));
+  }
+
+  function normalizeRoleView(value){
+    const normalized = String(value || "").trim().toLowerCase();
+    return ROLE_VIEW_OPTIONS.some((option) => option.value === normalized) ? normalized : "user";
+  }
+
+  function canUseRoleViewSwitch(profile, user){
+    const username = normalizeHandle(profile?.username || "");
+    const emailHandle = normalizeHandle(String(user?.email || "").split("@")[0] || "");
+    return VDBF_ALLOWED_USERS.has(username) || VDBF_ALLOWED_USERS.has(emailHandle);
+  }
+
+  function getStoredRoleView(userId){
+    if (!userId) return "";
+    const map = readRoleViewOverrides();
+    const value = map[String(userId)];
+    return value ? normalizeRoleView(value) : "";
+  }
+
+  function setStoredRoleView(userId, roleValue){
+    if (!userId) return false;
+    const map = readRoleViewOverrides();
+    const key = String(userId);
+    const nextValue = String(roleValue || "").trim();
+    if (!nextValue){
+      delete map[key];
+    } else {
+      map[key] = normalizeRoleView(nextValue);
+    }
+    return writeRoleViewOverrides(map);
+  }
+
+  function applyRoleViewToAccessState(accessState){
+    const state = accessState || null;
+    if (!state?.isLoggedIn || !canUseRoleViewSwitch(state.profile, state.user)){
+      if (state){
+        state.canSwitchRoleView = false;
+        state.effectiveRole = state?.profile?.app_role || "user";
+        state.roleView = "";
+        state.roleViewLabel = "";
+      }
+      return state;
+    }
+
+    const overrideRole = getStoredRoleView(state.user?.id);
+    const effectiveRole = overrideRole || String(state?.profile?.app_role || "user").trim().toLowerCase() || "user";
+
+    state.canSwitchRoleView = true;
+    state.roleView = overrideRole || "";
+    state.effectiveRole = effectiveRole;
+    state.roleViewLabel = overrideRole
+      ? (ROLE_VIEW_OPTIONS.find((option) => option.value === overrideRole)?.label || overrideRole)
+      : "";
+    state.isAdmin = effectiveRole === "admin";
+    state.isPrivileged = effectiveRole === "admin" || effectiveRole === "vdj";
+    return state;
+  }
+
+  function dispatchRoleViewChange(detail){
+    document.dispatchEvent(new window.CustomEvent("barateam:role-view-changed", {
+      detail: detail || {}
+    }));
+  }
+
+  function syncRoleViewMenu(userMenu, accessState){
+    if (!userMenu) return;
+
+    let block = userMenu.querySelector('[data-role-view-switcher="1"]');
+    if (!accessState?.canSwitchRoleView){
+      if (block) block.remove();
+      return;
+    }
+
+    if (!block){
+      block = document.createElement("div");
+      block.className = "roleViewBlock";
+      block.setAttribute("data-role-view-switcher", "1");
+      block.innerHTML = `
+        <div class="sep"></div>
+        <div class="roleViewInner">
+          <div class="roleViewTitle">Ver como</div>
+          <select class="roleViewSelect" data-role-view-select="1" aria-label="Seleccionar vista de rol">
+            ${ROLE_VIEW_OPTIONS.map((option) => `<option value="${escapeAttr(option.value)}">${escapeHtml(option.label)}</option>`).join("")}
+          </select>
+          <div class="roleViewHint">Solo cambia la vista de la web en este navegador.</div>
+        </div>
+      `;
+      const logoutButton = userMenu.querySelector("#menuLogout");
+      if (logoutButton?.parentNode){
+        logoutButton.parentNode.insertBefore(block, logoutButton.previousElementSibling ? logoutButton.previousElementSibling.nextElementSibling : logoutButton);
+      } else {
+        userMenu.appendChild(block);
+      }
+    }
+
+    const select = block.querySelector('[data-role-view-select="1"]');
+    if (!select) return;
+    select.value = accessState.roleView || normalizeRoleView(accessState.profile?.app_role || "user");
+    if (select.dataset.boundRoleView !== "1"){
+      select.dataset.boundRoleView = "1";
+      select.addEventListener("change", () => {
+        const nextValue = normalizeRoleView(select.value);
+        const actualRole = normalizeRoleView(accessState?.profile?.app_role || "user");
+        setStoredRoleView(accessState?.user?.id, nextValue === actualRole ? "" : nextValue);
+        clearAccessStateCache(accessState?.user?.id || null);
+        dispatchRoleViewChange({
+          userId: accessState?.user?.id || null,
+          roleView: nextValue === actualRole ? "" : nextValue,
+          actualRole
+        });
+        window.location.reload();
+      });
+    }
+  }
+
   function appPageHref(fileName){
     const path = String(window.location.pathname || "").replace(/\\/g, "/");
     if (path.includes("/sim-stats/frontend/")) return `../../${fileName}`;
@@ -181,7 +335,7 @@
 
   function isAccessGuardExemptPage(){
     const page = currentPageName();
-    return page === "login.html" || page === "reset-password.html" || page === "hits.html";
+    return page === "login.html" || page === "reset-password.html";
   }
 
   function isMembersPage(){
@@ -227,8 +381,9 @@
       isAdmin: profile?.app_role === "admin",
       isPrivileged: profile?.app_role === "admin" || profile?.app_role === "vdj"
     };
-    window.__barateamAccessState = accessState;
-    return accessState;
+    const effectiveState = applyRoleViewToAccessState(accessState);
+    window.__barateamAccessState = effectiveState;
+    return effectiveState;
   }
 
   function clearAccessStateCache(userId){
@@ -420,7 +575,6 @@
     const restrictedLinks = Array.from(document.querySelectorAll('a[data-vdbf-only="1"]'));
     const adminLinks = Array.from(document.querySelectorAll('a[data-admin-only="1"]'));
     const privilegedLinks = Array.from(document.querySelectorAll('a[data-privileged-only="1"]'));
-    const labsDock = document.getElementById("labsDock");
 
     restrictedLinks.forEach((a) => {
       a.style.display = "none";
@@ -431,9 +585,6 @@
     privilegedLinks.forEach((a) => {
       a.style.display = "none";
     });
-    if (labsDock) {
-      labsDock.style.display = "none";
-    }
 
     if (!sb) return;
 
@@ -448,9 +599,6 @@
 
       const isAdmin = accessState.isAdmin;
       const isPrivileged = accessState.isPrivileged === true;
-      if (labsDock) {
-        labsDock.style.display = isAdmin ? "" : "none";
-      }
 
       privilegedLinks.forEach((a) => {
         a.style.display = isPrivileged ? "" : "none";
@@ -467,6 +615,11 @@
             href: appPageHref("packs.html"),
             label: "Packs",
             icon: "P"
+          },
+          {
+            href: appPageHref("liga.html"),
+            label: "Liga",
+            icon: "L"
           },
           {
             href: adminLinks[0]?.getAttribute("href") || appPageHref("feedback.html"),
@@ -702,6 +855,13 @@
         userLabel.textContent = formatLabel(user);
       }
       void syncPublicProfileMenuLink(cfg.supabase || window.__barateamLastSupabaseClient || null, userMenu, user || null);
+      if (user){
+        void resolveAccessState(cfg.supabase || window.__barateamLastSupabaseClient || null)
+          .then((accessState) => syncRoleViewMenu(userMenu, accessState))
+          .catch(() => syncRoleViewMenu(userMenu, null));
+      } else {
+        syncRoleViewMenu(userMenu, null);
+      }
       if (!user){
         closeMenu();
       }
@@ -818,6 +978,10 @@
     enforcePageAccess,
     initGlobalAccessGuard,
     clearAccessStateCache,
+    getStoredRoleView,
+    setStoredRoleView,
+    normalizeRoleView,
+    canUseRoleViewSwitch,
     applyRestrictedNavVisibility,
     bindProtectedNavLinks,
     initInlineTopbarMenus,

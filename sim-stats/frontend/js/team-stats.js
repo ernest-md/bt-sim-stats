@@ -106,7 +106,7 @@ function getTodayExpansion(expansions) {
 
 function canManageAllTeams(viewer) {
   const role = viewer?.role || "user"
-  return role === "admin" || role === "staff"
+  return role === "admin" || role === "staff" || role === "vdj"
 }
 
 async function initTeamSelector() {
