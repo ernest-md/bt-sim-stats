@@ -360,6 +360,34 @@ html, body{
 .menu a:hover, .menu button:hover{ background: rgba(255,255,255,.10); }
 .menu .danger{ color: #fecaca; }
 .menu .sep{ height:1px; background: rgba(255,255,255,.10); }
+.roleViewInner{
+  padding: 10px 12px 12px;
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+.roleViewTitle{
+  color: rgba(255,255,255,.94);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.roleViewSelect{
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.96);
+  color:#0f172a;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 14px;
+}
+.roleViewHint{
+  color: rgba(255,255,255,.62);
+  font-size: 11px;
+  line-height: 1.35;
+}
 
 .adminModeDock{
   position: fixed;
