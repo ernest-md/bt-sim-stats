@@ -106,8 +106,7 @@ function getTodayExpansion(expansions) {
 
 function canManageAllTeams(viewer) {
   const role = viewer?.role || "user"
-  const username = String(viewer?.username || "").trim().toLowerCase()
-  return role === "admin" || role === "staff" || username === "estereo" || username === "coquito"
+  return role === "admin" || role === "staff" || role === "vdj"
 }
 
 async function initTeamSelector() {

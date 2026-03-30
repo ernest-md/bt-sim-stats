@@ -63,7 +63,7 @@ async function init() {
   viewerRole = viewer?.role || "user"
   const players = await getPlayersForStats()
   allowedPlayerIds = new Set(players.map((p) => p.id))
-  const canSyncAll = viewerRole === "admin" || viewerRole === "staff"
+  const canSyncAll = viewerRole === "admin" || viewerRole === "staff" || viewerRole === "vdj"
 
   if (syncAllButton) {
     syncAllButton.style.display = canSyncAll ? "" : "none"
@@ -754,7 +754,7 @@ async function syncMatchesForAllPlayers() {
   const statusDiv = document.getElementById("syncStatus")
   if (isSyncRunning) return
 
-  if (!(viewerRole === "admin" || viewerRole === "staff")) {
+  if (!(viewerRole === "admin" || viewerRole === "staff" || viewerRole === "vdj")) {
     statusDiv.textContent = "No tienes permisos para actualizar todos los jugadores"
     statusDiv.className = "sync-status sync-error"
     return

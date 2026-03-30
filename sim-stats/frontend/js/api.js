@@ -117,9 +117,17 @@ export async function getViewerStatsContext() {
     return { userId, role: "user", team: "SIN EQUIPO", username: "", displayName: "" }
   }
 
+  const normalizeRoleView = window.BarateamApp?.normalizeRoleView || ((value) => String(value || "").trim().toLowerCase() || "user")
+  const canUseRoleViewSwitch = window.BarateamApp?.canUseRoleViewSwitch || (() => false)
+  const getStoredRoleView = window.BarateamApp?.getStoredRoleView || (() => "")
+  const overrideRole = canUseRoleViewSwitch(data || null, session?.user || null) ? getStoredRoleView(userId) : ""
+  const effectiveRole = overrideRole || data?.app_role || "user"
+
   return {
     userId,
-    role: data?.app_role || "user",
+    role: normalizeRoleView(effectiveRole),
+    actualRole: normalizeRoleView(data?.app_role || "user"),
+    roleView: overrideRole ? normalizeRoleView(overrideRole) : "",
     team: data?.team || "SIN EQUIPO",
     username: data?.username || "",
     displayName: data?.display_name || ""
@@ -147,7 +155,7 @@ export async function getPlayersForStats() {
     return []
   }
 
-  if (role === "admin" || role === "staff") {
+  if (role === "admin" || role === "staff" || role === "vdj") {
     return data.map((p) => ({ id: p.id, name: p.name, profile_id: p.profile_id || null }))
   }
 
