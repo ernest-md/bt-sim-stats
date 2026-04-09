@@ -617,11 +617,6 @@
             icon: "P"
           },
           {
-            href: appPageHref("liga.html"),
-            label: "Liga",
-            icon: "L"
-          },
-          {
             href: adminLinks[0]?.getAttribute("href") || appPageHref("feedback.html"),
             label: "Feedback",
             icon: "F"
