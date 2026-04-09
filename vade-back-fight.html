@@ -139,6 +139,27 @@
       display:inline-flex;
       align-items:center;
     }
+    .sheetPicker{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+      background:#fff;
+      color:var(--ink);
+      font-size:13px;
+      font-weight:800;
+    }
+    .sheetPicker select{
+      border:none;
+      background:transparent;
+      color:var(--ink);
+      font:inherit;
+      font-weight:900;
+      cursor:pointer;
+      outline:none;
+    }
     .search{
       display:flex;
       gap:8px;
@@ -625,7 +646,7 @@
 
   <div class="wrap">
     <div class="hero">
-      <h1>VADE BACK FIGHT - OP14</h1>
+      <h1 id="heroTitle">VADE BACK FIGHT - OP15</h1>
       <p>Datos en tiempo real desde Google Sheets (solo lectura).</p>
       <div class="heroStats">
         <div class="stat"><b id="statPlayers">-</b><span>Jugadores</span></div>
@@ -638,6 +659,13 @@
         <div class="toolbar">
           <button id="btnReload" class="btn2" type="button">Recargar hoja</button>
           <a class="btnGhost" id="openSheet" target="_blank" rel="noreferrer noopener">Abrir Google Sheet</a>
+          <label class="sheetPicker" for="sheetSelect">
+            <span></span>
+            <select id="sheetSelect">
+              <option value="OP15" selected>OP15</option>
+              <option value="OP14">OP14</option>
+            </select>
+          </label>
           <div class="search">
             <input id="playerSearch" type="search" list="playersList" placeholder="Buscar jugador..." autocomplete="off" />
             <datalist id="playersList"></datalist>
@@ -686,8 +714,8 @@
 
   <script>
     const SHEET_ID = "1bRu9xDWAO8vBLF2GkzmsGL2M4P3AqczkDCXl6t-coFo";
-    const SHEET_NAME = "OP14";
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+    const AVAILABLE_SHEETS = ["OP15", "OP14"];
+    const DEFAULT_SHEET_NAME = "OP15";
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing`;
 
     const thead = document.getElementById("thead");
@@ -703,6 +731,8 @@
     const topPlayedBodyEl = document.getElementById("topPlayedBody");
     const statPlayersEl = document.getElementById("statPlayers");
     const statEventsEl = document.getElementById("statEvents");
+    const heroTitleEl = document.getElementById("heroTitle");
+    const sheetSelectEl = document.getElementById("sheetSelect");
 
     document.getElementById("openSheet").href = SHEET_URL;
     document.getElementById("btnReload").addEventListener("click", loadSheet);
@@ -711,9 +741,31 @@
     playerSearchEl.addEventListener("input", () => {
       if (!playerSearchEl.value.trim()) clearSelection();
     });
+    sheetSelectEl.addEventListener("change", async () => {
+      currentSheetName = normalizeSheetName(sheetSelectEl.value);
+      syncSheetUi();
+      await loadSheet();
+    });
 
     let currentModel = null;
     let selectedPlayerName = "";
+    let currentSheetName = DEFAULT_SHEET_NAME;
+
+    function normalizeSheetName(value){
+      const clean = String(value || "").trim().toUpperCase();
+      return AVAILABLE_SHEETS.includes(clean) ? clean : DEFAULT_SHEET_NAME;
+    }
+
+    function getSheetUrl(sheetName){
+      return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+    }
+
+    function syncSheetUi(){
+      const sheetName = normalizeSheetName(currentSheetName);
+      currentSheetName = sheetName;
+      sheetSelectEl.value = sheetName;
+      heroTitleEl.textContent = `VADE BACK FIGHT - ${sheetName}`;
+    }
 
     function showError(msg){
       errorEl.textContent = msg;
@@ -1081,9 +1133,11 @@
 
     async function loadSheet(){
       clearError();
-      statusEl.textContent = `Cargando hoja ${SHEET_NAME}...`;
+      const sheetName = normalizeSheetName(currentSheetName);
+      const sheetUrl = getSheetUrl(sheetName);
+      statusEl.textContent = `Cargando hoja ${sheetName}...`;
       try{
-        const res = await fetch(GVIZ_URL, { cache: "no-store" });
+        const res = await fetch(sheetUrl, { cache: "no-store" });
         if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
         const gvizText = await res.text();
         const parsed = parseGviz(gvizText);
@@ -1091,10 +1145,10 @@
         playerSearchEl.value = "";
         render(parsed);
         const count = currentModel?.players?.length || 0;
-        statusEl.textContent = `${SHEET_NAME} cargado - ${count} jugadores`;
+        statusEl.textContent = `${sheetName} cargado - ${count} jugadores`;
       } catch (err){
         statusEl.textContent = "Error cargando hoja";
-        showError(`No se pudo leer ${SHEET_NAME} desde Google Sheets: ${err?.message || "error desconocido"}`);
+        showError(`No se pudo leer ${sheetName} desde Google Sheets: ${err?.message || "error desconocido"}`);
       }
     }
 
@@ -1110,6 +1164,7 @@
     });
 
     (async function initNav(){
+      syncSheetUi();
       const { data } = await sb.auth.getSession();
       navController.setUser(data?.session?.user || null);
       void window.BarateamApp.syncTopbarAvatar(sb, data?.session?.user || null);
