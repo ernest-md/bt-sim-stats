@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inventario - Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:rgba(255,255,255,.95);
+      --line:rgba(15,23,42,.10);
+      --ink:#0f172a;
+      --muted:#475569;
+      --accent:#1d4ed8;
+      --accent-soft:rgba(29,78,216,.10);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.24), transparent 60%),
+        linear-gradient(180deg, rgba(11,18,32,.84), rgba(11,18,32,.92)),
+        url("bg.png");
+      background-size:cover;
+      z-index:-1;
+    }
+    .page{
+      max-width:1440px;
+      margin:0 auto;
+      padding:20px 14px 40px;
+    }
+    .hero,.setPanel{
+      background:var(--panel);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:24px;
+      box-shadow:0 20px 46px rgba(0,0,0,.24);
+    }
+    .hero{
+      padding:22px;
+      background:linear-gradient(135deg, rgba(15,23,42,.96), rgba(15,23,42,.76));
+      color:#fff;
+      margin-bottom:16px;
+    }
+    .heroHeader{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+    }
+    .heroHeader > div:first-child{
+      min-width:0;
+      flex:1 1 auto;
+    }
+    .hero h1{
+      margin:0 0 8px;
+      font-size:clamp(2rem, 4vw, 3rem);
+    }
+    .hero p{
+      margin:0;
+      color:rgba(255,255,255,.82);
+      font-size:14px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .heroActions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:12px;
+      flex:0 0 auto;
+    }
+    .saveBtn{
+      border:1px solid rgba(255,255,255,.16);
+      background:#fff;
+      color:#0f172a;
+      border-radius:999px;
+      padding:12px 16px;
+      font-size:13px;
+      font-weight:1000;
+      cursor:pointer;
+    }
+    .saveBtn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .saveStatus{
+      color:rgba(255,255,255,.84);
+      font-size:13px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .inventoryStack{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:14px;
+      align-items:start;
+    }
+    .setPanel{
+      overflow:hidden;
+      min-height:92px;
+      transition:transform .14s ease, box-shadow .18s ease;
+    }
+    .setPanel.is-open{
+      grid-column:1 / -1;
+    }
+    .setPanel:hover{
+      transform:translateY(-2px);
+      box-shadow:0 24px 54px rgba(0,0,0,.28);
+    }
+    .setPanel:not(.is-open){
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,.98) 0%, rgba(255,255,255,.94) 34%, rgba(255,255,255,.66) 68%, rgba(255,255,255,.14) 100%),
+        var(--set-cover, none);
+      background-size:cover;
+      background-position:center;
+    }
+    .setHead{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-height:92px;
+      padding:16px 18px;
+    }
+    .setToggle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex:1 1 auto;
+      border:0;
+      background:transparent;
+      padding:0;
+      cursor:pointer;
+      text-align:left;
+      border-radius:18px;
+      transition:background .16s ease, box-shadow .16s ease;
+    }
+    .setPanel.is-open .setToggle:hover{
+      background:rgba(15,23,42,.04);
+      box-shadow:inset 0 0 0 1px rgba(15,23,42,.06);
+    }
+    .setTitle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .setHint{
+      color:#64748b;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .setCode{
+      font-size:1.15rem;
+      font-weight:1000;
+      color:var(--ink);
+    }
+    .setMeta{
+      color:var(--muted);
+      font-size:.95rem;
+      font-weight:700;
+    }
+    .setChevron{
+      flex:0 0 auto;
+      font-size:1.1rem;
+      font-weight:900;
+      color:#64748b;
+      transition:transform .18s ease;
+    }
+    .setPanel.is-open .setChevron{
+      transform:rotate(180deg);
+    }
+    .setActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:0 0 auto;
+    }
+    .setActionBtn{
+      border:1px solid rgba(15,23,42,.10);
+      background:#fff;
+      color:#334155;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .setActionBtn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .setPanel:not(.is-open) .setMeta,
+    .setPanel:not(.is-open) .setChevron,
+    .setPanel:not(.is-open) .setActions,
+    .setPanel:not(.is-open) .setHint{
+      display:none;
+    }
+    .medalIcon{
+      width:36px;
+      height:36px;
+      object-fit:contain;
+      flex:0 0 auto;
+      filter:drop-shadow(0 8px 18px rgba(15,23,42,.18));
+    }
+    .setBody{
+      padding:0 20px 20px;
+      border-top:1px solid var(--line);
+    }
+    .setBody[hidden]{
+      display:none;
+    }
+    .cardGrid{
+      display:grid;
+      grid-template-columns:repeat(6, minmax(0, 1fr));
+      gap:14px;
+      padding-top:18px;
+    }
+    .starterGroupsGrid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:16px;
+      padding-top:18px;
+    }
+    .starterGroup{
+      border:1px solid rgba(15,23,42,.10);
+      border-radius:20px;
+      background:linear-gradient(180deg, rgba(248,250,252,.98), rgba(255,255,255,.94));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+      padding:14px;
+    }
+    .starterGroupHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .starterGroupCode{
+      display:inline-flex;
+      align-items:center;
+      min-height:28px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:#0f172a;
+      color:#fff;
+      font-size:12px;
+      font-weight:1000;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .starterGroupMeta{
+      color:#64748b;
+      font-size:12px;
+      font-weight:900;
+      text-align:right;
+    }
+    .starterGroup .cardGrid{
+      padding-top:0;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+    .inventoryCard{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:#fff;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+    .inventoryArtWrap{
+      position:relative;
+      padding:10px 10px 0;
+    }
+    .cardBadge{
+      position:absolute;
+      top:8px;
+      right:8px;
+    }
+    .inventoryArt{
+      width:100%;
+      aspect-ratio:63/88;
+      object-fit:cover;
+      display:block;
+      border-radius:12px;
+      background:#dbe4ee;
+      box-shadow:0 10px 20px rgba(15,23,42,.12);
+      transition:opacity .16s ease, filter .16s ease;
+    }
+    .inventoryArt.is-empty{
+      opacity:.32;
+      filter:grayscale(1);
+    }
+    .inventoryCardBody{
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      flex:1;
+    }
+    .inventoryName{
+      font-size:13px;
+      line-height:1.35;
+      font-weight:900;
+      color:var(--ink);
+      min-height:36px;
+    }
+    .inventorySubtag{
+      display:inline-flex;
+      align-items:center;
+      align-self:flex-start;
+      min-height:22px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(15,23,42,.06);
+      border:1px solid rgba(15,23,42,.08);
+      color:#475569;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .inventoryControls{
+      display:grid;
+      grid-template-columns:34px 34px 1fr 34px 34px;
+      gap:8px;
+      align-items:center;
+      margin-top:auto;
+    }
+    .inventoryCircle{
+      width:30px;
+      height:30px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.14);
+      background:#fff;
+      color:#0f172a;
+      font-size:20px;
+      font-weight:1000;
+      line-height:1;
+      cursor:pointer;
+    }
+    .inventoryCircle:disabled{
+      opacity:.42;
+      cursor:not-allowed;
+    }
+    .inventoryCount{
+      min-height:34px;
+      border-radius:12px;
+      border:1px solid rgba(29,78,216,.18);
+      background:var(--accent-soft);
+      color:var(--accent);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:15px;
+      font-weight:1000;
+    }
+    .emptyState{
+      padding:18px;
+      color:var(--muted);
+      background:rgba(248,250,252,.88);
+      border:1px dashed rgba(15,23,42,.16);
+      border-radius:18px;
+      margin-top:16px;
+    }
+    @media (max-width: 1180px){
+      .inventoryStack{ grid-template-columns:repeat(3, minmax(0, 1fr)); }
+      .cardGrid{ grid-template-columns:repeat(4, minmax(0, 1fr)); }
+      .starterGroupsGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 980px){
+      .inventoryStack{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .heroHeader{ flex-direction:column; }
+      .heroActions{ justify-content:flex-start; }
+      .hero p{ white-space:normal; }
+      .saveStatus{ white-space:normal; }
+    }
+    @media (max-width: 760px){
+      .inventoryStack{ grid-template-columns:1fr; }
+      .cardGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .starterGroupsGrid{ grid-template-columns:1fr; }
+      .setHead{ padding:16px; flex-wrap:wrap; }
+      .setBody{ padding:0 16px 16px; }
+      .hero p{ white-space:normal; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+        <div class="brand">
+          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+          <small>inventario</small>
+        </div>
+      </a>
+      <div class="nav hubNavFlow">
+        <a class="navInlineLink" href="index.html">Home</a>
+        <div class="navInlineGroup is-current">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="cardToolsMenu" aria-haspopup="true">
+            <span>Card Tools</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="cardToolsMenu">
+            <a class="navInlineMenuLink" href="cards.html">Card List</a>
+            <a class="navInlineMenuLink is-current" href="inventory.html" data-requires-auth="1">Inventario</a>
+            <a class="navInlineMenuLink" href="decks.html">DeckLists</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="page">
+    <section class="hero">
+      <div class="heroHeader">
+        <div>
+          <h1>Inventario</h1>
+          <p>Aquí vamos a trabajar solo con las SR y SEC. Cada expansión empieza contraída y, al abrirla, verás sus cartas ordenadas por número con control manual de copias.</p>
+        </div>
+        <div class="heroActions">
+          <button id="saveInventoryBtn" class="saveBtn" type="button">Guardar cambios</button>
+          <span id="saveInventoryStatus" class="saveStatus">Sin cambios pendientes.</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="inventoryStack" class="inventoryStack"></section>
+  </main>
+
+  <script>
+    let sb = null;
+    const $ = window.BarateamApp.byId;
+    const escapeHtml = window.BarateamApp.escapeHtml;
+    const escapeAttr = window.BarateamApp.escapeAttr;
+    
+
+    const TRACKED_SET_CODES = [
+      "OP01","OP02","OP03","OP04","OP05","OP06","OP07","OP08","OP09","OP10","OP11","OP12","OP13","OP14","OP15",
+      "EB01","EB02","EB03","EB04","PRB02"
+    ];
+    const STARTER_GROUP_CODE = "ST";
+    const PUNK_RARITY_MAP = {
+      Leader:"L",
+      Common:"C",
+      Uncommon:"UC",
+      Rare:"R",
+      SuperRare:"SR",
+      SecretRare:"SEC",
+      Special:"SP",
+      TreasureRare:"TR"
+    };
+    const SOURCE_DEFS = [
+      { key:"english", basePath:"punkrecords/english" },
+      { key:"english-asia", basePath:"punkrecords/english-asia" }
+    ];
+    const STORAGE_KEY_PREFIX = "barateam_inventory_draft";
+    const HTML_ENTITY_DECODER = document.createElement("textarea");
+
+    const state = {
+      currentUser: null,
+      cardsBySet: new Map(),
+      starterGroups: new Map(),
+      inventoryByCode: new Map(),
+      draftInventoryByCode: new Map(),
+      openSets: new Set(),
+      saving: false,
+      saveMessage: ""
+    };
+
+    async function ensureSharedClient(){
+      if (sb) return sb;
+      if (document.readyState === "loading"){
+        await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once:true }));
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      sb = window.__barateamLastSupabaseClient || window.BarateamApp.createClient({
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+      window.BarateamApp.bindProtectedNavLinks(sb);
+      return sb;
+    }
+
+    function normalize(value){
+      return String(value ?? "").replace(/\s+/g, " ").trim();
+    }
+
+    function decodeHtmlEntities(value){
+      HTML_ENTITY_DECODER.innerHTML = String(value ?? "");
+      return HTML_ENTITY_DECODER.value;
+    }
+
+    function punkInlineText(value){
+      return normalize(decodeHtmlEntities(value));
+    }
+
+    function normalizeCardCode(value){
+      return String(value || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[\u2010-\u2015]/g, "-")
+        .replace(/\s+/g, "")
+        .replace(/_/g, "-")
+        .replace(/-(?:P|R)\d+$/i, "");
+    }
+
+    function normalizeApiArray(data){
+      return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : Array.isArray(data?.cards) ? data.cards : [];
+    }
+
+    function fetchJson(url){
+      return fetch(url, { cache:"no-store" }).then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      });
+    }
+
+    function rarityValue(raw){
+      const normalized = punkInlineText(raw);
+      return PUNK_RARITY_MAP[normalized] || normalized.toUpperCase() || "-";
+    }
+
+    function cardNumberSortValue(code){
+      const match = normalizeCardCode(code).match(/-(\d{3})$/);
+      return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+    }
+
+    function setPrefixFromCode(code){
+      const normalized = normalizeCardCode(code);
+      const match = normalized.match(/^([A-Z]+\d{2})-/);
+      return match ? match[1] : "";
+    }
+
+    function isTrackedCard(raw){
+      const rarity = rarityValue(raw?.rarity);
+      const code = normalizeCardCode(raw?.id || raw?.card_id || "");
+      const prefix = setPrefixFromCode(code);
+      if (prefix.startsWith("ST")){
+        if (rarity !== "SR") return false;
+      } else if (!["SR", "SEC"].includes(rarity)){
+        return false;
+      }
+      const rawId = String(raw?.id || raw?.card_id || "");
+      if (/_p\d+$/i.test(rawId)) return false;
+      if (/_r\d+$/i.test(rawId)) return false;
+      return true;
+    }
+
+    function medalImage(kind){
+      return `images/ui/medals/${kind}.png`;
+    }
+
+    function expansionCoverImage(setCode){
+      const code = String(setCode || "").toLowerCase();
+      const known = new Set(["op01","op02","op03","op04","op05","op06","op07","op08","op09","op10","op11","op12","op13","op14","op15","eb01","eb02","eb03","eb04","prb02"]);
+      return known.has(code) ? `images/EXPANSIONES/${code}.jpg` : "";
+    }
+
+    function cardImage(_raw, code){
+      return `https://static.dotgg.gg/onepiece/card/${encodeURIComponent(code)}.webp`;
+    }
+
+    function draftStorageKey(){
+      return state.currentUser ? `${STORAGE_KEY_PREFIX}:${state.currentUser.id}` : `${STORAGE_KEY_PREFIX}:guest`;
+    }
+
+    async function loadCatalog(){
+      const bySet = new Map(TRACKED_SET_CODES.map((setCode) => [setCode, []]));
+      const starterGroups = new Map();
+      const results = await Promise.allSettled(SOURCE_DEFS.map(async (source) => {
+        const packs = await fetchJson(`${source.basePath}/packs.json`);
+        const packIds = Object.keys(packs || {});
+        const packResults = await Promise.allSettled(packIds.map(async (packId) => ({
+          rows: normalizeApiArray(await fetchJson(`${source.basePath}/data/${packId}.json`))
+        })));
+        return { packResults };
+      }));
+
+      const seen = new Set();
+      results.forEach((result) => {
+        if (result.status !== "fulfilled") return;
+        result.value.packResults.forEach((packResult) => {
+          if (packResult.status !== "fulfilled") return;
+          packResult.value.rows.forEach((raw) => {
+            if (!isTrackedCard(raw)) return;
+            const code = normalizeCardCode(raw?.id || raw?.card_id || "");
+            const setCode = setPrefixFromCode(code);
+            if ((!TRACKED_SET_CODES.includes(setCode) && !setCode.startsWith("ST")) || seen.has(code)) return;
+            seen.add(code);
+            const item = {
+              code,
+              starter: setCode,
+              name: punkInlineText(raw?.name),
+              image: cardImage(raw, code)
+            };
+            if (setCode.startsWith("ST")){
+              if (!starterGroups.has(setCode)) starterGroups.set(setCode, []);
+              starterGroups.get(setCode).push(item);
+            } else {
+              bySet.get(setCode).push(item);
+            }
+          });
+        });
+      });
+
+      bySet.forEach((cards, setCode) => {
+        cards.sort((a, b) => cardNumberSortValue(a.code) - cardNumberSortValue(b.code) || a.code.localeCompare(b.code, "es"));
+        state.cardsBySet.set(setCode, cards);
+      });
+      starterGroups.forEach((cards) => {
+        cards.sort((a, b) => cardNumberSortValue(a.code) - cardNumberSortValue(b.code) || a.code.localeCompare(b.code, "es"));
+      });
+      state.starterGroups = new Map(Array.from(starterGroups.entries()).sort((a, b) => a[0].localeCompare(b[0], "es")));
+    }
+
+    async function loadInventory(){
+      await ensureSharedClient();
+      const { data } = await sb.auth.getSession();
+      state.currentUser = data?.session?.user || null;
+      state.inventoryByCode = new Map();
+      if (!state.currentUser) return;
+      const { data: rows, error } = await sb
+        .from("user_card_inventory")
+        .select("card_code, owned_count")
+        .eq("profile_id", state.currentUser.id);
+      if (error){
+        if (String(error.message || "").includes("user_card_inventory")){
+          throw new Error("Falta crear la tabla user_card_inventory en Supabase antes de usar esta pagina.");
+        }
+        throw error;
+      }
+      (rows || []).forEach((row) => {
+        const code = normalizeCardCode(row.card_code);
+        if (!code) return;
+        state.inventoryByCode.set(code, Number(row.owned_count || 0));
+      });
+      restoreDraftInventory();
+    }
+
+    function restoreDraftInventory(){
+      state.draftInventoryByCode = new Map(state.inventoryByCode);
+      try{
+        const raw = localStorage.getItem(draftStorageKey());
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return;
+        Object.entries(parsed).forEach(([code, qty]) => {
+          const normalizedCode = normalizeCardCode(code);
+          const safeQty = Math.max(0, Number(qty || 0));
+          if (!normalizedCode) return;
+          if (safeQty <= 0){
+            state.draftInventoryByCode.delete(normalizedCode);
+          } else {
+            state.draftInventoryByCode.set(normalizedCode, safeQty);
+          }
+        });
+      } catch (_error){
+        // ignore malformed drafts
+      }
+    }
+
+    function persistDraftInventory(){
+      if (!state.currentUser) return;
+      const payload = {};
+      state.draftInventoryByCode.forEach((qty, code) => {
+        payload[code] = qty;
+      });
+      localStorage.setItem(draftStorageKey(), JSON.stringify(payload));
+    }
+
+    function clearDraftInventoryStorage(){
+      if (!state.currentUser) return;
+      localStorage.removeItem(draftStorageKey());
+    }
+
+    function getInventoryCount(code){
+      return Number(state.draftInventoryByCode.get(normalizeCardCode(code)) || 0);
+    }
+
+    function hasPendingChanges(){
+      const codes = new Set([
+        ...Array.from(state.inventoryByCode.keys()),
+        ...Array.from(state.draftInventoryByCode.keys())
+      ]);
+      for (const code of codes){
+        if (Number(state.inventoryByCode.get(code) || 0) !== Number(state.draftInventoryByCode.get(code) || 0)){
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function updateInventory(code, nextCount){
+      if (!state.currentUser) return;
+      const normalizedCode = normalizeCardCode(code);
+      if (!normalizedCode) return;
+      const safeCount = Math.max(0, Number(nextCount || 0));
+      if (safeCount <= 0){
+        state.draftInventoryByCode.delete(normalizedCode);
+      } else {
+        state.draftInventoryByCode.set(normalizedCode, safeCount);
+      }
+      state.saveMessage = "";
+      persistDraftInventory();
+      render();
+    }
+
+    function applySetInventory(setCode, targetCount){
+      const cards = setCode === STARTER_GROUP_CODE
+        ? Array.from(state.starterGroups.values()).flat()
+        : (state.cardsBySet.get(setCode) || []);
+      if (!state.currentUser || !cards.length) return;
+      const desired = Math.max(0, Number(targetCount || 0));
+      cards.forEach((card) => {
+        const normalizedCode = normalizeCardCode(card.code);
+        if (!normalizedCode) return;
+        if (desired <= 0){
+          state.draftInventoryByCode.delete(normalizedCode);
+        } else {
+          state.draftInventoryByCode.set(normalizedCode, desired);
+        }
+      });
+      state.saveMessage = "";
+      persistDraftInventory();
+      render();
+    }
+
+    async function saveInventoryChanges(){
+      if (!state.currentUser || state.saving || !hasPendingChanges()) return;
+      state.saving = true;
+      state.saveMessage = "Guardando cambios...";
+      render();
+      try{
+        const codes = new Set([
+          ...Array.from(state.inventoryByCode.keys()),
+          ...Array.from(state.draftInventoryByCode.keys())
+        ]);
+        const toDelete = [];
+        const toUpsert = [];
+
+        codes.forEach((code) => {
+          const savedQty = Number(state.inventoryByCode.get(code) || 0);
+          const draftQty = Number(state.draftInventoryByCode.get(code) || 0);
+          if (savedQty === draftQty) return;
+          if (draftQty <= 0){
+            if (savedQty > 0) toDelete.push(code);
+            return;
+          }
+          toUpsert.push({
+            profile_id: state.currentUser.id,
+            card_code: code,
+            owned_count: draftQty
+          });
+        });
+
+        if (toDelete.length){
+          const { error } = await sb
+            .from("user_card_inventory")
+            .delete()
+            .eq("profile_id", state.currentUser.id)
+            .in("card_code", toDelete);
+          if (error) throw error;
+        }
+
+        if (toUpsert.length){
+          const { error } = await sb
+            .from("user_card_inventory")
+            .upsert(toUpsert);
+          if (error) throw error;
+        }
+
+        state.inventoryByCode = new Map(state.draftInventoryByCode);
+        clearDraftInventoryStorage();
+        state.saveMessage = "Cambios guardados.";
+      } catch (error){
+        console.warn("inventory save:", error?.message || error);
+        state.saveMessage = error?.message || "No se pudieron guardar los cambios.";
+      } finally {
+        state.saving = false;
+        render();
+      }
+    }
+
+    function setPanelMarkup(setCode, cards){
+      const open = state.openSets.has(setCode);
+      const totalOwned = cards.reduce((sum, card) => sum + getInventoryCount(card.code), 0);
+      const uniqueOwned = cards.filter((card) => getInventoryCount(card.code) > 0).length;
+      const hasPlaysetExpansion = cards.length > 0 && cards.every((card) => getInventoryCount(card.code) >= 4);
+      const coverImage = !open ? expansionCoverImage(setCode) : "";
+      const coverStyle = coverImage ? ` style="--set-cover:url('${escapeAttr(coverImage)}')"` : "";
+      return (
+        `<section class="setPanel${open ? " is-open" : ""}" data-set-code="${escapeAttr(setCode)}"${coverStyle}>` +
+          `<div class="setHead">` +
+            `<button class="setToggle" type="button" data-toggle-set="${escapeAttr(setCode)}" aria-expanded="${open ? "true" : "false"}">` +
+              `<div class="setTitle">` +
+                `${hasPlaysetExpansion ? `<img class="medalIcon" src="${escapeAttr(medalImage("gold"))}" alt="Playset completo" title="Playset completo" />` : ""}` +
+                `<span class="setCode">${escapeHtml(setCode)}</span>` +
+                `<span class="setMeta">${uniqueOwned}/${cards.length} cartas | ${totalOwned} copias</span>` +
+                `<span class="setHint">clic para cerrar</span>` +
+              `</div>` +
+              `<span class="setChevron">v</span>` +
+            `</button>` +
+            `<div class="setActions">` +
+              `<button class="setActionBtn" type="button" data-set-action="clear" data-set-code="${escapeAttr(setCode)}" ${state.saving ? "disabled" : ""}>Eliminar todo</button>` +
+              `<button class="setActionBtn" type="button" data-set-action="playset" data-set-code="${escapeAttr(setCode)}" ${state.saving ? "disabled" : ""}>Marcar todo</button>` +
+            `</div>` +
+          `</div>` +
+          `<div class="setBody" ${open ? "" : "hidden"}>` +
+            `${cards.length ? `<div class="cardGrid">${cards.map(cardMarkup).join("")}</div>` : `<div class="emptyState">No se han encontrado SR/SEC base para esta expansion en el catalogo local.</div>`}` +
+          `</div>` +
+        `</section>`
+      );
+    }
+
+    function cardMarkup(card, subtag = ""){
+      const qty = getInventoryCount(card.code);
+      const hasPlaysetCard = qty >= 4;
+      return (
+        `<article class="inventoryCard">` +
+          `<div class="inventoryArtWrap">` +
+            `${hasPlaysetCard ? `<img class="cardBadge medalIcon" src="${escapeAttr(medalImage("silver"))}" alt="Playset" title="Playset" />` : ""}` +
+            `<img class="inventoryArt${qty === 0 ? " is-empty" : ""}" src="${escapeAttr(card.image)}" alt="${escapeAttr(card.name)}" loading="lazy" />` +
+          `</div>` +
+          `<div class="inventoryCardBody">` +
+            `${subtag ? `<div class="inventorySubtag">${escapeHtml(subtag)}</div>` : ""}` +
+            `<div class="inventoryName">${escapeHtml(card.name)}</div>` +
+            `<div class="inventoryControls">` +
+              `<button class="inventoryCircle" type="button" data-action="zero" data-card-code="${escapeAttr(card.code)}" ${state.saving ? "disabled" : ""}>&laquo;</button>` +
+              `<button class="inventoryCircle" type="button" data-action="dec" data-card-code="${escapeAttr(card.code)}" ${qty > 0 && !state.saving ? "" : "disabled"}>-</button>` +
+              `<div class="inventoryCount">${qty}</div>` +
+              `<button class="inventoryCircle" type="button" data-action="inc" data-card-code="${escapeAttr(card.code)}" ${state.saving ? "disabled" : ""}>+</button>` +
+              `<button class="inventoryCircle" type="button" data-action="playset" data-card-code="${escapeAttr(card.code)}" ${state.saving ? "disabled" : ""}>&raquo;</button>` +
+            `</div>` +
+          `</div>` +
+        `</article>`
+      );
+    }
+
+    function starterPanelMarkup(){
+      const open = state.openSets.has(STARTER_GROUP_CODE);
+      const groups = Array.from(state.starterGroups.entries()).map(([starterCode, cards]) => {
+        const filteredCards = (cards || []).filter((card) => /^ST\d{2}-\d{3}$/i.test(normalizeCardCode(card.code)));
+        return [starterCode, filteredCards];
+      }).filter(([, cards]) => cards.length > 0);
+      const allCards = groups.flatMap(([, cards]) => cards);
+      const totalOwned = allCards.reduce((sum, card) => sum + getInventoryCount(card.code), 0);
+      const uniqueOwned = allCards.filter((card) => getInventoryCount(card.code) > 0).length;
+      return (
+        `<section class="setPanel${open ? " is-open" : ""}" data-set-code="${escapeAttr(STARTER_GROUP_CODE)}">` +
+          `<div class="setHead">` +
+            `<button class="setToggle" type="button" data-toggle-set="${escapeAttr(STARTER_GROUP_CODE)}" aria-expanded="${open ? "true" : "false"}">` +
+              `<div class="setTitle">` +
+                `<span class="setCode">ST</span>` +
+                `<span class="setMeta">${uniqueOwned}/${allCards.length} cartas | ${totalOwned} copias</span>` +
+                `<span class="setHint">clic para cerrar</span>` +
+              `</div>` +
+              `<span class="setChevron">v</span>` +
+            `</button>` +
+            `<div class="setActions">` +
+              `<button class="setActionBtn" type="button" data-set-action="clear" data-set-code="${escapeAttr(STARTER_GROUP_CODE)}" ${state.saving ? "disabled" : ""}>Eliminar todo</button>` +
+              `<button class="setActionBtn" type="button" data-set-action="playset" data-set-code="${escapeAttr(STARTER_GROUP_CODE)}" ${state.saving ? "disabled" : ""}>Marcar todo</button>` +
+            `</div>` +
+          `</div>` +
+          `<div class="setBody" ${open ? "" : "hidden"}>` +
+            `${groups.length ? `<div class="starterGroupsGrid">${groups.map(([starterCode, cards]) => {
+              const ownedCount = cards.filter((card) => getInventoryCount(card.code) > 0).length;
+              return (
+                `<section class="starterGroup">` +
+                  `<div class="starterGroupHead">` +
+                    `<span class="starterGroupCode">${escapeHtml(starterCode)}</span>` +
+                    `<span class="starterGroupMeta">${ownedCount}/${cards.length} cartas</span>` +
+                  `</div>` +
+                  `<div class="cardGrid">${cards.map((card) => cardMarkup(card, starterCode)).join("")}</div>` +
+                `</section>`
+              );
+            }).join("")}</div>` : `<div class="emptyState">No se han encontrado SR de starters en el catalogo local.</div>`}` +
+          `</div>` +
+        `</section>`
+      );
+    }
+
+    function render(){
+      const host = $("inventoryStack");
+      const saveBtn = $("saveInventoryBtn");
+      const saveStatus = $("saveInventoryStatus");
+
+      if (saveBtn){
+        saveBtn.disabled = !state.currentUser || state.saving || !hasPendingChanges();
+      }
+      if (saveStatus){
+        if (!state.currentUser){
+          saveStatus.textContent = "Inicia sesión para usar el inventario.";
+        } else if (state.saving){
+          saveStatus.textContent = state.saveMessage || "Guardando cambios...";
+        } else if (state.saveMessage){
+          saveStatus.textContent = state.saveMessage;
+        } else if (hasPendingChanges()){
+          saveStatus.textContent = "Tienes cambios sin guardar en local.";
+        } else {
+          saveStatus.textContent = "Sin cambios pendientes.";
+        }
+      }
+
+      if (!state.currentUser){
+        host.innerHTML = '<div class="emptyState">Necesitas iniciar sesión para usar el inventario manual.</div>';
+        return;
+      }
+
+      host.innerHTML = [
+        ...TRACKED_SET_CODES.map((setCode) => setPanelMarkup(setCode, state.cardsBySet.get(setCode) || [])),
+        starterPanelMarkup()
+      ].join("");
+    }
+
+    function bindUi(){
+      $("inventoryStack").addEventListener("click", (event) => {
+        const toggle = event.target.closest("[data-toggle-set]");
+        if (toggle){
+          const setCode = toggle.dataset.toggleSet || "";
+          if (state.openSets.has(setCode)){
+            state.openSets.delete(setCode);
+          } else {
+            state.openSets.add(setCode);
+          }
+          render();
+          return;
+        }
+
+        const setActionButton = event.target.closest("[data-set-action]");
+        if (setActionButton){
+          event.stopPropagation();
+          const setCode = setActionButton.dataset.setCode || "";
+          const target = setActionButton.dataset.setAction === "playset" ? 4 : 0;
+          applySetInventory(setCode, target);
+          return;
+        }
+
+        const actionButton = event.target.closest("[data-action]");
+        if (!actionButton) return;
+        const code = actionButton.dataset.cardCode || "";
+        const current = getInventoryCount(code);
+        let next = current;
+        if (actionButton.dataset.action === "inc") next = current + 1;
+        if (actionButton.dataset.action === "dec") next = current - 1;
+        if (actionButton.dataset.action === "zero") next = 0;
+        if (actionButton.dataset.action === "playset") next = 4;
+        updateInventory(code, next);
+      });
+
+      $("saveInventoryBtn").addEventListener("click", () => {
+        void saveInventoryChanges();
+      });
+    }
+
+    (async function init(){
+      bindUi();
+      try{
+        await ensureSharedClient();
+        await Promise.all([loadCatalog(), loadInventory()]);
+        render();
+        sb.auth.onAuthStateChange(async (_event, session) => {
+          state.currentUser = session?.user || null;
+          await loadInventory().catch((error) => console.warn(error?.message || error));
+          render();
+        });
+      } catch (error){
+        $("inventoryStack").innerHTML = `<div class="emptyState">${escapeHtml(error?.message || "No se pudo cargar el inventario.")}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1023,6 +1023,7 @@
       font-size:1.15rem;
     }
 
+
     .modalText{
       color:#334155;
       font-size:15px;
@@ -1548,10 +1549,10 @@
       await refreshSession();
     }
 
-    (async function initAuth(){
+    async function initAuth(){
       await refreshSession();
       sb.auth.onAuthStateChange((_event, session) => setNavAuthUI(session?.user || null));
-    })();
+    }
 
     const SOURCE_DEFS = [
       { key: "english", label: "English", badgeClass: "source-booster", basePath: "punkrecords/english" },
@@ -2832,6 +2833,7 @@
 
     state.cardsPerRow = Number($("cardsPerRowSelect")?.value || 5);
     bindUi();
+    void initAuth();
     void loadCatalog();
   </script>
 </body>
