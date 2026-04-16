@@ -54,7 +54,7 @@
     }
 
     .wrap{
-      width:min(1240px, calc(100vw - 28px));
+      width:min(1320px, calc(100vw - 24px));
       margin:28px auto 56px;
     }
 
@@ -80,7 +80,7 @@
 
     .leagueShell{
       display:grid;
-      grid-template-columns:minmax(360px, 43%) minmax(0, 1fr);
+      grid-template-columns:minmax(320px, 36%) minmax(0, 1fr);
       gap:16px;
       align-items:start;
     }
@@ -344,6 +344,115 @@
       cursor:pointer;
     }
 
+    .matchupTools{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .statsToggle{
+      appearance:none;
+      border:1px solid #cfd8e3;
+      background:#fff;
+      color:#405062;
+      border-radius:8px;
+      min-height:30px;
+      padding:6px 8px;
+      font:inherit;
+      font-size:12px;
+      font-weight:950;
+      white-space:nowrap;
+      cursor:pointer;
+    }
+
+    .statsToggle:hover,
+    .statsToggle[aria-expanded="true"]{
+      border-color:#9fb3c8;
+      background:#edf7f3;
+      color:#0f6f57;
+    }
+
+    .matchStatsRow td{
+      background:#fbfcfd;
+      padding:0;
+    }
+
+    .matchStatsBox{
+      padding:12px;
+      border-top:1px solid var(--liga-line);
+    }
+
+    .matchStatsTitle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0 0 10px;
+      color:#2b3746;
+      font-size:13px;
+      font-weight:950;
+    }
+
+    .matchStatsMeta{
+      color:var(--liga-muted);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .matchStatsTable{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      background:#fff;
+      border:1px solid var(--liga-line);
+      border-radius:8px;
+      overflow:hidden;
+    }
+
+    .matchStatsTable th,
+    .matchStatsTable td{
+      padding:8px 10px;
+      border-bottom:1px solid var(--liga-line);
+      text-align:left;
+      font-size:12px;
+      vertical-align:middle;
+    }
+
+    .matchStatsTable th{
+      background:#f4f7f9;
+      color:#465264;
+      font-weight:950;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    .matchStatsTable tr:last-child td{
+      border-bottom:0;
+    }
+
+    .matchStatsTable th:nth-child(n+3),
+    .matchStatsTable td:nth-child(n+3){
+      width:62px;
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    .wrGood{
+      color:#0f7a5d;
+      font-weight:950;
+    }
+
+    .wrBad{
+      color:#b42318;
+      font-weight:950;
+    }
+
+    .wrEmpty{
+      color:var(--liga-muted);
+      font-weight:850;
+    }
+
     .matchEditorRow td{
       background:#fbfcfd;
       padding:0;
@@ -439,6 +548,8 @@
       .detailHero{ grid-template-columns:1fr; }
       .detailHero .leaderBubbles{ justify-content:flex-start; }
       .detailStats{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .matchupTools{ align-items:flex-start; flex-direction:column; }
+      .matchStatsTable{ min-width:520px; }
       .matchEditor{ grid-template-columns:1fr; }
       .rankingTable th:nth-child(4),
       .rankingTable td:nth-child(4){
@@ -586,7 +697,7 @@
       "Colecta": ["Jinbe U", "Luffy GP", "Nami UY"],
       "Coquito": ["Don Krieg RG", "Foxy P", "Katakuri P"],
       "Dani R.": ["Moria BY", "Luffy BY", "Rosinante PY"],
-      "DavidVaz": ["Lucy RB", "Crocodile B", "Luffy RG"],
+      "DavidVaz": ["Lucy RU", "Crocodile B", "Luffy RG"],
       "Daword": ["Enel P", "Enel Y", "Bonney RY"],
       "Dilix": ["Carrot G", "Nami UY", "Luffy BP"],
       "Ernest": ["Lucy RU", "Brook GB", "Doffy P"],
@@ -708,7 +819,12 @@
       "Yamato GY": "Yamato"
     };
 
+    const FORCED_PLAYER_LEADERS = {
+      "DavidVaz": ["Lucy RU", "Crocodile B", "Luffy RG"]
+    };
+
     const MATCH_RESULT_OPTIONS = ["2-0", "2-1", "1-2", "0-2"];
+    const LEADER_STATS_FALLBACK_DAYS = 7;
 
     const sb = window.BarateamApp.createClient();
     const $ = window.BarateamApp.byId;
@@ -738,6 +854,10 @@
     let playerLeaders = { ...SEEDED_PLAYER_LEADERS };
     let savedResults = new Map();
     let leaderColorLookup = new Map();
+    let leaderRecordLookup = new Map();
+    let leagueLeaderStats = new Map();
+    let leagueLeaderStatsDate = "";
+    let leagueLeaderStatsPromise = null;
 
     function escapeHtml(value){
       return window.BarateamApp.escapeHtml(value);
@@ -818,15 +938,30 @@
         const rows = Array.isArray(data) ? data : [];
         const leaders = Array.from(new Set(Object.values(playerLeaders).flat().map(normalizeLeaderName).filter(Boolean)));
         leaderColorLookup = new Map();
+        leaderRecordLookup = new Map();
         leaders.forEach((leader) => {
           const row = findLeaderColorRecord(leader, rows);
           const colors = [row?.color_primary, row?.color_secondary].map(colorTokenToHex).filter(Boolean);
           if (colors.length) leaderColorLookup.set(leader, colors);
+          if (row?.code){
+            leaderRecordLookup.set(leader, {
+              code: String(row.code || "").trim(),
+              name: row.name || leader,
+              color_primary: row.color_primary || "",
+              color_secondary: row.color_secondary || ""
+            });
+          }
         });
       }catch(err){
         console.warn("leaders colors:", err?.message || err);
         leaderColorLookup = new Map();
+        leaderRecordLookup = new Map();
       }
+    }
+
+    function leaderCodeFor(leaderName){
+      const normalized = normalizeLeaderName(leaderName);
+      return leaderRecordLookup.get(normalized)?.code || "";
     }
 
     function leaderBubbleStyle(leaderName){
@@ -882,9 +1017,10 @@
           if (!nextLeaders[player]) nextLeaders[player] = [];
           nextLeaders[player].push(leader);
         });
-        playerLeaders = { ...SEEDED_PLAYER_LEADERS, ...nextLeaders };
+        playerLeaders = { ...SEEDED_PLAYER_LEADERS, ...nextLeaders, ...FORCED_PLAYER_LEADERS };
       }catch(err){
         console.warn("league_player_leaders:", err?.message || err);
+        playerLeaders = { ...playerLeaders, ...FORCED_PLAYER_LEADERS };
       }
     }
 
@@ -1029,6 +1165,147 @@
       return `${scoreNumber(match.homeScore)}-${scoreNumber(match.awayScore)}`;
     }
 
+    function toYmd(dateObj){
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function toCompact(ymd){
+      return String(ymd || "").replaceAll("-", "");
+    }
+
+    function pct(value){
+      if (value == null || Number.isNaN(Number(value))) return "-";
+      return `${(Number(value) * 100).toFixed(1)}%`;
+    }
+
+    function wrClass(value){
+      if (value == null || Number.isNaN(Number(value))) return "wrEmpty";
+      return Number(value) >= 0.5 ? "wrGood" : "wrBad";
+    }
+
+    async function fetchLeaderStatsByDate(ymd){
+      const compact = toCompact(ymd);
+      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/leader-stats?date=${compact}`;
+      const res = await fetch(url, { cache:"no-store" });
+      if (!res.ok) throw new Error(`No disponible (${res.status}) para ${ymd}`);
+      const payload = await res.json();
+      const data = Array.isArray(payload?.data) ? payload.data : payload;
+      if (!Array.isArray(data)) throw new Error("Formato inesperado de leader-stats");
+      return { data, ymd };
+    }
+
+    async function loadLeagueLeaderStats(){
+      if (leagueLeaderStats.size) return;
+      if (leagueLeaderStatsPromise) return leagueLeaderStatsPromise;
+
+      leagueLeaderStatsPromise = (async () => {
+        const today = new Date();
+        let lastError = null;
+        for (let i = 0; i < LEADER_STATS_FALLBACK_DAYS; i++){
+          const date = new Date(today);
+          date.setDate(today.getDate() - i);
+          const ymd = toYmd(date);
+          try{
+            const { data } = await fetchLeaderStatsByDate(ymd);
+            const nextStats = new Map();
+            data.forEach((row) => {
+              const code = String(row?.leader || "").trim();
+              if (!code) return;
+              nextStats.set(code, {
+                code,
+                name: String(row?.leaderName || code),
+                wr: row?.raw_win_rate == null ? null : Number(row.raw_win_rate),
+                firstWr: row?.first_win_rate == null ? null : Number(row.first_win_rate),
+                secondWr: row?.second_win_rate == null ? null : Number(row.second_win_rate),
+                matchups: Array.isArray(row?.matchups) ? row.matchups : []
+              });
+            });
+            leagueLeaderStats = nextStats;
+            leagueLeaderStatsDate = ymd;
+            return;
+          }catch(err){
+            lastError = err;
+          }
+        }
+        throw lastError || new Error("No se pudieron cargar estadisticas de lideres");
+      })();
+
+      try{
+        await leagueLeaderStatsPromise;
+      }finally{
+        leagueLeaderStatsPromise = null;
+      }
+    }
+
+    function matchupStatsFor(playerLeader, rivalLeader){
+      const playerCode = leaderCodeFor(playerLeader);
+      const rivalCode = leaderCodeFor(rivalLeader);
+      if (!playerCode || !rivalCode){
+        return { wr:null, firstWr:null, secondWr:null, games:0 };
+      }
+      const leader = leagueLeaderStats.get(playerCode);
+      const matchup = (leader?.matchups || []).find((item) => String(item?.opponent || "").trim() === rivalCode);
+      if (!matchup){
+        return { wr:null, firstWr:null, secondWr:null, games:0 };
+      }
+      return {
+        wr: matchup?.matchup_win_rate == null ? null : Number(matchup.matchup_win_rate),
+        firstWr: matchup?.first_win_rate == null ? null : Number(matchup.first_win_rate),
+        secondWr: matchup?.second_win_rate == null ? null : Number(matchup.second_win_rate),
+        games: Number(matchup?.total_games || 0)
+      };
+    }
+
+    function renderMatchupStatsHtml(playerName, rivalName){
+      const playerLeadersList = normalizeLeaderList(playerLeaders[playerName] || []);
+      const rivalLeadersList = normalizeLeaderList(playerLeaders[rivalName] || []);
+      if (!playerLeadersList.length || !rivalLeadersList.length){
+        return '<div class="empty">Faltan lideres asignados para calcular este cruce.</div>';
+      }
+      const rows = playerLeadersList.flatMap((playerLeader) => (
+        rivalLeadersList.map((rivalLeader) => ({
+          playerLeader,
+          rivalLeader,
+          stats: matchupStatsFor(playerLeader, rivalLeader)
+        }))
+      ));
+      return `
+        <div class="matchStatsBox">
+          <div class="matchStatsTitle">
+            <span>Stats de matchup</span>
+            <span class="matchStatsMeta">${leagueLeaderStatsDate ? `Fuente ${leagueLeaderStatsDate}` : ""}</span>
+          </div>
+          <div class="tableWrap">
+            <table class="matchStatsTable">
+              <thead>
+                <tr>
+                  <th>Lider</th>
+                  <th>Rival</th>
+                  <th>WR</th>
+                  <th>WR1</th>
+                  <th>WR2</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <td>${escapeHtml(row.playerLeader)}</td>
+                    <td>${escapeHtml(row.rivalLeader)}</td>
+                    <td class="${wrClass(row.stats.wr)}">${pct(row.stats.wr)}</td>
+                    <td class="${wrClass(row.stats.firstWr)}">${pct(row.stats.firstWr)}</td>
+                    <td class="${wrClass(row.stats.secondWr)}">${pct(row.stats.secondWr)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
     async function saveMatchResult(matchId){
       const match = LEAGUE_MATCHES.find((item) => item.id === String(matchId));
       if (!match || !selectedPlayer) return;
@@ -1091,8 +1368,16 @@
           <tr class="matchMainRow">
             <td>${escapeHtml(rival)}</td>
             <td><span class="score">${escapeHtml(scoreLabel(match, row.name))}</span></td>
-            <td>${leaderBubblesHtml(rival)}</td>
+            <td>
+              <div class="matchupTools">
+                ${leaderBubblesHtml(rival)}
+                <button class="statsToggle" type="button" data-stats-match="${escapeHtml(match.id)}" aria-expanded="false">Stats</button>
+              </div>
+            </td>
             <td><button class="matchToggle" type="button" data-toggle-match="${escapeHtml(match.id)}" aria-expanded="false" aria-label="Editar partida contra ${escapeHtml(rival)}">v</button></td>
+          </tr>
+          <tr class="matchStatsRow" id="matchStats-${escapeHtml(match.id)}" hidden>
+            <td colspan="4"><div class="empty">Cargando estadisticas...</div></td>
           </tr>
           <tr class="matchEditorRow" id="matchEditor-${escapeHtml(match.id)}" hidden>
             <td colspan="4">
@@ -1158,7 +1443,36 @@
 
     $("playerSearch").addEventListener("input", renderRanking);
 
+    async function toggleMatchupStats(matchId, button){
+      const match = LEAGUE_MATCHES.find((item) => item.id === String(matchId));
+      const row = document.getElementById(`matchStats-${matchId}`);
+      if (!match || !row || !selectedPlayer) return;
+
+      const open = row.hidden;
+      row.hidden = !open;
+      button?.setAttribute("aria-expanded", open ? "true" : "false");
+      if (!open) return;
+
+      const rival = match.home === selectedPlayer ? match.away : match.home;
+      row.innerHTML = '<td colspan="4"><div class="empty">Cargando estadisticas...</div></td>';
+      try{
+        if (button) button.disabled = true;
+        await loadLeagueLeaderStats();
+        row.innerHTML = `<td colspan="4">${renderMatchupStatsHtml(selectedPlayer, rival)}</td>`;
+      }catch(err){
+        row.innerHTML = `<td colspan="4"><div class="empty">No he podido cargar las estadisticas: ${escapeHtml(err?.message || "error desconocido")}</div></td>`;
+      }finally{
+        if (button) button.disabled = false;
+      }
+    }
+
     document.addEventListener("click", async (event) => {
+      const statsBtn = event.target.closest("[data-stats-match]");
+      if (statsBtn){
+        await toggleMatchupStats(statsBtn.dataset.statsMatch || "", statsBtn);
+        return;
+      }
+
       const toggle = event.target.closest("[data-toggle-match]");
       if (toggle){
         const matchId = toggle.dataset.toggleMatch || "";
