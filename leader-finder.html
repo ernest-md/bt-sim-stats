@@ -211,7 +211,7 @@
     }
     .modal.open{ display:flex; }
     .modalCard{
-      width:min(980px, 100%); max-height:min(90vh, 860px); overflow:auto; border-radius:24px;
+      width:min(1180px, calc(100vw - 36px)); max-height:min(94vh, 940px); overflow:auto; border-radius:24px;
       background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96));
       border:1px solid rgba(255,255,255,.24); box-shadow:0 24px 70px rgba(2,6,23,.45); padding:18px;
     }
@@ -220,15 +220,68 @@
       width:40px; height:40px; border:none; border-radius:999px; background:#e2e8f0; color:#0f172a;
       font-size:24px; font-weight:900; cursor:pointer;
     }
-    .modalLayout{ display:grid; grid-template-columns:minmax(220px, 280px) minmax(0, 1fr); gap:18px; }
-    .modalArt{ border-radius:20px; overflow:hidden; background:linear-gradient(180deg, rgba(15,23,42,.06), rgba(15,23,42,.02)); min-height:280px; }
-    .modalArt img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .modalLayout{ display:grid; grid-template-columns:minmax(240px, 340px) minmax(0, 1fr); gap:18px; align-items:start; }
+    .modalArt{
+      border-radius:20px;
+      overflow:hidden;
+      background:linear-gradient(180deg, rgba(15,23,42,.06), rgba(15,23,42,.02));
+      aspect-ratio:5 / 7;
+      max-height:calc(94vh - 120px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .modalArt img{ width:100%; height:100%; object-fit:contain; display:block; }
     .modalInfo{ display:grid; gap:12px; min-width:0; }
     .modalInfo h3{ margin:0; font-size:30px; line-height:1.05; font-weight:1000; }
     .modalCode{ color:#64748b; font-size:13px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
     .modalMeta{ display:flex; flex-wrap:wrap; gap:8px; }
     .deckActions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
     .deckStatus{ color:#475569; font-size:13px; font-weight:700; min-height:18px; }
+    .leaderPlayersPanel{
+      border:1px solid rgba(15,23,42,.10);
+      border-radius:8px;
+      background:#fff;
+      padding:14px;
+      display:grid;
+      gap:10px;
+    }
+    .leaderPlayersHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .leaderPlayersHead h4{ margin:0; font-size:15px; font-weight:1000; }
+    .leaderPlayersStatus{ margin:2px 0 0; color:#64748b; font-size:12px; font-weight:800; }
+    .leaderPlayersList{ display:grid; gap:8px; }
+    .leaderPlayerRow{
+      display:grid;
+      grid-template-columns:32px minmax(0, 1fr) auto auto;
+      align-items:center;
+      gap:10px;
+      padding:9px 10px;
+      border-radius:8px;
+      background:#f8fafc;
+      border:1px solid rgba(15,23,42,.06);
+      font-weight:800;
+    }
+    .leaderPlayerRank{
+      width:28px;
+      height:28px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      background:#0f172a;
+      color:#fff;
+      font-size:12px;
+      font-weight:1000;
+    }
+    .leaderPlayerName{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#0f172a; }
+    .leaderPlayerGames{ color:#475569; font-size:13px; white-space:nowrap; }
+    .leaderPlayerWr{ color:#16a34a; font-size:13px; white-space:nowrap; }
+    .leaderPlayerWr.is-low{ color:#dc2626; }
     .deckOutput{
       width:100%; min-height:260px; resize:vertical; border:1px solid rgba(15,23,42,.12); border-radius:16px;
       background:#0f172a; color:#e2e8f0; padding:14px; font:700 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre;
@@ -257,6 +310,8 @@
       .modalCard{ padding:14px; border-radius:18px; }
       .modalLayout{ grid-template-columns:1fr; }
       .modalInfo h3{ font-size:24px; }
+      .leaderPlayerRow{ grid-template-columns:32px minmax(0, 1fr); }
+      .leaderPlayerGames,.leaderPlayerWr{ grid-column:2; }
       .deckOutput{ min-height:220px; }
     }
   </style>
@@ -278,7 +333,7 @@
           <div class="navInlineMenu" id="simStatsMenu">
             <a class="navInlineMenuLink" href="sim-stats/frontend/stats.html" data-requires-auth="1">Stats Propios</a>
             <a class="navInlineMenuLink" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">Team Stats</a>
-            <a class="navInlineMenuLink" href="leader-stats.html">Global Leader Stats</a>
+            <a class="navInlineMenuLink" href="leader-stats.html">Stats globales de lideres</a>
           </div>
         </div>
         <a class="navInlineLink" href="ranking.html" data-requires-auth="1">Ranking</a>
@@ -323,7 +378,7 @@
   <div class="page">
     <section class="hero">
       <h1>Lideres</h1>
-      <p>Filtra leaders por colores, expansion y si son mono o bicolor. A la derecha veras directamente el arte alternativo de los que coincidan.</p>
+      <p>Filtra lideres por colores, expansion y si son mono o bicolor. A la derecha veras directamente el arte alternativo de los que coincidan.</p>
     </section>
 
     <div class="layout">
@@ -342,7 +397,7 @@
           <div class="checkboxGrid">
             <label class="checkboxItem">
               <input type="checkbox" id="hideRotatedToggle" checked>
-              <span>Ocultar leaders rotados</span>
+              <span>Ocultar lideres rotados</span>
             </label>
           </div>
         </section>
@@ -354,7 +409,7 @@
         </section>
         <div class="actions">
           <button class="btn2 btnSoft" id="clearFiltersBtn" type="button">Limpiar filtros</button>
-          <button class="btn2 btnPrimary" id="refreshBtn" type="button">Recargar leaders</button>
+          <button class="btn2 btnPrimary" id="refreshBtn" type="button">Recargar lideres</button>
         </div>
       </aside>
 
@@ -362,14 +417,14 @@
         <div class="resultsHead">
           <h2>Resultados</h2>
           <div class="resultsTools">
-            <input class="searchInput" id="leaderSearchInput" type="search" placeholder="Buscar leader por nombre" autocomplete="off">
+            <input class="searchInput" id="leaderSearchInput" type="search" placeholder="Buscar lider por nombre" autocomplete="off">
             <div class="resultsMeta">
-              <span class="pill" id="resultCount">0 leaders</span>
+              <span class="pill" id="resultCount">0 lideres</span>
               <span class="pill" id="activeSummary">Sin filtros activos</span>
             </div>
           </div>
         </div>
-        <div class="loadingState" id="loadingState">Cargando leaders...</div>
+        <div class="loadingState" id="loadingState">Cargando lideres...</div>
         <div class="leaderGrid" id="leaderGrid"></div>
       </section>
     </div>
@@ -384,13 +439,22 @@
         <div class="modalArt" id="leaderModalArt"></div>
         <div class="modalInfo">
           <div class="modalCode" id="leaderModalCode">-</div>
-          <h3 id="leaderModalTitle">Leader</h3>
+          <h3 id="leaderModalTitle">Lider</h3>
           <div class="modalMeta" id="leaderModalTags"></div>
           <div class="deckActions">
             <button class="btn2 btnPrimary" id="copyDeckBtn" type="button">Copiar decklist</button>
             <a class="btn2 btnSoft" id="openLimitlessLink" href="#" target="_blank" rel="noopener noreferrer">Abrir fuente</a>
           </div>
-          <div class="deckStatus" id="deckStatus">Selecciona un leader para generar la lista del simulador.</div>
+          <div class="deckStatus" id="deckStatus">Selecciona un lider para generar la lista del simulador.</div>
+          <section class="leaderPlayersPanel" aria-labelledby="leaderTopPlayersTitle">
+            <div class="leaderPlayersHead">
+              <div>
+                <h4 id="leaderTopPlayersTitle">Top jugadores con este lider</h4>
+                <p class="leaderPlayersStatus" id="leaderPlayersStatus">Selecciona un lider para ver el ranking.</p>
+              </div>
+            </div>
+            <div class="leaderPlayersList" id="leaderPlayersList"></div>
+          </section>
           <textarea class="deckOutput" id="deckOutput" readonly placeholder="Aqui aparecera la decklist en formato simulador."></textarea>
         </div>
       </div>
@@ -412,7 +476,7 @@
       { value: "mono", label: "Monocolor" },
       { value: "dual", label: "Bicolor" }
     ];
-    const state = { leaders: [], filteredLeaders: [], selectedLeader: null, deckCache: new Map() };
+    const state = { leaders: [], filteredLeaders: [], selectedLeader: null, deckCache: new Map(), playerStatsCache: new Map() };
 
     const navController = window.BarateamApp.initUserNav({
       supabase: sb,
@@ -469,12 +533,12 @@
     }
     async function fetchLeaderDecklist(leader){
       const cacheKey = String(leader?.code || "").trim().toUpperCase();
-      if (!cacheKey) throw new Error("El leader no tiene codigo valido.");
+      if (!cacheKey) throw new Error("El lider no tiene codigo valido.");
       if (state.deckCache.has(cacheKey)) return state.deckCache.get(cacheKey);
       const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/topdecks-decklists?leader=${encodeURIComponent(cacheKey)}`;
       const res = await fetch(url);
       const payload = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(payload?.error || "No he encontrado decklists recientes para este leader en las fuentes configuradas.");
+      if (!res.ok) throw new Error(payload?.error || "No he encontrado decklists recientes para este lider en las fuentes configuradas.");
       const entry = {
         label: String(payload?.label || ""),
         sourceUrl: String(payload?.sourceUrl || ""),
@@ -484,34 +548,100 @@
       state.deckCache.set(cacheKey, entry);
       return entry;
     }
-    function renderLeaderModalArt(leader){
-      const art = resolveLeaderArt(leader);
-      return art
-        ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader?.name || leader?.code || "Leader")}" onerror="this.onerror=null;this.remove();this.parentNode.innerHTML='&lt;div class=&quot;leaderFallback&quot;&gt;${escapeHtml(leader?.name || leader?.code || "Leader")}&lt;/div&gt;'">`
-        : `<div class="leaderFallback">${escapeHtml(leader?.name || leader?.code || "Leader")}</div>`;
+    function playerDisplayName(row){
+      return String(row?.profile_display_name || row?.profile_username || row?.player_name || "Jugador").trim() || "Jugador";
     }
-    function renderLeaderModalTags(leader){
-      const expansionGroup = buildExpansionGroup(leader?.code);
-      const expansionLabel = expansionGroup === "P" ? "Promo" : (expansionGroup === "ST" ? "ST" : expansionGroup);
-      const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
-      const tags = [expansionLabel, typeLabel, leader?.color_primary, leader?.color_secondary].filter(Boolean);
-      return tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+    async function fetchLeaderPlayerStats(leader){
+      const cacheKey = String(leader?.code || "").trim().toUpperCase();
+      if (!cacheKey) throw new Error("El lider no tiene codigo valido.");
+      if (state.playerStatsCache.has(cacheKey)) return state.playerStatsCache.get(cacheKey);
+      const { data: sessionData } = await sb.auth.getSession();
+      if (!sessionData?.session?.user) throw new Error("Inicia sesion para ver el top de jugadores.");
+      const { data, error } = await sb
+        .from("matches")
+        .select(`
+          player_id,
+          result,
+          player:players!matches_player_id_fkey (
+            name,
+            profile_id,
+            owner:profiles!players_profile_id_fkey (
+              username,
+              display_name,
+              member
+            )
+          )
+        `)
+        .eq("player_leader", cacheKey);
+      if (error) throw error;
+      const byPlayer = new Map();
+      (Array.isArray(data) ? data : []).forEach((row) => {
+        const playerId = String(row?.player_id || "").trim();
+        if (!row?.player?.profile_id) return;
+        if (!playerId) return;
+        if (!byPlayer.has(playerId)) {
+          byPlayer.set(playerId, {
+            playerId,
+            name: playerDisplayName({
+              player_name: row?.player?.name,
+              profile_username: row?.player?.owner?.username,
+              profile_display_name: row?.player?.owner?.display_name
+            }),
+            games: 0,
+            wins: 0
+          });
+        }
+        const entry = byPlayer.get(playerId);
+        entry.games += 1;
+        if (row?.result === "Won") entry.wins += 1;
+      });
+      const topPlayers = Array.from(byPlayer.values())
+        .map((entry) => ({
+          ...entry,
+          winrate: entry.games > 0 ? (entry.wins / entry.games) * 100 : 0
+        }))
+        .sort((a, b) => {
+          if (b.games !== a.games) return b.games - a.games;
+          if (b.winrate !== a.winrate) return b.winrate - a.winrate;
+          return a.name.localeCompare(b.name, "es");
+        })
+        .slice(0, 5);
+      state.playerStatsCache.set(cacheKey, topPlayers);
+      return topPlayers;
     }
-    async function openLeaderModal(leader){
-      state.selectedLeader = leader || null;
-      $("leaderModalArt").innerHTML = renderLeaderModalArt(leader);
-      $("leaderModalCode").textContent = leader?.code || "-";
-      $("leaderModalTitle").textContent = leader?.name || leader?.code || "Leader";
-      $("leaderModalTags").innerHTML = renderLeaderModalTags(leader);
-      $("openLimitlessLink").href = "#";
-      $("openLimitlessLink").style.pointerEvents = "none";
-      $("openLimitlessLink").style.opacity = ".55";
-      $("deckOutput").value = "";
-      $("deckStatus").textContent = "Buscando la decklist mas reciente en One Piece Top Decks...";
-      $("copyDeckBtn").disabled = true;
-      $("leaderModal").classList.add("open");
-      $("leaderModal").setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
+    function renderLeaderPlayerStats(rows){
+      if (!rows.length){
+        $("leaderPlayersList").innerHTML = "";
+        $("leaderPlayersStatus").textContent = "Todavia no hay partidas registradas con este lider.";
+        return;
+      }
+      $("leaderPlayersStatus").textContent = "Ordenado por numero de partidas jugadas.";
+      $("leaderPlayersList").innerHTML = rows.map((row, index) => {
+        const wr = Number(row.winrate || 0);
+        return `
+          <div class="leaderPlayerRow">
+            <span class="leaderPlayerRank">${index + 1}</span>
+            <span class="leaderPlayerName" title="${escapeAttr(row.name)}">${escapeHtml(row.name)}</span>
+            <span class="leaderPlayerGames">${row.games} partida${row.games === 1 ? "" : "s"}</span>
+            <span class="leaderPlayerWr${wr >= 50 ? "" : " is-low"}">${wr.toFixed(1)}% WR</span>
+          </div>
+        `;
+      }).join("");
+    }
+    async function loadLeaderPlayerStats(leader){
+      $("leaderPlayersStatus").textContent = "Calculando top de jugadores...";
+      $("leaderPlayersList").innerHTML = "";
+      try{
+        const rows = await fetchLeaderPlayerStats(leader);
+        if (state.selectedLeader?.code !== leader.code) return;
+        renderLeaderPlayerStats(rows);
+      }catch(err){
+        if (state.selectedLeader?.code !== leader.code) return;
+        $("leaderPlayersList").innerHTML = "";
+        $("leaderPlayersStatus").textContent = err?.message || "No se pudo cargar el top de jugadores.";
+      }
+    }
+    async function loadLeaderDecklist(leader){
       try{
         const deckEntry = await fetchLeaderDecklist(leader);
         if (state.selectedLeader?.code !== leader.code) return;
@@ -526,6 +656,39 @@
         $("deckOutput").value = "";
         $("deckStatus").textContent = err?.message || "No se pudo generar la decklist.";
       }
+    }
+    function renderLeaderModalArt(leader){
+      const art = resolveLeaderArt(leader);
+      return art
+        ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader?.name || leader?.code || "Lider")}" onerror="this.onerror=null;this.remove();this.parentNode.innerHTML='&lt;div class=&quot;leaderFallback&quot;&gt;${escapeHtml(leader?.name || leader?.code || "Lider")}&lt;/div&gt;'">`
+        : `<div class="leaderFallback">${escapeHtml(leader?.name || leader?.code || "Lider")}</div>`;
+    }
+    function renderLeaderModalTags(leader){
+      const expansionGroup = buildExpansionGroup(leader?.code);
+      const expansionLabel = expansionGroup === "P" ? "Promo" : (expansionGroup === "ST" ? "ST" : expansionGroup);
+      const typeLabel = getLeaderType(leader) === "dual" ? "Bicolor" : "Monocolor";
+      const tags = [expansionLabel, typeLabel, leader?.color_primary, leader?.color_secondary].filter(Boolean);
+      return tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+    }
+    async function openLeaderModal(leader){
+      state.selectedLeader = leader || null;
+      $("leaderModalArt").innerHTML = renderLeaderModalArt(leader);
+      $("leaderModalCode").textContent = leader?.code || "-";
+      $("leaderModalTitle").textContent = leader?.name || leader?.code || "Lider";
+      $("leaderModalTags").innerHTML = renderLeaderModalTags(leader);
+      $("openLimitlessLink").href = "#";
+      $("openLimitlessLink").style.pointerEvents = "none";
+      $("openLimitlessLink").style.opacity = ".55";
+      $("deckOutput").value = "";
+      $("deckStatus").textContent = "Buscando la decklist mas reciente en One Piece Top Decks...";
+      $("leaderPlayersStatus").textContent = "Calculando top de jugadores...";
+      $("leaderPlayersList").innerHTML = "";
+      $("copyDeckBtn").disabled = true;
+      $("leaderModal").classList.add("open");
+      $("leaderModal").setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      void loadLeaderDecklist(leader);
+      void loadLeaderPlayerStats(leader);
     }
     function closeLeaderModal(){
       $("leaderModal").classList.remove("open");
@@ -548,15 +711,15 @@
       const expansionGroup = buildExpansionGroup(leader.code);
       const expansionLabel = expansionGroup === "P" ? "Promo" : (expansionGroup === "ST" ? "ST" : expansionGroup);
       const colors = [leader.color_primary, leader.color_secondary].filter(Boolean);
-      const fallbackName = escapeHtml(leader.name || leader.code || "Leader");
+      const fallbackName = escapeHtml(leader.name || leader.code || "Lider");
       return `
-        <article class="leaderTile" data-code="${escapeAttr(leader.code || "")}" tabindex="0" role="button" aria-label="Abrir detalle de ${escapeAttr(leader.name || leader.code || "Leader")}">
+        <article class="leaderTile" data-code="${escapeAttr(leader.code || "")}" tabindex="0" role="button" aria-label="Abrir detalle de ${escapeAttr(leader.name || leader.code || "Lider")}">
           <div class="leaderArtWrap">
-            ${art ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader.name || leader.code || "Leader")}" loading="lazy" onerror="this.onerror=null;this.remove();this.parentNode.innerHTML='&lt;div class=&quot;leaderFallback&quot;&gt;${fallbackName}&lt;/div&gt;'">` : `<div class="leaderFallback">${fallbackName}</div>`}
+            ${art ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader.name || leader.code || "Lider")}" loading="lazy" onerror="this.onerror=null;this.remove();this.parentNode.innerHTML='&lt;div class=&quot;leaderFallback&quot;&gt;${fallbackName}&lt;/div&gt;'">` : `<div class="leaderFallback">${fallbackName}</div>`}
           </div>
           <div class="leaderBody">
             <div class="leaderCode">${escapeHtml(leader.code || "-")}</div>
-            <h3 class="leaderName">${escapeHtml(leader.name || leader.code || "Leader")}</h3>
+            <h3 class="leaderName">${escapeHtml(leader.name || leader.code || "Lider")}</h3>
             <div class="tagRow">
               <span class="tag">${escapeHtml(expansionLabel)}</span>
               <span class="tag">${escapeHtml(typeLabel)}</span>
@@ -586,11 +749,11 @@
         .filter((leader) => !selectedTypes.length || selectedTypes.includes(getLeaderType(leader)))
         .filter((leader) => !searchTerm || String(leader?.name || "").toLowerCase().includes(searchTerm))
         .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""), "es"));
-      $("resultCount").textContent = `${state.filteredLeaders.length} leader${state.filteredLeaders.length === 1 ? "" : "s"}`;
+      $("resultCount").textContent = `${state.filteredLeaders.length} lider${state.filteredLeaders.length === 1 ? "" : "es"}`;
       $("activeSummary").textContent = activeFiltersSummary(selectedColors, selectedExpansions, selectedTypes);
       const grid = $("leaderGrid");
       if (!state.filteredLeaders.length){
-        grid.innerHTML = '<div class="emptyState">No hay leaders que coincidan con los filtros seleccionados.</div>';
+        grid.innerHTML = '<div class="emptyState">No hay lideres que coincidan con los filtros seleccionados.</div>';
         return;
       }
       grid.innerHTML = state.filteredLeaders.map(renderLeaderTile).join("");
@@ -602,7 +765,7 @@
       applyFilters();
     }
     async function loadLeaders(){
-      $("loadingState").textContent = "Cargando leaders...";
+      $("loadingState").textContent = "Cargando lideres...";
       $("loadingState").style.display = "block";
       $("leaderGrid").innerHTML = "";
       const { data, error } = await sb
