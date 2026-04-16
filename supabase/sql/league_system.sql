@@ -216,7 +216,7 @@ values
   ('op15', 'Dani R.', 1, 'Moria BY'),
   ('op15', 'Dani R.', 2, 'Luffy BY'),
   ('op15', 'Dani R.', 3, 'Rosinante PY'),
-  ('op15', 'DavidVaz', 1, 'Lucy RB'),
+  ('op15', 'DavidVaz', 1, 'Lucy RU'),
   ('op15', 'DavidVaz', 2, 'Crocodile B'),
   ('op15', 'DavidVaz', 3, 'Luffy RG'),
   ('op15', 'Martí', 1, 'Yamato GY'),
