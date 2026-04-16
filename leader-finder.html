@@ -211,16 +211,31 @@
     }
     .modal.open{ display:flex; }
     .modalCard{
-      width:min(1180px, calc(100vw - 36px)); max-height:min(94vh, 940px); overflow:auto; border-radius:24px;
+      position:relative;
+      width:min(1180px, calc(100vw - 36px)); max-height:min(92vh, 900px); overflow:auto; border-radius:24px;
       background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96));
       border:1px solid rgba(255,255,255,.24); box-shadow:0 24px 70px rgba(2,6,23,.45); padding:18px;
     }
-    .modalCloseRow{ display:flex; justify-content:flex-end; margin-bottom:10px; }
+    .modalCloseRow{
+      position:sticky;
+      top:0;
+      z-index:5;
+      display:flex;
+      justify-content:flex-end;
+      margin:-8px -8px 8px;
+      padding:8px;
+      pointer-events:none;
+    }
     .modalClose{
       width:40px; height:40px; border:none; border-radius:999px; background:#e2e8f0; color:#0f172a;
-      font-size:24px; font-weight:900; cursor:pointer;
+      font-size:24px; font-weight:900; cursor:pointer; pointer-events:auto; box-shadow:0 8px 20px rgba(15,23,42,.18);
     }
-    .modalLayout{ display:grid; grid-template-columns:minmax(240px, 340px) minmax(0, 1fr); gap:18px; align-items:start; }
+    .modalLayout{
+      display:grid;
+      grid-template-columns:minmax(240px, 340px) minmax(360px, 1fr) minmax(220px, 280px);
+      gap:18px 12px;
+      align-items:start;
+    }
     .modalArt{
       border-radius:20px;
       overflow:hidden;
@@ -236,8 +251,19 @@
     .modalInfo h3{ margin:0; font-size:30px; line-height:1.05; font-weight:1000; }
     .modalCode{ color:#64748b; font-size:13px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
     .modalMeta{ display:flex; flex-wrap:wrap; gap:8px; }
-    .deckActions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-    .deckStatus{ color:#475569; font-size:13px; font-weight:700; min-height:18px; }
+    .deckPanel{
+      border-radius:8px;
+      background:#fff;
+      border:1px solid rgba(15,23,42,.10);
+      padding:14px;
+      display:grid;
+      gap:10px;
+      min-width:0;
+    }
+    .deckPanel h4{ margin:0; font-size:15px; font-weight:1000; }
+    .deckActions{ display:grid; grid-template-columns:1fr; gap:8px; }
+    .deckActions .btn2{ width:100%; text-align:center; }
+    .deckStatus{ color:#475569; font-size:12px; font-weight:800; min-height:18px; }
     .leaderPlayersPanel{
       border:1px solid rgba(15,23,42,.10);
       border-radius:8px;
@@ -257,10 +283,10 @@
     .leaderPlayersList{ display:grid; gap:8px; }
     .leaderPlayerRow{
       display:grid;
-      grid-template-columns:32px minmax(0, 1fr) auto auto;
+      grid-template-columns:32px minmax(0, 1fr);
       align-items:center;
       gap:10px;
-      padding:9px 10px;
+      padding:8px 10px;
       border-radius:8px;
       background:#f8fafc;
       border:1px solid rgba(15,23,42,.06);
@@ -279,12 +305,19 @@
       font-weight:1000;
     }
     .leaderPlayerName{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#0f172a; }
-    .leaderPlayerGames{ color:#475569; font-size:13px; white-space:nowrap; }
-    .leaderPlayerWr{ color:#16a34a; font-size:13px; white-space:nowrap; }
+    .leaderPlayerStats{ display:flex; flex-wrap:wrap; gap:8px; margin-top:2px; }
+    .leaderPlayerGames{ color:#475569; font-size:12px; white-space:nowrap; }
+    .leaderPlayerWr{ color:#16a34a; font-size:12px; white-space:nowrap; }
     .leaderPlayerWr.is-low{ color:#dc2626; }
     .deckOutput{
-      width:100%; min-height:260px; resize:vertical; border:1px solid rgba(15,23,42,.12); border-radius:16px;
+      width:100%; height:min(44vh, 380px); min-height:300px; resize:vertical; border:1px solid rgba(15,23,42,.12); border-radius:8px;
       background:#0f172a; color:#e2e8f0; padding:14px; font:700 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre;
+    }
+    @media (max-width: 1180px){
+      .modalLayout{ grid-template-columns:minmax(220px, 320px) minmax(0, 1fr); }
+      .deckPanel{ grid-column:2; }
+      .deckActions{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .deckOutput{ height:260px; min-height:220px; }
     }
     @media (max-width: 1040px){
       .layout{ grid-template-columns:1fr; }
@@ -309,10 +342,10 @@
       .modal{ padding:10px; }
       .modalCard{ padding:14px; border-radius:18px; }
       .modalLayout{ grid-template-columns:1fr; }
+      .deckPanel{ grid-column:auto; }
       .modalInfo h3{ font-size:24px; }
-      .leaderPlayerRow{ grid-template-columns:32px minmax(0, 1fr); }
-      .leaderPlayerGames,.leaderPlayerWr{ grid-column:2; }
-      .deckOutput{ min-height:220px; }
+      .deckActions{ grid-template-columns:1fr; }
+      .deckOutput{ height:240px; min-height:200px; }
     }
   </style>
 </head>
@@ -441,11 +474,6 @@
           <div class="modalCode" id="leaderModalCode">-</div>
           <h3 id="leaderModalTitle">Lider</h3>
           <div class="modalMeta" id="leaderModalTags"></div>
-          <div class="deckActions">
-            <button class="btn2 btnPrimary" id="copyDeckBtn" type="button">Copiar decklist</button>
-            <a class="btn2 btnSoft" id="openLimitlessLink" href="#" target="_blank" rel="noopener noreferrer">Abrir fuente</a>
-          </div>
-          <div class="deckStatus" id="deckStatus">Selecciona un lider para generar la lista del simulador.</div>
           <section class="leaderPlayersPanel" aria-labelledby="leaderTopPlayersTitle">
             <div class="leaderPlayersHead">
               <div>
@@ -455,8 +483,16 @@
             </div>
             <div class="leaderPlayersList" id="leaderPlayersList"></div>
           </section>
-          <textarea class="deckOutput" id="deckOutput" readonly placeholder="Aqui aparecera la decklist en formato simulador."></textarea>
         </div>
+        <section class="deckPanel" aria-labelledby="winnerDeckTitle">
+          <h4 id="winnerDeckTitle">Decklist ganadora</h4>
+          <div class="deckActions">
+            <button class="btn2 btnPrimary" id="copyDeckBtn" type="button">Copiar decklist</button>
+            <a class="btn2 btnSoft" id="openLimitlessLink" href="#" target="_blank" rel="noopener noreferrer">Abrir fuente</a>
+          </div>
+          <div class="deckStatus" id="deckStatus">Selecciona un lider para generar la lista del simulador.</div>
+          <textarea class="deckOutput" id="deckOutput" readonly placeholder="Aqui aparecera la decklist en formato simulador."></textarea>
+        </section>
       </div>
     </div>
   </div>
@@ -621,9 +657,13 @@
         return `
           <div class="leaderPlayerRow">
             <span class="leaderPlayerRank">${index + 1}</span>
-            <span class="leaderPlayerName" title="${escapeAttr(row.name)}">${escapeHtml(row.name)}</span>
-            <span class="leaderPlayerGames">${row.games} partida${row.games === 1 ? "" : "s"}</span>
-            <span class="leaderPlayerWr${wr >= 50 ? "" : " is-low"}">${wr.toFixed(1)}% WR</span>
+            <div>
+              <div class="leaderPlayerName" title="${escapeAttr(row.name)}">${escapeHtml(row.name)}</div>
+              <div class="leaderPlayerStats">
+                <span class="leaderPlayerGames">${row.games} partida${row.games === 1 ? "" : "s"}</span>
+                <span class="leaderPlayerWr${wr >= 50 ? "" : " is-low"}">${wr.toFixed(1)}% WR</span>
+              </div>
+            </div>
           </div>
         `;
       }).join("");
