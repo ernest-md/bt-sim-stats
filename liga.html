@@ -1431,10 +1431,20 @@
           leader_player_2: rivalLeader || null,
           result
         };
-        const { error } = await sb
-          .from("league_match_results")
-          .upsert(payload, { onConflict: "league_id,source_match_id" });
-        if (error) throw error;
+        const existing = savedResultFor(match);
+        if (existing?.source_match_id){
+          const { error } = await sb
+            .from("league_match_results")
+            .update(payload)
+            .eq("league_id", LEAGUE_ID)
+            .eq("source_match_id", String(match.id));
+          if (error) throw error;
+        } else {
+          const { error } = await sb
+            .from("league_match_results")
+            .insert(payload);
+          if (error) throw error;
+        }
         await loadMatchResults();
         rankingRows = buildRanking();
         renderDetail(selectedPlayer);
