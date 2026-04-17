@@ -400,6 +400,33 @@
       font-weight:800;
     }
 
+    .recommendedLeader{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0 0 12px;
+      padding:10px 12px;
+      border:1px solid #cfe3dc;
+      border-radius:8px;
+      background:#edf7f3;
+      color:#263241;
+      font-size:13px;
+      font-weight:850;
+    }
+
+    .recommendedLeader b{
+      color:#0f6f57;
+      font-weight:950;
+    }
+
+    .recommendedLeader small{
+      color:var(--liga-muted);
+      font-size:12px;
+      font-weight:800;
+    }
+
     .matchStatsTable{
       width:100%;
       border-collapse:collapse;
@@ -436,6 +463,27 @@
       width:62px;
       text-align:right;
       white-space:nowrap;
+    }
+
+    .matchStatsTable tbody tr.leaderGroupStart td{
+      border-top:8px solid #f7fafc;
+    }
+
+    .matchStatsTable tbody tr.leaderGroup0 td{
+      background:#f8fbff;
+    }
+
+    .matchStatsTable tbody tr.leaderGroup1 td{
+      background:#fffaf1;
+    }
+
+    .matchStatsTable tbody tr.leaderGroup2 td{
+      background:#f5fbf7;
+    }
+
+    .matchStatsLeaderCell{
+      font-weight:950;
+      color:#263241;
     }
 
     .wrGood{
@@ -668,9 +716,10 @@
   </main>
 
   <script>
-    const LEAGUE_UPDATED_AT = "2026-04-16T11:06:57Z";
+    let LEAGUE_UPDATED_AT = "2026-04-16T11:06:57Z";
     const LEAGUE_ID = "op15";
-    const LEAGUE_MATCHES = [
+    const LEAGUE_SCHEDULE_FUNCTION = `${window.BarateamApp.SUPABASE_URL}/functions/v1/league-lobster-sync?scheduleId=2648809`;
+    let LEAGUE_MATCHES = [
       [1,"Lenox","Keldas","",""],[1,"Bastian","MajinMoonwalker","",""],[1,"MIGUEL","Papa Nami","",""],[1,"Noke","VainaLoca","",""],[1,"Dilix","Martí","",""],[1,"Semidimoni","Joselu","",""],[1,"Romo","Humano","",""],[1,"Xavisu","Ezelpro","",""],[1,"Daword","Yago","",""],[1,"Isaac","Oriol","",""],[1,"Charko","Ernest","",""],[1,"Cape","Colecta","",""],[1,"Sicari","Dani R.","",""],[1,"DavidVaz","Coquito","",""],
       [2,"Colecta","Bastian","",""],[2,"MajinMoonwalker","Xavisu","",""],[2,"Yago","Romo","",""],[2,"Joselu","Cape","",""],[2,"Cojinho","Charko","",""],[2,"Dani R.","Karoo","",""],[2,"Isaac","Dilix","",""],[2,"DavidVaz","VainaLoca","",""],[2,"Humano","MIGUEL","",""],[2,"Ezelpro","Sicari","",""],[2,"Noke","Martí","",""],[2,"Lenox","Strainer","",""],[2,"Coquito","Daword","",""],[2,"Oriol","Semidimoni","",""],
       [3,"Sicari","Xavisu","",""],[3,"Cojinho","Martí","",""],[3,"DavidVaz","Romo","",""],[3,"Karoo","Bastian","",""],[3,"MIGUEL","Noke","",""],[3,"Dani R.","VainaLoca","",""],[3,"Daword","Lenox","",""],[3,"Keldas","Semidimoni","",""],[3,"Oriol","Strainer","",""],[3,"Ernest","Isaac","",""],[3,"Cape","Charko","",""],[3,"MajinMoonwalker","Yago","",""],[3,"Ezelpro","Coquito","",""],[3,"Joselu","Papa Nami","",""],
@@ -997,6 +1046,39 @@
       }).join("");
     }
 
+    function normalizeLeagueMatch(raw, index){
+      return {
+        id: String(raw?.id || raw?.source_match_id || index),
+        week: Number(raw?.week || 0),
+        home: String(raw?.home || "").trim(),
+        away: String(raw?.away || "").trim(),
+        homeScore: raw?.homeScore == null ? "" : String(raw.homeScore).trim(),
+        awayScore: raw?.awayScore == null ? "" : String(raw.awayScore).trim()
+      };
+    }
+
+    async function loadLeagueSchedule(){
+      try{
+        const res = await fetch(LEAGUE_SCHEDULE_FUNCTION, {
+          cache:"no-store",
+          headers:{
+            "apikey": window.BarateamApp.SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${window.BarateamApp.SUPABASE_ANON_KEY}`
+          }
+        });
+        if (!res.ok) throw new Error(`league-lobster-sync ${res.status}`);
+        const payload = await res.json();
+        const matches = Array.isArray(payload?.matches)
+          ? payload.matches.map(normalizeLeagueMatch).filter((match) => match.id && match.home && match.away)
+          : [];
+        if (!matches.length) throw new Error("La function no ha devuelto enfrentamientos");
+        LEAGUE_MATCHES = matches;
+        LEAGUE_UPDATED_AT = payload?.updatedAt || payload?.modified || new Date().toISOString();
+      }catch(err){
+        console.warn("league-lobster-sync:", err?.message || err);
+      }
+    }
+
     async function loadPlayerLeaders(){
       try{
         const { data, error } = await sb
@@ -1136,7 +1218,11 @@
 
     function renderRanking(){
       const query = $("playerSearch").value.trim().toLowerCase();
-      const filtered = rankingRows.filter((row) => row.name.toLowerCase().includes(query));
+      const filtered = rankingRows.filter((row) => {
+        if (!query) return true;
+        const leaderText = normalizeLeaderList(playerLeaders[row.name] || []).join(" ").toLowerCase();
+        return row.name.toLowerCase().includes(query) || leaderText.includes(query);
+      });
       $("rankingSummary").textContent = `${rankingRows.length} jugadores · ${LEAGUE_MATCHES.length} enfrentamientos`;
       $("sourceDate").textContent = `Actualizado ${new Date(LEAGUE_UPDATED_AT).toLocaleDateString("es-ES")}`;
 
@@ -1265,18 +1351,34 @@
       if (!playerLeadersList.length || !rivalLeadersList.length){
         return '<div class="empty">Faltan lideres asignados para calcular este cruce.</div>';
       }
-      const rows = playerLeadersList.flatMap((playerLeader) => (
+      const rows = playerLeadersList.flatMap((playerLeader, leaderIndex) => (
         rivalLeadersList.map((rivalLeader) => ({
           playerLeader,
+          leaderIndex,
           rivalLeader,
           stats: matchupStatsFor(playerLeader, rivalLeader)
         }))
       ));
+      const recommendations = playerLeadersList
+        .map((leader) => {
+          const values = rows
+            .filter((row) => row.playerLeader === leader && row.stats.wr != null && !Number.isNaN(Number(row.stats.wr)))
+            .map((row) => Number(row.stats.wr));
+          const avgWr = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+          return { leader, avgWr, samples: values.length };
+        })
+        .filter((item) => item.avgWr != null)
+        .sort((a, b) => Number(b.avgWr) - Number(a.avgWr));
+      const recommended = recommendations[0] || null;
       return `
         <div class="matchStatsBox">
           <div class="matchStatsTitle">
             <span>Stats de matchup</span>
             <span class="matchStatsMeta">${leagueLeaderStatsDate ? `Fuente ${leagueLeaderStatsDate}` : ""}</span>
+          </div>
+          <div class="recommendedLeader">
+            <span>Recomendado: <b>${recommended ? escapeHtml(recommended.leader) : "Sin datos suficientes"}</b>${recommended ? ` · ${pct(recommended.avgWr)}` : ""}</span>
+            <small>${recommended ? `Media contra ${recommended.samples} posibles lideres rivales` : "No hay WR disponible para comparar"}</small>
           </div>
           <div class="tableWrap">
             <table class="matchStatsTable">
@@ -1290,9 +1392,9 @@
                 </tr>
               </thead>
               <tbody>
-                ${rows.map((row) => `
-                  <tr>
-                    <td>${escapeHtml(row.playerLeader)}</td>
+                ${rows.map((row, index) => `
+                  <tr class="leaderGroup${row.leaderIndex % 3}${index % rivalLeadersList.length === 0 ? " leaderGroupStart" : ""}">
+                    <td class="matchStatsLeaderCell">${escapeHtml(row.playerLeader)}</td>
                     <td>${escapeHtml(row.rivalLeader)}</td>
                     <td class="${wrClass(row.stats.wr)}">${pct(row.stats.wr)}</td>
                     <td class="${wrClass(row.stats.firstWr)}">${pct(row.stats.firstWr)}</td>
@@ -1493,6 +1595,7 @@
     async function initLeaguePage(){
       await loadPlayerLeaders();
       await loadLeaderColorLookup();
+      await loadLeagueSchedule();
       await loadMatchResults();
       rankingRows = buildRanking();
       renderDetail(rankingRows[0]?.name || "");
