@@ -279,6 +279,18 @@
       gap:12px;
     }
     .leaderPlayersHead h4{ margin:0; font-size:15px; font-weight:1000; }
+    .leaderStatsExpansionSelect{
+      width:130px;
+      flex:0 0 auto;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:8px;
+      background:#fff;
+      color:#0f172a;
+      padding:7px 9px;
+      font:inherit;
+      font-size:12px;
+      font-weight:900;
+    }
     .leaderPlayersStatus{ margin:2px 0 0; color:#64748b; font-size:12px; font-weight:800; }
     .leaderPlayersList{ display:grid; gap:8px; }
     .leaderPlayerRow{
@@ -344,6 +356,8 @@
       .modalLayout{ grid-template-columns:1fr; }
       .deckPanel{ grid-column:auto; }
       .modalInfo h3{ font-size:24px; }
+      .leaderPlayersHead{ flex-wrap:wrap; }
+      .leaderStatsExpansionSelect{ width:100%; }
       .deckActions{ grid-template-columns:1fr; }
       .deckOutput{ height:240px; min-height:200px; }
     }
@@ -480,6 +494,7 @@
                 <h4 id="leaderTopPlayersTitle">Top jugadores con este lider</h4>
                 <p class="leaderPlayersStatus" id="leaderPlayersStatus">Selecciona un lider para ver el ranking.</p>
               </div>
+              <select class="leaderStatsExpansionSelect" id="leaderStatsExpansionSelect" aria-label="Expansion del top de jugadores"></select>
             </div>
             <div class="leaderPlayersList" id="leaderPlayersList"></div>
           </section>
@@ -512,7 +527,17 @@
       { value: "mono", label: "Monocolor" },
       { value: "dual", label: "Bicolor" }
     ];
-    const state = { leaders: [], filteredLeaders: [], selectedLeader: null, deckCache: new Map(), playerStatsCache: new Map() };
+    const state = {
+      leaders: [],
+      filteredLeaders: [],
+      selectedLeader: null,
+      deckCache: new Map(),
+      playerStatsCache: new Map(),
+      activeStatsExpansion: null,
+      statsExpansions: [],
+      statsExpansionsLoaded: false,
+      selectedStatsExpansionId: ""
+    };
 
     const navController = window.BarateamApp.initUserNav({
       supabase: sb,
@@ -585,18 +610,80 @@
       return entry;
     }
     function playerDisplayName(row){
-      return String(row?.profile_display_name || row?.profile_username || row?.player_name || "Jugador").trim() || "Jugador";
+      return String(row?.profile_username || row?.profile_display_name || row?.player_name || "Jugador").trim() || "Jugador";
+    }
+    function todayIsoDate(){
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    function findActiveStatsExpansion(rows){
+      const today = todayIsoDate();
+      return (rows || []).find((exp) => (
+        String(exp?.start_date || "") <= today &&
+        String(exp?.end_date || "") >= today
+      )) || null;
+    }
+    function selectedStatsExpansion(){
+      if (state.selectedStatsExpansionId === "all") return null;
+      return state.statsExpansions.find((exp) => String(exp.id) === String(state.selectedStatsExpansionId)) || null;
+    }
+    function renderStatsExpansionSelect(){
+      const select = $("leaderStatsExpansionSelect");
+      if (!select) return;
+      const activeId = state.activeStatsExpansion?.id ? String(state.activeStatsExpansion.id) : "";
+      if (!state.selectedStatsExpansionId) state.selectedStatsExpansionId = activeId || "all";
+      const options = [
+        `<option value="all">Todas</option>`,
+        ...state.statsExpansions.map((exp) => {
+          const id = String(exp?.id || "");
+          const activeSuffix = id && id === activeId ? " (activa)" : "";
+          return `<option value="${escapeAttr(id)}">${escapeHtml(exp?.name || id)}${escapeHtml(activeSuffix)}</option>`;
+        })
+      ];
+      select.innerHTML = options.join("");
+      select.value = state.selectedStatsExpansionId;
+    }
+    async function fetchStatsExpansions(){
+      if (state.statsExpansionsLoaded) {
+        renderStatsExpansionSelect();
+        return state.statsExpansions;
+      }
+      const { data, error } = await sb
+        .from("expansions")
+        .select("id,name,start_date,end_date")
+        .order("start_date", { ascending: false });
+      state.statsExpansionsLoaded = true;
+      if (error){
+        console.warn("expansions:", error.message);
+        state.statsExpansions = [];
+        state.activeStatsExpansion = null;
+        renderStatsExpansionSelect();
+        return [];
+      }
+      state.statsExpansions = Array.isArray(data) ? data : [];
+      state.activeStatsExpansion = findActiveStatsExpansion(state.statsExpansions);
+      if (!state.selectedStatsExpansionId) state.selectedStatsExpansionId = state.activeStatsExpansion?.id || "all";
+      renderStatsExpansionSelect();
+      return state.statsExpansions;
     }
     async function fetchLeaderPlayerStats(leader){
       const cacheKey = String(leader?.code || "").trim().toUpperCase();
       if (!cacheKey) throw new Error("El lider no tiene codigo valido.");
-      if (state.playerStatsCache.has(cacheKey)) return state.playerStatsCache.get(cacheKey);
       const { data: sessionData } = await sb.auth.getSession();
       if (!sessionData?.session?.user) throw new Error("Inicia sesion para ver el top de jugadores.");
-      const { data, error } = await sb
+      await fetchStatsExpansions();
+      const selectedExpansion = selectedStatsExpansion();
+      const expansionCacheKey = selectedExpansion?.id || "all";
+      const statsCacheKey = `${cacheKey}:${expansionCacheKey}`;
+      if (state.playerStatsCache.has(statsCacheKey)) return state.playerStatsCache.get(statsCacheKey);
+      let query = sb
         .from("matches")
         .select(`
           player_id,
+          match_date,
           result,
           player:players!matches_player_id_fkey (
             name,
@@ -609,6 +696,12 @@
           )
         `)
         .eq("player_leader", cacheKey);
+      if (selectedExpansion?.start_date && selectedExpansion?.end_date){
+        query = query
+          .gte("match_date", `${selectedExpansion.start_date}T00:00:00`)
+          .lte("match_date", `${selectedExpansion.end_date}T23:59:59.999`);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       const byPlayer = new Map();
       (Array.isArray(data) ? data : []).forEach((row) => {
@@ -642,16 +735,23 @@
           return a.name.localeCompare(b.name, "es");
         })
         .slice(0, 5);
-      state.playerStatsCache.set(cacheKey, topPlayers);
-      return topPlayers;
+      const result = { expansion: selectedExpansion, players: topPlayers };
+      state.playerStatsCache.set(statsCacheKey, result);
+      return result;
     }
-    function renderLeaderPlayerStats(rows){
+    function renderLeaderPlayerStats(result){
+      const rows = Array.isArray(result) ? result : (result?.players || []);
+      const expansion = Array.isArray(result) ? null : result?.expansion;
       if (!rows.length){
         $("leaderPlayersList").innerHTML = "";
-        $("leaderPlayersStatus").textContent = "Todavia no hay partidas registradas con este lider.";
+        $("leaderPlayersStatus").textContent = expansion
+          ? `Sin partidas registradas con este lider en ${expansion.name}.`
+          : "Todavia no hay partidas registradas con este lider.";
         return;
       }
-      $("leaderPlayersStatus").textContent = "Ordenado por numero de partidas jugadas.";
+      $("leaderPlayersStatus").textContent = expansion
+        ? `Partidas de ${expansion.name}.`
+        : "Ordenado por numero de partidas jugadas.";
       $("leaderPlayersList").innerHTML = rows.map((row, index) => {
         const wr = Number(row.winrate || 0);
         return `
@@ -671,6 +771,7 @@
     async function loadLeaderPlayerStats(leader){
       $("leaderPlayersStatus").textContent = "Calculando top de jugadores...";
       $("leaderPlayersList").innerHTML = "";
+      if ($("leaderStatsExpansionSelect")) $("leaderStatsExpansionSelect").disabled = true;
       try{
         const rows = await fetchLeaderPlayerStats(leader);
         if (state.selectedLeader?.code !== leader.code) return;
@@ -679,6 +780,10 @@
         if (state.selectedLeader?.code !== leader.code) return;
         $("leaderPlayersList").innerHTML = "";
         $("leaderPlayersStatus").textContent = err?.message || "No se pudo cargar el top de jugadores.";
+      }finally{
+        if (state.selectedLeader?.code === leader.code && $("leaderStatsExpansionSelect")) {
+          $("leaderStatsExpansionSelect").disabled = false;
+        }
       }
     }
     async function loadLeaderDecklist(leader){
@@ -723,6 +828,7 @@
       $("deckStatus").textContent = "Buscando la decklist mas reciente en One Piece Top Decks...";
       $("leaderPlayersStatus").textContent = "Calculando top de jugadores...";
       $("leaderPlayersList").innerHTML = "";
+      if ($("leaderStatsExpansionSelect")) $("leaderStatsExpansionSelect").innerHTML = '<option value="">Cargando...</option>';
       $("copyDeckBtn").disabled = true;
       $("leaderModal").classList.add("open");
       $("leaderModal").setAttribute("aria-hidden", "false");
@@ -852,6 +958,10 @@
     $("clearFiltersBtn").addEventListener("click", resetFilters);
     $("refreshBtn").addEventListener("click", () => { void loadLeaders(); });
     $("copyDeckBtn").addEventListener("click", () => { void copyCurrentDecklist(); });
+    $("leaderStatsExpansionSelect").addEventListener("change", () => {
+      state.selectedStatsExpansionId = $("leaderStatsExpansionSelect").value || "all";
+      if (state.selectedLeader) void loadLeaderPlayerStats(state.selectedLeader);
+    });
     $("leaderModalClose").addEventListener("click", closeLeaderModal);
     $("leaderModal").addEventListener("click", (event) => {
       if (event.target === $("leaderModal")) closeLeaderModal();
