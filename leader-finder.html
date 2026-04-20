@@ -143,6 +143,7 @@
     }
     .btnPrimary{ background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.9)); color:#fff; }
     .btnSoft{ background:#e2e8f0; color:#0f172a; }
+    .btnRoulette{ background:linear-gradient(135deg, #f97316, #eab308); color:#111827; white-space:nowrap; }
     .resultsHead{
       display:flex;
       align-items:center;
@@ -325,6 +326,120 @@
       width:100%; height:min(44vh, 380px); min-height:300px; resize:vertical; border:1px solid rgba(15,23,42,.12); border-radius:8px;
       background:#0f172a; color:#e2e8f0; padding:14px; font:700 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre;
     }
+    .rouletteCard{
+      width:min(940px, calc(100vw - 36px));
+      overflow:hidden;
+      border-radius:8px;
+    }
+    .rouletteCloseRow{ margin-bottom:0; }
+    .rouletteHead{
+      display:grid;
+      gap:6px;
+      text-align:center;
+      padding:0 46px 12px;
+    }
+    .rouletteHead h3{ margin:0; font-size:30px; line-height:1.05; font-weight:1000; }
+    .rouletteHead p{ margin:0; color:#64748b; font-size:14px; font-weight:800; }
+    .rouletteStage{
+      position:relative;
+      overflow:hidden;
+      border-radius:8px;
+      background:
+        linear-gradient(90deg, rgba(15,23,42,.92), rgba(15,23,42,.08) 18%, rgba(15,23,42,.08) 82%, rgba(15,23,42,.92)),
+        linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.92));
+      border:1px solid rgba(15,23,42,.12);
+      min-height:250px;
+      display:flex;
+      align-items:center;
+    }
+    .roulettePointer{
+      position:absolute;
+      top:0;
+      bottom:0;
+      left:50%;
+      width:4px;
+      transform:translateX(-50%);
+      background:#facc15;
+      box-shadow:0 0 0 1px rgba(255,255,255,.45), 0 0 22px rgba(250,204,21,.65);
+      z-index:3;
+      pointer-events:none;
+    }
+    .roulettePointer::before,
+    .roulettePointer::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      border-left:12px solid transparent;
+      border-right:12px solid transparent;
+    }
+    .roulettePointer::before{ top:0; border-top:16px solid #facc15; }
+    .roulettePointer::after{ bottom:0; border-bottom:16px solid #facc15; }
+    .rouletteTrack{
+      display:flex;
+      gap:12px;
+      padding:22px calc(50% - 70px);
+      will-change:transform;
+      transform:translateX(0);
+    }
+    .rouletteItem{
+      width:140px;
+      flex:0 0 140px;
+      overflow:hidden;
+      border-radius:8px;
+      background:#fff;
+      border:1px solid rgba(255,255,255,.32);
+      box-shadow:0 14px 30px rgba(0,0,0,.28);
+      opacity:.9;
+    }
+    .rouletteItem.isWinner{
+      outline:4px solid #facc15;
+      opacity:1;
+    }
+    .rouletteArt{
+      aspect-ratio:5 / 7;
+      background:linear-gradient(180deg, rgba(15,23,42,.06), rgba(15,23,42,.02));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .rouletteArt img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .rouletteName{
+      min-height:58px;
+      padding:9px;
+      display:grid;
+      gap:3px;
+      align-content:start;
+      color:#0f172a;
+      font-weight:1000;
+      font-size:13px;
+      line-height:1.12;
+      background:#fff;
+    }
+    .rouletteName span{ color:#64748b; font-size:11px; letter-spacing:.04em; text-transform:uppercase; }
+    .rouletteControls{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding-top:14px;
+    }
+    .rouletteResult{
+      min-height:22px;
+      width:100%;
+      color:#0f172a;
+      text-align:center;
+      font-weight:1000;
+    }
+    .rouletteResult small{
+      display:block;
+      margin-top:3px;
+      color:#64748b;
+      font-size:12px;
+      font-weight:800;
+    }
     @media (max-width: 1180px){
       .modalLayout{ grid-template-columns:minmax(220px, 320px) minmax(0, 1fr); }
       .deckPanel{ grid-column:2; }
@@ -348,6 +463,7 @@
         width:100%;
         flex-wrap:wrap;
       }
+      .btnRoulette{ width:100%; }
       .searchInput{
         width:100%;
       }
@@ -360,6 +476,13 @@
       .leaderStatsExpansionSelect{ width:100%; }
       .deckActions{ grid-template-columns:1fr; }
       .deckOutput{ height:240px; min-height:200px; }
+      .rouletteCard{ width:calc(100vw - 20px); }
+      .rouletteHead{ padding:0 38px 10px; }
+      .rouletteHead h3{ font-size:24px; }
+      .rouletteStage{ min-height:220px; }
+      .rouletteTrack{ padding:18px calc(50% - 56px); gap:10px; }
+      .rouletteItem{ width:112px; flex-basis:112px; }
+      .rouletteName{ min-height:54px; font-size:12px; }
     }
   </style>
 </head>
@@ -464,6 +587,7 @@
         <div class="resultsHead">
           <h2>Resultados</h2>
           <div class="resultsTools">
+            <button class="btn2 btnRoulette" id="rouletteBtn" type="button">Ruleta</button>
             <input class="searchInput" id="leaderSearchInput" type="search" placeholder="Buscar lider por nombre" autocomplete="off">
             <div class="resultsMeta">
               <span class="pill" id="resultCount">0 lideres</span>
@@ -474,6 +598,27 @@
         <div class="loadingState" id="loadingState">Cargando lideres...</div>
         <div class="leaderGrid" id="leaderGrid"></div>
       </section>
+    </div>
+  </div>
+
+  <div class="modal" id="rouletteModal" aria-hidden="true">
+    <div class="modalCard rouletteCard" role="dialog" aria-modal="true" aria-labelledby="rouletteTitle">
+      <div class="modalCloseRow rouletteCloseRow">
+        <button class="modalClose" id="rouletteModalClose" type="button" aria-label="Cerrar ruleta">&times;</button>
+      </div>
+      <div class="rouletteHead">
+        <h3 id="rouletteTitle">Ruleta de lideres</h3>
+        <p id="rouletteIntro">Pulsa girar y deja que el destino haga el pairing.</p>
+      </div>
+      <div class="rouletteStage" id="rouletteStage">
+        <div class="roulettePointer" aria-hidden="true"></div>
+        <div class="rouletteTrack" id="rouletteTrack"></div>
+      </div>
+      <div class="rouletteControls">
+        <button class="btn2 btnRoulette" id="spinRouletteBtn" type="button">Girar</button>
+        <button class="btn2 btnPrimary" id="rouletteOpenLeaderBtn" type="button" disabled>Ver lider</button>
+        <div class="rouletteResult" id="rouletteResult">La ruleta esta lista.</div>
+      </div>
     </div>
   </div>
 
@@ -536,7 +681,9 @@
       activeStatsExpansion: null,
       statsExpansions: [],
       statsExpansionsLoaded: false,
-      selectedStatsExpansionId: ""
+      selectedStatsExpansionId: "",
+      rouletteSpinning: false,
+      rouletteWinner: null
     };
 
     const navController = window.BarateamApp.initUserNav({
@@ -877,6 +1024,116 @@
         </article>
       `;
     }
+    function shuffleLeaders(leaders){
+      const items = [...(Array.isArray(leaders) ? leaders : [])];
+      for (let index = items.length - 1; index > 0; index -= 1){
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [items[index], items[swapIndex]] = [items[swapIndex], items[index]];
+      }
+      return items;
+    }
+    function rouletteCandidates(){
+      return state.leaders.length ? state.filteredLeaders : [];
+    }
+    function renderRouletteItem(leader, isWinner){
+      const art = resolveLeaderArt(leader);
+      const fallbackName = escapeHtml(leader?.name || leader?.code || "Lider");
+      return `
+        <div class="rouletteItem${isWinner ? " isWinner" : ""}">
+          <div class="rouletteArt">
+            ${art ? `<img src="${escapeAttr(art)}" alt="${escapeAttr(leader?.name || leader?.code || "Lider")}" onerror="this.onerror=null;this.remove();this.parentNode.innerHTML='&lt;div class=&quot;leaderFallback&quot;&gt;${fallbackName}&lt;/div&gt;'">` : `<div class="leaderFallback">${fallbackName}</div>`}
+          </div>
+          <div class="rouletteName">
+            <span>${escapeHtml(leader?.code || "-")}</span>
+            ${escapeHtml(leader?.name || leader?.code || "Lider")}
+          </div>
+        </div>
+      `;
+    }
+    function renderRoulettePreview(){
+      const leaders = rouletteCandidates();
+      const track = $("rouletteTrack");
+      if (!leaders.length){
+        track.innerHTML = '<div class="emptyState">No hay lideres cargados para la ruleta.</div>';
+        return;
+      }
+      const preview = shuffleLeaders(leaders).slice(0, Math.min(leaders.length, 18));
+      track.style.transition = "none";
+      track.style.transform = "translateX(0)";
+      track.innerHTML = preview.map((leader) => renderRouletteItem(leader, false)).join("");
+    }
+    function openRouletteModal(){
+      state.rouletteWinner = null;
+      $("rouletteResult").textContent = "La ruleta esta lista.";
+      $("rouletteOpenLeaderBtn").disabled = true;
+      $("spinRouletteBtn").disabled = false;
+      renderRoulettePreview();
+      $("rouletteModal").classList.add("open");
+      $("rouletteModal").setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+    function closeRouletteModal(){
+      if (state.rouletteSpinning) return;
+      $("rouletteModal").classList.remove("open");
+      $("rouletteModal").setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+    function buildRouletteSequence(leaders, winner){
+      const sequence = [];
+      while (sequence.length < 44){
+        sequence.push(...shuffleLeaders(leaders));
+      }
+      const winnerIndex = sequence.length;
+      sequence.push(winner);
+      sequence.push(...shuffleLeaders(leaders).filter((leader) => leader.code !== winner.code).slice(0, 6));
+      return { sequence, winnerIndex };
+    }
+    function spinRoulette(){
+      if (state.rouletteSpinning) return;
+      const leaders = rouletteCandidates();
+      if (!leaders.length){
+        $("rouletteResult").textContent = "No hay lideres cargados para girar.";
+        return;
+      }
+      const winner = leaders[Math.floor(Math.random() * leaders.length)];
+      const { sequence, winnerIndex } = buildRouletteSequence(leaders, winner);
+      const track = $("rouletteTrack");
+      const stage = $("rouletteStage");
+      state.rouletteSpinning = true;
+      state.rouletteWinner = null;
+      $("rouletteResult").textContent = "Girando...";
+      $("spinRouletteBtn").disabled = true;
+      $("rouletteOpenLeaderBtn").disabled = true;
+      track.style.transition = "none";
+      track.style.transform = "translateX(0)";
+      track.innerHTML = sequence.map((leader) => renderRouletteItem(leader, false)).join("");
+      requestAnimationFrame(() => {
+        const target = track.children[winnerIndex];
+        const stageCenter = stage.clientWidth / 2;
+        const safeOffset = 12;
+        const minStopOffset = Math.min(safeOffset, target.offsetWidth / 3);
+        const maxStopOffset = Math.max(minStopOffset, target.offsetWidth - safeOffset);
+        const stopOffset = minStopOffset + (Math.random() * (maxStopOffset - minStopOffset));
+        const targetStopPoint = target.offsetLeft + stopOffset;
+        const endTranslate = stageCenter - targetStopPoint;
+        track.style.transition = "transform 4s cubic-bezier(.08,.82,.18,1)";
+        track.style.transform = `translateX(${endTranslate}px)`;
+        window.setTimeout(() => {
+          state.rouletteSpinning = false;
+          state.rouletteWinner = winner;
+          target.classList.add("isWinner");
+          $("rouletteResult").innerHTML = `${escapeHtml(winner?.name || winner?.code || "Lider")}<small>${escapeHtml(winner?.code || "")}</small>`;
+          $("spinRouletteBtn").disabled = false;
+          $("rouletteOpenLeaderBtn").disabled = false;
+        }, 4050);
+      });
+    }
+    function openRouletteWinner(){
+      if (!state.rouletteWinner || state.rouletteSpinning) return;
+      const winner = state.rouletteWinner;
+      closeRouletteModal();
+      void openLeaderModal(winner);
+    }
     function applyFilters(){
       const selectedColors = getCheckedValues("colorFilters");
       const selectedExpansions = getCheckedValues("expansionFilters");
@@ -900,9 +1157,11 @@
       const grid = $("leaderGrid");
       if (!state.filteredLeaders.length){
         grid.innerHTML = '<div class="emptyState">No hay lideres que coincidan con los filtros seleccionados.</div>';
+        if ($("rouletteModal").classList.contains("open") && !state.rouletteSpinning) renderRoulettePreview();
         return;
       }
       grid.innerHTML = state.filteredLeaders.map(renderLeaderTile).join("");
+      if ($("rouletteModal").classList.contains("open") && !state.rouletteSpinning) renderRoulettePreview();
     }
     function resetFilters(){
       document.querySelectorAll('#colorFilters input[type="checkbox"], #expansionFilters input[type="checkbox"], #typeFilters input[type="checkbox"]').forEach((input) => {
@@ -958,6 +1217,13 @@
     $("clearFiltersBtn").addEventListener("click", resetFilters);
     $("refreshBtn").addEventListener("click", () => { void loadLeaders(); });
     $("copyDeckBtn").addEventListener("click", () => { void copyCurrentDecklist(); });
+    $("rouletteBtn").addEventListener("click", openRouletteModal);
+    $("spinRouletteBtn").addEventListener("click", spinRoulette);
+    $("rouletteOpenLeaderBtn").addEventListener("click", openRouletteWinner);
+    $("rouletteModalClose").addEventListener("click", closeRouletteModal);
+    $("rouletteModal").addEventListener("click", (event) => {
+      if (event.target === $("rouletteModal")) closeRouletteModal();
+    });
     $("leaderStatsExpansionSelect").addEventListener("change", () => {
       state.selectedStatsExpansionId = $("leaderStatsExpansionSelect").value || "all";
       if (state.selectedLeader) void loadLeaderPlayerStats(state.selectedLeader);
@@ -967,6 +1233,7 @@
       if (event.target === $("leaderModal")) closeLeaderModal();
     });
     document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && $("rouletteModal").classList.contains("open")) closeRouletteModal();
       if (event.key === "Escape" && $("leaderModal").classList.contains("open")) closeLeaderModal();
     });
     $("leaderGrid").addEventListener("click", (event) => {
