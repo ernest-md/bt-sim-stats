@@ -6,9 +6,9 @@
   <title>Team Stats · Barateam Hub</title>
   <link rel="icon" href="../../favicon.ico" type="image/x-icon" />
   <link rel="stylesheet" href="../../app.css?v=20260306a" />
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=20260420a">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../../app.js?v=20260305c"></script>
+  <script src="../../app.js?v=20260420a"></script>
   <style>
     body{
       margin:0;
@@ -312,7 +312,7 @@
         navController.setUser(session?.user || null);
         void window.BarateamApp.syncTopbarAvatar(sb, session?.user || null);
       });
-      await import("./js/team-stats.js");
+      await import("./js/team-stats.js?v=20260420a");
     })();
   </script>
 </body>

@@ -13,6 +13,7 @@ const crowLeadsModalLoading = document.getElementById("crowLeadsModalLoading")
 
 const CROW_TEAM_NAME = "BARATEAM"
 const CROW_LEADS_URL = "../../crow-leads.html?embed=1"
+const LEAGUE_URL = "../../liga.html"
 
 let allMatches = []
 let allExpansions = []
@@ -247,11 +248,17 @@ function renderTeamSummary(matches) {
   })
 
   const top = list[0]
-  const crowButtonHtml = isCrowTeamSelected()
+  const teamActionsHtml = isCrowTeamSelected()
     ? `
-      <button class="teamCrowBtn" type="button" data-open-crow-leads="1" aria-label="Abrir Crow Leads">
-        <img src="../../LOGO_APP.png" alt="Crow Leads" loading="lazy" />
-      </button>
+      <div class="teamActionsWrap">
+        <button class="teamCrowBtn" type="button" data-toggle-team-actions="1" aria-label="Abrir herramientas BARATEAM" aria-expanded="false">
+          <img src="../../LOGO_APP.png" alt="Herramientas BARATEAM" loading="lazy" />
+        </button>
+        <div class="teamActionMenu" data-team-action-menu="1" hidden>
+          <button type="button" data-open-crow-leads="1">Lideres Cuervo</button>
+          <a href="${LEAGUE_URL}">Liga</a>
+        </div>
+      </div>
     `
     : ""
   const rowsHtml = list.map((p, idx) => `
@@ -276,7 +283,7 @@ function renderTeamSummary(matches) {
           <h4 class="teamHighlightName">${escapeHtml(top.name)}</h4>
           <p class="teamHighlightSub">Mejor WR con volumen de partidas en el filtro actual</p>
         </div>
-        ${crowButtonHtml}
+        ${teamActionsHtml}
       </div>
         <div class="teamKpis">
           <div class="teamKpi"><div class="teamKpiLabel">Partidas</div><div class="teamKpiValue">${top.games}</div></div>
@@ -368,9 +375,34 @@ function escapeHtml(value) {
 }
 
 summaryBody.addEventListener("click", (event) => {
+  const menuToggle = event.target.closest("[data-toggle-team-actions='1']")
+  if (menuToggle) {
+    const wrap = menuToggle.closest(".teamActionsWrap")
+    const menu = wrap?.querySelector("[data-team-action-menu='1']")
+    if (!menu) return
+    const nextOpen = menu.hidden
+    menu.hidden = !nextOpen
+    menuToggle.setAttribute("aria-expanded", nextOpen ? "true" : "false")
+    return
+  }
+
   const trigger = event.target.closest("[data-open-crow-leads='1']")
   if (!trigger) return
+  const menu = trigger.closest("[data-team-action-menu='1']")
+  const toggle = trigger.closest(".teamActionsWrap")?.querySelector("[data-toggle-team-actions='1']")
+  if (menu) menu.hidden = true
+  if (toggle) toggle.setAttribute("aria-expanded", "false")
   openCrowLeadsModal()
+})
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest(".teamActionsWrap")) return
+  document.querySelectorAll("[data-team-action-menu='1']").forEach((menu) => {
+    menu.hidden = true
+  })
+  document.querySelectorAll("[data-toggle-team-actions='1']").forEach((button) => {
+    button.setAttribute("aria-expanded", "false")
+  })
 })
 
 if (crowLeadsModalClose) {
@@ -390,6 +422,14 @@ if (crowLeadsModalFrame && crowLeadsModalLoading) {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    document.querySelectorAll("[data-team-action-menu='1']").forEach((menu) => {
+      menu.hidden = true
+    })
+    document.querySelectorAll("[data-toggle-team-actions='1']").forEach((button) => {
+      button.setAttribute("aria-expanded", "false")
+    })
+  }
   if (event.key === "Escape" && crowLeadsModal?.classList.contains("isOpen")) {
     closeCrowLeadsModal()
   }
