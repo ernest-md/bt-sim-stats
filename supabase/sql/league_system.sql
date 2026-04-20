@@ -63,16 +63,29 @@ alter table public.league_match_results enable row level security;
 drop policy if exists league_player_leaders_select_authenticated
 on public.league_player_leaders;
 
-create policy league_player_leaders_select_authenticated
+drop policy if exists league_player_leaders_select_barateam
+on public.league_player_leaders;
+
+create policy league_player_leaders_select_barateam
 on public.league_player_leaders
 for select
 to authenticated
-using (true);
+using (
+  exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.team = 'BARATEAM'
+  )
+);
 
 drop policy if exists league_player_leaders_manage_admin_only
 on public.league_player_leaders;
 
-create policy league_player_leaders_manage_admin_only
+drop policy if exists league_player_leaders_manage_barateam
+on public.league_player_leaders;
+
+create policy league_player_leaders_manage_barateam
 on public.league_player_leaders
 for all
 to authenticated
@@ -81,7 +94,7 @@ using (
     select 1
     from public.profiles p
     where p.id = auth.uid()
-      and p.app_role in ('admin', 'staff')
+      and p.team = 'BARATEAM'
   )
 )
 with check (
@@ -89,23 +102,36 @@ with check (
     select 1
     from public.profiles p
     where p.id = auth.uid()
-      and p.app_role in ('admin', 'staff')
+      and p.team = 'BARATEAM'
   )
 );
 
 drop policy if exists league_match_results_select_authenticated
 on public.league_match_results;
 
-create policy league_match_results_select_authenticated
+drop policy if exists league_match_results_select_barateam
+on public.league_match_results;
+
+create policy league_match_results_select_barateam
 on public.league_match_results
 for select
 to authenticated
-using (true);
+using (
+  exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.team = 'BARATEAM'
+  )
+);
 
 drop policy if exists league_match_results_manage_admin_only
 on public.league_match_results;
 
-create policy league_match_results_manage_admin_only
+drop policy if exists league_match_results_manage_barateam
+on public.league_match_results;
+
+create policy league_match_results_manage_barateam
 on public.league_match_results
 for all
 to authenticated
@@ -114,7 +140,7 @@ using (
     select 1
     from public.profiles p
     where p.id = auth.uid()
-      and p.app_role in ('admin', 'staff')
+      and p.team = 'BARATEAM'
   )
 )
 with check (
@@ -122,7 +148,7 @@ with check (
     select 1
     from public.profiles p
     where p.id = auth.uid()
-      and p.app_role in ('admin', 'staff')
+      and p.team = 'BARATEAM'
   )
 );
 

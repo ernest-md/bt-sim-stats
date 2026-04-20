@@ -710,6 +710,11 @@ select:focus {
   flex: 1 1 auto;
 }
 
+.teamActionsWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .teamCrowBtn {
   width: 76px;
   height: 76px;
@@ -738,6 +743,48 @@ select:focus {
   object-fit: contain;
   display: block;
   border-radius: 999px;
+}
+
+.teamActionMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 176px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(15,23,42,.16);
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 14px 32px rgba(15,23,42,.22);
+}
+
+.teamActionMenu[hidden] {
+  display: none;
+}
+
+.teamActionMenu button,
+.teamActionMenu a {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  padding: 9px 10px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.teamActionMenu button:hover,
+.teamActionMenu a:hover {
+  background: rgba(37,99,235,.10);
 }
 
 .teamCrowModal {

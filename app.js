@@ -366,7 +366,7 @@
     if (!profile && sb){
       const { data } = await sb
         .from("profiles")
-        .select("id,username,display_name,avatar_url,app_role,member")
+        .select("id,username,display_name,avatar_url,app_role,member,team")
         .eq("id", user.id)
         .maybeSingle();
       profile = data || null;
@@ -378,6 +378,7 @@
       profile: profile || null,
       isLoggedIn: true,
       isMember: profile?.member === true,
+      team: String(profile?.team || "").trim().toUpperCase(),
       isAdmin: profile?.app_role === "admin",
       isPrivileged: profile?.app_role === "admin" || profile?.app_role === "vdj"
     };
@@ -401,6 +402,7 @@
     const indexHref = opts.indexHref || appPageHref("index.html");
     const allowNonMember = opts.allowNonMember === true || isIndexPage() || isProfilePage();
     const requireAdmin = opts.requireAdmin === true;
+    const requireTeam = String(opts.requireTeam || "").trim().toUpperCase();
 
     try{
       const accessState = await resolveAccessState(sb);
@@ -409,6 +411,10 @@
         return { allowed: false, redirected: true, accessState };
       }
       if (requireAdmin && !accessState.isAdmin){
+        window.location.replace(indexHref);
+        return { allowed: false, redirected: true, accessState };
+      }
+      if (requireTeam && accessState.team !== requireTeam){
         window.location.replace(indexHref);
         return { allowed: false, redirected: true, accessState };
       }
