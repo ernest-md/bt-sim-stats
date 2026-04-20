@@ -876,6 +876,7 @@
     };
 
     const MATCH_RESULT_OPTIONS = ["2-0", "2-1", "1-2", "0-2"];
+    const UNKNOWN_LEADER_OPTION = "Desconocido";
     const LEADER_STATS_FALLBACK_DAYS = 7;
 
     const sb = window.BarateamApp.createClient();
@@ -1041,7 +1042,8 @@
     function leaderOptionsHtml(playerName, selectedLeader = ""){
       const leaders = normalizeLeaderList(playerLeaders[playerName] || []);
       const selectedNormalized = normalizeLeaderName(selectedLeader);
-      const options = leaders.length ? leaders : [""];
+      const playerOptions = leaders.filter((leader) => leader !== UNKNOWN_LEADER_OPTION);
+      const options = [...(playerOptions.length ? playerOptions : [""]), UNKNOWN_LEADER_OPTION];
       return options.map((leader) => {
         const selected = leader === selectedNormalized ? " selected" : "";
         const label = leader || "Sin lider";
