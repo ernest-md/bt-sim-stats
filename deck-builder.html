@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Deck Builder - Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260305c"></script>
   <style>
     :root{
       --bg:#0b1220;
@@ -30,64 +33,51 @@
       position:fixed;
       inset:0;
       background:
-        radial-gradient(1200px 800px at 10% 10%, rgba(249,115,22,.18), transparent 60%),
-        radial-gradient(900px 680px at 90% 16%, rgba(59,130,246,.18), transparent 60%),
-        radial-gradient(1100px 760px at 48% 100%, rgba(34,197,94,.12), transparent 55%),
-        linear-gradient(180deg, rgba(11,18,32,.92), rgba(11,18,32,.96)),
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1000px 700px at 40% 95%, rgba(245,158,11,.20), transparent 55%),
+        linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
         url("bg.png");
       background-position:center;
       background-size:cover;
+      filter:saturate(1.1);
       z-index:-2;
     }
     body::after{
       content:"";
       position:fixed;
       inset:0;
-      background:
-        linear-gradient(transparent 97%, rgba(255,255,255,.03) 100%),
-        linear-gradient(90deg, transparent 97%, rgba(255,255,255,.03) 100%);
-      background-size:32px 32px;
-      opacity:.22;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.18;
+      mix-blend-mode:overlay;
       z-index:-1;
       pointer-events:none;
     }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.4px;
+      margin-right:6px;
+      line-height:1.1;
+    }
+    .brand small{
+      display:block;
+      text-align:center;
+      padding-left:4px;
+      font-weight:700;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.2px;
+    }
     .page{
-      max-width:1600px;
+      max-width:1440px;
       margin:0 auto;
-      padding:18px 18px 28px;
+      padding:18px 14px 44px;
     }
-    .hero{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:18px;
-      border:1px solid var(--line);
-      border-radius:24px;
-      padding:22px;
-      background:
-        linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.72)),
-        radial-gradient(circle at top right, rgba(249,115,22,.18), transparent 45%);
-      box-shadow:var(--shadow);
-    }
-    .hero h1{
-      margin:0;
-      font-size:clamp(2rem, 4vw, 3rem);
-      line-height:1;
-      font-weight:1000;
-      letter-spacing:-.03em;
-    }
-    .hero p{
-      margin:10px 0 0;
-      max-width:74ch;
-      color:rgba(248,250,252,.76);
-      line-height:1.45;
-      font-size:14px;
-    }
-    .heroBadges{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+    .hiddenStatus{
+      display:none !important;
     }
     .pill, .statusTag, .miniTag{
       display:inline-flex;
@@ -99,8 +89,8 @@
       color:#fff;
     }
     .pill{
-      min-height:36px;
-      padding:8px 12px;
+      min-height:31px;
+      padding:6px 10px;
       font-size:12px;
       font-weight:900;
       text-transform:uppercase;
@@ -108,10 +98,201 @@
     }
     .layout{
       display:grid;
-      grid-template-columns:minmax(320px, 35%) minmax(0, 65%);
-      gap:16px;
-      margin-top:16px;
+      grid-template-columns:minmax(440px, 42%) minmax(0, 58%);
+      gap:14px;
+      margin-top:8px;
       align-items:start;
+    }
+    @media (min-width: 1081px){
+      .layout > .panel:first-child{
+        position:sticky;
+        top:88px;
+      }
+    }
+    .builderMeta{
+      margin-top:0;
+    }
+    .builderMeta .panelHead{
+      align-items:center;
+      padding:12px 14px 8px;
+    }
+    .builderMeta .panelHead p{
+      margin-top:3px;
+      font-size:11px;
+    }
+    .builderMeta .panelBody{
+      padding:10px 14px 12px;
+    }
+    .builderDeckRow{
+      display:block;
+    }
+    .builderFields{
+      display:grid;
+      gap:8px;
+      align-items:start;
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+      min-width:0;
+    }
+    .field label{
+      color:#cbd5e1;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .formControl{
+      width:100%;
+      min-width:0;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      padding:12px 14px;
+      font:inherit;
+      outline:none;
+    }
+    textarea.formControl{
+      min-height:44px;
+      resize:vertical;
+      line-height:1.45;
+    }
+    .deckImagePicker{
+      display:grid;
+      grid-template-columns:112px minmax(0, 1fr) auto;
+      gap:10px;
+      align-items:center;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      padding:8px;
+    }
+    .deckImagePreview{
+      width:112px;
+      aspect-ratio:16 / 10;
+      border-radius:10px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(15,23,42,.55);
+      color:#94a3b8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:900;
+      text-align:center;
+    }
+    .deckImagePreview img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:cover;
+    }
+    .deckImageMeta{
+      min-width:0;
+      display:grid;
+      gap:4px;
+    }
+    .deckImageMeta strong{
+      color:#fff;
+      font-size:13px;
+      line-height:1.2;
+    }
+    .deckImageMeta span{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .deckImageActions{
+      display:flex;
+      gap:8px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .deckImageActions label.btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:0;
+      text-transform:none;
+    }
+    .visuallyHiddenFile{
+      position:absolute;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+      clip:rect(0 0 0 0);
+      clip-path:inset(50%);
+      white-space:nowrap;
+      border:0;
+      padding:0;
+      margin:-1px;
+    }
+    .builderActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+      margin-left:auto;
+    }
+    .iconButton{
+      display:inline-flex;
+      align-items:center;
+      min-width:42px;
+      min-height:38px;
+      padding:9px 11px;
+      justify-content:center;
+      font-size:16px;
+      line-height:1;
+    }
+    .iconButton .buttonText{
+      display:none;
+    }
+    .btnPrimary{
+      background:linear-gradient(135deg, rgba(249,115,22,.72), rgba(59,130,246,.34));
+      border-color:rgba(249,115,22,.52);
+    }
+    .btnSoft{
+      background:rgba(255,255,255,.04);
+    }
+    .btnDanger{
+      background:rgba(244,63,94,.14);
+      border-color:rgba(244,63,94,.34);
+      color:#fecdd3;
+    }
+    .saveMessage{
+      display:none;
+      margin-top:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      color:#e2e8f0;
+      padding:10px 12px;
+      font-size:13px;
+      line-height:1.4;
+    }
+    .saveMessage.ok{
+      display:block;
+      border-color:rgba(34,197,94,.34);
+      background:rgba(34,197,94,.12);
+      color:#bbf7d0;
+    }
+    .saveMessage.err{
+      display:block;
+      border-color:rgba(244,63,94,.34);
+      background:rgba(244,63,94,.12);
+      color:#fecdd3;
     }
     .panel{
       border:1px solid var(--line);
@@ -126,7 +307,7 @@
       align-items:flex-start;
       justify-content:space-between;
       gap:14px;
-      padding:18px 18px 14px;
+      padding:14px 14px 10px;
       border-bottom:1px solid rgba(255,255,255,.08);
       background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
     }
@@ -142,12 +323,22 @@
       font-size:13px;
       line-height:1.4;
     }
-    .panelBody{ padding:16px 18px 18px; }
+    .panelBody{ padding:12px 14px 14px; }
+    .deckPanel .panelHead{
+      align-items:center;
+      padding:12px 14px 8px;
+    }
+    .deckPanel .panelHead p{
+      display:none;
+    }
+    .deckPanel .panelBody{
+      padding:10px 14px 14px;
+    }
     .searchBar{
       display:flex;
-      gap:10px;
+      gap:8px;
       align-items:center;
-      margin-bottom:14px;
+      margin-bottom:10px;
     }
     .searchBar input{
       width:100%;
@@ -161,6 +352,46 @@
       outline:none;
     }
     .searchBar input::placeholder{ color:#94a3b8; }
+    .filterBar{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr)) auto;
+      gap:8px;
+      align-items:end;
+      margin:0 0 10px;
+    }
+    .filterControl{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+    .filterControl span{
+      color:#cbd5e1;
+      font-size:10px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .filterControl select{
+      width:100%;
+      min-width:0;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.13);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      padding:9px 10px;
+      font:inherit;
+      font-size:12px;
+      font-weight:800;
+      outline:none;
+    }
+    .filterControl select option{
+      color:#0f172a;
+    }
+    .filterControl select:disabled{
+      opacity:.42;
+      cursor:not-allowed;
+    }
     .btn{
       appearance:none;
       border:1px solid rgba(255,255,255,.14);
@@ -185,7 +416,7 @@
       display:flex;
       flex-wrap:wrap;
       gap:8px;
-      margin-bottom:14px;
+      margin-bottom:10px;
     }
     .statusTag{
       min-height:30px;
@@ -197,23 +428,74 @@
     }
     .cardGrid{
       display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(148px, 1fr));
-      gap:12px;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+      max-height:min(72vh, 980px);
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      padding-right:6px;
+      scrollbar-color:rgba(249,115,22,.55) rgba(255,255,255,.08);
+      scrollbar-width:thin;
+    }
+    .cardGrid::-webkit-scrollbar{
+      width:10px;
+    }
+    .cardGrid::-webkit-scrollbar-track{
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+    }
+    .cardGrid::-webkit-scrollbar-thumb{
+      border-radius:999px;
+      background:rgba(249,115,22,.55);
+      border:2px solid rgba(15,23,42,.92);
     }
     .deckGrid{
       display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));
-      gap:12px;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:8px;
+      margin-bottom:10px;
+    }
+    .deckGrid .cardTile{
+      padding:5px;
+      gap:6px;
+      border-radius:12px;
+    }
+    .deckGrid .artWrap{
+      border-radius:9px;
+    }
+    .deckGrid .cardName{
+      min-height:28px;
+      font-size:11px;
+    }
+    .deckGrid .qtyRow{
+      grid-template-columns:24px minmax(20px, 1fr) 24px;
+    }
+    .deckGrid .qtyButton{
+      width:24px;
+      height:24px;
+      border-radius:9px;
+      font-size:16px;
+    }
+    .deckGrid .qtyBadge{
+      min-height:24px;
+      font-size:12px;
+      border-radius:9px;
     }
     .cardTile{
       border:1px solid rgba(255,255,255,.1);
       border-radius:16px;
-      padding:8px;
+      padding:7px;
       background:var(--panel-soft);
       display:flex;
       flex-direction:column;
       gap:8px;
       min-width:0;
+      transition:transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+    .cardTile:hover{
+      transform:translateY(-2px);
+      border-color:rgba(249,115,22,.32);
+      background:rgba(23,31,48,.92);
     }
     .cardTile.is-leader{
       border-color:rgba(250,204,21,.34);
@@ -232,6 +514,12 @@
       height:100%;
       object-fit:cover;
       display:block;
+      transition:transform .16s ease;
+    }
+    .cardZoom:hover .artWrap img,
+    .leaderArt.cardZoom:hover img,
+    .recommendationCard.cardZoom:hover img{
+      transform:scale(1.07);
     }
     .artFallback{
       width:100%;
@@ -252,11 +540,11 @@
       gap:8px;
     }
     .cardName{
-      font-size:13px;
+      font-size:12px;
       font-weight:900;
       color:#fff;
       line-height:1.2;
-      min-height:32px;
+      min-height:30px;
       display:-webkit-box;
       -webkit-line-clamp:2;
       -webkit-box-orient:vertical;
@@ -321,19 +609,19 @@
     .color-yellow{ background:#facc15; }
     .qtyRow{
       display:grid;
-      grid-template-columns:36px 1fr 36px;
-      gap:8px;
+      grid-template-columns:28px minmax(24px, 1fr) 28px;
+      gap:4px;
       align-items:center;
     }
     .qtyButton{
       appearance:none;
-      width:36px;
-      height:36px;
+      width:28px;
+      height:28px;
       border-radius:12px;
       border:1px solid rgba(255,255,255,.12);
       background:rgba(255,255,255,.08);
       color:#fff;
-      font-size:20px;
+      font-size:18px;
       line-height:1;
       cursor:pointer;
       transition:transform .14s ease, background .14s ease, opacity .14s ease;
@@ -350,7 +638,7 @@
       transform:none;
     }
     .qtyBadge{
-      min-height:36px;
+      min-height:28px;
       border-radius:12px;
       border:1px solid rgba(255,255,255,.08);
       background:rgba(0,0,0,.2);
@@ -360,11 +648,12 @@
       gap:8px;
       color:#fff;
       font-weight:900;
-      font-size:15px;
+      font-size:13px;
     }
     .qtyLabel{
+      display:none;
       color:#94a3b8;
-      font-size:11px;
+      font-size:9px;
       font-weight:800;
       text-transform:uppercase;
       letter-spacing:.08em;
@@ -372,23 +661,26 @@
     .deckSummary{
       display:grid;
       grid-template-columns:repeat(4, minmax(0, 1fr));
-      gap:10px;
-      margin-bottom:14px;
+      gap:8px;
+      margin:8px 0 12px;
     }
     .deckToolbar{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      margin-bottom:14px;
+      gap:8px;
+      margin-bottom:8px;
       flex-wrap:wrap;
     }
     .toolbarTypes{
       display:flex;
+      align-items:center;
       gap:8px;
       flex-wrap:wrap;
     }
     .toolbarType{
+      display:inline-flex;
+      align-items:center;
       min-height:36px;
       padding:8px 12px;
       border-radius:999px;
@@ -401,40 +693,254 @@
     }
     .toolbarActions{
       display:flex;
+      gap:4px;
+      flex-wrap:wrap;
+    }
+    .deckActionBar{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      margin:0 0 8px;
+      flex-wrap:wrap;
+    }
+    .deckActions{
+      margin-left:auto;
+      align-items:center;
+      justify-content:flex-end;
+      gap:6px;
+    }
+    .deckToolbox{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:0;
+      padding:0;
+    }
+    .toolActions{
+      display:flex;
       gap:8px;
       flex-wrap:wrap;
     }
+    .visuallyHiddenField{
+      position:absolute;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+      clip:rect(0 0 0 0);
+      clip-path:inset(50%);
+      white-space:nowrap;
+      border:0;
+      padding:0;
+      margin:-1px;
+    }
+    .validationPanel{
+      display:none;
+    }
+    .validationItem{
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      color:#cbd5e1;
+      padding:8px 10px;
+      font-size:12px;
+      font-weight:750;
+      line-height:1.35;
+    }
+    .validationItem.ok{
+      border-color:rgba(34,197,94,.24);
+      background:rgba(34,197,94,.1);
+      color:#bbf7d0;
+    }
+    .validationItem.warn{
+      border-color:rgba(250,204,21,.24);
+      background:rgba(250,204,21,.1);
+      color:#fde68a;
+    }
+    .validationItem.err{
+      border-color:rgba(244,63,94,.28);
+      background:rgba(244,63,94,.11);
+      color:#fecdd3;
+    }
+    .deckValidationIcon.ok{
+      border-color:rgba(34,197,94,.38);
+      background:rgba(34,197,94,.14);
+      color:#bbf7d0;
+    }
+    .deckValidationIcon{
+      cursor:help;
+      flex-shrink:0;
+    }
+    .deckValidationIcon:hover{
+      transform:none;
+    }
+    .deckValidationIcon.err{
+      border-color:rgba(244,63,94,.42);
+      background:rgba(244,63,94,.16);
+      color:#fecdd3;
+    }
+    .recommendationsPanel{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      padding:14px;
+      background:rgba(255,255,255,.035);
+      margin:0 0 14px;
+    }
+    .recommendationsHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .recommendationsHead h3{
+      margin:0;
+      font-size:16px;
+      font-weight:1000;
+      letter-spacing:-.02em;
+    }
+    .recommendationsHead p{
+      margin:4px 0 0;
+      color:#94a3b8;
+      font-size:12px;
+      line-height:1.4;
+    }
+    .recommendationsGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+      gap:8px;
+    }
+    .recommendationCard{
+      display:grid;
+      grid-template-columns:34px minmax(0, 1fr);
+      gap:8px;
+      align-items:center;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      background:rgba(15,23,42,.56);
+      padding:6px;
+      min-width:0;
+      transition:transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+    .recommendationCard:hover{
+      transform:translateY(-2px);
+      border-color:rgba(249,115,22,.28);
+      background:rgba(15,23,42,.74);
+    }
+    .recommendationArt{
+      position:relative;
+      aspect-ratio:63 / 88;
+      border-radius:7px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.06);
+    }
+    .recommendationArt img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .recommendationFallback{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#cbd5e1;
+      font-size:10px;
+      font-weight:900;
+      text-align:center;
+      padding:4px;
+    }
+    .recommendationBody{
+      min-width:0;
+      display:grid;
+      gap:4px;
+    }
+    .recommendationName{
+      color:#fff;
+      font-size:12px;
+      font-weight:950;
+      line-height:1.2;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .recommendationMeta{
+      color:#94a3b8;
+      font-size:10px;
+      font-weight:750;
+      line-height:1.35;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .recommendationActions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .recButton{
+      appearance:none;
+      border:1px solid rgba(249,115,22,.3);
+      border-radius:10px;
+      background:rgba(249,115,22,.13);
+      color:#fed7aa;
+      cursor:pointer;
+      font-size:11px;
+      font-weight:900;
+      padding:5px 7px;
+    }
+    .recButton:hover{
+      background:rgba(249,115,22,.22);
+    }
+    .recButton[disabled]{
+      opacity:.35;
+      cursor:not-allowed;
+    }
+    .recommendationsEmpty{
+      color:#cbd5e1;
+      font-size:13px;
+      line-height:1.45;
+      border:1px dashed rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:12px;
+      text-align:center;
+    }
     .summaryCard{
       border:1px solid rgba(255,255,255,.08);
-      border-radius:16px;
-      padding:12px;
+      border-radius:12px;
+      padding:8px 10px;
       background:rgba(255,255,255,.04);
     }
     .summaryCard span{
       display:block;
       color:#94a3b8;
-      font-size:11px;
+      font-size:10px;
       font-weight:800;
       text-transform:uppercase;
       letter-spacing:.08em;
     }
     .summaryCard strong{
       display:block;
-      margin-top:4px;
-      font-size:24px;
+      margin-top:2px;
+      font-size:18px;
       font-weight:1000;
       color:#fff;
     }
     .leaderSlot{
       display:grid;
-      grid-template-columns:120px minmax(0, 1fr);
-      gap:14px;
+      grid-template-columns:68px minmax(0, 1fr);
+      gap:10px;
       align-items:center;
-      padding:14px;
-      border-radius:18px;
+      padding:8px;
+      border-radius:14px;
       border:1px solid rgba(250,204,21,.22);
       background:linear-gradient(135deg, rgba(250,204,21,.09), rgba(255,255,255,.04));
-      margin-bottom:14px;
+      margin-bottom:10px;
     }
     .leaderSlot.is-empty{
       grid-template-columns:1fr;
@@ -457,7 +963,7 @@
     }
     .leaderInfo h3{
       margin:0;
-      font-size:22px;
+      font-size:18px;
       font-weight:1000;
       letter-spacing:-.03em;
     }
@@ -498,6 +1004,55 @@
       background:rgba(2,6,23,.72);
       backdrop-filter:blur(8px);
       z-index:1000;
+    }
+    .currentListHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0 0 10px;
+    }
+    .currentListHead h3{
+      margin:0;
+      font-size:16px;
+      font-weight:1000;
+      letter-spacing:-.02em;
+    }
+    .currentListHead span{
+      color:#cbd5e1;
+      font-size:12px;
+      font-weight:900;
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:999px;
+      padding:6px 9px;
+      background:rgba(255,255,255,.05);
+    }
+    .cardZoom{
+      cursor:zoom-in;
+    }
+    .cardPreview{
+      position:fixed;
+      left:0;
+      top:0;
+      transform:translate3d(-9999px, -9999px, 0);
+      opacity:0;
+      pointer-events:none;
+      z-index:250000;
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:14px;
+      padding:8px;
+      background:rgba(2,6,23,.96);
+      box-shadow:0 24px 60px rgba(0,0,0,.48);
+      transition:opacity .12s ease;
+    }
+    .cardPreview img{
+      width:220px;
+      height:auto;
+      max-height:320px;
+      object-fit:contain;
+      display:block;
+      border-radius:10px;
+      background:rgba(255,255,255,.04);
     }
     .detailOverlay.is-open{
       display:flex;
@@ -649,34 +1204,142 @@
     }
     @media (max-width: 1080px){
       .layout{ grid-template-columns:1fr; }
+      .builderActions{ justify-content:flex-end; }
+      .filterBar{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .cardGrid{ max-height:680px; }
     }
     @media (max-width: 760px){
       .page{ padding:14px 12px 24px; }
-      .hero{ padding:18px; }
-      .heroBadges{ justify-content:flex-start; }
+      .filterBar{ grid-template-columns:1fr; }
       .deckSummary{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
       .detailStats{ grid-template-columns:1fr; }
       .leaderSlot{ grid-template-columns:92px minmax(0, 1fr); }
       .cardGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
       .deckGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .deckImagePicker{ grid-template-columns:86px minmax(0, 1fr); }
+      .deckImagePreview{ width:86px; }
+      .deckImageActions{ grid-column:1 / -1; justify-content:flex-start; }
+      .cardPreview{ display:none !important; }
     }
   </style>
 </head>
-<body>
-  <div class="page">
-    <section class="hero">
-      <div>
-        <h1>Deck Builder</h1>
-        <p>Primera base del constructor. A la izquierda tienes el buscador y a la derecha el mazo. Empieza eligiendo un leader: en cuanto lo selecciones, el catálogo se bloqueará a cartas que compartan color con ese leader.</p>
+<body data-skip-global-access-guard="1">
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+        <div class="brand">
+          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+          <small>deck builder</small>
+        </div>
+      </a>
+
+      <div class="nav hubNavFlow">
+        <a class="navInlineLink" href="index.html">Home</a>
+        <div class="navInlineGroup">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="simStatsMenu" aria-haspopup="true">
+            <span>SIM Stats</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="simStatsMenu">
+            <a class="navInlineMenuLink" href="sim-stats/frontend/stats.html" data-requires-auth="1">Stats Propios</a>
+            <a class="navInlineMenuLink" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">Team Stats</a>
+            <a class="navInlineMenuLink" href="leader-stats.html">Global Leader Stats</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="ranking.html" data-requires-auth="1">Ranking</a>
+        <div class="navInlineGroup is-current">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="cardToolsMenu" aria-haspopup="true">
+            <span>Card Tools</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="cardToolsMenu">
+            <a class="navInlineMenuLink" href="cards.html">Card List</a>
+            <a class="navInlineMenuLink" href="decks.html">DeckLists</a>
+            <a class="navInlineMenuLink is-current" href="deck-builder.html">Deck Builder</a>
+            <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
+            <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
-      <div class="heroBadges">
-        <div class="pill" id="catalogPill">Catalogo: ...</div>
-        <div class="pill" id="leaderModePill">Modo: leaders</div>
+    </div>
+  </div>
+
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head">
+          <strong id="userEmail">-</strong>
+          <span>Sesion iniciada</span>
+        </div>
+        <a href="profile.html">Configurar perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <section class="panel builderMeta">
+      <div class="panelHead">
+        <div>
+          <h2>Datos del Deck</h2>
+          <p id="builderModeText">Puedes construir en local. Si inicias sesion, podras guardar el deck en el hub.</p>
+        </div>
+        <div class="builderActions">
+          <button class="btn btnPrimary iconButton" id="saveDeckButton" type="button" title="Guardar o actualizar DeckList" aria-label="Guardar o actualizar DeckList">&#10003;<span class="buttonText">Guardar en DeckLists</span></button>
+          <button class="btn btnSoft iconButton" id="openDeckButton" type="button" style="display:none;" title="Abrir deck" aria-label="Abrir deck">&#8599;<span class="buttonText">Abrir deck</span></button>
+          <a class="btn btnSoft iconButton" href="decks.html" title="Ver DeckLists" aria-label="Ver DeckLists">&#9776;<span class="buttonText">Ver DeckLists</span></a>
+        </div>
+        <div class="hiddenStatus" aria-hidden="true">
+          <span id="catalogPill">Catalogo: ...</span>
+          <span id="leaderModePill">Modo: leaders</span>
+          <span id="saveModePill">Modo local</span>
+          <span id="deckValidityTag">Sin validar</span>
+        </div>
+      </div>
+      <div class="panelBody">
+        <div class="builderDeckRow">
+          <div class="builderFields">
+            <div class="field">
+              <label for="deckNameInput">Nombre</label>
+              <input id="deckNameInput" class="formControl" type="text" placeholder="Ej: Zoro Rush v2" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="deckDescriptionInput">Descripcion</label>
+              <textarea id="deckDescriptionInput" class="formControl" placeholder="Plan de juego, matchups, notas..."></textarea>
+            </div>
+            <div class="field">
+              <label for="deckImageInput">Imagen</label>
+              <div class="deckImagePicker">
+                <div class="deckImagePreview" id="deckImagePreview"><span>Sin imagen</span></div>
+                <div class="deckImageMeta">
+                  <strong>Imagen del deck</strong>
+                  <span id="deckImageFileName">Sin imagen seleccionada</span>
+                  <span>Se sube a Supabase Storage (bucket: deck-images).</span>
+                </div>
+                <div class="deckImageActions">
+                  <input id="deckImageInput" class="visuallyHiddenFile" type="file" accept="image/*" />
+                  <label class="btn btnSoft" for="deckImageInput">Subir imagen</label>
+                  <button class="btn btnSoft iconButton" id="clearDeckImageButton" type="button" title="Quitar imagen" aria-label="Quitar imagen">&times;<span class="buttonText">Quitar imagen</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="saveMessage" id="saveMessage"></div>
       </div>
     </section>
 
     <section class="layout">
-      <div class="panel">
+      <div class="panel searchPanel">
         <div class="panelHead">
           <div>
             <h2>Buscador de Cartas</h2>
@@ -689,6 +1352,39 @@
             <input id="searchInput" type="text" placeholder="Buscar por nombre o codigo" autocomplete="off" />
             <button class="btn" id="reloadButton" type="button">Recargar</button>
           </div>
+          <div class="filterBar" aria-label="Filtros de cartas">
+            <label class="filterControl" for="filterType">
+              <span>Tipo</span>
+              <select id="filterType">
+                <option value="">Todos</option>
+                <option value="Character">Characters</option>
+                <option value="Event">Events</option>
+                <option value="Stage">Stage</option>
+              </select>
+            </label>
+            <label class="filterControl" for="filterColor">
+              <span>Color</span>
+              <select id="filterColor">
+                <option value="">Todos</option>
+              </select>
+            </label>
+            <label class="filterControl" for="filterCost">
+              <span>Coste</span>
+              <select id="filterCost">
+                <option value="">Todos</option>
+              </select>
+            </label>
+            <label class="filterControl" for="filterCounter">
+              <span>Counter</span>
+              <select id="filterCounter">
+                <option value="">Todos</option>
+                <option value="1000">+1000</option>
+                <option value="2000">+2000</option>
+                <option value="none">Sin counter</option>
+              </select>
+            </label>
+            <button class="btn btnSoft" id="clearFiltersButton" type="button">Limpiar filtros</button>
+          </div>
           <div class="statusRow" id="searchStatusRow"></div>
           <div id="availableGrid" class="cardGrid"></div>
           <div id="availableEmpty" class="emptyState" style="display:none;"></div>
@@ -696,7 +1392,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel deckPanel">
         <div class="panelHead">
           <div>
             <h2>Mazo en Construccion</h2>
@@ -711,19 +1407,40 @@
               <div class="toolbarType">Events <span id="eventCount">0</span></div>
               <div class="toolbarType">Stage <span id="stageCount">0</span></div>
             </div>
-            <div class="toolbarActions">
-              <button class="btn" id="detailButton" type="button">Detalle</button>
+            <div class="toolbarActions deckActions">
+              <span class="btn iconButton deckValidationIcon err" id="deckValidationIcon" role="status" tabindex="0" title="Lista incompleta" aria-label="Lista incompleta">&times;<span class="buttonText">Estado del mazo</span></span>
+              <button class="btn iconButton" id="detailButton" type="button" title="Ver detalle" aria-label="Ver detalle">&#9638;<span class="buttonText">Detalle</span></button>
+              <button class="btn iconButton" id="clearDeckButton" type="button" title="Limpiar mazo" aria-label="Limpiar mazo">&times;<span class="buttonText">Limpiar</span></button>
+              <button class="btn btnAccent iconButton" id="importButton" type="button" title="Importar SIM paste del portapapeles" aria-label="Importar SIM paste del portapapeles">&#8681;<span class="buttonText">Importar del portapapeles</span></button>
+              <button class="btn btnSoft iconButton" id="copyExportButton" type="button" title="Copiar SIM paste" aria-label="Copiar SIM paste">&#10697;<span class="buttonText">Copiar SIM paste</span></button>
             </div>
+            <textarea id="importTextarea" class="visuallyHiddenField" aria-hidden="true" tabindex="-1"></textarea>
+            <textarea id="exportTextarea" class="visuallyHiddenField" aria-hidden="true" tabindex="-1" readonly></textarea>
           </div>
-          <div class="deckSummary">
-            <div class="summaryCard"><span>Total del Mazo</span><strong id="deckTotalCount">0</strong></div>
-            <div class="summaryCard"><span>Cartas Distintas</span><strong id="uniqueCount">0</strong></div>
-            <div class="summaryCard"><span>Main Deck</span><strong id="mainDeckCount">0</strong></div>
-            <div class="summaryCard"><span>Maximo</span><strong id="deckLimit">51</strong></div>
+          <div class="validationPanel" id="validationPanel"></div>
+          <div class="currentListHead">
+            <h3>Lista actual</h3>
+            <span id="currentListMeta">0/50</span>
           </div>
           <div id="leaderSlot"></div>
           <div id="deckGrid" class="deckGrid"></div>
           <div id="deckEmpty" class="emptyState">Todavia no has anadido cartas al mazo.</div>
+          <div class="deckSummary">
+            <div class="summaryCard"><span>Total</span><strong id="deckTotalCount">0</strong></div>
+            <div class="summaryCard"><span>Distintas</span><strong id="uniqueCount">0</strong></div>
+            <div class="summaryCard"><span>Main</span><strong id="mainDeckCount">0</strong></div>
+            <div class="summaryCard"><span>Max</span><strong id="deckLimit">51</strong></div>
+          </div>
+          <section class="recommendationsPanel" id="recommendationsPanel">
+            <div class="recommendationsHead">
+              <div>
+                <h3>Recomendaciones</h3>
+                <p id="recommendationsInfo">Elige un leader para ver cartas frecuentes en decklists top.</p>
+              </div>
+              <button class="btn btnSoft" id="refreshRecommendationsButton" type="button">Actualizar</button>
+            </div>
+            <div id="recommendationsBody" class="recommendationsEmpty">Sin leader seleccionado.</div>
+          </section>
         </div>
       </div>
     </section>
@@ -743,7 +1460,7 @@
           <h3 id="detailTitle">Detalle del mazo</h3>
           <p>Curva de costes y resumen rapido del main deck.</p>
         </div>
-        <button class="closeButton" id="detailCloseButton" type="button" aria-label="Cerrar detalle">×</button>
+        <button class="closeButton" id="detailCloseButton" type="button" aria-label="Cerrar detalle">&times;</button>
       </div>
       <div class="detailBody">
         <div id="costCurve" class="chartWrap"></div>
@@ -770,6 +1487,12 @@
       Black: "Negro",
       Yellow: "Amarillo"
     };
+    const SEARCH_TYPE_ORDER = {
+      Leader: -1,
+      Character: 0,
+      Event: 1,
+      Stage: 2
+    };
     const PUNK_RARITY_MAP = {
       Leader: "L",
       Common: "C",
@@ -788,14 +1511,44 @@
       8482: 153, 353: 154, 8250: 155, 339: 156, 382: 158, 376: 159
     };
     const collator = new Intl.Collator("es", { sensitivity: "base", numeric: true });
+    const params = new URLSearchParams(window.location.search);
+    const initialDeckId = normalize(params.get("id") || params.get("deck") || "");
+    const RECOMMENDATION_DATASET = "west_private";
+    const RECOMMENDATION_LIMIT = 12;
+    let sb = null;
+
     const state = {
       allCards: [],
       cardsByCode: new Map(),
       selectedLeaderCode: "",
       deckCounts: new Map(),
       search: "",
+      filters: {
+        type: "",
+        color: "",
+        cost: "",
+        counter: ""
+      },
       partialFailures: [],
-      detailOpen: false
+      detailOpen: false,
+      currentUser: null,
+      currentDeckId: initialDeckId,
+      currentDeckUrl: "",
+      loadedDeck: null,
+      deckImageUrl: "",
+      pendingDeckImageFile: null,
+      deckImagePreviewUrl: "",
+      saveBusy: false,
+      catalogReady: false,
+      recommendations: {
+        leaderCode: "",
+        status: "idle",
+        rows: [],
+        sourceDate: "",
+        error: "",
+        cache: new Map(),
+        inflight: null
+      }
     };
 
     function $(id){ return document.getElementById(id); }
@@ -803,6 +1556,7 @@
     function escapeHtml(value){
       return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
+    function escapeAttr(value){ return escapeHtml(value); }
     function compactSearch(value){ return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
     function normalizeApiArray(data){
       return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : Array.isArray(data?.cards) ? data.cards : [];
@@ -813,7 +1567,48 @@
         return res.json();
       });
     }
+    function initSupabaseClient(){
+      try{
+        if (!window.BarateamApp || !window.supabase) return null;
+        return window.BarateamApp.createClient();
+      }catch(_error){
+        return null;
+      }
+    }
+    sb = initSupabaseClient();
+    const navController = sb && window.BarateamApp?.initUserNav
+      ? window.BarateamApp.initUserNav({
+          supabase: sb,
+          stopPropagationOnToggle: true,
+          onLogout: async () => {
+            await sb.auth.signOut();
+            window.location.href = "login.html";
+          }
+        })
+      : null;
+    if (sb && window.BarateamApp?.bindProtectedNavLinks){
+      window.BarateamApp.bindProtectedNavLinks(sb, { skipGuard: true });
+    }
+
+    function syncNavUser(user){
+      window.__barateamCurrentUser = user || null;
+      if (navController) navController.setUser(user || null);
+      if (sb && window.BarateamApp?.syncTopbarAvatar){
+        void window.BarateamApp.syncTopbarAvatar(sb, user || null);
+      }
+    }
+
     function sourceFilePath(source, filePath){ return `${source.basePath}/${filePath}`; }
+    function toYmd(date){
+      const d = date instanceof Date ? date : new Date(date);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+    function toCompactDate(ymd){
+      return String(ymd || "").replaceAll("-", "");
+    }
     function decodeHtmlEntities(value){
       const raw = String(value ?? "");
       if (!raw) return "";
@@ -874,6 +1669,111 @@
       const code = normalizeCardCode(value);
       if (!code) return "";
       return `https://static.dotgg.gg/onepiece/card/${encodeURIComponent(code)}.webp`;
+    }
+    function cardFallbackSource(card){
+      return normalize(card?.fallbackImage) || buildDotggCardImageUrl(card?.code);
+    }
+    function cardImageSource(card){
+      return normalize(card?.image) || cardFallbackSource(card);
+    }
+    function failedImageFallbackMarkup(label, fallbackClass){
+      const node = document.createElement("div");
+      node.className = fallbackClass || "artFallback";
+      node.textContent = normalize(label) || "Sin imagen";
+      return node;
+    }
+    function handleDeckBuilderImageError(event){
+      const img = event.target;
+      if (!(img instanceof HTMLImageElement) || img.dataset.deckBuilderImage !== "1") return;
+
+      const fallbackSrc = normalize(img.dataset.fallbackSrc || "");
+      let fallbackHref = "";
+      if (fallbackSrc){
+        try{ fallbackHref = new URL(fallbackSrc, window.location.href).href; }catch(_error){ fallbackHref = fallbackSrc; }
+      }
+
+      if (fallbackSrc && img.dataset.fallbackApplied !== "1" && img.currentSrc !== fallbackHref){
+        img.dataset.fallbackApplied = "1";
+        img.src = fallbackSrc;
+        return;
+      }
+
+      img.replaceWith(failedImageFallbackMarkup(img.dataset.fallbackLabel || img.alt, img.dataset.fallbackClass));
+    }
+    function initDeckBuilderImageFallbacks(){
+      if (document.body.dataset.deckBuilderImageFallbacks === "1") return;
+      document.body.dataset.deckBuilderImageFallbacks = "1";
+      document.addEventListener("error", handleDeckBuilderImageError, true);
+    }
+    function initCardHoverPreview(){
+      if (document.body.dataset.deckBuilderPreview === "1") return;
+      document.body.dataset.deckBuilderPreview = "1";
+
+      const preview = document.createElement("div");
+      preview.className = "cardPreview";
+      preview.innerHTML = '<img alt="">';
+      document.body.appendChild(preview);
+
+      const img = preview.querySelector("img");
+      let activeAnchor = null;
+
+      function place(anchor){
+        if (!anchor) return;
+        const rect = anchor.getBoundingClientRect();
+        const margin = 12;
+        const previewWidth = preview.offsetWidth || 236;
+        const previewHeight = preview.offsetHeight || 336;
+        let x = rect.right + 12;
+        let y = rect.top + ((rect.height - previewHeight) / 2);
+        if (x + previewWidth > window.innerWidth - margin) x = rect.left - previewWidth - 12;
+        if (y < margin) y = margin;
+        if (y + previewHeight > window.innerHeight - margin){
+          y = Math.max(margin, window.innerHeight - previewHeight - margin);
+        }
+        preview.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+      }
+
+      function hide(){
+        activeAnchor = null;
+        preview.style.opacity = "0";
+        preview.style.transform = "translate3d(-9999px,-9999px,0)";
+      }
+
+      function show(anchor){
+        const src = normalize(anchor?.dataset?.previewSrc || "");
+        if (!src){
+          hide();
+          return;
+        }
+        activeAnchor = anchor;
+        img.src = src;
+        img.alt = normalize(anchor?.dataset?.previewLabel || "Carta");
+        preview.style.opacity = "1";
+        place(anchor);
+      }
+
+      document.addEventListener("mouseover", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const anchor = target ? target.closest(".cardZoom[data-preview-src]") : null;
+        if (!anchor){
+          if (activeAnchor && target && !preview.contains(target)) hide();
+          return;
+        }
+        show(anchor);
+      });
+
+      document.addEventListener("mouseout", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const from = target ? target.closest(".cardZoom[data-preview-src]") : null;
+        if (!from) return;
+        const to = event.relatedTarget;
+        if (to instanceof Node && (from.contains(to) || preview.contains(to))) return;
+        hide();
+      });
+
+      window.addEventListener("scroll", () => { if (activeAnchor) place(activeAnchor); }, true);
+      window.addEventListener("resize", () => { if (activeAnchor) place(activeAnchor); });
+      window.addEventListener("blur", hide);
     }
     function toIntOrNull(value){
       if (value === null || value === undefined || value === "") return null;
@@ -1063,6 +1963,15 @@
     function mainDeckEntries(){
       return activeDeckEntries().filter((entry) => entry.card.type !== "Leader");
     }
+    function compareMainDeckEntries(a, b){
+      const typeDiff = searchTypeRank(a.card) - searchTypeRank(b.card);
+      if (typeDiff !== 0) return typeDiff;
+
+      const costDiff = a.card.costSort - b.card.costSort;
+      if (costDiff !== 0) return costDiff;
+
+      return collator.compare(a.card.name, b.card.name) || collator.compare(a.card.code, b.card.code);
+    }
     function buildDeckStats(){
       const mainEntries = mainDeckEntries();
       const typeCounts = { Character: 0, Event: 0, Stage: 0 };
@@ -1093,10 +2002,844 @@
 
       return { typeCounts, costCurve, bricks, plus1000, plus2000 };
     }
+
+    function sortedMainDeckEntries(){
+      return mainDeckEntries().sort(compareMainDeckEntries);
+    }
+
+    function deckLeaderLabel(card){
+      if (!card) return "";
+      return [card.name, card.code].filter(Boolean).join(" ").trim();
+    }
+
+    function deckLeaderImage(card){
+      return cardImageSource(card);
+    }
+
+    function extractCardCode(value){
+      const raw = String(value || "")
+        .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, "-")
+        .toUpperCase();
+      const match = raw.match(/((?:OP|ST|EB|PRB)\s*-?\s*\d{1,2}\s*-?\s*\d{3}|P\s*-?\s*\d{1,3})/i);
+      return match ? normalizeCardCode(match[1].replace(/\s+/g, "")) : "";
+    }
+
+    function parseSimPasteLine(line){
+      const raw = String(line || "").trim();
+      if (!raw || raw.startsWith("#") || raw.startsWith("//")) return null;
+
+      let qty = null;
+      let rest = raw;
+      const prefix = raw.match(/^(\d{1,2})\s*x?\s*(.+)$/i);
+      if (prefix){
+        qty = Number(prefix[1] || 0);
+        rest = prefix[2] || "";
+      } else {
+        const suffix = raw.match(/^(.+?)\s*x\s*(\d{1,2})$/i);
+        if (suffix){
+          rest = suffix[1] || "";
+          qty = Number(suffix[2] || 0);
+        }
+      }
+
+      const code = extractCardCode(rest || raw);
+      if (!code) return { raw, qty: qty || 0, code: "", error: "No se reconoce codigo" };
+      return { raw, qty: qty || 1, code, error: "" };
+    }
+
+    function parseSimPaste(text){
+      const lines = String(text || "").split(/\r?\n/);
+      const items = [];
+      const errors = [];
+      lines.forEach((line, index) => {
+        const parsed = parseSimPasteLine(line);
+        if (!parsed) return;
+        if (parsed.error || !parsed.qty){
+          errors.push(`Linea ${index + 1}: ${parsed.error || "cantidad invalida"}`);
+          return;
+        }
+        items.push(parsed);
+      });
+      return { items, errors };
+    }
+
+    function formatSimPaste(){
+      const lines = [];
+      const leader = selectedLeader();
+      if (leader) lines.push(`1x${leader.code}`);
+      sortedMainDeckEntries().forEach((entry) => {
+        lines.push(`${Number(entry.qty || 0)}x${entry.card.code}`);
+      });
+      return lines.join("\n");
+    }
+
+    function resolveLeaderCardFromLabel(label){
+      const raw = normalize(label);
+      if (!raw) return null;
+      const code = extractCardCode(raw);
+      if (code){
+        const byCode = state.cardsByCode.get(code);
+        if (byCode?.type === "Leader") return byCode;
+      }
+      const lower = raw.toLowerCase();
+      return state.allCards.find((card) => (
+        card.type === "Leader" && (
+          deckLeaderLabel(card).toLowerCase() === lower ||
+          card.name.toLowerCase() === lower ||
+          card.code.toLowerCase() === lower ||
+          deckLeaderLabel(card).toLowerCase().startsWith(lower) ||
+          lower.startsWith(card.name.toLowerCase())
+        )
+      )) || null;
+    }
+
+    function validateDeck(){
+      const issues = [];
+      const warnings = [];
+      const leader = selectedLeader();
+      const entries = mainDeckEntries();
+      const total = entries.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+
+      if (!leader){
+        issues.push("Falta elegir leader.");
+      }
+      if (total !== 50){
+        issues.push(total < 50 ? `Faltan ${50 - total} cartas del main deck.` : `Sobran ${total - 50} cartas del main deck.`);
+      }
+
+      entries.forEach((entry) => {
+        const qty = Number(entry.qty || 0);
+        if (qty > 4) issues.push(`${entry.card.code} tiene ${qty} copias; el maximo es 4.`);
+        if (leader && !matchesLeaderColors(entry.card)){
+          issues.push(`${entry.card.code} no comparte color con ${leader.code}.`);
+        }
+      });
+
+      if (leader && total === 50 && !entries.length){
+        warnings.push("El leader esta elegido, pero la lista no tiene cartas.");
+      }
+
+      return { ok: issues.length === 0, issues, warnings, total, leader };
+    }
+
+    function showSaveMessage(text, type){
+      const node = $("saveMessage");
+      if (!node) return;
+      if (!text){
+        node.style.display = "none";
+        node.className = "saveMessage";
+        node.textContent = "";
+        return;
+      }
+      node.textContent = text;
+      node.className = `saveMessage ${type === "ok" ? "ok" : "err"}`;
+      node.style.display = "block";
+    }
+
+    function releaseDeckImagePreviewUrl(){
+      if (state.deckImagePreviewUrl){
+        URL.revokeObjectURL(state.deckImagePreviewUrl);
+        state.deckImagePreviewUrl = "";
+      }
+    }
+
+    function renderDeckImagePreview(){
+      const preview = $("deckImagePreview");
+      const label = $("deckImageFileName");
+      const clearBtn = $("clearDeckImageButton");
+      if (!preview || !label || !clearBtn) return;
+
+      const imageSrc = state.deckImagePreviewUrl || state.deckImageUrl || "";
+      if (imageSrc){
+        preview.innerHTML = `<img src="${escapeAttr(imageSrc)}" alt="Imagen del deck" />`;
+      } else {
+        preview.innerHTML = "<span>Sin imagen</span>";
+      }
+
+      if (state.pendingDeckImageFile){
+        label.textContent = state.pendingDeckImageFile.name || "Imagen seleccionada";
+      } else if (state.deckImageUrl){
+        label.textContent = "Imagen guardada";
+      } else {
+        label.textContent = "Sin imagen seleccionada";
+      }
+      clearBtn.style.display = imageSrc ? "inline-flex" : "none";
+    }
+
+    function setDeckImageUrl(url){
+      releaseDeckImagePreviewUrl();
+      state.pendingDeckImageFile = null;
+      state.deckImageUrl = normalize(url);
+      const input = $("deckImageInput");
+      if (input) input.value = "";
+      renderDeckImagePreview();
+    }
+
+    function handleDeckImageInputChange(event){
+      const file = event?.target?.files?.[0] || null;
+      releaseDeckImagePreviewUrl();
+      state.pendingDeckImageFile = file;
+      if (file){
+        state.deckImagePreviewUrl = URL.createObjectURL(file);
+      }
+      renderDeckImagePreview();
+    }
+
+    function clearDeckImage(){
+      setDeckImageUrl("");
+    }
+
+    async function uploadDeckImage(file, userId){
+      if (!file) return null;
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "jpg";
+      const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
+      const path = `${userId}/${fileName}`;
+      const { error: upErr } = await sb
+        .storage
+        .from("deck-images")
+        .upload(path, file, { upsert:false, contentType:file.type || "image/jpeg" });
+      if (upErr) throw upErr;
+      const { data } = sb.storage.from("deck-images").getPublicUrl(path);
+      return data?.publicUrl || null;
+    }
+
+    function renderAuthState(){
+      const mode = state.currentDeckId ? "Editando deck" : (state.currentUser ? "Sesion activa" : "Modo local");
+      $("saveModePill").textContent = mode;
+      $("builderModeText").textContent = state.currentUser
+        ? (state.currentDeckId ? "Estas editando un deck guardado. Al guardar se actualizara en DeckLists." : "Puedes guardar esta lista como deck del hub.")
+        : "Puedes construir en local. Inicia sesion para guardar el deck en el hub.";
+      const openBtn = $("openDeckButton");
+      if (openBtn){
+        openBtn.style.display = state.currentDeckUrl ? "" : "none";
+      }
+    }
+
+    function renderValidation(){
+      const validation = validateDeck();
+      const items = [];
+      if (validation.ok){
+        items.push(`<div class="validationItem ok">Lista valida: 1 leader y 50 cartas en main deck.</div>`);
+      } else {
+        validation.issues.slice(0, 6).forEach((issue) => {
+          items.push(`<div class="validationItem err">${escapeHtml(issue)}</div>`);
+        });
+        if (validation.issues.length > 6){
+          items.push(`<div class="validationItem warn">${validation.issues.length - 6} aviso(s) mas.</div>`);
+        }
+      }
+      validation.warnings.forEach((warning) => {
+        items.push(`<div class="validationItem warn">${escapeHtml(warning)}</div>`);
+      });
+      $("validationPanel").innerHTML = items.join("");
+      const validationMessages = validation.ok
+        ? ["Lista valida: 1 leader y 50 cartas en main deck."]
+        : validation.issues.concat(validation.warnings);
+      const validationTooltip = validationMessages.join("\n") || "Lista incompleta";
+      const validationIcon = $("deckValidationIcon");
+      if (validationIcon){
+        validationIcon.classList.toggle("ok", validation.ok);
+        validationIcon.classList.toggle("err", !validation.ok);
+        validationIcon.title = validationTooltip;
+        validationIcon.setAttribute("aria-label", validationTooltip.replace(/\n/g, ". "));
+        validationIcon.innerHTML = `${validation.ok ? "&#10003;" : "&times;"}<span class="buttonText">Estado del mazo</span>`;
+      }
+      $("deckValidityTag").textContent = validation.ok ? "Lista valida" : "Lista incompleta";
+      $("deckValidityTag").className = validation.ok ? "statusTag" : "statusTag";
+
+      const saveBtn = $("saveDeckButton");
+      if (saveBtn){
+        saveBtn.disabled = state.saveBusy || !state.currentUser || !validation.ok;
+        saveBtn.title = state.currentDeckId ? "Actualizar DeckList" : "Guardar en DeckLists";
+        saveBtn.setAttribute("aria-label", saveBtn.title);
+      }
+    }
+
+    function normalizeDecklistRows(rows){
+      return (Array.isArray(rows) ? rows : []).map((row) => ({
+        leader: normalizeCardCode(row?.leader || row?.leader_code || row?.leaderCode || ""),
+        leaderName: normalize(row?.leaderName || row?.leader_name || row?.leader || ""),
+        bestDecklists: Array.isArray(row?.best_decklists) ? row.best_decklists
+          : Array.isArray(row?.bestDecklists) ? row.bestDecklists
+          : Array.isArray(row?.decks) ? row.decks
+          : []
+      })).filter((row) => row.leader);
+    }
+
+    function deckTextFromRecommendationDeck(deck){
+      return String(
+        deck?.decklist ||
+        deck?.deck_list ||
+        deck?.list ||
+        deck?.sim_paste ||
+        deck?.cards ||
+        ""
+      );
+    }
+
+    async function fetchRecommendationDataset(){
+      if (!window.BarateamApp?.SUPABASE_URL) throw new Error("Supabase no esta disponible.");
+      const requested = toYmd(new Date());
+      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/matchup-stats?dataset=${encodeURIComponent(RECOMMENDATION_DATASET)}&date=${toCompactDate(requested)}`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`matchup-stats ${res.status}`);
+      const payload = await res.json();
+      const deckRows = normalizeDecklistRows(payload?.data?.decklist || []);
+      return {
+        sourceDate: payload?.date
+          ? `${String(payload.date).slice(0, 4)}-${String(payload.date).slice(4, 6)}-${String(payload.date).slice(6, 8)}`
+          : requested,
+        deckRows
+      };
+    }
+
+    function buildRecommendationsForLeader(leaderCode, decklists, sourceDate){
+      const leader = normalizeCardCode(leaderCode);
+      const aggregate = new Map();
+      const relevantDecks = Array.isArray(decklists) ? decklists : [];
+
+      relevantDecks.forEach((deck, deckIndex) => {
+        const parsed = parseSimPaste(deckTextFromRecommendationDeck(deck));
+        const seenInDeck = new Set();
+
+        parsed.items.forEach((item) => {
+          const code = normalizeCardCode(item.code);
+          if (!code || code === leader) return;
+          const card = state.cardsByCode.get(code);
+          if (!card || card.type === "Leader") return;
+          if (!matchesLeaderColors(card)) return;
+
+          const entry = aggregate.get(code) || {
+            code,
+            card,
+            deckCount: 0,
+            totalQty: 0,
+            maxQty: 0,
+            firstSeen: deckIndex
+          };
+          if (!seenInDeck.has(code)){
+            entry.deckCount += 1;
+            seenInDeck.add(code);
+          }
+          entry.totalQty += Number(item.qty || 0);
+          entry.maxQty = Math.max(entry.maxQty, Number(item.qty || 0));
+          entry.firstSeen = Math.min(entry.firstSeen, deckIndex);
+          aggregate.set(code, entry);
+        });
+      });
+
+      const deckCount = Math.max(1, relevantDecks.length);
+      return Array.from(aggregate.values())
+        .map((entry) => {
+          const avgQty = entry.totalQty / entry.deckCount;
+          const recommendedQty = Math.max(1, Math.min(4, Math.round(avgQty)));
+          const currentQty = Number(state.deckCounts.get(entry.code) || 0);
+          return {
+            ...entry,
+            deckCountTotal: deckCount,
+            inclusionRate: entry.deckCount / deckCount,
+            avgQty,
+            recommendedQty,
+            currentQty,
+            missingQty: Math.max(0, recommendedQty - currentQty)
+          };
+        })
+        .filter((entry) => entry.currentQty < entry.recommendedQty)
+        .sort((a, b) => {
+          if (b.deckCount !== a.deckCount) return b.deckCount - a.deckCount;
+          if (b.inclusionRate !== a.inclusionRate) return b.inclusionRate - a.inclusionRate;
+          if (b.avgQty !== a.avgQty) return b.avgQty - a.avgQty;
+          return a.firstSeen - b.firstSeen || collator.compare(a.card.name, b.card.name);
+        })
+        .slice(0, RECOMMENDATION_LIMIT)
+        .map((entry) => ({ ...entry, sourceDate }));
+    }
+
+    async function loadRecommendations(force){
+      const leader = selectedLeader();
+      const leaderCode = normalizeCardCode(leader?.code || "");
+      if (!leaderCode){
+        state.recommendations.leaderCode = "";
+        state.recommendations.status = "idle";
+        state.recommendations.rows = [];
+        state.recommendations.error = "";
+        renderRecommendations();
+        return;
+      }
+
+      const cached = state.recommendations.cache.get(leaderCode);
+      if (cached && !force){
+        state.recommendations.leaderCode = leaderCode;
+        state.recommendations.status = "ready";
+        state.recommendations.rows = buildRecommendationsForLeader(leaderCode, cached.decklists, cached.sourceDate);
+        state.recommendations.sourceDate = cached.sourceDate;
+        state.recommendations.error = "";
+        renderRecommendations();
+        return;
+      }
+
+      state.recommendations.leaderCode = leaderCode;
+      state.recommendations.status = "loading";
+      state.recommendations.rows = [];
+      state.recommendations.error = "";
+      renderRecommendations();
+
+      try{
+        const loaded = await fetchRecommendationDataset();
+        const row = loaded.deckRows.find((item) => normalizeCardCode(item.leader) === leaderCode) || null;
+        const decklists = row?.bestDecklists || [];
+        state.recommendations.cache.set(leaderCode, {
+          sourceDate: loaded.sourceDate,
+          decklists
+        });
+        if (state.selectedLeaderCode !== leaderCode) return;
+        state.recommendations.status = "ready";
+        state.recommendations.rows = buildRecommendationsForLeader(leaderCode, decklists, loaded.sourceDate);
+        state.recommendations.sourceDate = loaded.sourceDate;
+      }catch(error){
+        if (state.selectedLeaderCode !== leaderCode) return;
+        state.recommendations.status = "error";
+        state.recommendations.rows = [];
+        state.recommendations.error = error?.message || "No se pudieron cargar recomendaciones.";
+      }
+      renderRecommendations();
+    }
+
+    function recommendationCardMarkup(item){
+      const card = item.card;
+      const src = cardImageSource(card);
+      const fallbackSrc = cardFallbackSource(card);
+      const pct = `${Math.round((item.inclusionRate || 0) * 100)}%`;
+      const missing = item.missingQty > 0 ? `+${item.missingQty}` : "+";
+      const art = src
+        ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(card.name)}" loading="lazy" data-deck-builder-image="1" data-fallback-src="${escapeAttr(fallbackSrc)}" data-fallback-label="${escapeAttr(card.code)}" data-fallback-class="recommendationFallback">`
+        : `<div class="recommendationFallback">${escapeHtml(card.code)}</div>`;
+      return `
+        <article class="recommendationCard cardZoom" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(card.name)}">
+          <div class="recommendationArt">${art}</div>
+          <div class="recommendationBody">
+            <div class="recommendationName" title="${escapeAttr(card.name)}">${escapeHtml(card.name)}</div>
+            <div class="recommendationMeta">${escapeHtml(card.code)} - ${pct} (${item.deckCount}/${item.deckCountTotal})</div>
+            <div class="recommendationActions">
+              <button class="recButton" type="button" data-rec-add="${escapeAttr(card.code)}">${escapeHtml(missing)} copias</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderRecommendations(){
+      const info = $("recommendationsInfo");
+      const body = $("recommendationsBody");
+      const refreshBtn = $("refreshRecommendationsButton");
+      if (!info || !body) return;
+
+      const leader = selectedLeader();
+      refreshBtn.disabled = state.recommendations.status === "loading" || !leader;
+      if (!leader){
+        info.textContent = "Elige un leader para ver cartas frecuentes en decklists top.";
+        body.className = "recommendationsEmpty";
+        body.textContent = "Sin leader seleccionado.";
+        return;
+      }
+
+      if (state.recommendations.status === "loading"){
+        info.textContent = `Buscando decklists top para ${leader.name}...`;
+        body.className = "recommendationsEmpty";
+        body.textContent = "Cargando recomendaciones...";
+        return;
+      }
+
+      if (state.recommendations.status === "error"){
+        info.textContent = "No se pudieron cargar datos externos.";
+        body.className = "recommendationsEmpty";
+        body.textContent = `Recomendaciones no disponibles: ${state.recommendations.error}`;
+        return;
+      }
+
+      if (state.recommendations.leaderCode && state.recommendations.leaderCode !== leader.code){
+        info.textContent = `Preparando recomendaciones para ${leader.name}.`;
+        body.className = "recommendationsEmpty";
+        body.textContent = "Cargando recomendaciones...";
+        return;
+      }
+
+      const rows = state.recommendations.rows || [];
+      info.textContent = state.recommendations.sourceDate
+        ? `Basado en decklists top de CardKaizoku (${state.recommendations.sourceDate}).`
+        : "Basado en decklists top de CardKaizoku.";
+      if (!rows.length){
+        body.className = "recommendationsEmpty";
+        body.textContent = "No hay cartas pendientes de recomendar: tu lista ya incluye las cartas frecuentes o no hay datos para este leader.";
+        return;
+      }
+
+      body.className = "recommendationsGrid";
+      body.innerHTML = rows.map(recommendationCardMarkup).join("");
+    }
+
+    function applyRecommendationAction(code, mode){
+      const card = state.cardsByCode.get(normalizeCardCode(code));
+      if (!card || card.type === "Leader") return;
+      if (!state.selectedLeaderCode || !matchesLeaderColors(card)) return;
+      const recommendation = (state.recommendations.rows || []).find((item) => item.code === card.code);
+      const current = Number(state.deckCounts.get(card.code) || 0);
+      const target = current + Number(recommendation?.missingQty || 1);
+      setCardQuantity(card, Math.min(4, target));
+    }
+
+    function refreshRecommendationsFromCurrentDeck(){
+      const leaderCode = normalizeCardCode(state.selectedLeaderCode || "");
+      const cached = leaderCode ? state.recommendations.cache.get(leaderCode) : null;
+      if (cached){
+        state.recommendations.rows = buildRecommendationsForLeader(leaderCode, cached.decklists, cached.sourceDate);
+        state.recommendations.sourceDate = cached.sourceDate;
+      }
+      renderRecommendations();
+    }
+
+    function syncExportTextarea(){
+      $("exportTextarea").value = formatSimPaste();
+    }
+
+    function applyParsedDeck(parsed, options){
+      const opts = options || {};
+      const warnings = [...(parsed.errors || [])];
+      const counts = new Map();
+      let leaderCode = opts.preferredLeaderCode || state.selectedLeaderCode || "";
+
+      for (const item of (parsed.items || [])){
+        const card = state.cardsByCode.get(item.code);
+        if (!card){
+          warnings.push(`${item.code}: carta no encontrada en catalogo.`);
+          continue;
+        }
+        if (card.type === "Leader"){
+          if (!leaderCode) leaderCode = card.code;
+          else if (leaderCode !== card.code) warnings.push(`${card.code}: leader extra ignorado.`);
+          continue;
+        }
+        counts.set(card.code, (counts.get(card.code) || 0) + Number(item.qty || 0));
+      }
+
+      const leaderCard = leaderCode ? state.cardsByCode.get(leaderCode) : null;
+      if (!leaderCard || leaderCard.type !== "Leader"){
+        showSaveMessage("No he encontrado un leader valido en la lista importada.", "err");
+        return false;
+      }
+
+      const next = new Map([[leaderCard.code, 1]]);
+      counts.forEach((qty, code) => {
+        const card = state.cardsByCode.get(code);
+        const sharesLeaderColor = card && card.colors.some((color) => leaderCard.colors.includes(color));
+        if (!card || !sharesLeaderColor){
+          warnings.push(`${code}: carta fuera de color ignorada.`);
+          return;
+        }
+        const safeQty = Math.max(0, Math.floor(Number(qty || 0)));
+        if (!safeQty) return;
+        next.set(code, Math.min(4, safeQty));
+        if (safeQty > 4) warnings.push(`${code}: reducido a 4 copias.`);
+      });
+      state.selectedLeaderCode = leaderCard.code;
+      state.deckCounts = next;
+      render();
+      void loadRecommendations(false);
+
+      if (!opts.silent){
+        const suffix = warnings.length ? ` Avisos: ${warnings.slice(0, 3).join(" / ")}${warnings.length > 3 ? "..." : ""}` : "";
+        showSaveMessage(`Lista importada.${suffix}`, warnings.length ? "err" : "ok");
+      }
+      return true;
+    }
+
+    async function readClipboardText(){
+      if (!navigator.clipboard?.readText){
+        throw new Error("El navegador no permite leer el portapapeles en esta pagina.");
+      }
+      return navigator.clipboard.readText();
+    }
+
+    async function importFromClipboard(){
+      if (!state.catalogReady){
+        showSaveMessage("Espera a que termine de cargar el catalogo.", "err");
+        return;
+      }
+      let text = "";
+      try{
+        text = await readClipboardText();
+      }catch(error){
+        showSaveMessage("No pude leer el portapapeles: " + (error?.message || "permiso denegado"), "err");
+        return;
+      }
+      if (!normalize(text)){
+        showSaveMessage("El portapapeles esta vacio.", "err");
+        return;
+      }
+      $("importTextarea").value = text;
+      const parsed = parseSimPaste(text);
+      applyParsedDeck(parsed);
+    }
+
+    async function copyTextToClipboard(text){
+      const value = String(text || "");
+      if (!value) return false;
+      if (navigator.clipboard?.writeText){
+        try{
+          await navigator.clipboard.writeText(value);
+          return true;
+        }catch(_err){}
+      }
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      let copied = false;
+      try{ copied = document.execCommand("copy"); }catch(_err){ copied = false; }
+      textarea.remove();
+      return copied;
+    }
+
+    async function copyExport(){
+      syncExportTextarea();
+      const copied = await copyTextToClipboard($("exportTextarea").value);
+      showSaveMessage(copied ? "SIM paste copiado." : "No pude copiar el SIM paste.", copied ? "ok" : "err");
+    }
+
+    async function refreshSession(){
+      if (!sb){
+        state.currentUser = null;
+        syncNavUser(null);
+        renderAuthState();
+        renderValidation();
+        return null;
+      }
+      try{
+        const { data } = await sb.auth.getSession();
+        state.currentUser = data?.session?.user || null;
+      }catch(_error){
+        state.currentUser = null;
+      }
+      syncNavUser(state.currentUser);
+      renderAuthState();
+      renderValidation();
+      return state.currentUser;
+    }
+
+    async function loadDeckFromUrl(){
+      if (!state.currentDeckId || !sb || !state.catalogReady) return;
+      try{
+        const { data, error } = await sb
+          .from("decks")
+          .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+          .eq("id", state.currentDeckId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data){
+          showSaveMessage("No se encontro el deck solicitado.", "err");
+          state.currentDeckId = "";
+          renderAuthState();
+          renderValidation();
+          return;
+        }
+
+        state.loadedDeck = data;
+        $("deckNameInput").value = data.name || "";
+        $("deckDescriptionInput").value = data.description || "";
+        $("importTextarea").value = data.sim_paste || "";
+        setDeckImageUrl(data.image_url || "");
+
+        const leaderCard = resolveLeaderCardFromLabel(data.leader || "");
+        const parsed = parseSimPaste(data.sim_paste || "");
+        if (parsed.items.length || leaderCard){
+          applyParsedDeck(parsed, { preferredLeaderCode: leaderCard?.code || "", silent: true });
+        }
+
+        if (!state.currentUser || data.autor !== state.currentUser.id){
+          state.currentDeckId = "";
+          state.currentDeckUrl = "";
+          showSaveMessage("Deck cargado como copia. Para actualizar el original tienes que ser su autor.", "err");
+        } else {
+          state.currentDeckUrl = `deck.html?id=${encodeURIComponent(data.id)}`;
+          showSaveMessage("Deck cargado para editar.", "ok");
+        }
+        renderAuthState();
+        renderValidation();
+      }catch(error){
+        showSaveMessage("No pude cargar el deck: " + (error?.message || "unknown"), "err");
+      }
+    }
+
+    async function saveDeckToHub(){
+      showSaveMessage("", "ok");
+      if (state.saveBusy) return;
+      if (!sb || !state.currentUser){
+        showSaveMessage("Inicia sesion para guardar el deck en DeckLists.", "err");
+        return;
+      }
+
+      const validation = validateDeck();
+      if (!validation.ok){
+        showSaveMessage("La lista aun no es valida para guardar.", "err");
+        renderValidation();
+        return;
+      }
+
+      const name = normalize($("deckNameInput").value);
+      if (!name){
+        showSaveMessage("Pon un nombre al deck.", "err");
+        return;
+      }
+
+      const leader = selectedLeader();
+      const imageFile = state.pendingDeckImageFile;
+
+      try{
+        state.saveBusy = true;
+        const wasUpdate = Boolean(state.currentDeckId);
+        renderValidation();
+        setLoading(true, imageFile ? "Subiendo imagen..." : (state.currentDeckId ? "Actualizando deck..." : "Guardando deck..."));
+
+        let imageUrl = state.deckImageUrl || null;
+        if (imageFile){
+          imageUrl = await uploadDeckImage(imageFile, state.currentUser.id);
+          setLoading(true, state.currentDeckId ? "Actualizando deck..." : "Guardando deck...");
+        }
+
+        const payload = {
+          name,
+          autor: state.currentUser.id,
+          leader: deckLeaderLabel(leader) || null,
+          leader_image_url: deckLeaderImage(leader) || null,
+          description: normalize($("deckDescriptionInput").value) || null,
+          image_url: imageUrl,
+          sim_paste: formatSimPaste() || null
+        };
+
+        let result;
+        if (state.currentDeckId){
+          result = await sb
+            .from("decks")
+            .update(payload)
+            .eq("id", state.currentDeckId)
+            .eq("autor", state.currentUser.id)
+            .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+            .maybeSingle();
+        } else {
+          result = await sb
+            .from("decks")
+            .insert(payload)
+            .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+            .single();
+        }
+
+        if (result.error) throw result.error;
+        if (!result.data) throw new Error("No se pudo guardar el deck.");
+
+        state.currentDeckId = result.data.id;
+        state.loadedDeck = result.data;
+        setDeckImageUrl(result.data.image_url || imageUrl || "");
+        state.currentDeckUrl = `deck.html?id=${encodeURIComponent(result.data.id)}`;
+        showSaveMessage(wasUpdate ? "Deck actualizado en DeckLists." : "Deck creado en DeckLists.", "ok");
+        renderAuthState();
+      }catch(error){
+        showSaveMessage("Error guardando deck: " + (error?.message || "unknown"), "err");
+      }finally{
+        state.saveBusy = false;
+        setLoading(false);
+        renderValidation();
+      }
+    }
+
+    function openSavedDeck(){
+      if (state.currentDeckUrl) window.location.href = state.currentDeckUrl;
+    }
+
     function matchesLeaderColors(card){
       const colors = leaderColors();
       if (!colors.length) return false;
       return card.colors.some((color) => colors.includes(color));
+    }
+    function populateCostFilter(){
+      const select = $("filterCost");
+      if (!select || select.dataset.ready === "1") return;
+      for (let cost = 0; cost <= 10; cost += 1){
+        const option = document.createElement("option");
+        option.value = String(cost);
+        option.textContent = String(cost);
+        select.appendChild(option);
+      }
+      select.dataset.ready = "1";
+    }
+    function syncFilterControls(){
+      populateCostFilter();
+
+      const activeColors = leaderColors();
+      const colorOptions = activeColors.length ? activeColors : COLOR_ORDER;
+      const colorSelect = $("filterColor");
+      if (colorSelect){
+        const current = state.filters.color;
+        colorSelect.innerHTML = '<option value="">Todos</option>' + colorOptions
+          .map((color) => `<option value="${escapeAttr(color)}">${escapeHtml(humanColor(color))}</option>`)
+          .join("");
+        if (current && colorOptions.includes(current)){
+          colorSelect.value = current;
+        } else {
+          state.filters.color = "";
+          colorSelect.value = "";
+        }
+      }
+
+      const disabled = !state.selectedLeaderCode;
+      ["filterType", "filterColor", "filterCost", "filterCounter"].forEach((id) => {
+        const node = $(id);
+        if (node) node.disabled = disabled;
+      });
+      const clearBtn = $("clearFiltersButton");
+      if (clearBtn){
+        clearBtn.disabled = disabled && !Object.values(state.filters).some(Boolean);
+      }
+    }
+    function matchesSearchFilters(card){
+      if (!state.selectedLeaderCode) return true;
+      const filters = state.filters;
+      if (filters.type && card.type !== filters.type) return false;
+      if (filters.color && !card.colors.includes(filters.color)) return false;
+      if (filters.cost && String(card.cost) !== filters.cost) return false;
+      if (filters.counter === "none" && card.counter !== null) return false;
+      if ((filters.counter === "1000" || filters.counter === "2000") && String(card.counter) !== filters.counter) return false;
+      return true;
+    }
+    function searchColorRank(card){
+      const activeColors = leaderColors();
+      const priority = activeColors.length
+        ? [...activeColors, ...COLOR_ORDER.filter((color) => !activeColors.includes(color))]
+        : COLOR_ORDER;
+      const ranks = (Array.isArray(card?.colors) ? card.colors : []).map((color) => {
+        const index = priority.indexOf(color);
+        return index === -1 ? priority.length : index;
+      });
+      return ranks.length ? Math.min(...ranks) : priority.length + 1;
+    }
+    function searchTypeRank(card){
+      return SEARCH_TYPE_ORDER[card?.type] ?? 3;
+    }
+    function compareAvailableCards(a, b){
+      const colorDiff = searchColorRank(a) - searchColorRank(b);
+      if (colorDiff !== 0) return colorDiff;
+
+      const typeDiff = searchTypeRank(a) - searchTypeRank(b);
+      if (typeDiff !== 0) return typeDiff;
+
+      if (a.type !== "Leader" && a.costSort !== b.costSort){
+        return a.costSort - b.costSort;
+      }
+
+      return collator.compare(a.name, b.name) || collator.compare(a.code, b.code);
     }
     function availableCards(){
       const query = normalize(state.search).toLowerCase();
@@ -1112,13 +2855,9 @@
       if (query){
         rows = rows.filter((card) => card.searchable.includes(query) || card.searchableCompact.includes(compactQuery));
       }
+      rows = rows.filter(matchesSearchFilters);
 
-      rows.sort((a, b) => {
-        if (a.type === "Leader" && b.type !== "Leader") return -1;
-        if (a.type !== "Leader" && b.type === "Leader") return 1;
-        if (a.costSort !== b.costSort) return a.costSort - b.costSort;
-        return collator.compare(a.name, b.name) || collator.compare(a.code, b.code);
-      });
+      rows.sort(compareAvailableCards);
       return rows;
     }
     function formatColorDots(colors){
@@ -1129,18 +2868,20 @@
       const maxCopies = card.type === "Leader" ? 1 : 4;
       const canAdd = qty < maxCopies && (card.type !== "Leader" || !state.selectedLeaderCode || state.selectedLeaderCode === card.code);
       const canRemove = qty > 0;
-      const imageMarkup = card.image
-        ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="if(this.dataset.fallbackApplied==='1'){return;}this.dataset.fallbackApplied='1';this.src='${escapeHtml(card.fallbackImage || "")}';" /><div class="cardCodeOverlay">${escapeHtml(card.code)}</div>`
+      const src = cardImageSource(card);
+      const fallbackSrc = cardFallbackSource(card);
+      const imageMarkup = src
+        ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(card.name)}" loading="lazy" data-deck-builder-image="1" data-fallback-src="${escapeAttr(fallbackSrc)}" data-fallback-label="${escapeAttr(card.code)}" data-fallback-class="artFallback" /><div class="cardCodeOverlay">${escapeHtml(card.code)}</div>`
         : `<div class="artFallback">${escapeHtml(card.code)}</div>`;
 
       return (
-        `<article class="cardTile${card.type === "Leader" ? " is-leader" : ""}" data-card-code="${escapeHtml(card.code)}" data-context="${escapeHtml(context)}">` +
+        `<article class="cardTile cardZoom${card.type === "Leader" ? " is-leader" : ""}" data-card-code="${escapeAttr(card.code)}" data-context="${escapeAttr(context)}" data-current-qty="${escapeAttr(qty)}" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(card.name)}">` +
           `<div class="artWrap">${imageMarkup}</div>` +
           `<div class="cardMeta">` +
             `<div class="cardName">${escapeHtml(card.name)}</div>` +
             `<div class="qtyRow">` +
               `<button class="qtyButton minus" type="button" data-action="remove" ${canRemove ? "" : "disabled"}>-</button>` +
-              `<div class="qtyBadge"><span class="qtyLabel">copias</span><span>${qty}</span></div>` +
+              `<div class="qtyBadge"><span class="qtyLabel">copias</span><span data-qty-value>${qty}</span></div>` +
               `<button class="qtyButton plus" type="button" data-action="add" ${canAdd ? "" : "disabled"}>+</button>` +
             `</div>` +
           `</div>` +
@@ -1163,6 +2904,7 @@
       statusRow.innerHTML = tags.join("");
     }
     function renderAvailable(){
+      syncFilterControls();
       const rows = availableCards();
       $("availableCountTag").textContent = `${rows.length} visibles`;
       $("catalogPill").textContent = `Catalogo: ${state.allCards.length}`;
@@ -1184,30 +2926,78 @@
       $("availableEmpty").style.display = "none";
       $("availableGrid").innerHTML = rows.map((card) => cardTileMarkup(card, state.deckCounts.get(card.code) || 0, "available")).join("");
     }
+    function syncQuantityControls(tile, card, qty){
+      if (!tile || !card) return;
+      const safeQty = Number(qty || 0);
+      const maxCopies = card.type === "Leader" ? 1 : 4;
+      const canRemove = safeQty > 0;
+      const canAdd = safeQty < maxCopies && (card.type !== "Leader" || !state.selectedLeaderCode || state.selectedLeaderCode === card.code);
+      tile.dataset.currentQty = String(safeQty);
+      const qtyNode = tile.querySelector("[data-qty-value]");
+      if (qtyNode) qtyNode.textContent = String(safeQty);
+      const remove = tile.querySelector('button[data-action="remove"]');
+      const add = tile.querySelector('button[data-action="add"]');
+      if (remove) remove.disabled = !canRemove;
+      if (add) add.disabled = !canAdd;
+    }
+    function updateVisibleCardQuantities(){
+      document.querySelectorAll("#availableGrid [data-card-code]").forEach((tile) => {
+        const card = state.cardsByCode.get(normalizeCardCode(tile.dataset.cardCode || ""));
+        if (!card) return;
+        syncQuantityControls(tile, card, state.deckCounts.get(card.code) || 0);
+      });
+    }
     function renderLeaderSlot(){
       const leader = selectedLeader();
+      const slot = $("leaderSlot");
       if (!leader){
-        $("leaderSlot").innerHTML = (
+        slot.dataset.leaderCode = "";
+        slot.innerHTML = (
           `<div class="leaderSlot is-empty"><div class="emptyState">Tu leader ira aqui. En esta version el builder empieza bloqueado en leaders para que el color del mazo quede fijado desde el principio.</div></div>`
         );
         return;
       }
+      if (slot.dataset.leaderCode === leader.code) return;
+      slot.dataset.leaderCode = leader.code;
 
-      const imageMarkup = leader.image
-        ? `<img src="${escapeHtml(leader.image)}" alt="${escapeHtml(leader.name)}" loading="lazy" onerror="if(this.dataset.fallbackApplied==='1'){return;}this.dataset.fallbackApplied='1';this.src='${escapeHtml(leader.fallbackImage || "")}';" />`
+      const src = cardImageSource(leader);
+      const fallbackSrc = cardFallbackSource(leader);
+      const imageMarkup = src
+        ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(leader.name)}" loading="lazy" data-deck-builder-image="1" data-fallback-src="${escapeAttr(fallbackSrc)}" data-fallback-label="${escapeAttr(leader.code)}" data-fallback-class="artFallback" />`
         : `<div class="artFallback">${escapeHtml(leader.code)}</div>`;
 
-      $("leaderSlot").innerHTML = (
+      slot.innerHTML = (
         `<div class="leaderSlot">` +
-          `<div class="leaderArt">${imageMarkup}</div>` +
+          `<div class="leaderArt cardZoom" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(leader.name)}">${imageMarkup}</div>` +
           `<div class="leaderInfo">` +
             `<h3>${escapeHtml(leader.name)}</h3>` +
-            `<p>${escapeHtml(leader.code)} · ${escapeHtml(leader.colors.map(humanColor).join(" / ") || "Sin color")} · Leader unico del mazo</p>` +
+            `<p>${escapeHtml(leader.code)} - ${escapeHtml(leader.colors.map(humanColor).join(" / ") || "Sin color")} - Leader unico del mazo</p>` +
             `<div class="leaderActions"><button class="btn btnAccent" type="button" id="clearLeaderButton">Quitar leader y vaciar mazo</button></div>` +
           `</div>` +
         `</div>`
       );
       $("clearLeaderButton").addEventListener("click", clearLeaderAndDeck);
+    }
+    function renderDeckGridEntries(entries){
+      const grid = $("deckGrid");
+      const existing = new Map(Array.from(grid.children).map((node) => [node.dataset.cardCode || "", node]));
+      const fragment = document.createDocumentFragment();
+
+      entries
+        .sort(compareMainDeckEntries)
+        .forEach((entry) => {
+          let tile = existing.get(entry.card.code);
+          if (tile){
+            syncQuantityControls(tile, entry.card, entry.qty);
+          } else {
+            const template = document.createElement("template");
+            template.innerHTML = cardTileMarkup(entry.card, entry.qty, "deck").trim();
+            tile = template.content.firstElementChild;
+          }
+          fragment.appendChild(tile);
+        });
+
+      grid.replaceChildren(fragment);
     }
     function renderDeck(){
       const entries = activeDeckEntries();
@@ -1221,6 +3011,7 @@
       $("deckTotalCount").textContent = String(deckTotal);
       $("mainDeckCount").textContent = String(mainTotal);
       $("uniqueCount").textContent = String(uniqueTotal);
+      $("currentListMeta").textContent = leaderEntry ? `${mainTotal}/50 main` : "sin leader";
       $("characterCount").textContent = String(stats.typeCounts.Character);
       $("eventCount").textContent = String(stats.typeCounts.Event);
       $("stageCount").textContent = String(stats.typeCounts.Stage);
@@ -1232,19 +3023,16 @@
       renderLeaderSlot();
 
       if (!mainEntries.length){
-        $("deckGrid").innerHTML = "";
+        $("deckGrid").replaceChildren();
         $("deckEmpty").style.display = "block";
         $("deckEmpty").textContent = leaderEntry
-          ? "Tu leader ya esta fijado. Ahora añade cartas del mismo color desde el panel izquierdo."
+          ? "Tu leader ya esta fijado. Ahora anade cartas del mismo color desde el panel izquierdo."
           : "Todavia no has anadido cartas al mazo.";
         return;
       }
 
       $("deckEmpty").style.display = "none";
-      $("deckGrid").innerHTML = mainEntries
-        .sort((a, b) => (a.card.costSort - b.card.costSort) || collator.compare(a.card.name, b.card.name))
-        .map((entry) => cardTileMarkup(entry.card, entry.qty, "deck"))
-        .join("");
+      renderDeckGridEntries(mainEntries);
     }
     function renderCostCurve(curve){
       const max = Math.max(1, ...curve);
@@ -1272,19 +3060,38 @@
     function render(){
       renderAvailable();
       renderDeck();
+      syncExportTextarea();
+      renderValidation();
+      renderAuthState();
+      refreshRecommendationsFromCurrentDeck();
+    }
+    function renderDeckMutation(){
+      renderDeck();
+      syncExportTextarea();
+      renderValidation();
+      renderAuthState();
+      updateVisibleCardQuantities();
+      refreshRecommendationsFromCurrentDeck();
     }
     function setLeader(card){
       state.selectedLeaderCode = card.code;
       state.deckCounts = new Map([[card.code, 1]]);
       render();
+      void loadRecommendations(false);
     }
     function clearLeaderAndDeck(){
       state.selectedLeaderCode = "";
       state.deckCounts = new Map();
+      state.filters = { type: "", color: "", cost: "", counter: "" };
+      state.recommendations.leaderCode = "";
+      state.recommendations.status = "idle";
+      state.recommendations.rows = [];
+      state.recommendations.error = "";
       render();
     }
     function setCardQuantity(card, nextQty){
-      const qty = Math.max(0, nextQty);
+      const currentQty = Number(state.deckCounts.get(card.code) || 0);
+      let qty = Math.max(0, Math.min(4, Math.floor(Number(nextQty || 0))));
       const mainTotal = mainDeckEntries().reduce((sum, entry) => sum + entry.qty, 0);
       if (card.type === "Leader"){
         if (qty <= 0){
@@ -1297,13 +3104,20 @@
 
       if (!state.selectedLeaderCode) return;
       if (!matchesLeaderColors(card)) return;
-      if (qty > (state.deckCounts.get(card.code) || 0) && (mainTotal + 1) >= 51) return;
+      const delta = qty - currentQty;
+      if (delta > 0 && mainTotal + delta > 50){
+        qty = currentQty + Math.max(0, 50 - mainTotal);
+      }
+      if (qty === currentQty){
+        updateVisibleCardQuantities();
+        return;
+      }
       if (qty <= 0){
         state.deckCounts.delete(card.code);
       } else {
-        state.deckCounts.set(card.code, Math.min(4, qty));
+        state.deckCounts.set(card.code, qty);
       }
-      render();
+      renderDeckMutation();
     }
     function handleQuantityAction(code, action){
       const card = state.cardsByCode.get(code);
@@ -1331,6 +3145,8 @@
       state.cardsByCode = new Map();
       state.selectedLeaderCode = "";
       state.deckCounts = new Map();
+      state.filters = { type: "", color: "", cost: "", counter: "" };
+      state.catalogReady = false;
       setLoading(true, "Cargando catalogo local...");
 
       try{
@@ -1387,9 +3203,11 @@
             return collator.compare(a.name, b.name) || collator.compare(a.code, b.code);
           });
         state.cardsByCode = new Map(state.allCards.map((card) => [card.code, card]));
+        state.catalogReady = true;
         render();
       } catch (error){
         console.error(error);
+        state.catalogReady = false;
         $("availableGrid").innerHTML = "";
         $("deckGrid").innerHTML = "";
         $("availableEmpty").style.display = "block";
@@ -1400,16 +3218,48 @@
         setLoading(false);
       }
     }
+    initDeckBuilderImageFallbacks();
+    initCardHoverPreview();
     $("searchInput").addEventListener("input", (event) => {
       state.search = event.target.value || "";
+      renderAvailable();
+    });
+    ["filterType", "filterColor", "filterCost", "filterCounter"].forEach((id) => {
+      $(id).addEventListener("change", (event) => {
+        const key = id.replace(/^filter/, "").toLowerCase();
+        state.filters[key] = event.target.value || "";
+        renderAvailable();
+      });
+    });
+    $("clearFiltersButton").addEventListener("click", () => {
+      state.filters = { type: "", color: "", cost: "", counter: "" };
+      ["filterType", "filterColor", "filterCost", "filterCounter"].forEach((id) => {
+        const node = $(id);
+        if (node) node.value = "";
+      });
       renderAvailable();
     });
     $("reloadButton").addEventListener("click", () => {
       state.search = "";
       $("searchInput").value = "";
-      void loadCatalog();
+      void (async () => {
+        await loadCatalog();
+        await loadDeckFromUrl();
+      })();
     });
     $("detailButton").addEventListener("click", openDetail);
+    $("clearDeckButton").addEventListener("click", clearLeaderAndDeck);
+    $("importButton").addEventListener("click", () => { void importFromClipboard(); });
+    $("copyExportButton").addEventListener("click", copyExport);
+    $("saveDeckButton").addEventListener("click", saveDeckToHub);
+    $("openDeckButton").addEventListener("click", openSavedDeck);
+    $("deckImageInput").addEventListener("change", handleDeckImageInputChange);
+    $("clearDeckImageButton").addEventListener("click", clearDeckImage);
+    $("refreshRecommendationsButton").addEventListener("click", () => {
+      void loadRecommendations(true);
+    });
+    $("deckNameInput").addEventListener("input", renderValidation);
+    window.addEventListener("beforeunload", releaseDeckImagePreviewUrl);
     $("detailCloseButton").addEventListener("click", closeDetail);
     $("detailOverlay").addEventListener("click", (event) => {
       if (event.target === $("detailOverlay")){
@@ -1435,8 +3285,29 @@
       if (!tile) return;
       handleQuantityAction(tile.dataset.cardCode || "", button.dataset.action || "");
     });
-    render();
-    void loadCatalog();
+    $("recommendationsBody").addEventListener("click", (event) => {
+      const addButton = event.target.closest("button[data-rec-add]");
+      if (addButton){
+        applyRecommendationAction(addButton.dataset.recAdd || "", "add");
+        return;
+      }
+    });
+    if (sb?.auth?.onAuthStateChange){
+      sb.auth.onAuthStateChange((_event, session) => {
+        state.currentUser = session?.user || null;
+        syncNavUser(state.currentUser);
+        renderAuthState();
+        renderValidation();
+      });
+    }
+
+    (async function init(){
+      renderDeckImagePreview();
+      render();
+      await refreshSession();
+      await loadCatalog();
+      await loadDeckFromUrl();
+    })();
   </script>
 </body>
 </html>

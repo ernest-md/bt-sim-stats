@@ -561,6 +561,7 @@
           <div class="navInlineMenu" id="cardToolsMenu">
             <a class="navInlineMenuLink" href="cards.html">Card List</a>
             <a class="navInlineMenuLink is-current" href="decks.html">DeckLists</a>
+            <a class="navInlineMenuLink" href="deck-builder.html">Deck Builder</a>
             <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
           </div>
         </div>
@@ -590,6 +591,7 @@
       </div>
       <div class="actionsRow">
         <button class="btn btnLight" id="btnEditDeck" type="button" style="display:none;">Editar deck</button>
+        <button class="btn btnLight" id="btnEditInBuilder" type="button" style="display:none;">Editar en builder</button>
       </div>
 
       <div class="grid">
@@ -1072,11 +1074,18 @@
 
     function renderDeckOwnerUI(){
       const btn = $("btnEditDeck");
+      const builderBtn = $("btnEditInBuilder");
       if (!btn) return;
       btn.style.display = isDeckOwner ? "inline-flex" : "none";
+      if (builderBtn) builderBtn.style.display = isDeckOwner ? "inline-flex" : "none";
       if (!isDeckOwner){
         $("editPanel").classList.remove("open");
       }
+    }
+
+    function editInBuilder(){
+      if (!deckId) return;
+      window.location.href = `deck-builder.html?id=${encodeURIComponent(deckId)}`;
     }
 
     function fillEditForm(deck){
@@ -1523,6 +1532,7 @@ async function loadDeck(){
       $("commentsPanel").classList.toggle("open");
     });
     $("btnEditDeck").addEventListener("click", openEditPanel);
+    $("btnEditInBuilder").addEventListener("click", editInBuilder);
     $("btnCopyDeckLink").addEventListener("click", copyDeckLink);
     $("btnCopySimPaste").addEventListener("click", copySimPaste);
     $("btnCancelEditDeck").addEventListener("click", closeEditPanel);

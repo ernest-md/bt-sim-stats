@@ -429,6 +429,7 @@
 
   function initGlobalAccessGuard(sb, options){
     if (!sb || isAccessGuardExemptPage()) return;
+    if (document.body?.dataset.skipGlobalAccessGuard === "1") return;
     if (window.__barateamAccessGuardBound === "1") return;
     window.__barateamAccessGuardBound = "1";
 

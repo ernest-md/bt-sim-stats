@@ -126,7 +126,7 @@
       background: linear-gradient(90deg, rgba(15,23,42,.25), transparent);
     }
 
-    /* Filter + collapsible form */
+    /* Filter + builder entry */
     .toolbar{
       display:flex;
       gap:10px;
@@ -136,42 +136,30 @@
     }
     .toolbar .grow{ flex:1; min-width: 220px; }
 
-    .collHead{
+    .builderRedirect{
       display:flex;
-      gap:10px;
       align-items:center;
-      justify-content: space-between;
-      cursor:pointer;
-      user-select:none;
-      padding: 10px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(15,23,42,.10);
-      background: rgba(255,255,255,.70);
+      justify-content:space-between;
+      gap:12px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid rgba(15,23,42,.10);
+      background:rgba(255,255,255,.70);
     }
-    .collHead:hover{
-      border-color: rgba(124,58,237,.22);
-      box-shadow: 0 10px 26px rgba(0,0,0,.08);
-    }
-    .collHead .t{
-      font-weight: 1000;
+    .builderRedirect strong{
+      display:block;
       color:#0f172a;
-      font-size: 13px;
+      font-size:14px;
+      font-weight:1000;
+      margin-bottom:3px;
     }
-    .chevSmall{ opacity:.7; font-size: 12px; }
+    @media (max-width: 760px){
+      .builderRedirect{
+        align-items:stretch;
+        flex-direction:column;
+      }
+    }
 
-    .collBody{ margin-top: 12px; display:none; }
-    .collBody.open{ display:block; }
-
-    /* Form */
-    .formGrid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    @media (min-width: 820px){
-      .formGrid{ grid-template-columns: 1fr 1fr; }
-      .span2{ grid-column: 1 / -1; }
-    }
     label{
       display:block;
       font-weight: 900;
@@ -414,6 +402,7 @@
           <div class="navInlineMenu" id="cardToolsMenu">
             <a class="navInlineMenuLink" href="cards.html">Card List</a>
             <a class="navInlineMenuLink is-current" href="decks.html">DeckLists</a>
+            <a class="navInlineMenuLink" href="deck-builder.html">Deck Builder</a>
             <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
@@ -448,6 +437,9 @@
     <div class="hero">
       <h1>Decks del equipo</h1>
       <p>Lista de mazos. Proximo paso: click a detalle del deck.</p>
+      <div class="actions" style="margin-top:12px;">
+        <a class="btn btnDark" href="deck-builder.html">Abrir Deck Builder</a>
+      </div>
     </div>
 
     <!-- ===== Filters + Form (only logged) ===== -->
@@ -488,52 +480,12 @@
 
       <div id="createArea" style="display:none;">
         <div class="sectionTitle">Crear deck</div>
-
-        <div class="collHead" id="toggleCreate">
-          <div class="t">+ Nuevo deck</div>
-          <div class="chevSmall" id="toggleChev">v</div>
-        </div>
-
-        <div class="collBody" id="createBody">
-          <div class="formGrid" style="margin-top:12px;">
-            <div>
-              <label for="name">Nombre</label>
-              <input id="name" placeholder="Ej: Zoro Rush v2" />
-            </div>
-
-            <div>
-              <label for="leader">Leader</label>
-              <!-- dropdown como wrapped -->
-              <select id="leader">
-                <option value="">(Selecciona lider)</option>
-              </select>
-            </div>
-
-            <div class="span2">
-              <label for="image_file">Imagen</label>
-              <input id="image_file" type="file" accept="image/*" />
-              <div class="muted" style="margin-top:6px;">
-                Se sube a Supabase Storage (bucket: <strong>deck-images</strong>).
-              </div>
-            </div>
-
-            <div class="span2">
-              <label for="description">Descripcion</label>
-              <textarea id="description" placeholder="Plan de juego, matchups, notas..."></textarea>
-            </div>
-
-            <div class="span2">
-              <label for="sim_paste">Sim paste</label>
-              <textarea id="sim_paste" placeholder="Pega aqui la lista/codigo del simulador..."></textarea>
-            </div>
+        <div class="builderRedirect">
+          <div>
+            <strong>Nuevo deck</strong>
+            <span class="muted">Crea la lista, sube imagen e importa/exporta SIM paste desde el Deck Builder.</span>
           </div>
-
-          <div class="actions">
-            <span class="muted">Se guarda <strong>autor</strong> con tu uuid.</span>
-            <button class="btn btnDark" id="btnCreate" type="button">Guardar deck</button>
-          </div>
-
-          <div class="msg" id="msg"></div>
+          <button class="btn btnDark" id="btnOpenBuilder" type="button">Abrir Deck Builder</button>
         </div>
       </div>
 
@@ -617,25 +569,12 @@
       await refreshSession();
     }
 
-    // ===== Collapsible create =====
-    function setCreateOpen(open){
-      $("createBody").classList.toggle("open", open);
-      $("toggleChev").textContent = open ? "^" : "v";
-    }
-    $("toggleCreate").addEventListener("click", () => {
-      const isOpen = $("createBody").classList.contains("open");
-      setCreateOpen(!isOpen);
+    // ===== Create entry =====
+    $("btnOpenBuilder").addEventListener("click", () => {
+      location.href = "deck-builder.html";
     });
-    setCreateOpen(false);
 
     // ===== UI helpers =====
-    const show = (text, type) => window.BarateamApp.showMessage("msg", text, { baseClass: "msg", type });
-    function clearMsg(){
-      const m = $("msg");
-      m.style.display = "none";
-      m.textContent = "";
-      m.className = "msg";
-    }
     function setListLoading(loading){
       $("listLoading").style.display = loading ? "block" : "none";
     }
@@ -654,7 +593,6 @@
     const DECKS_PAGE_SIZE = 50;
     let deckPage = 1;
     let filteredDecks = [];
-    let creatingDeck = false;
     let deckSearchDebounce = null;
 
     function normalize(s){
@@ -683,18 +621,11 @@
       )) || null;
     }
     function fillLeaderSelects(){
-      const leaderSel = $("leader");
       const filterSel = $("filter_leader");
 
-      leaderSel.innerHTML = '<option value="">(Selecciona lider)</option>';
       filterSel.innerHTML = '<option value="">(Todos)</option>';
 
       for (const l of leaders){
-        const o1 = document.createElement("option");
-        o1.value = l.label;
-        o1.textContent = l.label;
-        leaderSel.appendChild(o1);
-
         const o2 = document.createElement("option");
         o2.value = l.label;
         o2.textContent = l.label;
@@ -736,28 +667,6 @@
       leaders = Array.from(uniq.values());
       leaderByLabel = new Map(leaders.map(l => [l.label, l]));
       fillLeaderSelects();
-    }
-
-    // ===== Storage (deck images) =====
-    // Bucket esperado: deck-images
-    async function uploadDeckImage(file, userId){
-      if (!file) return null;
-
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "jpg";
-      const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
-      const path = `${userId}/${fileName}`;
-
-      const { error: upErr } = await sb
-        .storage
-        .from("deck-images")
-        .upload(path, file, { upsert: false, contentType: file.type });
-
-      if (upErr) throw upErr;
-
-      // Bucket PUBLIC:
-      const { data } = sb.storage.from("deck-images").getPublicUrl(path);
-      return data?.publicUrl || null;
     }
 
     // ===== Data =====
@@ -932,71 +841,6 @@
       if (shouldReset) deckPage = 1;
       renderDecksCurrentPage();
     }
-
-    async function createDeck(){
-      clearMsg();
-      if (creatingDeck) return;
-
-      const { data } = await sb.auth.getSession();
-      const user = data?.session?.user || null;
-      if (!user) return show("Tienes que estar logueado para crear un deck.", "err");
-
-      const name = $("name").value.trim();
-      const leader = $("leader").value.trim();
-      const description = $("description").value.trim();
-      const sim_paste = $("sim_paste").value.trim();
-      const file = $("image_file").files?.[0] || null;
-      const leaderData = leaderByLabel.get(leader) || null;
-      const leader_image_url = leaderData?.image || null;
-
-      if (!name) return show("Pon el nombre del deck.", "err");
-      if (!leader) return show("Selecciona un lider.", "err");
-
-      try{
-        creatingDeck = true;
-        $("btnCreate").disabled = true;
-        let image_url = null;
-        if (file){
-          image_url = await uploadDeckImage(file, user.id);
-        }
-
-        // inserta los campos de tu tabla decks
-        const payload = {
-          name: name || null,
-          autor: user.id,              // uuid del user
-          leader: leader || null,
-          leader_image_url: leader_image_url || null,
-          description: description || null,
-          image_url: image_url || null,
-          sim_paste: sim_paste || null
-        };
-
-        const { error } = await sb.from("decks").insert(payload);
-        if (error) throw error;
-
-        show("Deck guardado", "ok");
-
-        // reset
-        $("name").value = "";
-        $("leader").value = "";
-        $("description").value = "";
-        $("sim_paste").value = "";
-        $("image_file").value = "";
-
-        allDecks = await fetchDecks();
-        await loadUsernames(allDecks.map((d) => d.autor));
-        applyDeckFilters(true);
-        setCreateOpen(false);
-      }catch(e){
-        console.error(e);
-        show("Error guardando deck: " + (e.message || "unknown"), "err");
-      } finally {
-        creatingDeck = false;
-        $("btnCreate").disabled = false;
-      }
-    }
-
-    $("btnCreate").addEventListener("click", createDeck);
 
     // ===== Filter (ready, still simple) =====
     // Ahora mismo: recarga lista y filtra en frontend (no requiere index en DB)
