@@ -15,6 +15,10 @@
       --bg:#0b1220;
       --card: rgba(255,255,255,.94);
       --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --leader-a:#7c3aed;
+      --leader-b:#06b6d4;
+      --leader-a-rgb:124,58,237;
+      --leader-b-rgb:6,182,212;
     }
     body{
       margin:0;
@@ -27,8 +31,8 @@
       position: fixed;
       inset:0;
       background:
-        radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.35), transparent 60%),
-        radial-gradient(900px 650px at 90% 20%, rgba(6,182,212,.28), transparent 60%),
+        radial-gradient(1200px 800px at 10% 10%, rgba(var(--leader-a-rgb),.36), transparent 60%),
+        radial-gradient(900px 650px at 90% 20%, rgba(var(--leader-b-rgb),.30), transparent 60%),
         linear-gradient(180deg, rgba(11,18,32,.78), rgba(11,18,32,.78)),
         url("bg.png");
       background-size: cover;
@@ -43,7 +47,54 @@
       box-shadow: var(--shadow);
       padding: 16px;
     }
-    .title{ margin:0 0 10px; font-size:26px; font-weight:1000; }
+    .deckView{
+      position:relative;
+      overflow:hidden;
+      padding:0;
+      background:rgba(248,250,252,.94);
+    }
+    .deckView::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 320px at 12% 0%, rgba(var(--leader-a-rgb),.18), transparent 70%),
+        radial-gradient(760px 280px at 92% 10%, rgba(var(--leader-b-rgb),.16), transparent 72%),
+        linear-gradient(90deg, rgba(248,250,252,.98) 0%, rgba(248,250,252,.90) 48%, rgba(248,250,252,.82) 100%);
+      background-size:cover;
+      background-position:center;
+      opacity:1;
+      pointer-events:none;
+    }
+    .deckView > *{
+      position:relative;
+      z-index:1;
+    }
+    .deckHeader{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) auto;
+      gap:16px;
+      align-items:start;
+      padding:20px;
+      border-bottom:1px solid rgba(15,23,42,.08);
+      background:
+        radial-gradient(700px 240px at 18% 0%, rgba(var(--leader-a-rgb),.24), transparent 72%),
+        radial-gradient(560px 220px at 82% 8%, rgba(var(--leader-b-rgb),.18), transparent 70%);
+    }
+    .deckIdentity{
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+      min-width:0;
+    }
+    .title{
+      margin:2px 0 8px;
+      font-size:clamp(28px, 3.6vw, 40px);
+      line-height:1.08;
+      font-weight:1000;
+      letter-spacing:-.02em;
+      overflow-wrap:anywhere;
+    }
     .headRow{
       display:flex;
       align-items:flex-start;
@@ -59,39 +110,105 @@
       gap:8px;
       flex-wrap:wrap;
     }
-    .meta{ color:#475569; font-size:13px; display:flex; gap:12px; flex-wrap:wrap; }
-    .grid{ display:grid; grid-template-columns:1fr; gap:14px; margin-top:14px; }
-    @media (min-width: 980px){ .grid{ grid-template-columns: 1fr 1fr; } }
+    .meta{ color:#334155; font-size:13px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .meta span{
+      display:inline-flex;
+      align-items:center;
+      min-height:26px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.56);
+      border:1px solid rgba(15,23,42,.08);
+    }
+    .deckKicker{
+      margin:0 0 6px;
+      color:#475569;
+      font-size:12px;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .colorChips{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      clear:both;
+    }
+    .colorChip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      min-height:28px;
+      padding:5px 9px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.10);
+      background:rgba(255,255,255,.68);
+      color:#0f172a;
+      font-size:12px;
+      font-weight:900;
+    }
+    .colorDot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background:var(--chip-color, #64748b);
+      box-shadow:0 0 0 2px rgba(255,255,255,.75);
+    }
+    .deckStats{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+      padding:14px 20px 0;
+    }
+    .statCard{
+      min-width:0;
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:16px;
+      background:rgba(255,255,255,.74);
+      padding:12px;
+      box-shadow:0 12px 28px rgba(2,6,23,.06);
+    }
+    .statCard span{
+      display:block;
+      color:#64748b;
+      font-size:11px;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:5px;
+    }
+    .statCard strong{
+      color:#0f172a;
+      font-size:24px;
+      line-height:1;
+      font-weight:1000;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:14px;
+      padding:14px 20px 20px;
+    }
+    @media (min-width: 980px){
+      .grid{ grid-template-columns:1fr; }
+    }
     .panel{
       border: 1px solid rgba(15,23,42,.10);
       border-radius: 16px;
-      background: rgba(255,255,255,.72);
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(12px);
       padding: 12px;
     }
     .leaderPanel{
       position: relative;
       overflow: hidden;
-      isolation: isolate;
-      background: linear-gradient(135deg, rgba(255,255,255,.90), rgba(255,255,255,.82));
-    }
-    .leaderPanel::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:
-        linear-gradient(108deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.88) 45%, rgba(255,255,255,.72) 100%),
-        var(--leader-bg-image, none);
-      background-size: cover, cover;
-      background-position-y: -165px;
-      z-index:-1;
-    }
-    .leaderPanel::after{
-      content:"";
-      position:absolute;
-      inset:0;
-      background: radial-gradient(320px 160px at 15% 15%, rgba(59,130,246,.15), transparent 72%);
-      z-index:-1;
-      pointer-events:none;
+      flex:0 0 auto;
+      border-radius:18px;
+      padding:6px;
+      background:linear-gradient(135deg, var(--leader-a), var(--leader-b));
+      box-shadow:0 18px 42px rgba(2,6,23,.22);
     }
     .panel h3{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:#334155; }
     .panelHead{
@@ -146,25 +263,17 @@
       border-color:rgba(16,185,129,.30);
       color:#047857;
     }
-    .leaderRow{ display:flex; align-items:center; gap:12px; }
     .leaderImg{
-      width: calc(96px * 0.72);
-      height: 96px;
+      width:92px;
+      height:128px;
       aspect-ratio: 2 / 3;
-      border-radius: 10px;
+      border-radius: 12px;
       object-fit: contain;
-      border: 1px solid rgba(15,23,42,.12);
+      border: 1px solid rgba(255,255,255,.62);
       background: #fff;
+      display:block;
     }
     .leaderName{ font-weight:900; font-size:16px; }
-    .deckImg{
-      width:100%;
-      max-height:520px;
-      object-fit:contain;
-      border:1px solid rgba(15,23,42,.10);
-      border-radius: 14px;
-      background:#fff;
-    }
     pre{
       margin:0;
       white-space: pre-wrap;
@@ -185,14 +294,20 @@
       border:0;
     }
     .simPasteCards{
-      display:flex;
-      flex-wrap:wrap;
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(74px, 1fr));
       gap:8px;
       align-items:flex-start;
       min-height:24px;
     }
+    .simPanel .simPasteCards{
+      max-height:540px;
+      overflow:auto;
+      padding:2px 2px 4px;
+    }
     .simCard{
       width:74px;
+      justify-self:center;
       border-radius:3px;
       overflow:visible;
       position:relative;
@@ -239,6 +354,202 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+    }
+    .deckInfoText{
+      position:relative;
+      display:block;
+      max-height:58px;
+      min-height:58px;
+      overflow:hidden;
+      color:#1e293b;
+      transition:max-height .18s ease;
+    }
+    .deckInfoText.isExpanded{
+      max-height:260px;
+      overflow:auto;
+    }
+    .descriptionPanel{
+      position:relative;
+    }
+    .descriptionPanel.hasMore .deckInfoText:not(.isExpanded)::after{
+      content:"";
+      position:absolute;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      height:28px;
+      background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.94));
+      pointer-events:none;
+    }
+    .descriptionToggle{
+      display:none;
+    }
+    .descriptionPanel.hasMore .descriptionToggle{
+      display:inline-flex;
+    }
+    .deckBreakdown{
+      display:grid;
+      gap:14px;
+    }
+    .breakdownGrid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width: 980px){
+      .breakdownGrid{
+        grid-template-columns:minmax(0, 1fr) minmax(260px, .42fr);
+      }
+    }
+    .typePills{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:8px;
+    }
+    .typePill{
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:14px;
+      background:rgba(255,255,255,.64);
+      padding:10px;
+      min-width:0;
+    }
+    .typePill span{
+      display:block;
+      color:#64748b;
+      font-size:10px;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:4px;
+    }
+    .typePill strong{
+      color:#0f172a;
+      font-size:20px;
+      line-height:1;
+      font-weight:1000;
+    }
+    .costCurve{
+      display:grid;
+      gap:7px;
+    }
+    .deckInsights{
+      display:grid;
+      gap:8px;
+      align-content:start;
+    }
+    .insightItem{
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:14px;
+      background:rgba(255,255,255,.62);
+      padding:10px;
+    }
+    .insightItem span{
+      display:block;
+      color:#64748b;
+      font-size:10px;
+      font-weight:1000;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      margin-bottom:4px;
+    }
+    .insightItem strong{
+      color:#0f172a;
+      font-size:14px;
+      line-height:1.25;
+    }
+    .archetypeList{
+      display:flex;
+      gap:7px;
+      flex-wrap:wrap;
+    }
+    .archetypeTag{
+      display:inline-flex;
+      align-items:center;
+      min-height:28px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.08);
+      background:rgba(var(--leader-a-rgb),.10);
+      color:#0f172a;
+      padding:5px 9px;
+      font-size:12px;
+      font-weight:900;
+    }
+    .costRow{
+      display:grid;
+      grid-template-columns:34px minmax(0, 1fr) 34px;
+      align-items:center;
+      gap:8px;
+      color:#334155;
+      font-size:12px;
+      font-weight:900;
+    }
+    .costTrack{
+      height:8px;
+      border-radius:999px;
+      background:rgba(15,23,42,.08);
+      overflow:hidden;
+    }
+    .costFill{
+      height:100%;
+      width:var(--bar-width, 0%);
+      border-radius:inherit;
+      background:linear-gradient(90deg, var(--leader-a), var(--leader-b));
+    }
+    .considerationGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+      gap:10px;
+    }
+    .considerationCard{
+      display:grid;
+      grid-template-columns:52px minmax(0, 1fr);
+      gap:10px;
+      align-items:center;
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:14px;
+      background:rgba(255,255,255,.68);
+      padding:8px;
+      min-width:0;
+    }
+    .considerationCard img{
+      width:52px;
+      aspect-ratio:2 / 3;
+      object-fit:cover;
+      border-radius:5px;
+      background:#fff;
+      box-shadow:0 8px 18px rgba(2,6,23,.16);
+    }
+    .considerationFallback{
+      width:52px;
+      aspect-ratio:2 / 3;
+      border-radius:5px;
+      background:rgba(15,23,42,.08);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:#334155;
+      font-size:10px;
+      font-weight:1000;
+      padding:4px;
+    }
+    .considerationText{
+      min-width:0;
+      display:grid;
+      gap:4px;
+    }
+    .considerationText strong{
+      color:#0f172a;
+      font-size:13px;
+      line-height:1.2;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .considerationText span{
+      color:#64748b;
+      font-size:11px;
+      line-height:1.25;
     }
     .cardZoom{
       cursor:zoom-in;
@@ -295,37 +606,11 @@
       display:block;
     }
     .actionsRow{
-      margin-top:10px;
       display:flex;
       gap:8px;
       flex-wrap:wrap;
+      justify-content:flex-end;
     }
-    .editPanel{ margin-top:12px; display:none; }
-    .editPanel.open{ display:block; }
-    .editGrid{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
-    }
-    .editGrid label{
-      display:block;
-      font-size:12px;
-      font-weight:900;
-      color:#334155;
-      margin-bottom:6px;
-      letter-spacing:.4px;
-    }
-    .editGrid input, .editGrid textarea, .editGrid select{
-      width:100%;
-      border-radius:12px;
-      border:1px solid rgba(15,23,42,.18);
-      padding:10px 12px;
-      font:inherit;
-      box-sizing:border-box;
-      background:#fff;
-    }
-    .editGrid textarea{ min-height:90px; resize:vertical; }
-    .editActions{ display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
     .btnLight{
       border:1px solid rgba(15,23,42,.16);
       background: rgba(15,23,42,.06);
@@ -514,17 +799,20 @@
       .bar{ gap:8px; }
       .wrap{ padding: 0 10px; margin: 12px auto 22px; }
       .title{ font-size: 22px; }
-      .headRow{ align-items:center; }
-      .card{ padding: 12px; border-radius: 16px; }
+      .deckHeader{ grid-template-columns:1fr; padding:14px; }
+      .deckIdentity{ align-items:flex-start; gap:12px; }
+      .deckStats{ grid-template-columns:repeat(2, minmax(0, 1fr)); padding:12px 14px 0; }
+      .grid{ padding:12px 14px 14px; }
+      .card{ border-radius: 16px; }
+      .deckView{ padding:0; }
       .panel{ border-radius: 12px; }
-      .leaderPanel::before{
-        background-position-y: -66px;
-      }
       .leaderImg{
-        width: calc(84px * 0.72);
-        height: 84px;
+        width:64px;
+        height:90px;
         border-radius: 9px;
       }
+      .typePills{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .headActions{ justify-content:flex-start; }
       .hoverUsers{ width: min(220px, calc(100vw - 40px)); }
       .socialRow .iconBtn{ flex: 1 1 auto; justify-content: center; }
     }
@@ -571,11 +859,26 @@
   </div>
 
   <div class="wrap">
-    <div class="card">
-      <div class="headRow">
-        <h1 class="title" id="deckName">Deck</h1>
+    <div class="card deckView" id="deckView">
+      <div class="deckHeader">
+        <div class="deckIdentity">
+          <div class="leaderPanel" id="leaderPanel">
+            <img id="leaderImage" class="leaderImg" alt="Lider" />
+          </div>
+          <div>
+            <div class="deckKicker">DeckList</div>
+            <h1 class="title" id="deckName">Deck</h1>
+            <div class="meta">
+              <span id="deckAuthor">Autor: -</span>
+              <span id="deckCreated">Creado: -</span>
+              <span id="leaderName">-</span>
+            </div>
+            <div class="colorChips" id="deckColorChips"></div>
+          </div>
+        </div>
         <div class="headActions">
           <a class="btn btnLight btnTiny" href="decks.html">&#8592; Volver a decks</a>
+          <button class="btn btnLight btnTiny" id="btnEditInBuilder" type="button" style="display:none;">Editar en builder</button>
           <button class="copyIconBtn shareCopyBtn" id="btnCopyDeckLink" type="button" title="Copiar enlace para compartir" aria-label="Copiar enlace para compartir">
             <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 4h4v4"></path>
@@ -585,40 +888,41 @@
           </button>
         </div>
       </div>
-      <div class="meta">
-        <span id="deckAuthor">Autor: -</span>
-        <span id="deckCreated">Creado: -</span>
-      </div>
-      <div class="actionsRow">
-        <button class="btn btnLight" id="btnEditDeck" type="button" style="display:none;">Editar deck</button>
-        <button class="btn btnLight" id="btnEditInBuilder" type="button" style="display:none;">Editar en builder</button>
+
+      <div class="deckStats" id="deckStats">
+        <div class="statCard"><span>Main deck</span><strong id="statMainDeck">0/50</strong></div>
+        <div class="statCard"><span>Distintas</span><strong id="statUniqueCards">0</strong></div>
+        <div class="statCard"><span>Characters</span><strong id="statCharacters">0</strong></div>
+        <div class="statCard"><span>Eventos/Stage</span><strong id="statEventsStage">0</strong></div>
       </div>
 
       <div class="grid">
-        <div class="panel leaderPanel" id="leaderPanel">
-          <h3>Lider</h3>
-          <div class="leaderRow">
-            <img id="leaderImage" class="leaderImg" alt="Lider" />
-            <div>
-              <div class="leaderName" id="leaderName">-</div>
+        <div class="panel descriptionPanel" id="descriptionPanel">
+          <div class="panelHead">
+            <h3>Descripcion</h3>
+            <button class="btn btnLight btnTiny descriptionToggle" id="descriptionToggle" type="button">Mostrar mas</button>
+          </div>
+          <pre id="description" class="deckInfoText">-</pre>
+        </div>
+
+        <div class="panel deckBreakdown">
+          <h3>Resumen del mazo</h3>
+          <div class="breakdownGrid">
+            <div class="costCurve" id="costCurve">
+              <div class="muted">Cargando curva...</div>
             </div>
+            <div class="deckInsights" id="deckInsights">
+              <div class="muted">Cargando lectura del mazo...</div>
+            </div>
+          </div>
+          <div class="archetypeList" id="archetypeList">
+            <span class="archetypeTag">Sin arquetipo detectado</span>
           </div>
         </div>
 
-        <div class="panel">
-          <h3>Descripcion</h3>
-          <pre id="description">-</pre>
-        </div>
-
-        <div class="panel" id="deckImagePanel">
-          <h3>Imagen del deck</h3>
-          <img id="deckImage" class="deckImg" alt="Imagen del deck" />
-          <div class="muted" id="deckImageEmpty" style="display:none; margin-top:8px;">Este deck no tiene imagen.</div>
-        </div>
-
-        <div class="panel">
+        <div class="panel simPanel">
           <div class="panelHead">
-            <h3>Sim paste</h3>
+            <h3>Mazo</h3>
             <button class="copyIconBtn" id="btnCopySimPaste" type="button" title="Copiar lista" aria-label="Copiar lista">
               <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="7" y="3.5" width="9" height="11" rx="2"></rect>
@@ -631,41 +935,15 @@
           </div>
           <pre id="simPaste" class="srOnly">-</pre>
         </div>
-      </div>
-      <div class="panel editPanel" id="editPanel">
-        <h3>Editar deck</h3>
-        <div class="editGrid">
-          <div>
-            <label for="editName">Nombre</label>
-            <input id="editName" type="text" />
+
+        <div class="panel considerationsPanel">
+          <div class="panelHead">
+            <h3>Cartas a considerar</h3>
+            <span class="muted">Maximo 5 sugerencias</span>
           </div>
-          <div>
-            <label for="editLeader">Lider</label>
-            <select id="editLeader">
-              <option value="">(Selecciona lider)</option>
-            </select>
+          <div class="considerationGrid" id="considerationGrid">
+            <div class="muted">Cargando sugerencias...</div>
           </div>
-          <div>
-            <label for="editImageUrl">Deck image URL</label>
-            <input id="editImageUrl" type="text" />
-          </div>
-          <div>
-            <label for="editImageFile">Subir imagen de deck</label>
-            <input id="editImageFile" type="file" accept="image/*" />
-          </div>
-          <div>
-            <label for="editDescription">Descripcion</label>
-            <textarea id="editDescription"></textarea>
-          </div>
-          <div>
-            <label for="editSimPaste">Sim paste</label>
-            <textarea id="editSimPaste"></textarea>
-          </div>
-        </div>
-        <div class="editActions">
-          <button class="btn btnDanger" id="btnDeleteDeck" type="button">Eliminar deck</button>
-          <button class="btn btnLight" id="btnCancelEditDeck" type="button">Cancelar</button>
-          <button class="btn btnLight" id="btnSaveEditDeck" type="button">Guardar cambios</button>
         </div>
       </div>
 
@@ -702,6 +980,27 @@
     let socialState = { comments: [], likes: [], likedByMe: false };
     let editLeaders = [];
     let editLeaderByLabel = new Map();
+    let cardCatalogByCode = new Map();
+    let catalogReady = false;
+    let recommendationState = { leaderCode:"", status:"idle", rows:[], sourceDate:"", error:"", inflight:null, cache:new Map() };
+
+    const CARD_SOURCES = [
+      { key: "english", basePath: "punkrecords/english" },
+      { key: "english-asia", basePath: "punkrecords/english-asia" }
+    ];
+    const RECOMMENDATION_DATASET = "west_private";
+    const CONSIDERATION_LIMIT = 5;
+    const collator = new Intl.Collator("es", { sensitivity:"base", numeric:true });
+    const COLOR_ORDER = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"];
+    const COLOR_LABELS = { Red:"Rojo", Green:"Verde", Blue:"Azul", Purple:"Morado", Black:"Negro", Yellow:"Amarillo" };
+    const COLOR_THEME = {
+      Red: { hex:"#ef4444", rgb:"239,68,68" },
+      Green: { hex:"#22c55e", rgb:"34,197,94" },
+      Blue: { hex:"#3b82f6", rgb:"59,130,246" },
+      Purple: { hex:"#8b5cf6", rgb:"139,92,246" },
+      Black: { hex:"#111827", rgb:"17,24,39" },
+      Yellow: { hex:"#eab308", rgb:"234,179,8" }
+    };
 
     const escapeHtml = window.BarateamApp.escapeHtml;
     const escapeAttr = window.BarateamApp.escapeAttr;
@@ -729,6 +1028,48 @@
       return String(value || "").trim();
     }
 
+    function fetchJson(url){
+      return fetch(url, { cache:"force-cache" }).then((response) => {
+        if (!response.ok) throw new Error(`${url} ${response.status}`);
+        return response.json();
+      });
+    }
+
+    function toYmd(date){
+      const d = date instanceof Date ? date : new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function toCompactDate(ymd){
+      return String(ymd || "").replace(/-/g, "");
+    }
+
+    function normalizeApiArray(data){
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.data)) return data.data;
+      if (Array.isArray(data?.cards)) return data.cards;
+      if (Array.isArray(data?.results)) return data.results;
+      return [];
+    }
+
+    function colorListFromRaw(value){
+      if (Array.isArray(value)){
+        return value.map((entry) => norm(entry)).filter(Boolean);
+      }
+      const raw = norm(value);
+      if (!raw) return [];
+      const found = COLOR_ORDER.filter((color) => new RegExp(`\\b${color}\\b`, "i").test(raw));
+      if (found.length) return found;
+      return raw.split(/[\/,&]+|\s{2,}/).map((entry) => norm(entry)).filter(Boolean);
+    }
+
+    function humanColor(color){
+      return COLOR_LABELS[color] || color;
+    }
+
     function leaderLabelFromRow(row){
       const name = norm(row?.name);
       const code = norm(row?.code);
@@ -737,6 +1078,10 @@
 
     function leaderImageFromRow(row){
       return norm(row?.parallel_image_url || row?.image_url);
+    }
+
+    function leaderColorsFromRow(row){
+      return colorListFromRaw(row?.colors || row?.card_color || row?.color || row?.colour);
     }
 
     function resolveLeaderForDeck(leaderLabel){
@@ -778,10 +1123,94 @@
       return normalized;
     }
 
+    function extractCardCode(value){
+      const raw = String(value || "");
+      const match = raw.match(/\b(?:OP|ST|EB)-?\d{2,3}-\d{3}\b/i) || raw.match(/\bP-?\d{1,3}\b/i);
+      return match ? normalizeCardCode(match[0]) : normalizeCardCode(raw);
+    }
+
     function buildDotggCardImageUrl(value){
       const code = normalizeCardCode(value);
       if (!code) return "";
       return `https://static.dotgg.gg/onepiece/card/${encodeURIComponent(code)}.webp`;
+    }
+
+    function buildOfficialCardImageUrl(value){
+      const code = normalizeCardCode(value);
+      if (!code) return "";
+      return `https://en.onepiece-cardgame.com/images/cardlist/card/${encodeURIComponent(code)}.png`;
+    }
+
+    function buildAsiaOfficialCardImageUrl(value){
+      const code = normalizeCardCode(value);
+      if (!code) return "";
+      return `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${encodeURIComponent(code)}.png`;
+    }
+
+    function uniqueUrls(values){
+      const seen = new Set();
+      return values.map((value) => norm(value)).filter((value) => {
+        if (!value || seen.has(value)) return false;
+        seen.add(value);
+        return true;
+      });
+    }
+
+    function cardImageSources(cardOrCode){
+      const code = typeof cardOrCode === "string" ? normalizeCardCode(cardOrCode) : normalizeCardCode(cardOrCode?.code);
+      const catalog = typeof cardOrCode === "object" ? norm(cardOrCode?.image) : "";
+      const dotgg = buildDotggCardImageUrl(code);
+      const asiaOfficial = buildAsiaOfficialCardImageUrl(code);
+      const official = buildOfficialCardImageUrl(code);
+      const urls = uniqueUrls([dotgg, catalog, asiaOfficial, official]);
+      return { primary: urls[0] || "", fallbacks: urls.slice(1) };
+    }
+
+    function normalizeCatalogCard(raw){
+      const code = normalizeCardCode(raw?.id || raw?.card_id || raw?.code || "");
+      if (!code) return null;
+      const type = norm(raw?.category || raw?.type || "Unknown");
+      const costValue = raw?.cost ?? raw?.card_cost;
+      const cost = costValue === null || costValue === undefined || costValue === "" ? null : Number(costValue);
+      const counterValue = raw?.counter ?? raw?.counter_amount;
+      const counter = counterValue === null || counterValue === undefined || counterValue === "" ? null : Number(counterValue);
+      return {
+        code,
+        name: norm(raw?.name) || code,
+        type,
+        cost: Number.isFinite(cost) ? cost : null,
+        counter: Number.isFinite(counter) ? counter : null,
+        subTypes: Array.isArray(raw?.types) ? raw.types.map((entry) => norm(entry)).filter(Boolean) : norm(raw?.sub_types).split(/[\/,]+/).map((entry) => norm(entry)).filter(Boolean),
+        effect: norm(raw?.effect || raw?.card_text),
+        trigger: norm(raw?.trigger),
+        colors: colorListFromRaw(raw?.colors || raw?.card_color || raw?.color),
+        image: norm(raw?.img_full_url || raw?.card_image || raw?.img_url) || buildOfficialCardImageUrl(code)
+      };
+    }
+
+    async function loadCardCatalog(){
+      const next = new Map();
+      const sourceResults = await Promise.allSettled(CARD_SOURCES.map(async (source) => {
+        const packs = await fetchJson(`${source.basePath}/packs.json`);
+        const packIds = Object.keys(packs || {});
+        const packResults = await Promise.allSettled(
+          packIds.map(async (packId) => fetchJson(`${source.basePath}/data/${packId}.json`))
+        );
+        for (const result of packResults){
+          if (result.status !== "fulfilled") continue;
+          for (const raw of normalizeApiArray(result.value)){
+            const card = normalizeCatalogCard(raw);
+            if (card && !next.has(card.code)){
+              next.set(card.code, card);
+            }
+          }
+        }
+      }));
+      sourceResults.forEach((result) => {
+        if (result.status === "rejected") console.warn("catalog:", result.reason?.message || result.reason);
+      });
+      cardCatalogByCode = next;
+      catalogReady = next.size > 0;
     }
 
     function parseSimPasteItems(text){
@@ -793,7 +1222,7 @@
           const match = line.match(/^(\d+)\s*x\s*(.+)$/i);
           if (!match) return null;
           const qty = Number(match[1] || 0);
-          const code = normalizeCardCode(match[2]);
+          const code = extractCardCode(match[2]);
           if (!qty || !code) return null;
           return { qty, code };
         })
@@ -801,13 +1230,15 @@
     }
 
     function renderSimPasteCard(item){
-      const label = item?.code || "Carta";
+      const card = cardCatalogByCode.get(item?.code || "");
+      const label = card ? `${card.name} (${card.code})` : (item?.code || "Carta");
       const badgeText = `${item?.qty || 0}x`;
-      const src = buildDotggCardImageUrl(label);
+      const sources = cardImageSources(card || item?.code || "");
+      const src = sources.primary;
       if (!src){
         return `<div class="simCard" title="${escapeAttr(label)}"><div class="simCardFallback">${escapeHtml(label)}</div><div class="simCardBadge">${escapeHtml(badgeText)}</div></div>`;
       }
-      return `<div class="simCard cardZoom" title="${escapeAttr(label)}" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy" data-sim-card-label="${escapeAttr(label)}"><div class="simCardBadge">${escapeHtml(badgeText)}</div></div>`;
+      return `<div class="simCard cardZoom" title="${escapeAttr(label)}" data-preview-src="${escapeAttr(src)}" data-preview-label="${escapeAttr(label)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(label)}" loading="lazy" data-card-img="1" data-fallback-srcs="${escapeAttr(sources.fallbacks.join("|"))}" data-fallback-class="simCardFallback" data-sim-card-label="${escapeAttr(label)}"><div class="simCardBadge">${escapeHtml(badgeText)}</div></div>`;
     }
 
     function renderSimPasteVisual(text){
@@ -830,16 +1261,329 @@
       host.innerHTML = items.map((item) => renderSimPasteCard(item)).join("");
     }
 
+    function leaderCodeFromDeck(deck){
+      const byLeader = resolveLeaderForDeck(deck?.leader || "");
+      if (byLeader?.code) return normalizeCardCode(byLeader.code);
+      const match = norm(deck?.leader).match(/\b(?:OP|ST|EB|P)-?\d{2,3}-\d{3}\b/i);
+      return match ? normalizeCardCode(match[0]) : "";
+    }
+
+    function mainDeckItems(deck){
+      const items = parseSimPasteItems(deck?.sim_paste || "");
+      const leaderCode = leaderCodeFromDeck(deck);
+      const total = items.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+      return items.filter((item, index) => {
+        const card = cardCatalogByCode.get(item.code);
+        if (card?.type === "Leader") return false;
+        if (leaderCode && item.code === leaderCode && item.qty === 1) return false;
+        return !(index === 0 && item.qty === 1 && total - 1 === 50);
+      });
+    }
+
+    function analyzeDeck(deck){
+      const mainItems = mainDeckItems(deck);
+      const mainTotal = mainItems.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+      const typeCounts = { Character:0, Event:0, Stage:0, Unknown:0 };
+      const costCounts = new Map();
+      const archetypeCounts = new Map();
+      let counter1000 = 0;
+      let counter2000 = 0;
+      let blockers = 0;
+      let triggers = 0;
+      let enriched = 0;
+
+      for (const item of mainItems){
+        const card = cardCatalogByCode.get(item.code);
+        const qty = Number(item.qty || 0);
+        if (card){
+          enriched += 1;
+          if (card.type === "Character") typeCounts.Character += qty;
+          else if (card.type === "Event") typeCounts.Event += qty;
+          else if (card.type === "Stage") typeCounts.Stage += qty;
+          else typeCounts.Unknown += qty;
+          if (card.cost !== null){
+            const key = Math.max(0, Math.min(10, Number(card.cost)));
+            costCounts.set(key, (costCounts.get(key) || 0) + qty);
+          }
+          if (card.counter === 1000) counter1000 += qty;
+          if (card.counter === 2000) counter2000 += qty;
+          if (/\[Blocker\]/i.test(`${card.effect} ${card.trigger}`)) blockers += qty;
+          if (card.trigger && card.trigger !== "-") triggers += qty;
+          (card.subTypes || []).forEach((type) => {
+            if (!type || type === "-") return;
+            archetypeCounts.set(type, (archetypeCounts.get(type) || 0) + qty);
+          });
+        } else {
+          typeCounts.Unknown += qty;
+        }
+      }
+
+      return {
+        mainTotal,
+        unique: mainItems.length,
+        typeCounts,
+        costCounts,
+        archetypeCounts,
+        counter1000,
+        counter2000,
+        blockers,
+        triggers,
+        enriched
+      };
+    }
+
+    function leaderColors(deck){
+      const byLeader = resolveLeaderForDeck(deck?.leader || "");
+      if (byLeader?.colors?.length) return byLeader.colors;
+      const leaderCode = leaderCodeFromDeck(deck);
+      const fromCatalog = leaderCode ? cardCatalogByCode.get(leaderCode)?.colors : [];
+      return fromCatalog?.length ? fromCatalog : [];
+    }
+
+    function applyDeckTheme(deck){
+      const colors = leaderColors(deck);
+      const first = COLOR_THEME[colors[0]] || COLOR_THEME.Purple;
+      const second = COLOR_THEME[colors[1]] || COLOR_THEME[colors[0]] || COLOR_THEME.Blue;
+      document.documentElement.style.setProperty("--leader-a", first.hex);
+      document.documentElement.style.setProperty("--leader-b", second.hex);
+      document.documentElement.style.setProperty("--leader-a-rgb", first.rgb);
+      document.documentElement.style.setProperty("--leader-b-rgb", second.rgb);
+
+      const chips = $("deckColorChips");
+      if (chips){
+        const rows = colors.length ? colors : ["Sin color"];
+        chips.innerHTML = rows.map((color) => {
+          const theme = COLOR_THEME[color] || { hex:"#64748b" };
+          return `<span class="colorChip"><span class="colorDot" style="--chip-color:${escapeAttr(theme.hex)}"></span>${escapeHtml(humanColor(color))}</span>`;
+        }).join("");
+      }
+    }
+
+    function renderDeckBreakdown(deck){
+      const stats = analyzeDeck(deck);
+      $("statMainDeck").textContent = `${stats.mainTotal}/50`;
+      $("statUniqueCards").textContent = String(stats.unique);
+      $("statCharacters").textContent = String(stats.typeCounts.Character);
+      $("statEventsStage").textContent = String(stats.typeCounts.Event + stats.typeCounts.Stage);
+
+      const archetypes = Array.from(stats.archetypeCounts.entries())
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 6);
+      $("archetypeList").innerHTML = archetypes.length
+        ? archetypes.map(([label, qty]) => `<span class="archetypeTag">${escapeHtml(label)} ${qty}</span>`).join("")
+        : '<span class="archetypeTag">Sin arquetipo detectado</span>';
+
+      const insightHost = $("deckInsights");
+      if (insightHost){
+        const dominant = archetypes[0] ? `${archetypes[0][0]} (${archetypes[0][1]})` : "Sin datos";
+        const eventRatio = stats.mainTotal ? Math.round(((stats.typeCounts.Event + stats.typeCounts.Stage) / stats.mainTotal) * 100) : 0;
+        insightHost.innerHTML = [
+          `<div class="insightItem"><span>Arquetipo principal</span><strong>${escapeHtml(dominant)}</strong></div>`,
+          `<div class="insightItem"><span>Plan</span><strong>${eventRatio}% eventos/stage · ${stats.triggers} triggers</strong></div>`,
+          `<div class="insightItem"><span>Defensa</span><strong>${stats.counter2000} counter 2k · ${stats.blockers} blockers · ${stats.counter1000} counter 1k</strong></div>`
+        ].join("");
+      }
+
+      renderConsiderations(deck, stats, archetypes.map(([label]) => label));
+
+      const curve = $("costCurve");
+      if (!curve) return;
+      if (!catalogReady || !stats.enriched){
+        curve.innerHTML = '<div class="muted">La curva se mostrara cuando cargue el catalogo local.</div>';
+        return;
+      }
+
+      const rows = Array.from(stats.costCounts.entries()).sort((a, b) => a[0] - b[0]);
+      if (!rows.length){
+        curve.innerHTML = '<div class="muted">Sin costes detectados en la lista.</div>';
+        return;
+      }
+
+      const max = Math.max(...rows.map(([, qty]) => qty), 1);
+      curve.innerHTML = rows.map(([cost, qty]) => {
+        const label = cost >= 10 ? "10+" : String(cost);
+        const width = Math.max(6, Math.round((qty / max) * 100));
+        return `<div class="costRow"><span>${escapeHtml(label)}</span><div class="costTrack"><div class="costFill" style="--bar-width:${width}%"></div></div><strong>${qty}</strong></div>`;
+      }).join("");
+    }
+
+    function normalizeDecklistRows(rows){
+      return (Array.isArray(rows) ? rows : []).map((row) => ({
+        leader: extractCardCode(row?.leader || row?.leader_code || row?.leaderCode || ""),
+        leaderName: norm(row?.leaderName || row?.leader_name || row?.leader || ""),
+        bestDecklists: Array.isArray(row?.best_decklists) ? row.best_decklists
+          : Array.isArray(row?.bestDecklists) ? row.bestDecklists
+          : Array.isArray(row?.decks) ? row.decks
+          : []
+      })).filter((row) => row.leader);
+    }
+
+    function deckTextFromRecommendationDeck(deck){
+      return String(
+        deck?.decklist ||
+        deck?.deck_list ||
+        deck?.list ||
+        deck?.sim_paste ||
+        deck?.cards ||
+        ""
+      );
+    }
+
+    async function fetchRecommendationDataset(){
+      if (!window.BarateamApp?.SUPABASE_URL) throw new Error("Supabase no esta disponible.");
+      const requested = toYmd(new Date());
+      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/matchup-stats?dataset=${encodeURIComponent(RECOMMENDATION_DATASET)}&date=${toCompactDate(requested)}`;
+      const res = await fetch(url, { cache:"no-store" });
+      if (!res.ok) throw new Error(`matchup-stats ${res.status}`);
+      const payload = await res.json();
+      return {
+        sourceDate: payload?.date
+          ? `${String(payload.date).slice(0, 4)}-${String(payload.date).slice(4, 6)}-${String(payload.date).slice(6, 8)}`
+          : requested,
+        deckRows: normalizeDecklistRows(payload?.data?.decklist || [])
+      };
+    }
+
+    function recommendationRowsForLeader(leaderCode, decklists, sourceDate, deckQty, colors){
+      const leader = extractCardCode(leaderCode);
+      const aggregate = new Map();
+      const relevantDecks = Array.isArray(decklists) ? decklists : [];
+      relevantDecks.forEach((deck, deckIndex) => {
+        const parsed = parseSimPasteItems(deckTextFromRecommendationDeck(deck));
+        const seenInDeck = new Set();
+        parsed.forEach((item) => {
+          const code = extractCardCode(item.code);
+          if (!code || code === leader) return;
+          const card = cardCatalogByCode.get(code);
+          if (!card || card.type === "Leader") return;
+          if (colors.length && !card.colors.some((color) => colors.includes(color))) return;
+          const entry = aggregate.get(code) || { code, card, deckCount:0, totalQty:0, maxQty:0, firstSeen:deckIndex };
+          if (!seenInDeck.has(code)){
+            entry.deckCount += 1;
+            seenInDeck.add(code);
+          }
+          entry.totalQty += Number(item.qty || 0);
+          entry.maxQty = Math.max(entry.maxQty, Number(item.qty || 0));
+          entry.firstSeen = Math.min(entry.firstSeen, deckIndex);
+          aggregate.set(code, entry);
+        });
+      });
+
+      const deckCount = Math.max(1, relevantDecks.length);
+      return Array.from(aggregate.values())
+        .map((entry) => {
+          const avgQty = entry.totalQty / entry.deckCount;
+          const recommendedQty = Math.max(1, Math.min(4, Math.round(avgQty)));
+          const currentQty = Number(deckQty.get(entry.code) || 0);
+          return {
+            ...entry,
+            deckCountTotal: deckCount,
+            inclusionRate: entry.deckCount / deckCount,
+            avgQty,
+            recommendedQty,
+            currentQty,
+            missingQty: Math.max(0, recommendedQty - currentQty),
+            sourceDate
+          };
+        })
+        .filter((entry) => entry.currentQty < entry.recommendedQty)
+        .sort((a, b) => {
+          if (b.deckCount !== a.deckCount) return b.deckCount - a.deckCount;
+          if (b.inclusionRate !== a.inclusionRate) return b.inclusionRate - a.inclusionRate;
+          if (b.avgQty !== a.avgQty) return b.avgQty - a.avgQty;
+          return a.firstSeen - b.firstSeen || collator.compare(a.card.name, b.card.name);
+        });
+    }
+
+    function renderRecommendationRows(rows){
+      const host = $("considerationGrid");
+      if (!host) return;
+      const topRows = (rows || []).slice(0, CONSIDERATION_LIMIT);
+      if (!topRows.length){
+        host.innerHTML = '<div class="muted">No hay cartas pendientes de recomendar: tu lista ya incluye las cartas frecuentes o no hay datos para este leader.</div>';
+        return;
+      }
+      host.innerHTML = topRows.map((item) => {
+        const card = item.card;
+        const sources = cardImageSources(card);
+        const pct = `${Math.round((item.inclusionRate || 0) * 100)}%`;
+        const missing = item.missingQty > 0 ? `+${item.missingQty}` : "+";
+        const img = sources.primary
+          ? `<img src="${escapeAttr(sources.primary)}" alt="${escapeAttr(card.name)}" loading="lazy" data-card-img="1" data-fallback-srcs="${escapeAttr(sources.fallbacks.join("|"))}" data-fallback-class="considerationFallback" data-sim-card-label="${escapeAttr(card.code)}">`
+          : `<div class="considerationFallback">${escapeHtml(card.code)}</div>`;
+        return `<article class="considerationCard">${img}<div class="considerationText"><strong>${escapeHtml(card.name)}</strong><span>${escapeHtml(card.code)} · ${missing} copias</span><span>${pct} listas top (${item.deckCount}/${item.deckCountTotal})</span></div></article>`;
+      }).join("");
+    }
+
+    function renderConsiderations(deck, stats, archetypes){
+      const host = $("considerationGrid");
+      if (!host) return;
+      if (!catalogReady || !stats.enriched){
+        host.innerHTML = '<div class="muted">Las sugerencias se mostraran cuando cargue el catalogo local.</div>';
+        return;
+      }
+
+      const deckQty = new Map(mainDeckItems(deck).map((item) => [item.code, Number(item.qty || 0)]));
+      const colors = leaderColors(deck);
+      const leaderCode = leaderCodeFromDeck(deck);
+      if (!leaderCode){
+        host.innerHTML = '<div class="muted">No hay leader valido para buscar recomendaciones.</div>';
+        return;
+      }
+
+      const cached = recommendationState.cache.get(leaderCode);
+      if (cached){
+        recommendationState = { ...recommendationState, leaderCode, status:"ready", rows:recommendationRowsForLeader(leaderCode, cached.decklists, cached.sourceDate, deckQty, colors), sourceDate:cached.sourceDate, error:"" };
+        renderRecommendationRows(recommendationState.rows);
+        return;
+      }
+
+      if (recommendationState.status === "loading" && recommendationState.leaderCode === leaderCode){
+        host.innerHTML = '<div class="muted">Cargando recomendaciones de decklists top...</div>';
+        return;
+      }
+
+      recommendationState = { ...recommendationState, leaderCode, status:"loading", rows:[], sourceDate:"", error:"" };
+      host.innerHTML = '<div class="muted">Cargando recomendaciones de decklists top...</div>';
+      recommendationState.inflight = fetchRecommendationDataset()
+        .then((loaded) => {
+          const row = loaded.deckRows.find((item) => extractCardCode(item.leader) === leaderCode) || null;
+          const decklists = row?.bestDecklists || [];
+          recommendationState.cache.set(leaderCode, { decklists, sourceDate:loaded.sourceDate });
+          if (!currentDeck || leaderCodeFromDeck(currentDeck) !== leaderCode) return;
+          const nextQty = new Map(mainDeckItems(currentDeck).map((item) => [item.code, Number(item.qty || 0)]));
+          const nextColors = leaderColors(currentDeck);
+          recommendationState = { ...recommendationState, leaderCode, status:"ready", rows:recommendationRowsForLeader(leaderCode, decklists, loaded.sourceDate, nextQty, nextColors), sourceDate:loaded.sourceDate, error:"" };
+          renderRecommendationRows(recommendationState.rows);
+        })
+        .catch((error) => {
+          if (!currentDeck || leaderCodeFromDeck(currentDeck) !== leaderCode) return;
+          recommendationState = { ...recommendationState, leaderCode, status:"error", rows:[], error:error?.message || "No se pudieron cargar recomendaciones." };
+          host.innerHTML = `<div class="muted">Recomendaciones no disponibles: ${escapeHtml(recommendationState.error)}</div>`;
+        });
+    }
+
     function handleSimPasteImageError(event){
       const target = event.target;
-      if (!(target instanceof HTMLImageElement)) return;
-      const card = target.closest(".simCard");
-      const host = target.closest("#simPasteVisual");
-      if (!card || !host) return;
-      if (card.querySelector(".simCardFallback")) return;
+      if (!(target instanceof HTMLImageElement) || target.dataset.cardImg !== "1") return;
+
+      const fallbacks = String(target.dataset.fallbackSrcs || "").split("|").map((value) => norm(value)).filter(Boolean);
+      const fallbackIndex = Number(target.dataset.fallbackIndex || 0);
+      const fallbackSrc = fallbacks[fallbackIndex] || "";
+      if (fallbackSrc){
+        target.dataset.fallbackIndex = String(fallbackIndex + 1);
+        target.src = fallbackSrc;
+        const zoomCard = target.closest(".cardZoom[data-preview-src]");
+        if (zoomCard) zoomCard.dataset.previewSrc = fallbackSrc;
+        return;
+      }
+
+      const card = target.closest(".simCard, .considerationCard");
+      if (!card) return;
+      if (card.querySelector(".simCardFallback, .considerationFallback")) return;
 
       const fallback = document.createElement("div");
-      fallback.className = "simCardFallback";
+      fallback.className = target.dataset.fallbackClass || "simCardFallback";
       fallback.textContent = target.dataset.simCardLabel || target.alt || "Carta";
       card.classList.remove("cardZoom");
       delete card.dataset.previewSrc;
@@ -910,28 +1654,6 @@
       window.addEventListener("resize", () => { if (activeAnchor) place(activeAnchor); });
     }
 
-    function fillEditLeaderSelect(){
-      const sel = $("editLeader");
-      sel.innerHTML = '<option value="">(Selecciona lider)</option>';
-      for (const l of editLeaders){
-        const opt = document.createElement("option");
-        opt.value = l.label;
-        opt.textContent = l.label;
-        sel.appendChild(opt);
-      }
-    }
-
-    function ensureEditLeaderOption(label){
-      const normalized = norm(label);
-      if (!normalized) return;
-      if (editLeaderByLabel.has(normalized)) return;
-      const sel = $("editLeader");
-      const opt = document.createElement("option");
-      opt.value = normalized;
-      opt.textContent = normalized;
-      sel.appendChild(opt);
-    }
-
     async function initEditLeaders(){
       const { data, error } = await sb
         .from("leaders")
@@ -943,7 +1665,6 @@
         console.warn("leaders:", error.message);
         editLeaders = [];
         editLeaderByLabel = new Map();
-        fillEditLeaderSelect();
         return;
       }
 
@@ -956,6 +1677,7 @@
           return {
             label,
             image: leaderImageFromRow(row) || null,
+            colors: leaderColorsFromRow(row),
             name,
             code,
             searchLabel: label.toLowerCase(),
@@ -972,25 +1694,6 @@
 
       editLeaders = Array.from(uniq.values());
       editLeaderByLabel = new Map(editLeaders.map((l) => [l.label, l]));
-      fillEditLeaderSelect();
-    }
-
-    async function uploadDeckImage(file, userId){
-      if (!file) return null;
-
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "jpg";
-      const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
-      const path = `${userId}/${fileName}`;
-
-      const { error: upErr } = await sb
-        .storage
-        .from("deck-images")
-        .upload(path, file, { upsert: false, contentType: file.type });
-
-      if (upErr) throw upErr;
-      const { data } = sb.storage.from("deck-images").getPublicUrl(path);
-      return data?.publicUrl || null;
     }
 
     function profileHref(userId){
@@ -1036,6 +1739,30 @@
       currentUser = data?.session?.user || null;
     }
 
+    function refreshDescriptionToggle(){
+      const panel = $("descriptionPanel");
+      const text = $("description");
+      const button = $("descriptionToggle");
+      if (!panel || !text || !button) return;
+      const hasMore = text.scrollHeight > text.clientHeight + 4 || text.classList.contains("isExpanded");
+      panel.classList.toggle("hasMore", hasMore);
+      button.textContent = text.classList.contains("isExpanded") ? "Mostrar menos" : "Mostrar mas";
+    }
+
+    function renderDescription(text){
+      const node = $("description");
+      node.textContent = text || "-";
+      node.classList.remove("isExpanded");
+      requestAnimationFrame(refreshDescriptionToggle);
+    }
+
+    function toggleDescription(){
+      const node = $("description");
+      if (!node) return;
+      node.classList.toggle("isExpanded");
+      refreshDescriptionToggle();
+    }
+
     function renderDeck(deck){
       $("deckName").textContent = deck.name || "Deck";
       const authorLabel = userLabel(deck.autor);
@@ -1045,27 +1772,13 @@
       const resolvedLeaderImage = deckLeaderImage(deck);
       $("leaderName").textContent = deck.leader || "-";
       setImage($("leaderImage"), resolvedLeaderImage || "");
-      const leaderPanel = $("leaderPanel");
-      if (leaderPanel){
-        const bg = resolvedLeaderImage
-          ? `url("${String(resolvedLeaderImage).replace(/"/g, '\\"')}")`
-          : "none";
-        leaderPanel.style.setProperty("--leader-bg-image", bg);
-      }
+      applyDeckTheme(deck);
 
-      const deckImage = deck.image_url || "";
-      if (deckImage){
-        setImage($("deckImage"), deckImage);
-        $("deckImageEmpty").style.display = "none";
-      } else {
-        $("deckImage").style.display = "none";
-        $("deckImageEmpty").style.display = "block";
-      }
-
-      $("description").textContent = deck.description || "-";
+      renderDescription(deck.description || "-");
       const simPasteText = deck.sim_paste || "-";
       $("simPaste").textContent = simPasteText;
       renderSimPasteVisual(simPasteText);
+      renderDeckBreakdown(deck);
     }
 
     function computeDeckOwner(){
@@ -1073,14 +1786,8 @@
     }
 
     function renderDeckOwnerUI(){
-      const btn = $("btnEditDeck");
       const builderBtn = $("btnEditInBuilder");
-      if (!btn) return;
-      btn.style.display = isDeckOwner ? "inline-flex" : "none";
       if (builderBtn) builderBtn.style.display = isDeckOwner ? "inline-flex" : "none";
-      if (!isDeckOwner){
-        $("editPanel").classList.remove("open");
-      }
     }
 
     function editInBuilder(){
@@ -1088,102 +1795,7 @@
       window.location.href = `deck-builder.html?id=${encodeURIComponent(deckId)}`;
     }
 
-    function fillEditForm(deck){
-      $("editName").value = deck?.name || "";
-      ensureEditLeaderOption(deck?.leader || "");
-      $("editLeader").value = deck?.leader || "";
-      $("editImageUrl").value = deck?.image_url || "";
-      $("editImageFile").value = "";
-      $("editDescription").value = deck?.description || "";
-      $("editSimPaste").value = deck?.sim_paste || "";
-    }
-
-    function openEditPanel(){
-      if (!isDeckOwner || !currentDeck) return;
-      fillEditForm(currentDeck);
-      $("editPanel").classList.add("open");
-    }
-
-    function closeEditPanel(){
-      $("editPanel").classList.remove("open");
-    }
-
-    async function saveDeckEdits(){
-      if (!isDeckOwner || !currentDeck || !deckId){
-        showError("No tienes permisos para editar este deck.");
-        return;
-      }
-
-      try{
-        const selectedLeader = norm($("editLeader").value);
-        const leaderData = editLeaderByLabel.get(selectedLeader) || null;
-        let nextImageUrl = norm($("editImageUrl").value) || null;
-        const editFile = $("editImageFile").files?.[0] || null;
-        if (editFile){
-          nextImageUrl = await uploadDeckImage(editFile, currentUser.id);
-        }
-
-        const payload = {
-          name: $("editName").value.trim() || null,
-          leader: selectedLeader || null,
-          leader_image_url: leaderData?.image || null,
-          image_url: nextImageUrl,
-          description: $("editDescription").value.trim() || null,
-          sim_paste: $("editSimPaste").value.trim() || null
-        };
-
-        const { data, error } = await sb
-          .from("decks")
-          .update(payload)
-          .eq("id", deckId)
-          .eq("autor", currentUser.id)
-          .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
-          .maybeSingle();
-
-        if (error){
-          showError("No pude guardar los cambios: " + error.message);
-          return;
-        }
-        if (!data){
-          showError("No se pudo actualizar el deck (permisos o registro).");
-          return;
-        }
-
-        currentDeck = data;
-        renderDeck(currentDeck);
-        closeEditPanel();
-        window.BarateamApp.showMessage("msg", "Deck actualizado", { baseClass: "msg", type: "ok" });
-      }catch(e){
-        showError("No pude guardar los cambios: " + (e.message || "unknown"));
-      }
-    }
-    async function deleteDeck(){
-      if (!isDeckOwner || !currentDeck || !deckId || !currentUser){
-        showError("No tienes permisos para eliminar este deck.");
-        return;
-      }
-
-      const ok = window.confirm("¿Seguro que quieres eliminar este deck? Esta accion no se puede deshacer.");
-      if (!ok) return;
-
-      try{
-        const { error } = await sb
-          .from("decks")
-          .delete()
-          .eq("id", deckId)
-          .eq("autor", currentUser.id);
-
-        if (error){
-          showError("No pude eliminar el deck: " + error.message);
-          return;
-        }
-
-        window.location.href = "decks.html";
-      }catch(e){
-        showError("No pude eliminar el deck: " + (e.message || "unknown"));
-      }
-    }
-async function loadDeck(){
+    async function loadDeck(){
       const params = new URLSearchParams(window.location.search);
       deckId = params.get("id");
 
@@ -1195,7 +1807,7 @@ async function loadDeck(){
       try{
         const { data, error } = await sb
           .from("decks")
-          .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+          .select("id, name, created_at, autor, leader, leader_image_url, description, sim_paste")
           .eq("id", deckId)
           .maybeSingle();
 
@@ -1531,21 +2143,23 @@ async function loadDeck(){
     $("btnToggleComments").addEventListener("click", () => {
       $("commentsPanel").classList.toggle("open");
     });
-    $("btnEditDeck").addEventListener("click", openEditPanel);
     $("btnEditInBuilder").addEventListener("click", editInBuilder);
     $("btnCopyDeckLink").addEventListener("click", copyDeckLink);
     $("btnCopySimPaste").addEventListener("click", copySimPaste);
-    $("btnCancelEditDeck").addEventListener("click", closeEditPanel);
-    $("btnSaveEditDeck").addEventListener("click", saveDeckEdits);
-    $("btnDeleteDeck").addEventListener("click", deleteDeck);
+    $("descriptionToggle").addEventListener("click", toggleDescription);
+    window.addEventListener("resize", refreshDescriptionToggle);
     document.addEventListener("error", handleSimPasteImageError, true);
     initCardHoverPreview();
 
     (async function init(){
       await refreshSession();
+      const catalogPromise = loadCardCatalog()
+        .then(() => { if (currentDeck) renderDeck(currentDeck); })
+        .catch((error) => { console.warn("catalog:", error?.message || error); });
       await initEditLeaders();
       const ok = await loadDeck();
       if (!ok) return;
+      void catalogPromise;
       await loadDeckSocial();
 
       sb.auth.onAuthStateChange(async (_event, session) => {

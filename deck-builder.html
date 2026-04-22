@@ -160,84 +160,6 @@
       resize:vertical;
       line-height:1.45;
     }
-    .deckImagePicker{
-      display:grid;
-      grid-template-columns:112px minmax(0, 1fr) auto;
-      gap:10px;
-      align-items:center;
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      background:rgba(255,255,255,.04);
-      padding:8px;
-    }
-    .deckImagePreview{
-      width:112px;
-      aspect-ratio:16 / 10;
-      border-radius:10px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(15,23,42,.55);
-      color:#94a3b8;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:11px;
-      font-weight:900;
-      text-align:center;
-    }
-    .deckImagePreview img{
-      width:100%;
-      height:100%;
-      display:block;
-      object-fit:cover;
-    }
-    .deckImageMeta{
-      min-width:0;
-      display:grid;
-      gap:4px;
-    }
-    .deckImageMeta strong{
-      color:#fff;
-      font-size:13px;
-      line-height:1.2;
-    }
-    .deckImageMeta span{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.35;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-    .deckImageActions{
-      display:flex;
-      gap:8px;
-      justify-content:flex-end;
-      flex-wrap:wrap;
-    }
-    .deckImageActions label.btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      color:#fff;
-      cursor:pointer;
-      font-size:13px;
-      font-weight:800;
-      letter-spacing:0;
-      text-transform:none;
-    }
-    .visuallyHiddenFile{
-      position:absolute;
-      width:1px;
-      height:1px;
-      overflow:hidden;
-      clip:rect(0 0 0 0);
-      clip-path:inset(50%);
-      white-space:nowrap;
-      border:0;
-      padding:0;
-      margin:-1px;
-    }
     .builderActions{
       display:flex;
       gap:8px;
@@ -1216,9 +1138,6 @@
       .leaderSlot{ grid-template-columns:92px minmax(0, 1fr); }
       .cardGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
       .deckGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
-      .deckImagePicker{ grid-template-columns:86px minmax(0, 1fr); }
-      .deckImagePreview{ width:86px; }
-      .deckImageActions{ grid-column:1 / -1; justify-content:flex-start; }
       .cardPreview{ display:none !important; }
     }
   </style>
@@ -1315,22 +1234,6 @@
             <div class="field">
               <label for="deckDescriptionInput">Descripcion</label>
               <textarea id="deckDescriptionInput" class="formControl" placeholder="Plan de juego, matchups, notas..."></textarea>
-            </div>
-            <div class="field">
-              <label for="deckImageInput">Imagen</label>
-              <div class="deckImagePicker">
-                <div class="deckImagePreview" id="deckImagePreview"><span>Sin imagen</span></div>
-                <div class="deckImageMeta">
-                  <strong>Imagen del deck</strong>
-                  <span id="deckImageFileName">Sin imagen seleccionada</span>
-                  <span>Se sube a Supabase Storage (bucket: deck-images).</span>
-                </div>
-                <div class="deckImageActions">
-                  <input id="deckImageInput" class="visuallyHiddenFile" type="file" accept="image/*" />
-                  <label class="btn btnSoft" for="deckImageInput">Subir imagen</label>
-                  <button class="btn btnSoft iconButton" id="clearDeckImageButton" type="button" title="Quitar imagen" aria-label="Quitar imagen">&times;<span class="buttonText">Quitar imagen</span></button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1535,9 +1438,6 @@
       currentDeckId: initialDeckId,
       currentDeckUrl: "",
       loadedDeck: null,
-      deckImageUrl: "",
-      pendingDeckImageFile: null,
-      deckImagePreviewUrl: "",
       saveBusy: false,
       catalogReady: false,
       recommendations: {
@@ -2136,74 +2036,6 @@
       node.style.display = "block";
     }
 
-    function releaseDeckImagePreviewUrl(){
-      if (state.deckImagePreviewUrl){
-        URL.revokeObjectURL(state.deckImagePreviewUrl);
-        state.deckImagePreviewUrl = "";
-      }
-    }
-
-    function renderDeckImagePreview(){
-      const preview = $("deckImagePreview");
-      const label = $("deckImageFileName");
-      const clearBtn = $("clearDeckImageButton");
-      if (!preview || !label || !clearBtn) return;
-
-      const imageSrc = state.deckImagePreviewUrl || state.deckImageUrl || "";
-      if (imageSrc){
-        preview.innerHTML = `<img src="${escapeAttr(imageSrc)}" alt="Imagen del deck" />`;
-      } else {
-        preview.innerHTML = "<span>Sin imagen</span>";
-      }
-
-      if (state.pendingDeckImageFile){
-        label.textContent = state.pendingDeckImageFile.name || "Imagen seleccionada";
-      } else if (state.deckImageUrl){
-        label.textContent = "Imagen guardada";
-      } else {
-        label.textContent = "Sin imagen seleccionada";
-      }
-      clearBtn.style.display = imageSrc ? "inline-flex" : "none";
-    }
-
-    function setDeckImageUrl(url){
-      releaseDeckImagePreviewUrl();
-      state.pendingDeckImageFile = null;
-      state.deckImageUrl = normalize(url);
-      const input = $("deckImageInput");
-      if (input) input.value = "";
-      renderDeckImagePreview();
-    }
-
-    function handleDeckImageInputChange(event){
-      const file = event?.target?.files?.[0] || null;
-      releaseDeckImagePreviewUrl();
-      state.pendingDeckImageFile = file;
-      if (file){
-        state.deckImagePreviewUrl = URL.createObjectURL(file);
-      }
-      renderDeckImagePreview();
-    }
-
-    function clearDeckImage(){
-      setDeckImageUrl("");
-    }
-
-    async function uploadDeckImage(file, userId){
-      if (!file) return null;
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "jpg";
-      const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
-      const path = `${userId}/${fileName}`;
-      const { error: upErr } = await sb
-        .storage
-        .from("deck-images")
-        .upload(path, file, { upsert:false, contentType:file.type || "image/jpeg" });
-      if (upErr) throw upErr;
-      const { data } = sb.storage.from("deck-images").getPublicUrl(path);
-      return data?.publicUrl || null;
-    }
-
     function renderAuthState(){
       const mode = state.currentDeckId ? "Editando deck" : (state.currentUser ? "Sesion activa" : "Modo local");
       $("saveModePill").textContent = mode;
@@ -2635,7 +2467,7 @@
       try{
         const { data, error } = await sb
           .from("decks")
-          .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+          .select("id, name, created_at, autor, leader, leader_image_url, description, sim_paste")
           .eq("id", state.currentDeckId)
           .maybeSingle();
         if (error) throw error;
@@ -2651,7 +2483,6 @@
         $("deckNameInput").value = data.name || "";
         $("deckDescriptionInput").value = data.description || "";
         $("importTextarea").value = data.sim_paste || "";
-        setDeckImageUrl(data.image_url || "");
 
         const leaderCard = resolveLeaderCardFromLabel(data.leader || "");
         const parsed = parseSimPaste(data.sim_paste || "");
@@ -2696,19 +2527,12 @@
       }
 
       const leader = selectedLeader();
-      const imageFile = state.pendingDeckImageFile;
 
       try{
         state.saveBusy = true;
         const wasUpdate = Boolean(state.currentDeckId);
         renderValidation();
-        setLoading(true, imageFile ? "Subiendo imagen..." : (state.currentDeckId ? "Actualizando deck..." : "Guardando deck..."));
-
-        let imageUrl = state.deckImageUrl || null;
-        if (imageFile){
-          imageUrl = await uploadDeckImage(imageFile, state.currentUser.id);
-          setLoading(true, state.currentDeckId ? "Actualizando deck..." : "Guardando deck...");
-        }
+        setLoading(true, state.currentDeckId ? "Actualizando deck..." : "Guardando deck...");
 
         const payload = {
           name,
@@ -2716,7 +2540,6 @@
           leader: deckLeaderLabel(leader) || null,
           leader_image_url: deckLeaderImage(leader) || null,
           description: normalize($("deckDescriptionInput").value) || null,
-          image_url: imageUrl,
           sim_paste: formatSimPaste() || null
         };
 
@@ -2727,13 +2550,13 @@
             .update(payload)
             .eq("id", state.currentDeckId)
             .eq("autor", state.currentUser.id)
-            .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+            .select("id, name, created_at, autor, leader, leader_image_url, description, sim_paste")
             .maybeSingle();
         } else {
           result = await sb
             .from("decks")
             .insert(payload)
-            .select("id, name, created_at, autor, leader, leader_image_url, image_url, description, sim_paste")
+            .select("id, name, created_at, autor, leader, leader_image_url, description, sim_paste")
             .single();
         }
 
@@ -2742,7 +2565,6 @@
 
         state.currentDeckId = result.data.id;
         state.loadedDeck = result.data;
-        setDeckImageUrl(result.data.image_url || imageUrl || "");
         state.currentDeckUrl = `deck.html?id=${encodeURIComponent(result.data.id)}`;
         showSaveMessage(wasUpdate ? "Deck actualizado en DeckLists." : "Deck creado en DeckLists.", "ok");
         renderAuthState();
@@ -3253,13 +3075,10 @@
     $("copyExportButton").addEventListener("click", copyExport);
     $("saveDeckButton").addEventListener("click", saveDeckToHub);
     $("openDeckButton").addEventListener("click", openSavedDeck);
-    $("deckImageInput").addEventListener("change", handleDeckImageInputChange);
-    $("clearDeckImageButton").addEventListener("click", clearDeckImage);
     $("refreshRecommendationsButton").addEventListener("click", () => {
       void loadRecommendations(true);
     });
     $("deckNameInput").addEventListener("input", renderValidation);
-    window.addEventListener("beforeunload", releaseDeckImagePreviewUrl);
     $("detailCloseButton").addEventListener("click", closeDetail);
     $("detailOverlay").addEventListener("click", (event) => {
       if (event.target === $("detailOverlay")){
@@ -3302,7 +3121,6 @@
     }
 
     (async function init(){
-      renderDeckImagePreview();
       render();
       await refreshSession();
       await loadCatalog();
