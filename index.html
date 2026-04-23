@@ -2243,6 +2243,7 @@
   }
 
   const FEATURED_RANKING_MIN_GAMES = 40;
+  const LEADER_WR_RANKING_MIN_GAMES = 15;
 
   function featuredTopPlayerPool(rows){
     const list = Array.isArray(rows) ? rows : [];
@@ -2586,9 +2587,8 @@
       return b.wr - a.wr;
     }).slice(0, 3);
 
-    const minGames = 3;
-    const wrPool = rows.filter((x) => x.games >= minGames);
-    const byWr = (wrPool.length ? wrPool : rows)
+    const wrPool = rows.filter((x) => x.games >= LEADER_WR_RANKING_MIN_GAMES);
+    const byWr = wrPool
       .sort((a, b) => {
         if (b.wr !== a.wr) return b.wr - a.wr;
         return b.games - a.games;
@@ -2912,7 +2912,7 @@
         </div>
       </div>
       <div class="leaderRanks">
-        ${leaderRankCardHtml("Top 3 lideres por WR", leaderRankings?.byWr || [])}
+        ${leaderRankCardHtml(`Top 3 lideres por WR (min. ${LEADER_WR_RANKING_MIN_GAMES})`, leaderRankings?.byWr || [])}
         ${leaderRankCardHtml("Top 3 lideres mas jugados", leaderRankings?.byPlayed || [])}
       </div>
     `;
