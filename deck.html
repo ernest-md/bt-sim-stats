@@ -19,6 +19,7 @@
       --leader-b:#06b6d4;
       --leader-a-rgb:124,58,237;
       --leader-b-rgb:6,182,212;
+      --leader-art-image:none;
     }
     body{
       margin:0;
@@ -71,15 +72,43 @@
       z-index:1;
     }
     .deckHeader{
+      position:relative;
+      overflow:hidden;
       display:grid;
       grid-template-columns:minmax(0, 1fr) auto;
       gap:16px;
       align-items:start;
       padding:20px;
       border-bottom:1px solid rgba(15,23,42,.08);
+      background:transparent;
+    }
+    .deckHeader::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:var(--leader-art-image);
+      background-position:center 22%;
+      background-size:cover;
+      background-repeat:no-repeat;
+      filter:saturate(1.08) contrast(1.02);
+      transform:scale(1.02);
+      opacity:.78;
+      pointer-events:none;
+    }
+    .deckHeader::after{
+      content:"";
+      position:absolute;
+      inset:0;
       background:
-        radial-gradient(700px 240px at 18% 0%, rgba(var(--leader-a-rgb),.24), transparent 72%),
-        radial-gradient(560px 220px at 82% 8%, rgba(var(--leader-b-rgb),.18), transparent 70%);
+        linear-gradient(90deg, rgba(248,250,252,.84) 0%, rgba(248,250,252,.68) 42%, rgba(248,250,252,.58) 100%),
+        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.10)),
+        radial-gradient(700px 240px at 18% 0%, rgba(var(--leader-a-rgb),.18), transparent 72%),
+        radial-gradient(560px 220px at 82% 8%, rgba(var(--leader-b-rgb),.14), transparent 70%);
+      pointer-events:none;
+    }
+    .deckHeader > *{
+      position:relative;
+      z-index:1;
     }
     .deckIdentity{
       display:flex;
@@ -155,35 +184,6 @@
       border-radius:999px;
       background:var(--chip-color, #64748b);
       box-shadow:0 0 0 2px rgba(255,255,255,.75);
-    }
-    .deckStats{
-      display:grid;
-      grid-template-columns:repeat(4, minmax(0, 1fr));
-      gap:10px;
-      padding:14px 20px 0;
-    }
-    .statCard{
-      min-width:0;
-      border:1px solid rgba(15,23,42,.08);
-      border-radius:16px;
-      background:rgba(255,255,255,.74);
-      padding:12px;
-      box-shadow:0 12px 28px rgba(2,6,23,.06);
-    }
-    .statCard span{
-      display:block;
-      color:#64748b;
-      font-size:11px;
-      font-weight:1000;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      margin-bottom:5px;
-    }
-    .statCard strong{
-      color:#0f172a;
-      font-size:24px;
-      line-height:1;
-      font-weight:1000;
     }
     .grid{
       display:grid;
@@ -400,6 +400,9 @@
       .breakdownGrid{
         grid-template-columns:minmax(0, 1fr) minmax(260px, .42fr);
       }
+      .deckInsights{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
     }
     .typePills{
       display:grid;
@@ -434,8 +437,12 @@
     }
     .deckInsights{
       display:grid;
+      grid-template-columns:1fr;
       gap:8px;
       align-content:start;
+    }
+    .insightItem.isWide{
+      grid-column:1 / -1;
     }
     .insightItem{
       border:1px solid rgba(15,23,42,.08);
@@ -800,8 +807,20 @@
       .wrap{ padding: 0 10px; margin: 12px auto 22px; }
       .title{ font-size: 22px; }
       .deckHeader{ grid-template-columns:1fr; padding:14px; }
+      .deckHeader::before{
+        background-position:center 16%;
+        opacity:.72;
+      }
       .deckIdentity{ align-items:flex-start; gap:12px; }
-      .deckStats{ grid-template-columns:repeat(2, minmax(0, 1fr)); padding:12px 14px 0; }
+      .meta{
+        gap:6px;
+        font-size:12px;
+      }
+      .meta span{
+        min-height:24px;
+        max-width:100%;
+      }
+      .colorChips{ margin-top:10px; }
       .grid{ padding:12px 14px 14px; }
       .card{ border-radius: 16px; }
       .deckView{ padding:0; }
@@ -812,7 +831,43 @@
         border-radius: 9px;
       }
       .typePills{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
-      .headActions{ justify-content:flex-start; }
+      .headActions{
+        width:100%;
+        justify-content:flex-start;
+      }
+      .headActions > .btnTiny{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        flex:1 1 140px;
+        min-height:36px;
+      }
+      .headActions > .copyIconBtn{
+        margin-left:auto;
+      }
+      .simPasteCards{
+        grid-template-columns:repeat(4, minmax(0, 1fr));
+        gap:6px;
+      }
+      .simPanel .simPasteCards{
+        max-height:420px;
+      }
+      .simCard{ width:auto; }
+      .simCardBadge{
+        left:2px;
+        right:2px;
+        font-size:9px;
+      }
+      .considerationGrid{ grid-template-columns:1fr; }
+      .considerationCard{
+        grid-template-columns:44px minmax(0, 1fr);
+        gap:8px;
+        padding:7px;
+      }
+      .considerationCard img,
+      .considerationFallback{
+        width:44px;
+      }
       .hoverUsers{ width: min(220px, calc(100vw - 40px)); }
       .socialRow .iconBtn{ flex: 1 1 auto; justify-content: center; }
     }
@@ -888,14 +943,6 @@
           </button>
         </div>
       </div>
-
-      <div class="deckStats" id="deckStats">
-        <div class="statCard"><span>Main deck</span><strong id="statMainDeck">0/50</strong></div>
-        <div class="statCard"><span>Distintas</span><strong id="statUniqueCards">0</strong></div>
-        <div class="statCard"><span>Characters</span><strong id="statCharacters">0</strong></div>
-        <div class="statCard"><span>Eventos/Stage</span><strong id="statEventsStage">0</strong></div>
-      </div>
-
       <div class="grid">
         <div class="panel descriptionPanel" id="descriptionPanel">
           <div class="panelHead">
@@ -939,7 +986,7 @@
         <div class="panel considerationsPanel">
           <div class="panelHead">
             <h3>Cartas a considerar</h3>
-            <span class="muted">Maximo 5 sugerencias</span>
+            <span class="muted">Maximo 12 sugerencias</span>
           </div>
           <div class="considerationGrid" id="considerationGrid">
             <div class="muted">Cargando sugerencias...</div>
@@ -989,7 +1036,7 @@
       { key: "english-asia", basePath: "punkrecords/english-asia" }
     ];
     const RECOMMENDATION_DATASET = "west_private";
-    const CONSIDERATION_LIMIT = 5;
+    const CONSIDERATION_LIMIT = 12;
     const collator = new Intl.Collator("es", { sensitivity:"base", numeric:true });
     const COLOR_ORDER = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"];
     const COLOR_LABELS = { Red:"Rojo", Green:"Verde", Blue:"Azul", Purple:"Morado", Black:"Negro", Yellow:"Amarillo" };
@@ -1348,6 +1395,8 @@
       document.documentElement.style.setProperty("--leader-b", second.hex);
       document.documentElement.style.setProperty("--leader-a-rgb", first.rgb);
       document.documentElement.style.setProperty("--leader-b-rgb", second.rgb);
+      const leaderArt = deckLeaderImage(deck);
+      document.documentElement.style.setProperty("--leader-art-image", leaderArt ? `url("${leaderArt}")` : "none");
 
       const chips = $("deckColorChips");
       if (chips){
@@ -1361,10 +1410,15 @@
 
     function renderDeckBreakdown(deck){
       const stats = analyzeDeck(deck);
-      $("statMainDeck").textContent = `${stats.mainTotal}/50`;
-      $("statUniqueCards").textContent = String(stats.unique);
-      $("statCharacters").textContent = String(stats.typeCounts.Character);
-      $("statEventsStage").textContent = String(stats.typeCounts.Event + stats.typeCounts.Stage);
+      const eventStageTotal = stats.typeCounts.Event + stats.typeCounts.Stage;
+      const supportRatio = stats.mainTotal ? Math.round((eventStageTotal / stats.mainTotal) * 100) : 0;
+      const costRows = Array.from(stats.costCounts.entries()).sort((a, b) => a[0] - b[0]);
+      const peakCost = costRows.reduce((best, row) => {
+        if (!best) return row;
+        if (row[1] > best[1]) return row;
+        if (row[1] === best[1] && row[0] < best[0]) return row;
+        return best;
+      }, null);
 
       const archetypes = Array.from(stats.archetypeCounts.entries())
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
@@ -1376,11 +1430,16 @@
       const insightHost = $("deckInsights");
       if (insightHost){
         const dominant = archetypes[0] ? `${archetypes[0][0]} (${archetypes[0][1]})` : "Sin datos";
-        const eventRatio = stats.mainTotal ? Math.round(((stats.typeCounts.Event + stats.typeCounts.Stage) / stats.mainTotal) * 100) : 0;
+        const curveLabel = peakCost
+          ? `Pico en coste ${peakCost[0] >= 10 ? "10+" : peakCost[0]} (${peakCost[1]} cartas)`
+          : "Sin curva detectada";
         insightHost.innerHTML = [
-          `<div class="insightItem"><span>Arquetipo principal</span><strong>${escapeHtml(dominant)}</strong></div>`,
-          `<div class="insightItem"><span>Plan</span><strong>${eventRatio}% eventos/stage · ${stats.triggers} triggers</strong></div>`,
-          `<div class="insightItem"><span>Defensa</span><strong>${stats.counter2000} counter 2k · ${stats.blockers} blockers · ${stats.counter1000} counter 1k</strong></div>`
+          `<div class="insightItem"><span>Base</span><strong>${stats.mainTotal}/50 main deck · ${stats.unique} distintas</strong></div>`,
+          `<div class="insightItem"><span>Composicion</span><strong>${stats.typeCounts.Character} characters · ${eventStageTotal} eventos/stage</strong></div>`,
+          `<div class="insightItem isWide"><span>Arquetipo principal</span><strong>${escapeHtml(dominant)}</strong></div>`,
+          `<div class="insightItem"><span>Curva</span><strong>${escapeHtml(curveLabel)}</strong></div>`,
+          `<div class="insightItem"><span>Plan</span><strong>${supportRatio}% soporte · ${stats.triggers} triggers</strong></div>`,
+          `<div class="insightItem isWide"><span>Defensa</span><strong>${stats.counter2000} counter 2k · ${stats.blockers} blockers · ${stats.counter1000} counter 1k</strong></div>`
         ].join("");
       }
 
@@ -1393,7 +1452,7 @@
         return;
       }
 
-      const rows = Array.from(stats.costCounts.entries()).sort((a, b) => a[0] - b[0]);
+      const rows = costRows;
       if (!rows.length){
         curve.innerHTML = '<div class="muted">Sin costes detectados en la lista.</div>';
         return;

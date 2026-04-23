@@ -1132,12 +1132,72 @@
     }
     @media (max-width: 760px){
       .page{ padding:14px 12px 24px; }
+      .panel{ border-radius:18px; }
+      .panelHead,
+      .builderMeta .panelHead,
+      .deckPanel .panelHead{
+        flex-direction:column;
+        align-items:stretch;
+        gap:10px;
+      }
+      .panelBody,
+      .builderMeta .panelBody,
+      .deckPanel .panelBody{
+        padding:12px;
+      }
+      .builderActions{
+        margin-left:0;
+        justify-content:flex-start;
+        width:100%;
+      }
+      .searchBar{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .searchBar .btn{
+        width:100%;
+      }
       .filterBar{ grid-template-columns:1fr; }
       .deckSummary{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
       .detailStats{ grid-template-columns:1fr; }
-      .leaderSlot{ grid-template-columns:92px minmax(0, 1fr); }
-      .cardGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .leaderSlot{
+        grid-template-columns:72px minmax(0, 1fr);
+        align-items:start;
+      }
+      .leaderInfo h3{ font-size:16px; }
+      .leaderInfo p{ font-size:12px; }
+      .statusTag{ align-self:flex-start; }
+      .toolbarTypes{
+        width:100%;
+        flex-wrap:nowrap;
+        overflow-x:auto;
+        padding-bottom:2px;
+      }
+      .toolbarType{ flex:0 0 auto; }
+      .deckActions{
+        width:100%;
+        margin-left:0;
+        display:grid;
+        grid-template-columns:repeat(5, minmax(0, 1fr));
+      }
+      .deckActions > *{
+        width:100%;
+      }
+      .cardGrid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:8px;
+        max-height:54vh;
+        padding-right:0;
+      }
       .deckGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .recommendationsHead{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .recommendationsHead .btn{
+        width:100%;
+      }
+      .recommendationsGrid{ grid-template-columns:1fr; }
       .cardPreview{ display:none !important; }
     }
   </style>
@@ -1313,7 +1373,7 @@
             <div class="toolbarActions deckActions">
               <span class="btn iconButton deckValidationIcon err" id="deckValidationIcon" role="status" tabindex="0" title="Lista incompleta" aria-label="Lista incompleta">&times;<span class="buttonText">Estado del mazo</span></span>
               <button class="btn iconButton" id="detailButton" type="button" title="Ver detalle" aria-label="Ver detalle">&#9638;<span class="buttonText">Detalle</span></button>
-              <button class="btn iconButton" id="clearDeckButton" type="button" title="Limpiar mazo" aria-label="Limpiar mazo">&times;<span class="buttonText">Limpiar</span></button>
+              <button class="btn iconButton" id="clearDeckButton" type="button" title="Vaciar mazo" aria-label="Vaciar mazo">&times;<span class="buttonText">Vaciar mazo</span></button>
               <button class="btn btnAccent iconButton" id="importButton" type="button" title="Importar SIM paste del portapapeles" aria-label="Importar SIM paste del portapapeles">&#8681;<span class="buttonText">Importar del portapapeles</span></button>
               <button class="btn btnSoft iconButton" id="copyExportButton" type="button" title="Copiar SIM paste" aria-label="Copiar SIM paste">&#10697;<span class="buttonText">Copiar SIM paste</span></button>
             </div>
@@ -2794,7 +2854,7 @@
           `<div class="leaderInfo">` +
             `<h3>${escapeHtml(leader.name)}</h3>` +
             `<p>${escapeHtml(leader.code)} - ${escapeHtml(leader.colors.map(humanColor).join(" / ") || "Sin color")} - Leader unico del mazo</p>` +
-            `<div class="leaderActions"><button class="btn btnAccent" type="button" id="clearLeaderButton">Quitar leader y vaciar mazo</button></div>` +
+            `<div class="leaderActions"><button class="btn btnAccent" type="button" id="clearLeaderButton">Vaciar mazo</button></div>` +
           `</div>` +
         `</div>`
       );

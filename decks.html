@@ -353,19 +353,129 @@
       font-size: 12px;
       color:#475569;
     }
+    .mobileDeckList{
+      display:none;
+    }
+    .mobileDeckCard{
+      border:1px solid rgba(15,23,42,.10);
+      border-radius:16px;
+      background:rgba(255,255,255,.84);
+      box-shadow:0 12px 24px rgba(15,23,42,.08);
+      padding:12px;
+      cursor:pointer;
+    }
+    .mobileDeckHead{
+      display:grid;
+      grid-template-columns:44px minmax(0, 1fr);
+      gap:10px;
+      align-items:center;
+    }
+    .mobileDeckThumb{
+      width:44px;
+      height:62px;
+      border-radius:8px;
+      border:1px solid rgba(15,23,42,.10);
+      object-fit:contain;
+      background:rgba(255,255,255,.92);
+      display:block;
+    }
+    .mobileDeckInfo{
+      min-width:0;
+      display:grid;
+      gap:6px;
+    }
+    .mobileDeckName{
+      color:#0f172a;
+      font-size:15px;
+      font-weight:1000;
+      line-height:1.15;
+      overflow-wrap:anywhere;
+    }
+    .mobileDeckMeta{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:10px;
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px solid rgba(15,23,42,.08);
+    }
+    .mobileMetaItem{
+      min-width:0;
+      display:grid;
+      gap:4px;
+    }
+    .mobileMetaLabel{
+      color:#64748b;
+      font-size:10px;
+      font-weight:1000;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .mobileMetaValue{
+      color:#0f172a;
+      font-size:13px;
+      line-height:1.25;
+      overflow-wrap:anywhere;
+    }
 
     @media (max-width: 760px){
       .brand{ width:100%; margin-right:0; }
       .brand small{ font-size: 11px; }
       .pill{ font-size: 11px; padding: 5px 8px; }
-      .hero h1{ font-size: 22px; }
-      .tableWrap{ border-radius: 14px; }
-      .tableScroll{
-        overflow-x: auto;
-        overflow-y: visible;
+      .hero{
+        border-radius:18px;
+        padding:16px 14px;
       }
-      table{ min-width: 560px; }
+      .hero h1{ font-size: 22px; }
+      .hero .actions{
+        width:100%;
+      }
+      .hero .actions .btn{
+        width:100%;
+        justify-content:center;
+      }
+      .card{
+        padding:12px;
+        border-radius:16px;
+      }
+      .toolbar{
+        flex-direction:column;
+        align-items:stretch;
+        gap:12px;
+      }
+      .toolbar > div,
+      .toolbar .grow{
+        width:100%;
+        min-width:0;
+      }
+      .builderRedirect .btn{
+        width:100%;
+        justify-content:center;
+      }
+      .tableWrap{ display:none; }
+      .mobileDeckList{
+        display:grid;
+        gap:10px;
+      }
       .leaderZoomPreview{ display:none !important; }
+      .pager{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .pager > div:last-child{
+        width:100%;
+        display:grid;
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:8px;
+        align-items:center;
+      }
+      .pager > div:last-child .btn{
+        width:100%;
+        justify-content:center;
+      }
+      .pagerInfo{
+        text-align:center;
+      }
     }
   </style>
 </head>
@@ -514,6 +624,7 @@
           </table>
         </div>
       </div>
+      <div class="mobileDeckList" id="mobileDeckList"></div>
       <div class="pager">
         <div class="pagerInfo" id="decksPagerInfo">Mostrando 0 de 0</div>
         <div>
@@ -727,7 +838,9 @@
 
     function renderDecksAsTable(decks){
       const body = $("decksTbody");
+      const mobileList = $("mobileDeckList");
       body.innerHTML = "";
+      if (mobileList) mobileList.innerHTML = "";
 
       const empty = (!decks || decks.length === 0);
       $("emptyHint").style.display = empty ? "block" : "none";
@@ -755,10 +868,10 @@
           : `<div class="leaderThumb" aria-hidden="true"></div>`;
 
         tr.innerHTML = `
-          <td><span class="pillMini">${escapeHtml(name)}</span></td>
-          <td><div class="leaderCell">${imgHtml}<span class="pillMini">${escapeHtml(leader)}</span></div></td>
-          <td><span class="mono">${profileLinkById(d.autor, autor)}</span></td>
-          <td title="${escapeAttr(dateExact)}">${escapeHtml(date)}</td>
+          <td data-label="Nombre"><span class="pillMini">${escapeHtml(name)}</span></td>
+          <td data-label="Lider"><div class="leaderCell">${imgHtml}<span class="pillMini">${escapeHtml(leader)}</span></div></td>
+          <td data-label="Autor"><span class="mono">${profileLinkById(d.autor, autor)}</span></td>
+          <td data-label="Creado" title="${escapeAttr(dateExact)}">${escapeHtml(date)}</td>
         `;
         tr.querySelectorAll("a.userLink").forEach((a) => {
           a.addEventListener("click", (ev) => ev.stopPropagation());
@@ -769,6 +882,40 @@
         });
 
         body.appendChild(tr);
+
+        if (mobileList){
+          const article = document.createElement("article");
+          article.className = "mobileDeckCard";
+          const mobileImg = leaderImg
+            ? `<img class="mobileDeckThumb" src="${escapeAttr(leaderImg)}" alt="${escapeAttr(leader)}">`
+            : `<div class="mobileDeckThumb" aria-hidden="true"></div>`;
+          article.innerHTML = `
+            <div class="mobileDeckHead">
+              ${mobileImg}
+              <div class="mobileDeckInfo">
+                <strong class="mobileDeckName">${escapeHtml(name)}</strong>
+                <span class="pillMini">${escapeHtml(leader)}</span>
+              </div>
+            </div>
+            <div class="mobileDeckMeta">
+              <div class="mobileMetaItem">
+                <span class="mobileMetaLabel">Autor</span>
+                <span class="mobileMetaValue mono">${profileLinkById(d.autor, autor)}</span>
+              </div>
+              <div class="mobileMetaItem">
+                <span class="mobileMetaLabel">Creado</span>
+                <span class="mobileMetaValue" title="${escapeAttr(dateExact)}">${escapeHtml(date)}</span>
+              </div>
+            </div>
+          `;
+          article.querySelectorAll("a.userLink").forEach((a) => {
+            a.addEventListener("click", (ev) => ev.stopPropagation());
+          });
+          article.addEventListener("click", () => {
+            location.href = `deck.html?id=${encodeURIComponent(d.id)}`;
+          });
+          mobileList.appendChild(article);
+        }
       }
     }
 
