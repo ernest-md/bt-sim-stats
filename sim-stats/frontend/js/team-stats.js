@@ -1,4 +1,4 @@
-import { getPlayersForTeamOnly, getMatchesByPlayers, getExpansions, getViewerStatsContext, getPlayersForSpecificTeam, getAvailableTeamsForStats } from './api.js'
+import { getPlayersForTeamOnly, getMatchesByPlayers, getExpansions, getViewerStatsContext, getPlayersForSpecificTeam, getAvailableTeamsForStats, getTeamStatsMatches } from './api.js?v=20260427d'
 
 const expansionSelect = document.getElementById("teamExpansionSelect")
 const teamFilterSelect = document.getElementById("teamFilterSelect")
@@ -43,6 +43,11 @@ function wilsonScore(wins, games, z = 1.96) {
 
 function eloFromWilson(wilson) {
   return 1000 + (wilson * 1000)
+}
+
+function parseMatchWin(result) {
+  const value = String(result || "").trim().toLowerCase()
+  return value === "won" || value === "win" || value === "victoria" || value === "w"
 }
 
 function pickLeaderImage(leader) {
@@ -157,6 +162,27 @@ async function loadPlayersForSelectedTeam() {
 
 async function reloadTeamData() {
   updateTitles()
+  const selectedExpansion = expansionSelect.value
+  const expansion = selectedExpansion === "all"
+    ? null
+    : allExpansions.find((e) => e.id === selectedExpansion) || null
+  const startAt = expansion ? `${expansion.start_date}T00:00:00+00` : null
+  const endAt = expansion ? `${expansion.end_date}T23:59:59+00` : null
+
+  const rpcMatches = await getTeamStatsMatches(selectedTeam, startAt, endAt)
+  if (rpcMatches.length > 0) {
+    playersMap = new Map()
+    rpcMatches.forEach((m) => {
+      const pid = m.player_id
+      if (!pid || playersMap.has(pid)) return
+      const label = m.profile_username || m.profile_display_name || m.player_name || "Jugador"
+      playersMap.set(pid, { id: pid, name: label, profile_id: m.profile_id || null })
+    })
+    allMatches = rpcMatches
+    renderTeamSummary(rpcMatches)
+    return
+  }
+
   const players = await loadPlayersForSelectedTeam()
 
   if (players.length === 0) {
@@ -177,8 +203,8 @@ function applyExpansionFilter(matches) {
   const expansion = allExpansions.find((e) => e.id === selectedExpansion)
   if (!expansion) return filtered
 
-  const start = new Date(expansion.start_date)
-  const end = new Date(expansion.end_date)
+  const start = new Date(`${expansion.start_date}T00:00:00`)
+  const end = new Date(`${expansion.end_date}T23:59:59.999`)
 
   filtered = filtered.filter((m) => {
     const matchDate = new Date(m.match_date)
@@ -212,7 +238,7 @@ function renderTeamSummary(matches) {
 
     const row = byPlayer.get(pid)
     row.games += 1
-    if (m.result === "Won") row.wins += 1
+    if (parseMatchWin(m.result)) row.wins += 1
 
     const leaderCode = m.player?.code || "UNKNOWN"
     if (!row.leaderMap.has(leaderCode)) {
@@ -226,7 +252,7 @@ function renderTeamSummary(matches) {
 
     const leader = row.leaderMap.get(leaderCode)
     leader.games += 1
-    if (m.result === "Won") leader.wins += 1
+    if (parseMatchWin(m.result)) leader.wins += 1
   })
 
   const list = Array.from(byPlayer.values()).map((p) => {
@@ -248,6 +274,11 @@ function renderTeamSummary(matches) {
   })
 
   const top = list[0]
+  const teamGames = list.reduce((sum, p) => sum + p.games, 0)
+  const teamWins = list.reduce((sum, p) => sum + p.wins, 0)
+  const teamLosses = list.reduce((sum, p) => sum + p.losses, 0)
+  const teamWr = teamGames > 0 ? ((teamWins / teamGames) * 100) : 0
+  const teamBestElo = list.reduce((best, p) => Math.max(best, Math.round(p.elo)), 0)
   const teamActionsHtml = isCrowTeamSelected()
     ? `
       <div class="teamActionsWrap">
@@ -282,15 +313,16 @@ function renderTeamSummary(matches) {
           <div class="teamHighlightTop">Jugador destacado del equipo</div>
           <h4 class="teamHighlightName">${escapeHtml(top.name)}</h4>
           <p class="teamHighlightSub">Mejor WR con volumen de partidas en el filtro actual</p>
+          <p class="teamHighlightSub">Stats del destacado: ${top.games} partidas · ${top.wins} victorias · ${top.losses} derrotas · ${Math.round(top.elo)} ELO</p>
         </div>
         ${teamActionsHtml}
       </div>
         <div class="teamKpis">
-          <div class="teamKpi"><div class="teamKpiLabel">Partidas</div><div class="teamKpiValue">${top.games}</div></div>
-          <div class="teamKpi"><div class="teamKpiLabel">Winrate</div><div class="teamKpiValue">${top.wr.toFixed(1)}%</div></div>
-          <div class="teamKpi"><div class="teamKpiLabel">ELO</div><div class="teamKpiValue">${Math.round(top.elo)}</div></div>
-          <div class="teamKpi"><div class="teamKpiLabel">Victorias</div><div class="teamKpiValue">${top.wins}</div></div>
-          <div class="teamKpi"><div class="teamKpiLabel">Derrotas</div><div class="teamKpiValue">${top.losses}</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Partidas del equipo</div><div class="teamKpiValue">${teamGames}</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Winrate del equipo</div><div class="teamKpiValue">${teamWr.toFixed(1)}%</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Mejor ELO</div><div class="teamKpiValue">${teamBestElo}</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Victorias del equipo</div><div class="teamKpiValue">${teamWins}</div></div>
+          <div class="teamKpi"><div class="teamKpiLabel">Derrotas del equipo</div><div class="teamKpiValue">${teamLosses}</div></div>
         </div>
     </div>
 
@@ -435,8 +467,13 @@ document.addEventListener("keydown", (event) => {
   }
 })
 
-expansionSelect.addEventListener("change", () => {
-  renderTeamSummary(applyExpansionFilter(allMatches))
+expansionSelect.addEventListener("change", async () => {
+  setLoading(true, "Cargando estadisticas de equipo...")
+  try {
+    await reloadTeamData()
+  } finally {
+    setLoading(false)
+  }
 })
 
 if (teamFilterSelect) {

@@ -908,30 +908,33 @@ select:focus {
 .teamKpis {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .teamKpi {
   border: 1px solid rgba(255,255,255,.18);
   border-radius: 10px;
   background: rgba(15,23,42,.28);
-  padding: 8px;
+  padding: 7px 8px;
+  min-width: 0;
 }
 
 .teamKpiLabel {
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(226,232,240,.70);
   text-transform: uppercase;
-  letter-spacing: .6px;
+  letter-spacing: .45px;
   font-weight: 900;
+  line-height: 1.15;
 }
 
 .teamKpiValue {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 1000;
   line-height: 1.15;
   color: #fff;
+  margin-top: 2px;
 }
 
 .teamRankWrap {
