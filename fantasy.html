@@ -1,0 +1,395 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fantasy VBF - Barateam Hub</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260306b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260424d"></script>
+  <style>
+    :root{--bg:#09111f;--card:rgba(255,255,255,.94);--line:rgba(15,23,42,.1);--ink:#0f172a;--muted:#64748b;--shadow:0 18px 50px rgba(0,0,0,.34)}
+    *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(1200px 800px at 8% 8%,rgba(124,58,237,.34),transparent 60%),radial-gradient(950px 700px at 92% 18%,rgba(6,182,212,.28),transparent 60%),linear-gradient(180deg,rgba(9,17,31,.78),rgba(9,17,31,.82)),url("bg.png");background-size:cover;background-position:center;z-index:-1}
+    .brand{display:flex;flex-direction:column;align-items:center;color:#fff;font-weight:900;letter-spacing:.4px;margin-right:6px;line-height:1.1}
+    .brand small{display:block;text-align:center;padding-left:4px;font-weight:700;color:rgba(255,255,255,.72);letter-spacing:.2px}
+    .wrap{max-width:1440px;margin:0 auto;padding:14px}
+    .hero,.card{border:1px solid rgba(255,255,255,.18);box-shadow:var(--shadow)}
+    .hero{border-radius:24px;padding:18px 16px;color:#fff;background:radial-gradient(780px 260px at 10% 10%,rgba(124,58,237,.58),transparent 60%),radial-gradient(760px 240px at 92% 18%,rgba(6,182,212,.42),transparent 60%),linear-gradient(135deg,rgba(15,23,42,.95),rgba(15,23,42,.74))}
+    .heroTop,.sectionHead,.toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .toolbar{margin-bottom:14px}
+    .eyebrow{margin:0 0 6px;color:rgba(255,255,255,.72);font-size:12px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
+    .hero h1{margin:0;font-size:30px;font-weight:1000;line-height:1.02;letter-spacing:-.02em}
+    .hero p{margin:8px 0 0;color:rgba(255,255,255,.86);font-size:13px;line-height:1.48;max-width:78ch}
+    .hero a{color:#fff}
+    .heroStats,.factGrid,.metricGrid,.pageGrid{display:grid;gap:10px}
+    .heroStats{margin-top:14px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .heroStat{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);border-radius:14px;padding:10px 12px}
+    .heroStat b{display:block;font-size:20px;font-weight:1000}
+    .heroStat span{font-size:12px;font-weight:800;color:rgba(255,255,255,.86)}
+    .pageMsg,.schemaNote,.helper,.empty,.subPanel{margin-top:12px;border-radius:16px;padding:12px 14px}
+    .pageMsg{display:none;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;font-size:13px;line-height:1.45;white-space:pre-line}
+    .pageMsg.ok{display:block;border-color:rgba(34,197,94,.24);background:rgba(34,197,94,.14);color:#dcfce7}
+    .pageMsg.err{display:block;border-color:rgba(239,68,68,.24);background:rgba(239,68,68,.14);color:#fee2e2}
+    .schemaNote{display:none;border:1px dashed rgba(251,191,36,.34);background:rgba(245,158,11,.12);color:#fef3c7;font-size:13px;line-height:1.45}
+    .schemaNote code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#fff7ed}
+    .pageGrid{grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);margin-top:14px;align-items:start}
+    .stack{display:grid;gap:14px;min-width:0}
+    .card{background:var(--card);border-radius:22px;padding:14px;min-width:0}
+    .sectionHead h2{margin:0;font-size:18px;font-weight:1000;letter-spacing:-.02em}
+    .sectionHead p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+    .inlineMeta,.pillRow,.actionRow,.playerSub{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .inlineMeta:empty{display:none}
+    .pill{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:5px 10px;border-radius:999px;border:1px solid rgba(15,23,42,.1);background:rgba(15,23,42,.06);color:#0f172a;font-size:12px;font-weight:900;white-space:nowrap}
+    .pill.strong{background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.18);color:#4c1d95}
+    .pill.good{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.18);color:#166534}
+    .pill.warn{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.24);color:#9a3412}
+    .pill.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.18);color:#991b1b}
+    .factGrid{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px}
+    .fact,.metric{border:1px solid var(--line);border-radius:16px;padding:12px;background:rgba(255,255,255,.7);min-width:0}
+    .fact span,.metric span,.control span{display:block;color:#64748b;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .fact strong{display:block;color:#0f172a;font-size:22px;font-weight:1000;line-height:1.05}
+    .fact small{display:block;margin-top:5px;color:#64748b;font-size:12px;line-height:1.4}
+    .fantasyRulesStrip{grid-column:1/-1;margin-top:0}
+    .subPanel{border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.76))}
+    .subPanelHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .subPanelHead h3{margin:0;font-size:16px;font-weight:1000}
+    .subPanelHead p{margin:5px 0 0;color:#64748b;font-size:13px;line-height:1.45}
+    .teamStateCompact{display:grid;gap:10px}
+    .teamStateStrip{display:flex;flex-wrap:wrap;gap:8px}
+    .teamStateChip{display:grid;gap:3px;min-width:112px;padding:9px 10px;border-radius:14px;border:1px solid rgba(15,23,42,.08);background:rgba(248,250,252,.96)}
+    .teamStateChip span{display:block;color:#64748b;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .teamStateChip strong{display:block;color:#0f172a;font-size:15px;font-weight:1000;line-height:1.06}
+    .teamStateChip small{display:block;color:#64748b;font-size:11px;line-height:1.32}
+    .teamStateChip.isCoins{min-width:168px}
+    .teamStateChip.isCoins strong{font-size:0}
+    .teamStateChip.isCoins .coinInline{font-size:26px;gap:10px}
+    .teamStateChip.isCoins .coinIcon{width:24px;height:24px}
+    .teamStateNote{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#64748b;font-size:12px;line-height:1.4}
+    .teamStateNote strong{color:#0f172a;font-weight:1000}
+    .teamCoinPill{min-height:38px;padding:7px 12px;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.22);color:#166534}
+    .teamCoinPill .coinInline{font-size:24px;gap:10px}
+    .teamCoinPill .coinIcon{width:24px;height:24px}
+    .miniGrid,.miniForm,.marketFilters,.playerGrid{display:grid;gap:10px}
+    .miniGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .control{display:grid;gap:6px;min-width:0}
+    .control input,.control select{width:100%;min-width:0;border:1px solid rgba(15,23,42,.12);border-radius:12px;padding:10px 12px;background:#fff;color:#0f172a;font:inherit;outline:none}
+    .helper{border:1px solid rgba(15,23,42,.08);background:rgba(15,23,42,.04);color:#475569;font-size:13px;line-height:1.45}
+    .empty{border:1px dashed rgba(15,23,42,.14);background:rgba(255,255,255,.54);color:#475569;font-size:14px;line-height:1.5}
+    .btn{appearance:none;border:1px solid rgba(15,23,42,.12);border-radius:12px;padding:10px 12px;background:#fff;color:#0f172a;font:inherit;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .14s ease}
+    .btn:hover{transform:translateY(-1px)} .btn:disabled{cursor:not-allowed;opacity:.58;transform:none}
+    .btn:not(.btnPrimary):not(.btnDanger):hover,.btn:not(.btnPrimary):not(.btnDanger):focus-visible{background:#f8fafc;border-color:rgba(15,23,42,.18);color:#0f172a}
+    .btnPrimary{background:linear-gradient(135deg,rgba(37,99,235,.96),rgba(14,165,233,.92));border-color:rgba(37,99,235,.2);color:#fff}
+    .btnGhost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#fff}
+    .btnGood{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.22);color:#166534}
+    .btnDanger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.18);color:#991b1b}
+    .standingsBoard{display:grid;gap:10px}
+    .standingRow{display:grid;grid-template-columns:52px minmax(0,1.04fr) minmax(220px,.96fr);gap:14px;align-items:center;border:1px solid rgba(15,23,42,.08);border-radius:18px;padding:14px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.92))}
+    .standingRow.isMine{border-color:rgba(37,99,235,.22);box-shadow:0 12px 28px rgba(37,99,235,.08)}
+    .standingIdentity{display:grid;gap:8px;min-width:0}
+    .standingIdentityTop,.standingIdentityBottom{display:grid;gap:3px;min-width:0}
+    .standingIdentityTop strong,.standingIdentityBottom strong{display:block;color:#0f172a;font-size:14px;font-weight:1000;line-height:1.15}
+    .standingIdentityTop span,.standingIdentityBottom span{display:block;color:#64748b;font-size:11px;font-weight:900;letter-spacing:.04em}
+    .standingStatsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+    .standingStatCard{display:grid;gap:4px;min-width:0;padding:9px 10px;border:1px solid rgba(15,23,42,.06);border-radius:14px;background:rgba(255,255,255,.84)}
+    .standingStatCard span{display:block;color:#64748b;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .standingStatCard strong{display:block;color:#0f172a;font-size:15px;font-weight:1000;line-height:1.05}
+    .standingStatCard small{display:block;color:#64748b;font-size:11px;font-weight:800;line-height:1.25}
+    .standingStatCard.isCoins strong{font-size:0}
+    .standingStatCard.isCoins .coinInline{font-size:22px;gap:10px}
+    .standingStatCard.isCoins .coinIcon{width:22px;height:22px}
+    .rankBadge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:38px;border-radius:999px;border:1px solid rgba(15,23,42,.08);background:rgba(226,232,240,.72);color:#0f172a;font-size:12px;font-weight:1000}
+    .rankBadge.top1{background:linear-gradient(135deg,#facc15,#f59e0b);border-color:rgba(245,158,11,.38);color:#111827}
+    .rankBadge.top2{background:linear-gradient(135deg,#e2e8f0,#94a3b8);border-color:rgba(148,163,184,.34);color:#0f172a}
+    .rankBadge.top3{background:linear-gradient(135deg,#fdba74,#c2410c);border-color:rgba(194,65,12,.28);color:#fff7ed}
+    .utilityChip{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:5px 10px;border-radius:999px;border:1px solid rgba(15,23,42,.08);background:rgba(241,245,249,.96);color:#0f172a;font-size:12px;font-weight:900}
+    .coinInline{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
+    .coinValue{display:inline-block;color:inherit;font-size:inherit;font-weight:1000;line-height:1}
+    .coinIcon{width:18px;height:18px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(15,23,42,.18))}
+    .coinInline.compact{gap:5px}
+    .coinIcon.compact{width:15px;height:15px}
+    .marketFilters{grid-template-columns:minmax(220px,1.6fr) minmax(180px,.9fr);flex:1 1 520px;min-width:0}
+    .playerGrid{grid-template-columns:repeat(auto-fill,minmax(136px,1fr))}
+    .playerCard{border:1px solid rgba(255,255,255,.58);border-radius:18px;padding:8px;background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.82));min-width:0;transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease}
+    .playerCard.isInteractive{cursor:pointer}
+    .playerCard.isInteractive:hover{transform:translateY(-4px) scale(1.025)}
+    .playerCard.isCaptainCard{position:relative}
+    .captainHalo{position:absolute;inset:5px;border-radius:14px;border:2px solid rgba(250,204,21,.92);box-shadow:0 0 0 1px rgba(146,64,14,.18),0 14px 28px rgba(250,204,21,.12);pointer-events:none;z-index:2}
+    .captainBadge{position:absolute;top:14px;left:14px;z-index:3;display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:4px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(250,204,21,.98),rgba(251,146,60,.94));color:#111827;font-size:10px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 10px 20px rgba(15,23,42,.22)}
+    .frame-king{border-color:#7f1d1d;box-shadow:0 0 0 1px rgba(17,24,39,.85),inset 0 0 0 1px rgba(239,68,68,.65)}
+    .frame-yonkou{border-color:#d4a936;box-shadow:0 0 0 1px rgba(250,204,21,.62),inset 0 0 0 1px rgba(255,244,179,.68)}
+    .frame-shichibukai{border-color:#94a3b8;box-shadow:0 0 0 1px rgba(226,232,240,.82),inset 0 0 0 1px rgba(148,163,184,.72)}
+    .frame-supernova{border-color:#b87333;box-shadow:0 0 0 1px rgba(180,83,9,.62),inset 0 0 0 1px rgba(253,186,116,.58)}
+    .frame-piratilla{border-color:rgba(255,255,255,.72);box-shadow:inset 0 0 0 1px rgba(255,255,255,.52)}
+    .playerCard.isInteractive.frame-king:hover{box-shadow:0 18px 28px rgba(15,23,42,.18),0 0 0 1px rgba(17,24,39,.85),inset 0 0 0 1px rgba(239,68,68,.72)}
+    .playerCard.isInteractive.frame-yonkou:hover{box-shadow:0 18px 28px rgba(15,23,42,.18),0 0 0 1px rgba(250,204,21,.72),inset 0 0 0 1px rgba(255,244,179,.76)}
+    .playerCard.isInteractive.frame-shichibukai:hover{box-shadow:0 18px 28px rgba(15,23,42,.18),0 0 0 1px rgba(226,232,240,.9),inset 0 0 0 1px rgba(148,163,184,.8)}
+    .playerCard.isInteractive.frame-supernova:hover{box-shadow:0 18px 28px rgba(15,23,42,.18),0 0 0 1px rgba(180,83,9,.72),inset 0 0 0 1px rgba(253,186,116,.64)}
+    .playerCard.isInteractive.frame-piratilla:hover{box-shadow:0 18px 28px rgba(15,23,42,.18),inset 0 0 0 1px rgba(255,255,255,.62)}
+    .playerHead{display:block;min-width:0}
+    .playerVisual{position:relative;width:100%;aspect-ratio:5/7;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.22);background:linear-gradient(160deg,#334155,#0f172a)}
+    .playerVisual.tier-king{background:linear-gradient(165deg,#111827,#7f1d1d)}
+    .playerVisual.tier-yonkou{background:linear-gradient(165deg,#fbbf24,#92400e)}
+    .playerVisual.tier-shichibukai{background:linear-gradient(165deg,#cbd5e1,#475569)}
+    .playerVisual.tier-supernova{background:linear-gradient(165deg,#d97706,#7c2d12)}
+    .playerVisual.tier-piratilla{background:linear-gradient(165deg,#6366f1,#334155)}
+    .playerPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 10%}
+    .playerPhotoShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,23,42,.02),rgba(15,23,42,.06) 44%,rgba(15,23,42,.38) 66%,rgba(15,23,42,.94))}
+    .playerVisual::after{content:"";position:absolute;inset:auto -14px -16px auto;width:88px;height:88px;border-radius:999px;background:rgba(255,255,255,.14);filter:blur(4px)}
+    .playerArtFallback{position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,23,42,.04),rgba(15,23,42,.12) 48%,rgba(15,23,42,.3) 68%,rgba(15,23,42,.82))}
+    .playerOverlay{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:10px 8px;pointer-events:none}
+    .playerOverlayBottom{display:grid;justify-items:center;gap:5px;width:100%;padding:0 4px 4px}
+    .overlayNamePlain{display:-webkit-box;max-width:96%;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:#fff;font-size:17px;font-weight:1000;line-height:.98;text-transform:uppercase;text-align:center;text-shadow:0 3px 12px rgba(0,0,0,.58);word-break:break-word}
+    .overlaySubtitle{max-width:96%;color:rgba(255,255,255,.92);font-size:10px;font-weight:900;line-height:1.12;text-align:center;text-transform:uppercase;letter-spacing:.04em;text-shadow:0 2px 10px rgba(0,0,0,.44)}
+    .actionRow{margin-top:8px}
+    .compactActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .compactActions.single{grid-template-columns:1fr}
+    .compactBtn{min-height:32px;padding:7px 8px;border-radius:10px;font-size:11px}
+    .compactBtnIcon{min-width:38px;min-height:32px;padding:0;border-radius:10px;font-size:15px}
+    .marketCard{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(245,247,251,.92));box-shadow:0 16px 30px rgba(15,23,42,.08)}
+    .marketCard .actionRow{margin-top:10px}
+    .buyQuickBtn{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(37,99,235,.98),rgba(14,165,233,.95));border-color:rgba(29,78,216,.26)}
+    .buyQuickBtn img{pointer-events:none}
+    .buyQuickPlus{position:absolute;right:7px;bottom:4px;color:#fff;font-size:11px;font-weight:1000;line-height:1;pointer-events:none}
+    .buyFullBtn{width:100%;min-height:36px}
+    #teamSummary{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .teamRosterBlock{display:grid;gap:10px;margin-top:12px}
+    .teamRosterHead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+    .teamRosterHead h3{margin:0;font-size:18px;font-weight:1000;letter-spacing:-.02em}
+    .teamRosterHead p{margin:4px 0 0;color:#64748b;font-size:12px;line-height:1.4}
+    .captainPill{background:rgba(250,204,21,.12);border-color:rgba(250,204,21,.28);color:#92400e}
+    .captainPill.isReady{background:linear-gradient(135deg,rgba(250,204,21,.22),rgba(251,146,60,.2));border-color:rgba(245,158,11,.28);color:#7c2d12}
+    #squadGrid{display:grid;grid-template-columns:minmax(188px,1.94fr) repeat(2,minmax(150px,1fr));grid-template-rows:repeat(2,208px);grid-auto-flow:row dense;gap:12px;align-items:stretch}
+    #squadGrid .squadCard{display:grid;grid-template-rows:minmax(0,1fr);height:100%;padding:10px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(244,246,251,.94));box-shadow:0 18px 32px rgba(15,23,42,.08)}
+    #squadGrid .squadCaptainCard{grid-row:1 / span 2;transform:none}
+    #squadGrid .squadCard .playerHead{display:flex;min-height:0;height:100%}
+    #squadGrid .squadCard .playerVisual{height:100%;aspect-ratio:auto;min-height:0;flex:1}
+    #squadGrid .squadCaptainCard .overlayNamePlain{font-size:18px}
+    #squadGrid .squadCard .overlayNamePlain{font-size:15px}
+    #squadGrid .squadCard .overlaySubtitle{font-size:10px}
+    #marketGrid{margin-top:18px}
+    .btnPrimary:hover,.btnPrimary:focus-visible{background:linear-gradient(135deg,rgba(29,78,216,.98),rgba(2,132,199,.96));border-color:rgba(29,78,216,.36);color:#fff}
+    .btnDanger:hover,.btnDanger:focus-visible{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.26);color:#991b1b}
+    .btnPrimary:disabled,.btnDanger:disabled,.btn:disabled{opacity:1}
+    .btnPrimary:disabled{background:linear-gradient(135deg,rgba(148,163,184,.88),rgba(125,211,252,.72));border-color:rgba(148,163,184,.28);color:rgba(255,255,255,.96)}
+    .modalWrap{position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:20px}
+    .modalBackdrop{position:absolute;inset:0;background:rgba(9,17,31,.62);backdrop-filter:blur(8px)}
+    .modalCard{position:relative;z-index:1;width:min(940px,96vw);max-height:min(88vh,980px);overflow:auto;border-radius:26px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,252,.96));box-shadow:0 30px 80px rgba(2,6,23,.42);padding:18px}
+    .modalClose{position:absolute;top:14px;right:14px;z-index:2;min-width:40px;min-height:40px;border-radius:999px}
+    .modalGrid{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:18px;align-items:start}
+    .modalVisual .playerVisual{aspect-ratio:5/7;border-radius:22px}
+    .modalPanel{display:grid;gap:14px;min-width:0}
+    .modalEyebrow{color:#64748b;font-size:12px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
+    .modalTitle{margin:0;color:#0f172a;font-size:28px;font-weight:1000;line-height:1.02;text-transform:uppercase;word-break:break-word}
+    .modalSubtitle{color:#475569;font-size:13px;font-weight:900;line-height:1.3;text-transform:uppercase;letter-spacing:.04em}
+    .modalStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .modalStat{position:relative;border:1px solid rgba(15,23,42,.08);border-radius:18px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.92));overflow:hidden}
+    .modalStat::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,#60a5fa,#2563eb)}
+    .modalStat span{display:block;color:#64748b;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .modalStat strong{display:block;margin-top:6px;color:#0f172a;font-size:22px;font-weight:1000;line-height:1.02}
+    .modalStat strong .coinInline{font-size:22px}
+    .historyWrap{display:grid;gap:12px}
+    .historyTitle{color:#0f172a;font-size:14px;font-weight:1000;letter-spacing:.02em}
+    .chartCard{border:1px solid rgba(15,23,42,.08);border-radius:20px;padding:14px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.94))}
+    .chartMeta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+    .chartMeta span{color:#64748b;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .chartMeta strong{color:#0f172a;font-size:13px;font-weight:1000}
+    .chartSvg{display:block;width:100%;height:auto}
+    .chartAxis{stroke:rgba(148,163,184,.5);stroke-width:1}
+    .chartGridLine{stroke:rgba(226,232,240,.9);stroke-width:1}
+    .chartStem{stroke:rgba(37,99,235,.14);stroke-width:2}
+    .chartBridge{fill:none;stroke:rgba(59,130,246,.34);stroke-width:2;stroke-linecap:round;stroke-dasharray:6 6}
+    .chartLine{fill:none;stroke:#2563eb;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+    .chartPoint{fill:#2563eb;stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 4px 10px rgba(37,99,235,.22))}
+    .chartPoint.miss{fill:#cbd5e1;stroke:#fff;stroke-width:2}
+    .modalActions{display:flex;flex-wrap:wrap;gap:10px}
+    .modalActionGroup{display:grid;gap:8px}
+    .modalActionHint{color:#64748b;font-size:12px;line-height:1.45}
+    .confirmCard{position:relative;z-index:1;width:min(420px,94vw);border-radius:22px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.96));box-shadow:0 24px 70px rgba(2,6,23,.34);padding:18px}
+    .confirmCard h3{margin:0;color:#0f172a;font-size:22px;font-weight:1000;line-height:1.04}
+    .confirmCard p{margin:10px 0 0;color:#475569;font-size:14px;line-height:1.45}
+    .confirmActions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap}
+    .hidden{display:none!important}
+    .loadingOverlay{position:fixed;inset:0;display:grid;place-items:center;padding:20px;background:rgba(9,17,31,.44);backdrop-filter:blur(6px);z-index:120}
+    .loadingCard{display:flex;align-items:center;gap:14px;min-width:min(92vw,420px);padding:16px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.18);background:rgba(15,23,42,.9);box-shadow:var(--shadow);color:#fff}
+    .loadingSpinner{width:40px;height:40px;border-radius:999px;border:3px solid rgba(255,255,255,.18);border-top-color:#60a5fa;animation:spin .8s linear infinite;flex:0 0 auto}
+    .loadingText{min-width:0}
+    .loadingText strong{display:block;font-size:15px;font-weight:1000}
+    .loadingText span{display:block;margin-top:4px;color:rgba(255,255,255,.78);font-size:13px;line-height:1.45}
+    .topbar .mobileNavToggle{display:none!important}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:1120px){.heroStats,.factGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pageGrid{grid-template-columns:1fr}}
+    @media (max-width:1080px){.standingRow{grid-template-columns:52px minmax(0,1fr) minmax(204px,.92fr)}#squadGrid{grid-template-columns:minmax(172px,.92fr) repeat(2,minmax(132px,1fr));grid-template-rows:repeat(2,194px)}}
+    @media (max-width:820px){.wrap{padding:12px}.hero h1{font-size:26px}.heroStats,.marketFilters,.miniGrid,.modalStats{grid-template-columns:1fr}.playerGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.factGrid{grid-template-columns:1fr 1fr}.modalGrid{grid-template-columns:1fr}.standingRow{grid-template-columns:1fr;gap:10px}.standingStatsGrid{grid-template-columns:1fr 1fr}#squadGrid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none}#squadGrid .squadCaptainCard{grid-column:1 / -1;grid-row:auto}#squadGrid .squadCard{grid-template-rows:minmax(0,1fr)}}
+    @media (max-width:760px){.topbar .mobileNavToggle{display:inline-flex!important}}
+    @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats,.factGrid,.playerGrid{grid-template-columns:1fr 1fr}.actionRow .btn{flex:1 1 calc(50% - 4px)}.loadingCard{padding:14px 16px;border-radius:18px}.overlayNamePlain{font-size:15px}.overlaySubtitle{font-size:9px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRow{grid-template-columns:1fr}.standingStatsGrid{grid-template-columns:1fr}#squadGrid{grid-template-columns:1fr}}
+    @media (max-width:420px){.playerGrid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body data-skip-global-access-guard="1">
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+        <div class="brand">
+          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
+          <small>fantasy</small>
+        </div>
+      </a>
+      <div class="nav hubNavFlow">
+        <a class="navInlineLink" href="index.html">Home</a>
+        <div class="navInlineGroup">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="simStatsMenu" aria-haspopup="true"><span>SIM Stats</span><span class="navInlineCaret" aria-hidden="true">v</span></button>
+          <div class="navInlineMenu" id="simStatsMenu">
+            <a class="navInlineMenuLink" href="sim-stats/frontend/stats.html" data-requires-auth="1">Stats Propios</a>
+            <a class="navInlineMenuLink" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">Team Stats</a>
+            <a class="navInlineMenuLink" href="leader-stats.html">Global Leader Stats</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="ranking.html" data-requires-auth="1">Ranking</a>
+        <div class="navInlineGroup is-current">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="cardToolsMenu" aria-haspopup="true"><span>Card Tools</span><span class="navInlineCaret" aria-hidden="true">v</span></button>
+          <div class="navInlineMenu" id="cardToolsMenu">
+            <a class="navInlineMenuLink" href="cards.html">Card List</a>
+            <a class="navInlineMenuLink" href="decks.html">DeckLists</a>
+            <a class="navInlineMenuLink" href="deck-builder.html">Deck Builder</a>
+            <a class="navInlineMenuLink is-current" href="fantasy.html">Fantasy VBF</a>
+            <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
+            <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
+          </div>
+        </div>
+        <a class="navInlineLink" href="encuestas.html">Encuestas</a>
+      </div>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head"><strong id="userEmail">-</strong><span>Sesion iniciada</span></div>
+        <a href="profile.html">Configurar perfil</a>
+        <a href="user.html" id="publicProfileLink" style="display:none;">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+  <div class="loadingOverlay hidden" id="loadingOverlay" aria-live="polite" aria-busy="true">
+    <div class="loadingCard">
+      <div class="loadingSpinner" aria-hidden="true"></div>
+      <div class="loadingText">
+        <strong>Cargando fantasy...</strong>
+        <span id="loadingLabel">Estamos refrescando jugadores, ranking y tu sesion.</span>
+      </div>
+    </div>
+  </div>
+  <div class="modalWrap hidden" id="playerModalWrap" aria-hidden="true">
+    <div class="modalBackdrop" data-close-player-modal="1"></div>
+    <div class="modalCard">
+      <button class="btn modalClose" id="playerModalClose" type="button" aria-label="Cerrar ficha">&#10005;</button>
+      <div class="modalGrid" id="playerModalBody"></div>
+    </div>
+  </div>
+  <div class="modalWrap hidden" id="buyConfirmWrap" aria-hidden="true">
+    <div class="modalBackdrop" data-close-buy-confirm="1"></div>
+    <div class="confirmCard">
+      <h3 id="buyConfirmTitle">Confirmar compra</h3>
+      <p id="buyConfirmText"></p>
+      <div class="confirmActions">
+        <button class="btn" id="buyConfirmCancel" type="button">Cancelar</button>
+        <button class="btn btnPrimary" id="buyConfirmAccept" type="button">Comprar</button>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <section class="hero">
+      <div class="heroTop">
+        <div>
+          <div class="eyebrow">Barateam Fantasy</div>
+          <h1>Fantasy Vade Back Fight OP15</h1>
+          <p>Salary cap semanal de una sola temporada. Cada manager monta una plantilla de 5 jugadores, con un capitan x1.5, precios normalizados y puntos vivos desde el sheet de <a href="vade-back-fight.html">vade-back-fight</a>.</p>
+        </div>
+        <div class="pillRow">
+          <a class="btn btnGhost" href="vade-back-fight.html">Ver VBF</a>
+          <button class="btn btnPrimary" id="reloadPlayersButton" type="button">Refrescar fantasy</button>
+        </div>
+      </div>
+      <div class="heroStats">
+        <div class="heroStat"><b id="statPlayers">-</b><span>Jugadores disponibles</span></div>
+        <div class="heroStat"><b id="statTeams">-</b><span>Equipos inscritos</span></div>
+        <div class="heroStat"><b id="statCurrentRound">-</b><span>Jornada actual</span></div>
+      </div>
+      <div class="pageMsg" id="pageMsg"></div>
+      <div class="schemaNote" id="schemaNote"></div>
+    </section>
+
+    <div class="pageGrid">
+      <div class="stack">
+        <section class="card">
+          <div class="sectionHead">
+            <div>
+              <h2 id="teamCardTitle">Fantasy oficial OP15</h2>
+              <p id="teamCardSubtitle">Un solo equipo por manager, 40 baracoins iniciales, 5 jugadores y hasta 2 cambios por semana.</p>
+            </div>
+            <div class="inlineMeta" id="teamCardMeta"></div>
+          </div>
+          <div class="factGrid" id="seasonFacts"></div>
+          <div class="subPanel" id="teamSetupPanel"><div class="empty">Cargando estado de la liga...</div></div>
+          <div class="teamRosterBlock">
+            <div class="teamRosterHead">
+              <div>
+                <h3>Mi plantilla</h3>
+                <p>Capitan destacado y resto del equipo visible en un vistazo.</p>
+              </div>
+              <div class="inlineMeta" id="teamSummary"></div>
+            </div>
+            <div class="empty" id="squadEmpty">Crea tu equipo OP15 para empezar a fichar jugadores.</div>
+            <div class="playerGrid hidden" id="squadGrid"></div>
+          </div>
+          <div class="helper" id="authHint">Necesitas sesion para crear tu equipo, comprar jugadores, elegir capitan y sincronizar tu semana.</div>
+        </section>
+
+        <section class="card">
+          <div class="sectionHead">
+            <div>
+              <h2>Ranking semanal y general</h2>
+              <p>Jornada refleja el ultimo torneo. Acumulado suma todas las jornadas fantasy cerradas hasta ahora.</p>
+            </div>
+            <div class="inlineMeta"><span class="pill" id="standingsMeta">Sin datos</span></div>
+          </div>
+          <div class="empty" id="standingsEmpty">Todavia no hay equipos inscritos en la liga fantasy.</div>
+          <div class="standingsBoard hidden" id="standingsBoard"></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <div class="sectionHead">
+            <div>
+              <h2>Pool de jugadores OP15</h2>
+              <p>Los jugadores se pueden repetir entre managers. Si ya lo tienes en tu equipo, seguira visible pero no podras volver a comprarlo.</p>
+            </div>
+            <div class="inlineMeta"><span class="pill" id="marketMeta">0 visibles</span></div>
+          </div>
+          <div class="toolbar">
+            <div class="marketFilters">
+              <label class="control"><span>Buscar</span><input id="marketSearch" type="search" placeholder="Jugador o tier" autocomplete="off" /></label>
+              <label class="control"><span>Orden</span><select id="marketSort"><option value="weekly_desc">Mejor semana</option><option value="general_desc">Mas puntos</option><option value="price_desc">Precio mas alto</option><option value="price_asc">Precio mas bajo</option><option value="avg_desc">Mejor media</option><option value="wins_desc">Mas ganados</option><option value="name_asc">Nombre A-Z</option></select></label>
+            </div>
+          </div>
+          <div class="empty hidden" id="marketEmpty">No hay jugadores que coincidan con este filtro.</div>
+          <div class="playerGrid" id="marketGrid"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script src="fantasy-player-portraits.js?v=20260427f"></script>
+  <script src="fantasy.js?v=20260427f"></script>
+</body>
+</html>

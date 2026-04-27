@@ -15,7 +15,14 @@
     if (!window.supabase || typeof window.supabase.createClient !== "function"){
       throw new Error("Supabase client is not available.");
     }
+    if (!options && window.__barateamSharedSupabaseClient){
+      window.__barateamLastSupabaseClient = window.__barateamSharedSupabaseClient;
+      return window.__barateamSharedSupabaseClient;
+    }
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, options || undefined);
+    if (!options){
+      window.__barateamSharedSupabaseClient = client;
+    }
     window.__barateamLastSupabaseClient = client;
     return client;
   }
@@ -991,19 +998,23 @@
     document.addEventListener("DOMContentLoaded", () => {
       initInlineTopbarMenus();
       initMobileTopbarToggle();
-      try{
-        initGlobalAccessGuard(createClient());
-      }catch(_err){
-        // Si supabase no esta listo en esta pagina, el propio script de pagina lo iniciara.
+      if (!document.body?.dataset.skipGlobalAccessGuard && !isAccessGuardExemptPage()){
+        try{
+          initGlobalAccessGuard(createClient());
+        }catch(_err){
+          // Si supabase no esta listo en esta pagina, el propio script de pagina lo iniciara.
+        }
       }
     });
   } else {
     initInlineTopbarMenus();
     initMobileTopbarToggle();
-    try{
-      initGlobalAccessGuard(createClient());
-    }catch(_err){
-      // Si supabase no esta listo en esta pagina, el propio script de pagina lo iniciara.
+    if (!document.body?.dataset.skipGlobalAccessGuard && !isAccessGuardExemptPage()){
+      try{
+        initGlobalAccessGuard(createClient());
+      }catch(_err){
+        // Si supabase no esta listo en esta pagina, el propio script de pagina lo iniciara.
+      }
     }
   }
 })(window);
