@@ -1,4 +1,4 @@
-import { getPlayerEloHistory, getPlayersForStats, getMatchesByPlayer, getExpansions, getViewerStatsContext } from './api.js'
+import { getPlayerEloHistory, getPlayersForStats, getMatchesByPlayer, getExpansions, getViewerStatsContext } from './api.js?v=20260427d'
 import { supabase } from './supabaseClient.js'
 
 const playerSelect = document.getElementById("playerSelect")
@@ -30,6 +30,11 @@ let isEloChartOpen = false
 
 function pickLeaderImage(leader) {
   return String(leader?.parallel_image_url || leader?.image_url || "").trim()
+}
+
+function parseMatchWin(result) {
+  const value = String(result || "").trim().toLowerCase()
+  return value === "won" || value === "win" || value === "victoria" || value === "w"
 }
 
 function leaderZoomHtml(src, alt = "Lider", thumbWidth = 45) {
@@ -192,8 +197,8 @@ function calculateStats() {
     const expansion = allExpansions.find(e => e.id === selectedExpansion)
 
     if (expansion) {
-      const start = new Date(expansion.start_date)
-      const end = new Date(expansion.end_date)
+      const start = new Date(`${expansion.start_date}T00:00:00`)
+      const end = new Date(`${expansion.end_date}T23:59:59.999`)
 
       filteredMatches = filteredMatches.filter(m => {
         const matchDate = new Date(m.match_date)
@@ -205,7 +210,7 @@ function calculateStats() {
   currentFilteredMatches = filteredMatches
 
   const total = filteredMatches.length
-  const wins = filteredMatches.filter(m => m.result === "Won").length
+  const wins = filteredMatches.filter(m => parseMatchWin(m.result)).length
   const losses = total - wins
   const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0
 
@@ -391,7 +396,7 @@ function buildLeaderStats(matches) {
     const leader = leaderMap[leaderCode]
 
     leader.games++
-    if (m.result === "Won") leader.wins++
+    if (parseMatchWin(m.result)) leader.wins++
 
     const oppCode = m.opponent.code
 
@@ -405,7 +410,7 @@ function buildLeaderStats(matches) {
     }
 
     leader.matchups[oppCode].games++
-    if (m.result === "Won") {
+    if (parseMatchWin(m.result)) {
       leader.matchups[oppCode].wins++
     }
   })
@@ -600,7 +605,7 @@ function buildLeaderDetail(leaderCode) {
   const leaderInfo = matches[0].player
 
   const total = matches.length
-  const wins = matches.filter(m => m.result === "Won").length
+  const wins = matches.filter(m => parseMatchWin(m.result)).length
   const losses = total - wins
   const wr = ((wins / total) * 100).toFixed(1)
   const wrClass = wr >= 50 ? "wr-positive" : "wr-negative"
@@ -648,16 +653,16 @@ summaryContainer.innerHTML = `
     const entry = matchupMap[opp]
 
     entry.games++
-    if (m.result === "Won") entry.wins++
+    if (parseMatchWin(m.result)) entry.wins++
 
     if (m.turn_order === 1) {
       entry.firstGames++
-      if (m.result === "Won") entry.firstWins++
+      if (parseMatchWin(m.result)) entry.firstWins++
     }
 
     if (m.turn_order === 2) {
       entry.secondGames++
-      if (m.result === "Won") entry.secondWins++
+      if (parseMatchWin(m.result)) entry.secondWins++
     }
   })
 

@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient.js'
 
+const MATCHES_PAGE_SIZE = 1000
+const MATCHES_MAX_ROWS = 20000
+
 export async function getPlayers() {
   const { data, error } = await supabase
     .from('players')
@@ -29,59 +32,132 @@ export async function getExpansions() {
 }
 
 export async function getMatchesByPlayer(playerId) {
-  const { data, error } = await supabase
-    .from("matches")
-    .select(`
-      *,
-      player:leaders!matches_player_leader_fkey (
-        code,
-        name,
-        image_url,
-        parallel_image_url,
-        color_primary,
-        color_secondary
-      ),
-      opponent:leaders!matches_opponent_leader_fkey (
-        code,
-        name,
-        image_url,
-        parallel_image_url
-      )
-    `)
-    .eq("player_id", playerId);
+  const rows = []
+  for (let from = 0; from < MATCHES_MAX_ROWS; from += MATCHES_PAGE_SIZE) {
+    const to = from + MATCHES_PAGE_SIZE - 1
+    const { data, error } = await supabase
+      .from("matches")
+      .select(`
+        *,
+        player:leaders!matches_player_leader_fkey (
+          code,
+          name,
+          image_url,
+          parallel_image_url,
+          color_primary,
+          color_secondary
+        ),
+        opponent:leaders!matches_opponent_leader_fkey (
+          code,
+          name,
+          image_url,
+          parallel_image_url
+        )
+      `)
+      .eq("player_id", playerId)
+      .order("match_date", { ascending: false })
+      .range(from, to)
 
-  if (error) {
-    console.error("Error cargando matches:", error);
-    return [];
+    if (error) {
+      console.error("Error cargando matches:", error)
+      return []
+    }
+
+    const batch = Array.isArray(data) ? data : []
+    rows.push(...batch)
+    if (batch.length < MATCHES_PAGE_SIZE) break
   }
 
-  return data;
+  return rows
 }
 
 export async function getMatchesByPlayers(playerIds) {
-  if (!Array.isArray(playerIds) || playerIds.length === 0) return [];
+  if (!Array.isArray(playerIds) || playerIds.length === 0) return []
 
-  const { data, error } = await supabase
-    .from("matches")
-    .select(`
-      player_id,
-      result,
-      match_date,
-      player:leaders!matches_player_leader_fkey (
-        code,
-        name,
-        image_url,
-        parallel_image_url
-      )
-    `)
-    .in("player_id", playerIds);
+  const rows = []
+  for (let from = 0; from < MATCHES_MAX_ROWS; from += MATCHES_PAGE_SIZE) {
+    const to = from + MATCHES_PAGE_SIZE - 1
+    const { data, error } = await supabase
+      .from("matches")
+      .select(`
+        player_id,
+        result,
+        match_date,
+        player:leaders!matches_player_leader_fkey (
+          code,
+          name,
+          image_url,
+          parallel_image_url
+        )
+      `)
+      .in("player_id", playerIds)
+      .order("match_date", { ascending: false })
+      .range(from, to)
 
-  if (error) {
-    console.error("Error cargando matches por jugadores:", error);
-    return [];
+    if (error) {
+      console.error("Error cargando matches por jugadores:", error)
+      return []
+    }
+
+    const batch = Array.isArray(data) ? data : []
+    rows.push(...batch)
+    if (batch.length < MATCHES_PAGE_SIZE) break
   }
 
-  return data;
+  return rows
+}
+
+export async function getTeamStatsMatches(team, startAt = null, endAt = null) {
+  const safeTeam = String(team || "").trim()
+  if (!safeTeam) return []
+
+  const rows = []
+  for (let from = 0; from < MATCHES_MAX_ROWS; from += MATCHES_PAGE_SIZE) {
+    const to = from + MATCHES_PAGE_SIZE - 1
+    const { data, error } = await supabase
+      .rpc("get_team_stats_matches_v1", {
+        p_team: safeTeam,
+        p_start_at: startAt,
+        p_end_at: endAt
+      })
+      .range(from, to)
+
+    if (error) {
+      console.error("Error cargando matches de team stats por RPC:", error)
+      return []
+    }
+
+    const batch = Array.isArray(data) ? data : []
+    rows.push(...batch)
+    if (batch.length < MATCHES_PAGE_SIZE) break
+  }
+
+  return rows.map((row) => ({
+    id: row.match_id,
+    player_id: row.player_id,
+    profile_id: row.profile_id,
+    player_name: row.player_name,
+    profile_username: row.profile_username,
+    profile_display_name: row.profile_display_name,
+    profile_team: row.profile_team,
+    player_leader: row.player_leader,
+    opponent_leader: row.opponent_leader,
+    result: row.result,
+    match_date: row.match_date,
+    turn_order: row.turn_order,
+    player: {
+      code: row.player_leader_code,
+      name: row.player_leader_name,
+      image_url: row.player_leader_image_url,
+      parallel_image_url: row.player_leader_parallel_image_url
+    },
+    opponent: {
+      code: row.opponent_leader_code,
+      name: row.opponent_leader_name,
+      image_url: row.opponent_leader_image_url,
+      parallel_image_url: row.opponent_leader_parallel_image_url
+    }
+  }))
 }
 
 export async function getPlayerEloHistory(playerId) {

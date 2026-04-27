@@ -23,7 +23,7 @@ alter table public.profiles
 
 alter table public.profiles
   add constraint profiles_team_check
-  check (team in ('SIN EQUIPO', 'BARATEAM', 'LABOOMERS', 'YONKOJOS', 'CARDGUILD'));
+  check (team in ('SIN EQUIPO', 'BARATEAM', 'LABOOMERS', 'YONKOJOS', 'CARDGUILD', 'DIVINE CREW'));
 
 -- 2) Optional delegated access table
 create table if not exists public.sim_stats_access_grants (
