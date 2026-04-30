@@ -103,6 +103,9 @@
     .rankBadge.top1{background:linear-gradient(135deg,#facc15,#f59e0b);border-color:rgba(245,158,11,.38);color:#111827}
     .rankBadge.top2{background:linear-gradient(135deg,#e2e8f0,#94a3b8);border-color:rgba(148,163,184,.34);color:#0f172a}
     .rankBadge.top3{background:linear-gradient(135deg,#fdba74,#c2410c);border-color:rgba(194,65,12,.28);color:#fff7ed}
+    .standingRoster{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+    .standingPlayerPill{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;border:1px solid rgba(15,23,42,.08);background:rgba(248,250,252,.96);font-size:11px;font-weight:900;color:#0f172a}
+    .standingPlayerPill img{width:20px;height:20px;border-radius:999px;object-fit:cover}
     .utilityChip{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:5px 10px;border-radius:999px;border:1px solid rgba(15,23,42,.08);background:rgba(241,245,249,.96);color:#0f172a;font-size:12px;font-weight:900}
     .coinInline{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
     .coinValue{display:inline-block;color:inherit;font-size:inherit;font-weight:1000;line-height:1}
@@ -115,8 +118,6 @@
     .playerCard.isInteractive{cursor:pointer}
     .playerCard.isInteractive:hover{transform:translateY(-4px) scale(1.025)}
     .playerCard.isCaptainCard{position:relative}
-    .captainHalo{position:absolute;inset:5px;border-radius:14px;border:2px solid rgba(250,204,21,.92);box-shadow:0 0 0 1px rgba(146,64,14,.18),0 14px 28px rgba(250,204,21,.12);pointer-events:none;z-index:2}
-    .captainBadge{position:absolute;top:14px;left:14px;z-index:3;display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:4px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(250,204,21,.98),rgba(251,146,60,.94));color:#111827;font-size:10px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 10px 20px rgba(15,23,42,.22)}
     .frame-king{border-color:#7f1d1d;box-shadow:0 0 0 1px rgba(17,24,39,.85),inset 0 0 0 1px rgba(239,68,68,.65)}
     .frame-yonkou{border-color:#d4a936;box-shadow:0 0 0 1px rgba(250,204,21,.62),inset 0 0 0 1px rgba(255,244,179,.68)}
     .frame-shichibukai{border-color:#94a3b8;box-shadow:0 0 0 1px rgba(226,232,240,.82),inset 0 0 0 1px rgba(148,163,184,.72)}
@@ -158,14 +159,10 @@
     .teamRosterHead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
     .teamRosterHead h3{margin:0;font-size:18px;font-weight:1000;letter-spacing:-.02em}
     .teamRosterHead p{margin:4px 0 0;color:#64748b;font-size:12px;line-height:1.4}
-    .captainPill{background:rgba(250,204,21,.12);border-color:rgba(250,204,21,.28);color:#92400e}
-    .captainPill.isReady{background:linear-gradient(135deg,rgba(250,204,21,.22),rgba(251,146,60,.2));border-color:rgba(245,158,11,.28);color:#7c2d12}
-    #squadGrid{display:grid;grid-template-columns:minmax(188px,1.94fr) repeat(2,minmax(150px,1fr));grid-template-rows:repeat(2,208px);grid-auto-flow:row dense;gap:12px;align-items:stretch}
-    #squadGrid .squadCard{display:grid;grid-template-rows:minmax(0,1fr);height:100%;padding:10px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(244,246,251,.94));box-shadow:0 18px 32px rgba(15,23,42,.08)}
-    #squadGrid .squadCaptainCard{grid-row:1 / span 2;transform:none}
-    #squadGrid .squadCard .playerHead{display:flex;min-height:0;height:100%}
-    #squadGrid .squadCard .playerVisual{height:100%;aspect-ratio:auto;min-height:0;flex:1}
-    #squadGrid .squadCaptainCard .overlayNamePlain{font-size:18px}
+    #squadGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+    #squadGrid .squadCard{display:grid;grid-template-rows:minmax(0,1fr);padding:10px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(244,246,251,.94));box-shadow:0 18px 32px rgba(15,23,42,.08)}
+    #squadGrid .squadCard .playerHead{display:block;min-height:0}
+    #squadGrid .squadCard .playerVisual{width:100%;height:auto;aspect-ratio:5/7;min-height:0}
     #squadGrid .squadCard .overlayNamePlain{font-size:15px}
     #squadGrid .squadCard .overlaySubtitle{font-size:10px}
     #marketGrid{margin-top:18px}
@@ -173,9 +170,9 @@
     .btnDanger:hover,.btnDanger:focus-visible{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.26);color:#991b1b}
     .btnPrimary:disabled,.btnDanger:disabled,.btn:disabled{opacity:1}
     .btnPrimary:disabled{background:linear-gradient(135deg,rgba(148,163,184,.88),rgba(125,211,252,.72));border-color:rgba(148,163,184,.28);color:rgba(255,255,255,.96)}
-    .modalWrap{position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:20px}
+    .modalWrap{position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:20px;overflow:auto}
     .modalBackdrop{position:absolute;inset:0;background:rgba(9,17,31,.62);backdrop-filter:blur(8px)}
-    .modalCard{position:relative;z-index:1;width:min(940px,96vw);max-height:min(88vh,980px);overflow:auto;border-radius:26px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,252,.96));box-shadow:0 30px 80px rgba(2,6,23,.42);padding:18px}
+    .modalCard{position:relative;z-index:1;width:min(940px,96vw);overflow:visible;border-radius:26px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,252,.96));box-shadow:0 30px 80px rgba(2,6,23,.42);padding:18px}
     .modalClose{position:absolute;top:14px;right:14px;z-index:2;min-width:40px;min-height:40px;border-radius:999px}
     .modalGrid{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:18px;align-items:start}
     .modalVisual .playerVisual{aspect-ratio:5/7;border-radius:22px}
@@ -206,10 +203,30 @@
     .modalActions{display:flex;flex-wrap:wrap;gap:10px}
     .modalActionGroup{display:grid;gap:8px}
     .modalActionHint{color:#64748b;font-size:12px;line-height:1.45}
+    .modalMarketHint{padding:10px 12px;border:1px solid rgba(37,99,235,.12);border-radius:14px;background:rgba(37,99,235,.06);color:#1e3a8a;font-size:12px;line-height:1.45}
+    .ownerList{display:grid;gap:10px}
+    .ownerRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid rgba(15,23,42,.08);border-radius:16px;background:rgba(248,250,252,.92)}
+    .ownerMeta{display:grid;gap:3px;min-width:0}
+    .ownerMeta strong{display:block;color:#0f172a;font-size:14px;font-weight:1000;line-height:1.12}
+    .ownerMeta span{display:block;color:#64748b;font-size:12px;line-height:1.35}
+    .ownerHint{display:block;color:#64748b;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
     .confirmCard{position:relative;z-index:1;width:min(420px,94vw);border-radius:22px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.96));box-shadow:0 24px 70px rgba(2,6,23,.34);padding:18px}
     .confirmCard h3{margin:0;color:#0f172a;font-size:22px;font-weight:1000;line-height:1.04}
     .confirmCard p{margin:10px 0 0;color:#475569;font-size:14px;line-height:1.45}
+    .confirmBody{display:grid;gap:12px;margin-top:12px}
+    .confirmPicker{display:grid;gap:8px}
+    .confirmPickerLabel{color:#64748b;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .replaceGrid{display:grid;gap:8px}
+    .replaceOption{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(15,23,42,.1);border-radius:14px;background:#fff;text-align:left}
+    .replaceOption input{margin:0}
+    .replaceOption strong{display:block;color:#0f172a;font-size:14px;font-weight:1000;line-height:1.12}
+    .replaceOption span{display:block;color:#64748b;font-size:12px;line-height:1.35}
     .confirmActions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap}
+    .noticeList{display:grid;gap:10px}
+    .noticeItem{display:grid;gap:4px;padding:10px 12px;border:1px solid rgba(15,23,42,.08);border-radius:14px;background:rgba(255,255,255,.78)}
+    .noticeItem strong{display:block;color:#0f172a;font-size:14px;font-weight:1000;line-height:1.15}
+    .noticeItem p{margin:0;color:#475569;font-size:12px;line-height:1.42}
+    .noticeItem span{display:block;color:#64748b;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
     .hidden{display:none!important}
     .loadingOverlay{position:fixed;inset:0;display:grid;place-items:center;padding:20px;background:rgba(9,17,31,.44);backdrop-filter:blur(6px);z-index:120}
     .loadingCard{display:flex;align-items:center;gap:14px;min-width:min(92vw,420px);padding:16px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.18);background:rgba(15,23,42,.9);box-shadow:var(--shadow);color:#fff}
@@ -220,8 +237,8 @@
     .topbar .mobileNavToggle{display:none!important}
     @keyframes spin{to{transform:rotate(360deg)}}
     @media (max-width:1120px){.heroStats,.factGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pageGrid{grid-template-columns:1fr}}
-    @media (max-width:1080px){.standingRow{grid-template-columns:52px minmax(0,1fr) minmax(204px,.92fr)}#squadGrid{grid-template-columns:minmax(172px,.92fr) repeat(2,minmax(132px,1fr));grid-template-rows:repeat(2,194px)}}
-    @media (max-width:820px){.wrap{padding:12px}.hero h1{font-size:26px}.heroStats,.marketFilters,.miniGrid,.modalStats{grid-template-columns:1fr}.playerGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.factGrid{grid-template-columns:1fr 1fr}.modalGrid{grid-template-columns:1fr}.standingRow{grid-template-columns:1fr;gap:10px}.standingStatsGrid{grid-template-columns:1fr 1fr}#squadGrid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none}#squadGrid .squadCaptainCard{grid-column:1 / -1;grid-row:auto}#squadGrid .squadCard{grid-template-rows:minmax(0,1fr)}}
+    @media (max-width:1080px){.standingRow{grid-template-columns:52px minmax(0,1fr) minmax(204px,.92fr)}#squadGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media (max-width:820px){.wrap{padding:12px}.hero h1{font-size:26px}.heroStats,.marketFilters,.miniGrid,.modalStats{grid-template-columns:1fr}.playerGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.factGrid{grid-template-columns:1fr 1fr}.modalGrid{grid-template-columns:1fr}.standingRow{grid-template-columns:1fr;gap:10px}.standingStatsGrid{grid-template-columns:1fr 1fr}#squadGrid{grid-template-columns:repeat(2,minmax(0,1fr))}#squadGrid .squadCard{grid-template-rows:minmax(0,1fr)}}
     @media (max-width:760px){.topbar .mobileNavToggle{display:inline-flex!important}}
     @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats,.factGrid,.playerGrid{grid-template-columns:1fr 1fr}.actionRow .btn{flex:1 1 calc(50% - 4px)}.loadingCard{padding:14px 16px;border-radius:18px}.overlayNamePlain{font-size:15px}.overlaySubtitle{font-size:9px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRow{grid-template-columns:1fr}.standingStatsGrid{grid-template-columns:1fr}#squadGrid{grid-template-columns:1fr}}
     @media (max-width:420px){.playerGrid{grid-template-columns:1fr}}
@@ -301,6 +318,7 @@
     <div class="confirmCard">
       <h3 id="buyConfirmTitle">Confirmar compra</h3>
       <p id="buyConfirmText"></p>
+      <div class="confirmBody" id="buyConfirmBody"></div>
       <div class="confirmActions">
         <button class="btn" id="buyConfirmCancel" type="button">Cancelar</button>
         <button class="btn btnPrimary" id="buyConfirmAccept" type="button">Comprar</button>
@@ -313,7 +331,7 @@
         <div>
           <div class="eyebrow">Barateam Fantasy</div>
           <h1>Fantasy Vade Back Fight OP15</h1>
-          <p>Salary cap semanal de una sola temporada. Cada manager monta una plantilla de 5 jugadores, con un capitan x1.5, precios normalizados y puntos vivos desde el sheet de <a href="vade-back-fight.html">vade-back-fight</a>.</p>
+          <p>Empiezas con 100.000 berries y 3 jugadores aleatorios por tramos de ranking. El mercado solo abre de lunes a viernes, cada jugador puede estar en 3 equipos y los clausulazos se resuelven pagando su precio actual con prima.</p>
         </div>
         <div class="pillRow">
           <a class="btn btnGhost" href="vade-back-fight.html">Ver VBF</a>
@@ -335,7 +353,7 @@
           <div class="sectionHead">
             <div>
               <h2 id="teamCardTitle">Fantasy oficial OP15</h2>
-              <p id="teamCardSubtitle">Un solo equipo por manager, 40 baracoins iniciales, 5 jugadores y hasta 2 cambios por semana.</p>
+              <p id="teamCardSubtitle">Un solo equipo por manager, 3 jugadores por plantilla y cupo maximo de 3 equipos por jugador.</p>
             </div>
             <div class="inlineMeta" id="teamCardMeta"></div>
           </div>
@@ -345,21 +363,22 @@
             <div class="teamRosterHead">
               <div>
                 <h3>Mi plantilla</h3>
-                <p>Capitan destacado y resto del equipo visible en un vistazo.</p>
+                <p>Tus 3 jugadores activos, con valor de mercado y clausula listos para la jornada.</p>
               </div>
               <div class="inlineMeta" id="teamSummary"></div>
             </div>
             <div class="empty" id="squadEmpty">Crea tu equipo OP15 para empezar a fichar jugadores.</div>
             <div class="playerGrid hidden" id="squadGrid"></div>
           </div>
-          <div class="helper" id="authHint">Necesitas sesion para crear tu equipo, comprar jugadores, elegir capitan y sincronizar tu semana.</div>
+          <div class="helper" id="authHint">Necesitas sesion para crear tu equipo, recibir tu starter pack y entrar al mercado.</div>
+          <div class="subPanel hidden" id="marketNoticePanel"></div>
         </section>
 
         <section class="card">
           <div class="sectionHead">
             <div>
-              <h2>Ranking semanal y general</h2>
-              <p>Jornada refleja el ultimo torneo. Acumulado suma todas las jornadas fantasy cerradas hasta ahora.</p>
+                <h2>Ranking semanal y general</h2>
+                <p>La jornada solo cuenta el ultimo torneo del sabado. El acumulado suma todas las jornadas fantasy ya cerradas.</p>
             </div>
             <div class="inlineMeta"><span class="pill" id="standingsMeta">Sin datos</span></div>
           </div>
@@ -372,8 +391,8 @@
         <section class="card">
           <div class="sectionHead">
             <div>
-              <h2>Pool de jugadores OP15</h2>
-              <p>Los jugadores se pueden repetir entre managers. Si ya lo tienes en tu equipo, seguira visible pero no podras volver a comprarlo.</p>
+                <h2>Pool de jugadores OP15</h2>
+                <p>Siempre ves a todos los jugadores. Si aun tienen cupos libres, puedes ficharlos; si ya estan al maximo, entra por clausula desde su ficha.</p>
             </div>
             <div class="inlineMeta"><span class="pill" id="marketMeta">0 visibles</span></div>
           </div>
@@ -389,7 +408,7 @@
       </div>
     </div>
   </div>
-  <script src="fantasy-player-portraits.js?v=20260427f"></script>
-  <script src="fantasy.js?v=20260427f"></script>
+  <script src="fantasy-player-portraits.js?v=20260430c"></script>
+  <script src="fantasy.js?v=20260430c"></script>
 </body>
 </html>
