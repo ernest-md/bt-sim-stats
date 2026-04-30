@@ -23,7 +23,7 @@
   const SHEET_ID = '1bRu9xDWAO8vBLF2GkzmsGL2M4P3AqczkDCXl6t-coFo';
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
-  const COIN_ICON = 'fantasy_coin.png';
+  const COIN_ICON = 'berries.png';
   const DEFAULT_BUDGET = 100000;
   const DEFAULT_SQUAD_SIZE = 3;
   const DEFAULT_STARTER_SIZE = 3;
@@ -42,6 +42,7 @@
   let authRpcQueue = Promise.resolve();
   let actionRpcClient = null;
   let actionRpcToken = '';
+  let backgroundHydrationPromise = null;
 
   const navController = App.initUserNav({
     supabase: sb,
@@ -126,13 +127,15 @@
     currentRound: null,
     sheetRound: null,
     marketSearch: '',
-    marketSort: 'weekly_desc',
+    marketSort: 'vbf_full_rank',
     modalPlayerSlug: '',
     modalSource: '',
     confirmBuySlug: '',
     confirmBuyTargetTeamId: '',
     confirmBuyOutgoingSlug: '',
     actionInFlight: false,
+    poolSyncedRoundKey: '',
+    poolSyncedAt: 0,
     initialized: false
   };
 
@@ -526,28 +529,22 @@
     return state.seasonRoster.find((row) => String(row.team_id) === String(state.currentTeam.id) && String(row.player_slug) === String(playerSlug || '')) || null;
   }
 
-  function recentHistory(player){
-    const labels = Array.isArray(state.eventLabels) ? state.eventLabels : [];
-    const points = Array.isArray(player?.points) ? player.points : [];
-    return labels.map((label, index) => {
-      const raw = points[index];
-      const rawValue = Number.isFinite(raw) ? raw : 0;
-      return {
-        label,
-        fantasy: rawValue > 0 ? rawValue / 1000 : 0
-      };
-    }).filter((item) => item.label).slice(-6).reverse();
-  }
-
   function chartSeries(player){
-    const labels = Array.isArray(state.eventLabels) ? state.eventLabels : [];
-    const points = Array.isArray(player?.points) ? player.points : [];
-    return labels.map((label, index) => {
-      const raw = points[index];
-      const rawValue = Number.isFinite(raw) ? raw : null;
-      const fantasy = rawValue && rawValue > 0 ? rawValue / 1000 : null;
-      return { label, fantasy };
-    }).filter((item) => item.label).slice(-8);
+    const history = Array.isArray(player?.history) ? player.history : [];
+    return history.map((entry, index) => {
+      const raw = Number.isFinite(Number(entry?.raw_points)) ? Number(entry.raw_points) : null;
+      const fantasy = Number.isFinite(Number(entry?.fantasy_points))
+        ? Number(entry.fantasy_points)
+        : (Number.isFinite(raw) && raw > 0 ? Number((raw / 1000).toFixed(1)) : null);
+      return {
+        index,
+        label: String(entry?.round_label || entry?.round_key || `T${index + 1}`).trim(),
+        fantasy,
+        raw,
+        countsForFantasy: entry?.counts_for_fantasy === true,
+        won: entry?.won === true
+      };
+    }).filter((item) => item.label);
   }
 
   function renderHistoryChart(player){
@@ -590,22 +587,22 @@
       const x = xFor(index).toFixed(2);
       if (Number.isFinite(item.fantasy)){
         const y = yFor(item.fantasy).toFixed(2);
-        const raw = Array.isArray(player?.points) ? player.points[index] : null;
-        const title = `${item.label}: ${formatPointsLabel(item.fantasy)}${Number.isFinite(raw) ? ` · ${intFmt.format(Math.round(raw))} berries` : ''}`;
-        return `<line class="chartStem" x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${y}"></line><circle class="chartPoint" cx="${x}" cy="${y}" r="6"><title>${escapeHtml(title)}</title></circle>`;
+        const title = `${item.label}${item.countsForFantasy ? ' · cuenta para fantasy' : ''}: ${formatPointsLabel(item.fantasy)}${Number.isFinite(item.raw) ? ` · ${intFmt.format(Math.round(item.raw))} berries` : ''}${item.won ? ' · victoria' : ''}`;
+        const pointClass = `chartPoint${item.countsForFantasy ? ' scoring' : ''}${item.won ? ' won' : ''}`;
+        const radius = item.countsForFantasy ? 8.5 : 6;
+        return `<line class="chartStem${item.countsForFantasy ? ' scoring' : ''}" x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${y}"></line><circle class="${pointClass}" cx="${x}" cy="${y}" r="${radius}"><title>${escapeHtml(title)}</title></circle>`;
       }
-      return `<circle class="chartPoint miss" cx="${x}" cy="${yFor(0).toFixed(2)}" r="3.5"><title>${escapeHtml(`${item.label}: sin participacion`)}</title></circle>`;
+      return `<circle class="chartPoint miss${item.countsForFantasy ? ' scoring' : ''}" cx="${x}" cy="${yFor(0).toFixed(2)}" r="${item.countsForFantasy ? '4.5' : '3.5'}"><title>${escapeHtml(`${item.label}${item.countsForFantasy ? ' · jornada fantasy' : ''}: sin participacion`)}</title></circle>`;
     }).join('');
 
-    const labelsSvg = series.map((item, index) => `<text x="${xFor(index).toFixed(2)}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="900" fill="#64748b">${escapeHtml(item.label)}</text>`).join('');
+    const labelsSvg = series.map((item, index) => `<text x="${xFor(index).toFixed(2)}" y="${height - 8}" text-anchor="middle" font-size="${item.countsForFantasy ? '10' : '9'}" font-weight="${item.countsForFantasy ? '1000' : '800'}" fill="${item.countsForFantasy ? '#0f172a' : '#64748b'}">${escapeHtml(item.label)}</text>`).join('');
     const gridSvg = gridValues.map((value) => {
       const y = yFor(value).toFixed(2);
       return `<line class="chartGridLine" x1="${padX}" y1="${y}" x2="${width - padX}" y2="${y}"></line><text x="0" y="${Number(y) + 4}" font-size="10" font-weight="900" fill="#64748b">${formatPoints(value)}</text>`;
     }).join('');
     const bridgesSvg = bridges.map((points) => `<polyline class="chartBridge" points="${points}"></polyline>`).join('');
     const linesSvg = segments.map((points) => `<polyline class="chartLine" points="${points}"></polyline>`).join('');
-    const lastPlayed = [...series].reverse().find((item) => Number.isFinite(item.fantasy));
-    return `<div class="chartCard"><div class="chartMeta"><span>Linea temporal</span><strong>${lastPlayed ? `Ultimo registro ${formatPointsLabel(lastPlayed.fantasy)}` : 'Sin participaciones'}</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos por torneo">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
+    return `<div class="chartCard"><div class="chartMeta"><span>Todos los torneos</span><strong>Sabados marcados para fantasy</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos por torneo">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
   }
 
   function buildPlayerPool(payload){
@@ -613,32 +610,54 @@
     if (!rows.length) return { players: [], currentRound: null, eventLabels: [] };
     const headerRow = rows[0] || [];
     const sourceRows = rows.slice(1).filter((row) => String(row[2] || '').trim() !== '');
+    const allEventColumns = [];
     const eventColumns = [];
     for (let index = 3; index < headerRow.length; index += 1){
       const info = serialDateInfo(headerRow[index]);
-      if (!isSaturdayInfo(info)) continue;
-      eventColumns.push({
+      const fallbackLabel = `T${index - 2}`;
+      const label = String(info.label || fallbackLabel).trim();
+      if (!label) continue;
+      const column = {
         index,
-        key: info.key || `T${index - 2}`,
-        label: info.label || `T${index - 2}`,
-        order: eventColumns.length + 1
+        key: info.key || fallbackLabel,
+        label,
+        order: allEventColumns.length + 1,
+        countsForFantasy: isSaturdayInfo(info)
+      };
+      allEventColumns.push(column);
+      if (!column.countsForFantasy) continue;
+      eventColumns.push({
+        index: column.index,
+        key: column.key,
+        label: column.label,
+        order: eventColumns.length + 1,
+        countsForFantasy: true
       });
     }
 
     const players = sourceRows.map((row) => {
       const name = String(row[2] || '').trim();
       const slug = slugifyPlayerName(name);
+      const berries = getNumber(row[1]);
+      const allPoints = allEventColumns.map((event) => {
+        const number = getNumber(row[event.index]);
+        return Number.isFinite(number) ? number : null;
+      });
       const points = eventColumns.map((event) => {
         const idx = event.index;
         const number = getNumber(row[idx]);
         return Number.isFinite(number) ? number : null;
       });
-      const totalPoints = points.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0);
-      const played = points.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? 1 : 0), 0);
+      const totalPoints = allPoints.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0);
+      const played = allPoints.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? 1 : 0), 0);
+      const fantasyPlayed = points.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? 1 : 0), 0);
       return {
         tier: String(row[0] || '').trim(),
+        berries: Number.isFinite(berries) ? berries : 0,
         name,
         slug,
+        sheetRow: row,
+        allPoints,
         points,
         history: [],
         totalPoints,
@@ -646,6 +665,7 @@
         avgPoints: played ? totalPoints / played : 0,
         bestStreak: computeStreak(points),
         currentStreak: computeCurrentStreak(points),
+        fantasyPlayed,
         wins: 0,
         rank: 0,
         roundRank: 9999,
@@ -659,6 +679,15 @@
       };
     }).filter((player) => player.slug && player.name);
 
+    const allEventMax = allEventColumns.map((_, eventPos) => {
+      let max = 0;
+      players.forEach((player) => {
+        const value = player.allPoints[eventPos];
+        if (Number.isFinite(value) && value > max) max = value;
+      });
+      return max;
+    });
+
     const eventMax = eventColumns.map((_, eventPos) => {
       let max = 0;
       players.forEach((player) => {
@@ -670,13 +699,17 @@
 
     players.forEach((player) => {
       let wins = 0;
-      player.points.forEach((value, eventPos) => {
-        if (Number.isFinite(value) && value > 0 && eventMax[eventPos] > 0 && value === eventMax[eventPos]) wins += 1;
+      player.allPoints.forEach((value, eventPos) => {
+        if (Number.isFinite(value) && value > 0 && allEventMax[eventPos] > 0 && value === allEventMax[eventPos]) wins += 1;
       });
       player.wins = wins;
     });
 
-    players.sort((a, b) => b.totalPoints - a.totalPoints || b.avgPoints - a.avgPoints || collator.compare(a.name, b.name));
+    players.sort((a, b) => {
+      if ((b.berries || 0) !== (a.berries || 0)) return (b.berries || 0) - (a.berries || 0);
+      if ((b.wins || 0) !== (a.wins || 0)) return (b.wins || 0) - (a.wins || 0);
+      return collator.compare(a.name, b.name);
+    });
     players.forEach((player, index) => {
       player.rank = index + 1;
       player.isTop5 = index < 5;
@@ -714,8 +747,8 @@
             : player.roundRank <= 16
               ? PRICE_BUCKET_TOP16
               : PRICE_BUCKET_REST;
-      player.history = eventColumns.map((event, eventPos) => {
-        const raw = player.points[eventPos];
+      player.history = allEventColumns.map((event, eventPos) => {
+        const raw = getNumber(player.sheetRow?.[event.index]);
         const fantasy = Number.isFinite(raw) && raw > 0 ? raw / 1000 : null;
         return {
           round_key: `${CURRENT_SEASON}:${event.key}`,
@@ -723,7 +756,8 @@
           round_order: event.order,
           raw_points: Number.isFinite(raw) ? Math.round(raw) : null,
           fantasy_points: Number.isFinite(fantasy) ? Number(fantasy.toFixed(1)) : null,
-          won: Number.isFinite(raw) && raw > 0 && raw === eventMax[eventPos]
+          won: Number.isFinite(raw) && raw > 0 && allEventMax[eventPos] > 0 && raw === allEventMax[eventPos],
+          counts_for_fantasy: event.countsForFantasy
         };
       });
     });
@@ -818,7 +852,7 @@
       showPageMsg(`No pude cargar el sheet de ${CURRENT_SEASON}: ${error?.message || error}`, 'err');
     } finally {
       state.loadingPlayers = false;
-      renderAll();
+      renderHero();
     }
   }
 
@@ -853,6 +887,8 @@
         p_players: playerPoolSyncPayload()
       }, 'sincronizar pool fantasy', 18000);
       if (error) throw error;
+      state.poolSyncedRoundKey = String(state.sheetRound?.key || '');
+      state.poolSyncedAt = Date.now();
     } catch (error){
       if (isSchemaError(error)) markSchemaMissing(error);
       else console.warn('fantasy syncPlayerPoolToBackend:', error?.message || error);
@@ -885,11 +921,13 @@
     state.currentTeam = null;
     if (state.schemaReady === false){ renderAll(); return; }
     state.loadingLeague = true;
-    renderAll();
+    renderHero();
     try{
-      const teamsRes = await withTimeout(readSb.from('fantasy_vbf_teams').select('id,season,user_id,team_name,coins,captain_player_slug,total_points,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'equipos fantasy');
-      const rosterRes = await withTimeout(readSb.from('fantasy_vbf_roster_players').select('id,season,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,acquisition_type,acquired_round_key,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'plantillas fantasy');
-      const roundsRes = await withTimeout(readSb.from('fantasy_vbf_team_rounds').select('*').eq('season', CURRENT_SEASON).order('round_order', { ascending: true }), 'jornadas fantasy');
+      const [teamsRes, rosterRes, roundsRes] = await Promise.all([
+        withTimeout(readSb.from('fantasy_vbf_teams').select('id,season,user_id,team_name,coins,captain_player_slug,total_points,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'equipos fantasy'),
+        withTimeout(readSb.from('fantasy_vbf_roster_players').select('id,season,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,acquisition_type,acquired_round_key,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'plantillas fantasy'),
+        withTimeout(readSb.from('fantasy_vbf_team_rounds').select('*').eq('season', CURRENT_SEASON).order('round_order', { ascending: true }), 'jornadas fantasy')
+      ]);
       if (teamsRes.error) throw teamsRes.error;
       if (rosterRes.error) throw rosterRes.error;
       if (roundsRes.error) throw roundsRes.error;
@@ -897,18 +935,21 @@
       state.seasonRoster = Array.isArray(rosterRes.data) ? rosterRes.data : [];
       state.teamRounds = Array.isArray(roundsRes.data) ? roundsRes.data : [];
       state.currentTeam = state.currentUser ? state.seasonTeams.find((team) => String(team.user_id) === String(state.currentUser.id)) || null : null;
+      const jobs = [loadProfiles(state.seasonTeams.map((team) => team.user_id))];
       if (state.currentUser){
-        const notesRes = await withTimeout(readSb.from('fantasy_vbf_notifications').select('id,kind,title,body,payload,read_at,created_at').eq('user_id', state.currentUser.id).order('created_at', { ascending: false }).limit(8), 'avisos fantasy');
-        if (notesRes.error) throw notesRes.error;
-        state.notifications = Array.isArray(notesRes.data) ? notesRes.data : [];
+        jobs.push((async () => {
+          const notesRes = await withTimeout(readSb.from('fantasy_vbf_notifications').select('id,kind,title,body,payload,read_at,created_at').eq('user_id', state.currentUser.id).order('created_at', { ascending: false }).limit(8), 'avisos fantasy');
+          if (notesRes.error) throw notesRes.error;
+          state.notifications = Array.isArray(notesRes.data) ? notesRes.data : [];
+        })());
       }
-      await loadProfiles(state.seasonTeams.map((team) => team.user_id));
+      await Promise.all(jobs);
     } catch (error){
       if (isSchemaError(error)) markSchemaMissing(error);
       else showPageMsg(`No pude cargar la liga fantasy: ${error?.message || error}`, 'err');
     } finally {
       state.loadingLeague = false;
-      renderAll();
+      renderHero();
     }
   }
 
@@ -982,9 +1023,9 @@
   }
 
   function sortPlayers(a, b, mode){
+    if (mode === 'vbf_full_rank') return (a.rank || 9999) - (b.rank || 9999) || collator.compare(a.name, b.name);
     if (mode === 'price_desc') return (b.price || 0) - (a.price || 0) || collator.compare(a.name, b.name);
     if (mode === 'price_asc') return (a.price || 0) - (b.price || 0) || collator.compare(a.name, b.name);
-    if (mode === 'avg_desc') return (b.avgFantasyPoints || 0) - (a.avgFantasyPoints || 0) || collator.compare(a.name, b.name);
     if (mode === 'wins_desc') return (b.wins || 0) - (a.wins || 0) || (b.totalPoints || 0) - (a.totalPoints || 0);
     if (mode === 'name_asc') return collator.compare(a.name, b.name);
     if (mode === 'general_desc') return (b.totalPoints || 0) - (a.totalPoints || 0) || collator.compare(a.name, b.name);
@@ -1085,6 +1126,36 @@
     const cost = Number(player.price || 0);
     if (Number(state.currentTeam?.coins || 0) < cost) return 'Sin berries';
     return '';
+  }
+
+  function marketDetailsForPlayer(player, derived){
+    const visible = derived.marketPlayers.find((item) => String(item.slug) === String(player?.slug || ''));
+    if (visible) return visible;
+    const cfg = config();
+    const teamById = new Map(state.seasonTeams.map((team) => [String(team.id), team]));
+    const ownershipRows = state.seasonRoster.filter((row) => String(row.player_slug || '') === String(player?.slug || ''));
+    const owners = ownershipRows.map((row) => ({
+      teamId: String(row.team_id || ''),
+      userId: String(row.user_id || ''),
+      clausePrice: Number(row.clause_price || defaultClauseForPrice(player?.price || 0)),
+      playerName: row.player_name || player?.name || row.player_slug || 'Jugador',
+      acquiredAt: row.created_at || '',
+      teamName: teamById.get(String(row.team_id || ''))?.team_name || 'Equipo',
+      coachName: profileNameForUser(row.user_id),
+      isMine: state.currentTeam ? String(row.team_id) === String(state.currentTeam.id) : false
+    })).sort((a, b) => a.clausePrice - b.clausePrice || collator.compare(a.teamName || '', b.teamName || ''));
+    const copiesUsed = owners.length;
+    const minClause = owners.length ? Math.min(...owners.map((owner) => Number(owner.clausePrice || 0))) : defaultClauseForPrice(player?.price || 0);
+    return {
+      ...player,
+      ownershipCount: copiesUsed,
+      copiesUsed,
+      copiesLeft: Math.max(0, cfg.maxPlayerCopies - copiesUsed),
+      minClause,
+      marketMode: copiesUsed < cfg.maxPlayerCopies ? 'market' : 'buyout',
+      canDirectBuy: copiesUsed < cfg.maxPlayerCopies,
+      owners
+    };
   }
 
   function renderHero(){
@@ -1193,15 +1264,16 @@
       closePlayerModal();
       return;
     }
-    const history = recentHistory(player);
     const derived = leagueDerived();
     const roster = derived.myRoster;
-    const marketPlayer = source === 'market' ? (derived.marketPlayers.find((item) => String(item.slug) === String(player.slug || '')) || player) : null;
+    const marketPlayer = source === 'market' ? marketDetailsForPlayer(player, derived) : null;
     const currentPrice = source === 'team' ? Number(rosterEntry?.buy_price || player.price || 0) : Number(player.price || 0);
     const modalOverlay = `<div class="playerOverlayBottom"><div class="overlayNamePlain">${escapeHtml(player.name)}</div><div class="overlaySubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div>`;
     const clauseValue = source === 'team' ? Number(rosterEntry?.clause_price || player.clausePrice || defaultClauseForPrice(player.price || 0)) : Number(marketPlayer?.minClause || defaultClauseForPrice(player.price || 0));
     const copiesLabel = source === 'market' ? `${intFmt.format(Number(marketPlayer?.copiesUsed || 0))}/${intFmt.format(config().maxPlayerCopies)}` : `${intFmt.format((derived.ownershipBySlug.get(String(player.slug || ''))?.count) || 0)}/${intFmt.format(config().maxPlayerCopies)}`;
-    const recentLabel = history.length ? escapeHtml(history[0].label) : 'Sin jornada';
+    const fullHistory = Array.isArray(player.history) ? player.history : [];
+    const playedCount = fullHistory.filter((item) => Number.isFinite(Number(item?.raw_points)) && Number(item.raw_points) > 0).length;
+    const saturdayCount = fullHistory.filter((item) => item?.counts_for_fantasy === true && Number.isFinite(Number(item?.raw_points)) && Number(item.raw_points) > 0).length;
     const ownerRows = (marketPlayer?.owners || []).map((owner) => {
       const disabled = owner.isMine || !marketOpenNow() || Number(state.currentTeam?.coins || 0) < Number(owner.clausePrice || 0);
       const title = owner.isMine ? 'Ya tienes esta copia' : (!marketOpenNow() ? 'Mercado cerrado' : (Number(state.currentTeam?.coins || 0) < Number(owner.clausePrice || 0) ? 'Sin berries suficientes' : `Pagar clausula a ${owner.teamName}`));
@@ -1219,7 +1291,7 @@
     const ownersBlock = source === 'market' && ownerRows
       ? `<div class="historyWrap"><div class="historyTitle">Equipos donde juega ahora</div><div class="ownerList">${ownerRows}</div></div>`
       : '';
-    body.innerHTML = `<div class="modalVisual"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article></div><div class="modalPanel"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div><div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Copias en liga' : 'Cupos usados'}</span><strong>${copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Sabados jugados</span><strong>${intFmt.format(player.played || 0)}</strong></div></div>${marketHint}${ownersBlock}<div class="historyWrap"><div class="historyTitle">Progresion por torneo</div>${renderHistoryChart(player)}<div class="chartMeta"><span>Ultimo torneo</span><strong>${recentLabel}</strong></div></div>${directAction}</div>`;
+    body.innerHTML = `<div class="modalVisual"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article></div><div class="modalPanel"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div><div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Copias en liga' : 'Cupos usados'}</span><strong>${copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada fantasy</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Torneos jugados</span><strong>${intFmt.format(playedCount)}</strong><small>${intFmt.format(saturdayCount)} sabados fantasy</small></div></div>${marketHint}${ownersBlock}<div class="historyWrap"><div class="historyTitle">Progresion por torneo</div>${renderHistoryChart(player)}</div>${directAction}</div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -1235,12 +1307,13 @@
     if (title) title.textContent = state.currentTeam ? (state.currentTeam.team_name || 'Mi equipo') : 'Fantasy oficial OP15';
     if (subtitle){
       subtitle.textContent = state.currentTeam
-        ? 'Tu equipo fantasy OP15. Mantienes una plantilla persistente de 3 jugadores, con clausulas activas y valor recalculado cada lunes.'
+        ? ''
         : 'Un solo equipo por manager, starter pack aleatorio por tramos de ranking y hasta 3 copias del mismo jugador en toda la liga.';
+      subtitle.classList.toggle('hidden', !!state.currentTeam);
     }
     if (meta){
       meta.innerHTML = state.currentTeam
-        ? `<span class="pill teamCoinPill" title="Berries disponibles para entrar al mercado fantasy.">${renderCoinInline(state.currentTeam.coins || 0, 'large')}</span>`
+        ? `<div class="teamBudgetBox" title="Berries disponibles ahora mismo para entrar al mercado fantasy."><strong>${renderCoinInline(state.currentTeam.coins || 0, 'large')}</strong></div>`
         : '';
     }
     if (facts){
@@ -1280,18 +1353,24 @@
     const meta = $('standingsMeta');
     if (!wrap || !empty || !meta) return;
     const derived = leagueDerived();
-    meta.textContent = `${state.currentRound?.label || 'Sin jornada'} · ${derived.standings.length} equipos`;
+    meta.textContent = '';
+    meta.classList.add('hidden');
+    if (meta.parentElement) meta.parentElement.classList.add('hidden');
     if (!derived.standings.length){ wrap.classList.add('hidden'); empty.classList.remove('hidden'); empty.textContent = 'Todavia no hay equipos inscritos en el fantasy.'; return; }
     empty.classList.add('hidden');
     wrap.classList.remove('hidden');
     wrap.innerHTML = derived.standings.map((row) => {
       const mine = state.currentUser && String(row.userId) === String(state.currentUser.id);
       const rankClass = row.rank === 1 ? 'top1' : row.rank === 2 ? 'top2' : row.rank === 3 ? 'top3' : '';
-      const roster = Array.isArray(row.players) ? row.players.slice(0, 3).map((entry) => {
+      const slots = Array.from({ length: config().squadSize }, (_, index) => row.players[index] || null);
+      const roster = slots.map((entry) => {
+        if (!entry){
+          return `<div class="standingRosterCard empty" aria-hidden="true"><div class="standingRosterVisual empty"></div><span class="standingRosterName">Hueco libre</span></div>`;
+        }
         const portrait = playerPortraitUrl(entry.player);
-        return `<span class="standingPlayerPill">${portrait ? `<img src="${escapeAttr(portrait)}" alt="" loading="lazy" />` : ''}<span>${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</span></span>`;
-      }).join('') : '';
-      return `<article class="standingRow ${mine ? 'isMine' : ''}"><div><span class="rankBadge ${rankClass}">#${row.rank}</span></div><div class="standingIdentity"><div class="standingIdentityTop"><strong>${escapeHtml(row.teamName)}</strong><span>Equipo fantasy</span></div><div class="standingIdentityBottom"><strong>${escapeHtml(row.coachName || 'Manager')}</strong><span>Manager</span></div>${roster ? `<div class="standingRoster">${roster}</div>` : ''}</div><div class="standingStatsGrid"><div class="standingStatCard" title="Puntuacion del ultimo sabado contabilizado."><span>Jornada</span><strong>${formatPointsLabel(row.weeklyPoints)}</strong></div><div class="standingStatCard" title="Suma de todas las jornadas fantasy cerradas hasta este momento."><span>Acumulado</span><strong>${formatPointsLabel(row.generalPoints)}</strong></div><div class="standingStatCard isCoins" title="Berries disponibles ahora mismo en el equipo."><span>Berries</span><strong>${renderCoinInline(row.coins, 'large')}</strong></div><div class="standingStatCard" title="Jugadores ocupando ahora mismo la plantilla del equipo."><span>Plantilla</span><strong>${intFmt.format(row.rosterCount)}/${intFmt.format(config().squadSize)}</strong><small>Roster activo</small></div></div></article>`;
+        return `<button class="standingRosterCard ${frameClass(entry.player.tier)}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}"><div class="standingRosterVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div><span class="standingRosterName">${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</span></button>`;
+      }).join('');
+      return `<article class="standingRow ${mine ? 'isMine' : ''}"><div><span class="rankBadge ${rankClass}">#${row.rank}</span></div><div class="standingIdentity"><div class="standingIdentityTop"><strong>${escapeHtml(row.teamName)}</strong><span>${formatPointsLabel(row.generalPoints)} acumulados</span></div><div class="standingIdentityBottom"><strong>${escapeHtml(row.coachName || 'Manager')}</strong><span>Manager · Jornada ${formatPointsLabel(row.weeklyPoints)}</span></div></div><div class="standingRoster">${roster}</div></article>`;
     }).join('');
   }
 
@@ -1308,7 +1387,7 @@
       return;
     }
     const derived = leagueDerived();
-    summary.innerHTML = `<span class="pill strong" title="Jugadores ocupando ahora mismo tu roster fantasy.">${derived.squadCards.length}/${intFmt.format(config().squadSize)} jugadores</span><span class="pill good" title="Saldo actual disponible para entrar al mercado.">${renderCoinInline(Number(state.currentTeam?.coins || 0), true)}</span>`;
+    summary.innerHTML = `<span class="pill strong" title="Jugadores ocupando ahora mismo tu roster fantasy.">${derived.squadCards.length}/${intFmt.format(config().squadSize)} jugadores</span>`;
     if (!derived.squadCards.length){ grid.classList.add('hidden'); empty.classList.remove('hidden'); empty.textContent = 'Tu plantilla esta vacia. Compra jugadores en el pool para empezar.'; return; }
     empty.classList.add('hidden');
     grid.classList.remove('hidden');
@@ -1325,7 +1404,9 @@
     const meta = $('marketMeta');
     if (!grid || !empty || !meta) return;
     const derived = leagueDerived();
-    meta.textContent = `${derived.marketPlayers.length} visibles`;
+    meta.textContent = '';
+    meta.classList.add('hidden');
+    if (meta.parentElement) meta.parentElement.classList.add('hidden');
     if (!derived.marketPlayers.length){ grid.innerHTML = ''; empty.classList.remove('hidden'); empty.textContent = state.poolPlayers.length ? 'No hay jugadores que coincidan con este filtro.' : 'Todavia no se ha cargado el pool de jugadores.'; return; }
     const roster = derived.myRoster;
     empty.classList.add('hidden');
@@ -1367,6 +1448,7 @@
     if (!state.currentUser) return showPageMsg('Necesitas sesion para crear tu equipo.', 'err');
     await withActionLock(async () => {
       try{
+        await ensureActionDataFresh();
         const { error } = await rpcWithTimeout('fantasy_vbf_create_team', { p_season: CURRENT_SEASON, p_team_name: teamName, p_initial_roster: [] }, 'crear equipo fantasy');
         if (error) throw error;
         showPageMsg('Equipo OP15 creado. Tu starter pack ya esta repartido y el mercado queda listo para ti.', 'ok');
@@ -1380,16 +1462,18 @@
     });
   }
 
-  async function buyPlayer(playerSlug, targetTeamId){
-    const player = leagueDerived().marketPlayers.find((item) => String(item.slug) === String(playerSlug || ''));
-    if (!player || !state.currentTeam) return;
+  async function buyPlayer(playerSlug, targetTeamId, outgoingSlug){
+    if (!state.currentTeam) return;
     await withActionLock(async () => {
       try{
+        await ensureActionDataFresh();
+        const player = leagueDerived().marketPlayers.find((item) => String(item.slug) === String(playerSlug || ''));
+        if (!player) throw new Error('El jugador ya no esta disponible en el pool actual.');
         const { error } = await rpcWithTimeout('fantasy_vbf_buy_player', {
           p_season: CURRENT_SEASON,
           p_round_key: state.currentRound?.key || state.sheetRound?.key || 'manual',
           p_player_slug: player.slug,
-          p_outgoing_player_slug: state.confirmBuyOutgoingSlug || null,
+          p_outgoing_player_slug: outgoingSlug || state.confirmBuyOutgoingSlug || null,
           p_target_team_id: targetTeamId || null
         }, `comprar ${player.name}`);
         if (error) throw error;
@@ -1441,13 +1525,6 @@
     }
   }
 
-  function queueRoundSync(){
-    if (state.schemaReady === false || !state.currentUser || !state.currentRound?.key) return;
-    window.setTimeout(() => {
-      void syncCurrentRound(true);
-    }, 0);
-  }
-
   function isMonday(){
     return madridNowParts().weekday === 'Mon';
   }
@@ -1476,29 +1553,56 @@
     }
   }
 
+  function needsImmediateWeekRoll(){
+    if (!state.currentUser || state.schemaReady === false || !state.sheetRound?.key || !isMonday()) return false;
+    const currentKey = String(state.currentRound?.key || state.seasonConfig?.current_round_key || '').trim();
+    return currentKey !== state.sheetRound.key;
+  }
+
+  function shouldSyncPoolForAction(){
+    if (!state.currentUser || state.schemaReady === false || !state.sheetRound?.key || !state.poolPlayers.length) return false;
+    if (String(state.poolSyncedRoundKey || '') !== String(state.sheetRound.key || '')) return true;
+    return (Date.now() - Number(state.poolSyncedAt || 0)) > (10 * 60 * 1000);
+  }
+
+  async function ensureActionDataFresh(){
+    if (needsImmediateWeekRoll()) await maybeOpenNewWeek();
+    if (shouldSyncPoolForAction()) await syncPlayerPoolToBackend();
+  }
+
+  function startBackgroundHydration(){
+    if (backgroundHydrationPromise) return backgroundHydrationPromise;
+    backgroundHydrationPromise = (async () => {
+      if (shouldSyncPoolForAction()) await syncPlayerPoolToBackend();
+    })().catch((error) => {
+      console.warn('fantasy background hydration:', error?.message || error);
+    }).finally(() => {
+      backgroundHydrationPromise = null;
+    });
+    return backgroundHydrationPromise;
+  }
+
   async function refreshAllData(options){
     const opts = options || {};
     if (state.refreshPromise) return state.refreshPromise;
     setLoading(true, opts.loadingLabel || (state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...'));
     const promise = (async () => {
       if (!opts.skipSession) await safeRefreshSession();
-      await loadSeasonConfig();
-      await loadPlayerPool(Boolean(opts.forceSheet));
-      await maybeOpenNewWeek();
-      await syncPlayerPoolToBackend();
+      await Promise.all([
+        loadSeasonConfig(),
+        loadPlayerPool(Boolean(opts.forceSheet))
+      ]);
       await loadLeagueContext();
       renderAll();
+      setLoading(false);
+      void startBackgroundHydration();
     })().finally(() => {
       state.refreshPromise = null;
       state.initialized = true;
       setLoading(false);
     });
     state.refreshPromise = promise;
-    try{
-      await promise;
-    } finally {
-      queueRoundSync();
-    }
+    await promise;
     return promise;
   }
 
@@ -1507,7 +1611,7 @@
     await refreshAllData({ forceSheet: true, skipSession: true, loadingLabel: 'Refrescando fantasy...' });
   });
   $('marketSearch').addEventListener('input', () => { state.marketSearch = $('marketSearch').value || ''; renderMarket(); });
-  $('marketSort').addEventListener('change', () => { state.marketSort = $('marketSort').value || 'weekly_desc'; renderMarket(); });
+  $('marketSort').addEventListener('change', () => { state.marketSort = $('marketSort').value || 'vbf_full_rank'; renderMarket(); });
   document.addEventListener('submit', async (event) => { if (event.target?.id === 'createTeamForm') await createTeam(event); });
   function handleOpenPlayerClick(event){
     const buyTrigger = event.target.closest('[data-buy-confirm]');
@@ -1521,6 +1625,7 @@
   }
   $('marketGrid').addEventListener('click', handleOpenPlayerClick);
   $('squadGrid').addEventListener('click', handleOpenPlayerClick);
+  $('standingsBoard').addEventListener('click', handleOpenPlayerClick);
   $('playerModalWrap')?.addEventListener('click', async (event) => {
     const closeTrigger = event.target.closest('[data-close-player-modal]');
     if (closeTrigger){ closePlayerModal(); return; }
@@ -1557,8 +1662,9 @@
     if (event.target.closest('#buyConfirmAccept')){
       const slug = state.confirmBuySlug;
       const targetTeamId = state.confirmBuyTargetTeamId;
+      const outgoingSlug = state.confirmBuyOutgoingSlug;
       closeBuyConfirm();
-      if (slug) await buyPlayer(slug, targetTeamId || null);
+      if (slug) await buyPlayer(slug, targetTeamId || null, outgoingSlug || null);
     }
   });
   document.addEventListener('keydown', (event) => {
@@ -1578,16 +1684,11 @@
       if (pendingRefresh){
         try { await pendingRefresh; } catch (_error) {}
       }
-      await refreshAllData({ forceSheet: true, skipSession: true, loadingLabel: state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...' });
+      await refreshAllData({ forceSheet: false, skipSession: true, loadingLabel: state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...' });
     });
   }
 
-  window.addEventListener('pageshow', async (event) => {
-    if (!state.initialized || !event.persisted) return;
-    await refreshAllData({ forceSheet: true, skipSession: true, loadingLabel: 'Actualizando fantasy...' });
-  });
-
-  void refreshAllData({ forceSheet: true, skipSession: true, loadingLabel: 'Cargando fantasy...' }).catch((error) => {
+  void refreshAllData({ forceSheet: false, skipSession: true, loadingLabel: 'Cargando fantasy...' }).catch((error) => {
     console.warn('fantasy init:', error?.message || error);
   });
 })();
