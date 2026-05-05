@@ -25,26 +25,41 @@
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
   const PAGE_VIEW = String(document.body?.dataset?.fantasyView || 'overview').trim().toLowerCase();
-  const DEFAULT_BUDGET = 100000;
+  const DEFAULT_BUDGET = 150000;
   const DEFAULT_SQUAD_SIZE = 3;
   const DEFAULT_STARTER_SIZE = 3;
   const DEFAULT_STARTER_PACK_SIZE = 3;
   const DEFAULT_MAX_PLAYER_COPIES = 3;
   const MAX_WEEKLY_TRANSFERS = 999;
-  const MAX_WEEKLY_CAPTAIN_CHANGES = 0;
+  const MAX_WEEKLY_CAPTAIN_CHANGES = 1;
   const MAX_SAVINGS = 999999999;
   const MAX_MARKET_CARDS = 60;
-  const DEFAULT_CLAUSE_MULTIPLIER = 1.25;
-  const PRICE_BUCKET_WINNER = 50000;
-  const PRICE_BUCKET_TOP4 = 40000;
-  const PRICE_BUCKET_TOP8 = 30000;
-  const PRICE_BUCKET_TOP16 = 20000;
-  const PRICE_BUCKET_REST = 10000;
+  const DEFAULT_CLAUSE_MULTIPLIER = 1.5;
+  const DEFAULT_CAPTAIN_MULTIPLIER = 1.5;
+  const WEEKLY_REWARD_PER_POINT = 3000;
+  const MIN_WEEKLY_REWARD = 20000;
+  const TIER_BASE_PRICES = {
+    'pirate king': 100000,
+    yonkou: 80000,
+    shichibukai: 60000,
+    supernova: 40000,
+    piratilla: 20000
+  };
+  const RESULT_PRICE_MODIFIERS = {
+    '0-5': -10000,
+    '1-4': -7500,
+    '2-3': -2500,
+    '3-2': 2500,
+    '4-1': 7500,
+    '5-0': 10000
+  };
   let authRpcQueue = Promise.resolve();
   let actionRpcClient = null;
   let actionRpcToken = '';
   let backgroundHydrationPromise = null;
   let fantasyAccessAllowed = false;
+  let watchlistRemoteDisabled = false;
+  let lastSilentRefreshAt = 0;
 
   const navController = App.initUserNav({
     supabase: sb,
@@ -144,6 +159,8 @@
     actionInFlight: false,
     poolSyncedRoundKey: '',
     poolSyncedAt: 0,
+    poolSyncFailedRoundKey: '',
+    poolSyncFailedAt: 0,
     initialized: false
   };
 
@@ -206,7 +223,7 @@
   async function loadWatchlist(){
     const localRows = readLocalWatchlist();
     state.watchlistSlugs = new Set(localRows);
-    if (!state.currentUser?.id) return;
+    if (!state.currentUser?.id || watchlistRemoteDisabled) return;
 
     try{
       const { data, error } = await withTimeout(
@@ -228,7 +245,12 @@
         await persistWatchlist(localRows);
       }
     } catch (error){
-      console.warn('fantasy watchlist fallback:', error?.message || error);
+      if (String(error?.message || error || '').toLowerCase().includes('timeout')){
+        watchlistRemoteDisabled = true;
+        console.debug('fantasy watchlist fallback:', error?.message || error);
+      } else {
+        console.warn('fantasy watchlist fallback:', error?.message || error);
+      }
     }
   }
 
@@ -376,6 +398,10 @@
     return String(error?.message || error || '').toLowerCase().includes('stole it');
   }
 
+  function isTimeoutError(error){
+    return String(error?.message || error || '').toLowerCase().includes('timeout');
+  }
+
   async function sleep(ms){
     await new Promise((resolve) => window.setTimeout(resolve, ms));
   }
@@ -479,7 +505,7 @@
 
   function pickStarterPack(players, size, unavailableSlugs){
     const blocked = new Set((unavailableSlugs || []).map((value) => String(value || '')));
-    const pool = shuffleList(players).filter((player) => player?.slug && !blocked.has(String(player.slug)));
+    const pool = shuffleList(players).filter((player) => player?.slug && !blocked.has(String(player.slug)) && isStarterEligibleTier(player.tier));
     const picked = [];
     const seen = new Set();
     for (const player of pool){
@@ -678,6 +704,29 @@
     return text || 'Piratilla';
   }
 
+  function normalizeTierKey(tier){
+    const key = String(tier || '').trim().toLowerCase();
+    if (key === 'pirate king') return 'pirate king';
+    if (key === 'yonkou') return 'yonkou';
+    if (key === 'shichibukai') return 'shichibukai';
+    if (key === 'supernova') return 'supernova';
+    return 'piratilla';
+  }
+
+  function tierBasePrice(tier){
+    return TIER_BASE_PRICES[normalizeTierKey(tier)] || TIER_BASE_PRICES.piratilla;
+  }
+
+  function isStarterEligibleTier(tier){
+    const key = normalizeTierKey(tier);
+    return key !== 'pirate king' && key !== 'yonkou';
+  }
+
+  function weeklyRewardForPoints(points){
+    const earned = Math.round(Number(points || 0) * WEEKLY_REWARD_PER_POINT);
+    return Math.max(MIN_WEEKLY_REWARD, earned, 0);
+  }
+
   function playerPortraitUrl(player){
     const rawName = String(player?.name || '').trim();
     const baseName = rawName.replace(/\([^)]*\)/g, ' ').trim();
@@ -726,9 +775,7 @@
     const history = Array.isArray(player?.history) ? player.history : [];
     return history.map((entry, index) => {
       const raw = Number.isFinite(Number(entry?.raw_points)) ? Number(entry.raw_points) : null;
-      const fantasy = Number.isFinite(Number(entry?.fantasy_points))
-        ? Number(entry.fantasy_points)
-        : (Number.isFinite(raw) && raw > 0 ? Number((raw / 1000).toFixed(1)) : null);
+      const fantasy = Number.isFinite(Number(entry?.fantasy_points)) ? Number(entry.fantasy_points) : null;
       return {
         index,
         label: String(entry?.round_label || entry?.round_key || `T${index + 1}`).trim(),
@@ -780,7 +827,7 @@
       const x = xFor(index).toFixed(2);
       if (Number.isFinite(item.fantasy)){
         const y = yFor(item.fantasy).toFixed(2);
-        const title = `${item.label}${item.countsForFantasy ? ' · cuenta para fantasy' : ''}: ${formatPointsLabel(item.fantasy)}${Number.isFinite(item.raw) ? ` · ${intFmt.format(Math.round(item.raw))} berries` : ''}${item.won ? ' · victoria' : ''}`;
+        const title = `${item.label}${item.countsForFantasy ? ' · cuenta para fantasy' : ''}: ${formatPointsLabel(item.fantasy)}${Number.isFinite(item.raw) ? ` · ${intFmt.format(Math.round(item.raw))} pts VDBF` : ''}${item.won ? ' · ganador' : ''}`;
         const pointClass = `chartPoint${item.countsForFantasy ? ' scoring' : ''}${item.won ? ' won' : ''}`;
         const radius = item.countsForFantasy ? 8.5 : 6;
         return `<line class="chartStem${item.countsForFantasy ? ' scoring' : ''}" x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${y}"></line><circle class="${pointClass}" cx="${x}" cy="${y}" r="${radius}"><title>${escapeHtml(title)}</title></circle>`;
@@ -796,6 +843,70 @@
     const bridgesSvg = bridges.map((points) => `<polyline class="chartBridge" points="${points}"></polyline>`).join('');
     const linesSvg = segments.map((points) => `<polyline class="chartLine" points="${points}"></polyline>`).join('');
     return `<div class="chartCard"><div class="chartMeta"><span>Todos los torneos</span><strong>Sabados marcados para fantasy</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos por torneo">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
+  }
+
+  function tournamentScoreMeta(values){
+    const positives = (values || []).map((value) => Number(value || 0)).filter((value) => Number.isFinite(value) && value > 0).sort((a, b) => a - b);
+    const minPositive = positives[0] || 0;
+    const maxRaw = positives[positives.length - 1] || 0;
+    const fiveWinCount = positives.filter((value) => value >= 25000 && value % 5000 === 0).length;
+    const isTier1 = minPositive >= 10000;
+    const winPoints = isTier1 ? 10000 : 5000;
+    const rounds = maxRaw > 31000 || fiveWinCount > 1 ? 6 : 5;
+    const winnerExtra = isTier1 ? 8000 : 6000;
+    return { isTier1, winPoints, rounds, maxRaw, winnerExtra };
+  }
+
+  function parseTournamentResult(rawValue, meta){
+    const raw = Number(rawValue || 0);
+    if (!Number.isFinite(raw) || raw <= 0){
+      return {
+        raw: 0,
+        wins: 0,
+        losses: 0,
+        fantasyPoints: 0,
+        priceModifier: 0,
+        won: false,
+        resultLabel: 'No juega',
+        rounds: Number(meta?.rounds || 5),
+        isTier1: meta?.isTier1 === true
+      };
+    }
+    const winPoints = Number(meta?.winPoints || 5000);
+    const rounds = Number(meta?.rounds || 5);
+    const maxRaw = Number(meta?.maxRaw || 0);
+    const winnerExtra = Number(meta?.winnerExtra || 6000);
+    const possibleBase = raw - winnerExtra;
+    const hasWinnerExtra = raw === maxRaw && possibleBase > 0 && possibleBase % winPoints === 0;
+    const baseRaw = hasWinnerExtra ? possibleBase : raw;
+    const wins = clamp(Math.floor(baseRaw / winPoints), 0, rounds);
+    const losses = Math.max(0, rounds - wins);
+    const won = hasWinnerExtra || (raw === maxRaw && wins >= rounds && maxRaw > 0);
+    const resultLabel = `${wins}-${losses}`;
+    let fantasyPoints = (wins * 3) - losses;
+    if (wins >= 5 || won) fantasyPoints += 5;
+    else if (wins === 4 && losses === 1) fantasyPoints += 2;
+    let priceModifier = RESULT_PRICE_MODIFIERS[resultLabel];
+    if (!Number.isFinite(priceModifier)){
+      if (wins >= 5) priceModifier = RESULT_PRICE_MODIFIERS['5-0'];
+      else if (wins === 4) priceModifier = RESULT_PRICE_MODIFIERS['4-1'];
+      else if (wins === 3) priceModifier = RESULT_PRICE_MODIFIERS['3-2'];
+      else if (wins === 2) priceModifier = RESULT_PRICE_MODIFIERS['2-3'];
+      else if (wins === 1) priceModifier = RESULT_PRICE_MODIFIERS['1-4'];
+      else priceModifier = RESULT_PRICE_MODIFIERS['0-5'];
+    }
+    if (wins >= 5 || won) priceModifier = RESULT_PRICE_MODIFIERS['5-0'];
+    return {
+      raw: Math.round(raw),
+      wins,
+      losses,
+      fantasyPoints: Number(fantasyPoints.toFixed(1)),
+      priceModifier,
+      won,
+      resultLabel,
+      rounds,
+      isTier1: meta?.isTier1 === true
+    };
   }
 
   function buildPlayerPool(payload){
@@ -827,6 +938,8 @@
         countsForFantasy: true
       });
     }
+    const allEventMeta = allEventColumns.map((event) => tournamentScoreMeta(sourceRows.map((row) => getNumber(row[event.index]))));
+    const eventMeta = eventColumns.map((event) => tournamentScoreMeta(sourceRows.map((row) => getNumber(row[event.index]))));
 
     const players = sourceRows.map((row) => {
       const name = String(row[2] || '').trim();
@@ -862,11 +975,13 @@
         wins: 0,
         rank: 0,
         roundRank: 9999,
-        price: PRICE_BUCKET_REST,
-        avgFantasyPoints: played ? totalPoints / played / 1000 : 0,
+        price: tierBasePrice(row[0]),
+        clausePrice: defaultClauseForPrice(tierBasePrice(row[0])),
+        avgFantasyPoints: 0,
         currentFantasyPoints: 0,
         currentRawPoints: 0,
         currentWon: false,
+        currentResultLabel: '',
         isTop5: false,
         isTop10: false
       };
@@ -893,7 +1008,8 @@
     players.forEach((player) => {
       let wins = 0;
       player.allPoints.forEach((value, eventPos) => {
-        if (Number.isFinite(value) && value > 0 && allEventMax[eventPos] > 0 && value === allEventMax[eventPos]) wins += 1;
+        const result = parseTournamentResult(value, allEventMeta[eventPos]);
+        wins += Number(result.wins || 0);
       });
       player.wins = wins;
     });
@@ -921,38 +1037,43 @@
       const roundRankBySlug = new Map(ranking.map((entry, index) => [entry.slug, index + 1]));
       players.forEach((player) => {
         const rawPoints = player.points[roundIndex];
-        const score = Number.isFinite(rawPoints) && rawPoints > 0 ? rawPoints : 0;
-        const won = score > 0 && score === eventMax[roundIndex];
-        player.currentRawPoints = score;
-        player.currentWon = won;
-        player.currentFantasyPoints = score > 0 ? (score / 1000) : 0;
+        const result = parseTournamentResult(rawPoints, eventMeta[roundIndex]);
+        player.currentRawPoints = result.raw;
+        player.currentWon = result.won;
+        player.currentFantasyPoints = result.fantasyPoints;
+        player.currentResultLabel = result.resultLabel;
         player.roundRank = Number(roundRankBySlug.get(player.slug) || 9999);
       });
     }
 
     players.forEach((player) => {
-      player.price = player.roundRank <= 1
-        ? PRICE_BUCKET_WINNER
-        : player.roundRank <= 4
-          ? PRICE_BUCKET_TOP4
-          : player.roundRank <= 8
-            ? PRICE_BUCKET_TOP8
-            : player.roundRank <= 16
-              ? PRICE_BUCKET_TOP16
-              : PRICE_BUCKET_REST;
       player.history = allEventColumns.map((event, eventPos) => {
         const raw = getNumber(player.sheetRow?.[event.index]);
-        const fantasy = Number.isFinite(raw) && raw > 0 ? raw / 1000 : null;
+        const result = parseTournamentResult(raw, allEventMeta[eventPos]);
         return {
           round_key: `${CURRENT_SEASON}:${event.key}`,
           round_label: event.label,
           round_order: event.order,
           raw_points: Number.isFinite(raw) ? Math.round(raw) : null,
-          fantasy_points: Number.isFinite(fantasy) ? Number(fantasy.toFixed(1)) : null,
-          won: Number.isFinite(raw) && raw > 0 && allEventMax[eventPos] > 0 && raw === allEventMax[eventPos],
-          counts_for_fantasy: event.countsForFantasy
+          fantasy_points: result.raw > 0 ? result.fantasyPoints : null,
+          won: result.won,
+          counts_for_fantasy: event.countsForFantasy,
+          result_label: result.resultLabel,
+          wins: result.wins,
+          losses: result.losses,
+          rounds: result.rounds,
+          is_tier1: result.isTier1,
+          price_modifier: event.countsForFantasy ? result.priceModifier : 0
         };
       });
+      const scoringHistory = player.history.filter((entry) => entry.counts_for_fantasy === true);
+      const playedFantasy = scoringHistory.filter((entry) => Number.isFinite(Number(entry.fantasy_points))).length;
+      const totalFantasy = scoringHistory.reduce((sum, entry) => sum + (Number(entry.fantasy_points || 0)), 0);
+      player.fantasyPlayed = playedFantasy;
+      player.avgFantasyPoints = playedFantasy ? totalFantasy / playedFantasy : 0;
+      player.price = scoringHistory.reduce((price, entry) => price + Number(entry.price_modifier || 0), tierBasePrice(player.tier));
+      player.price = Math.max(1000, Math.round(player.price));
+      player.clausePrice = defaultClauseForPrice(player.price);
     });
 
     return {
@@ -1016,7 +1137,7 @@
         max_weekly_transfers: MAX_WEEKLY_TRANSFERS,
         max_weekly_captain_changes: MAX_WEEKLY_CAPTAIN_CHANGES,
         max_savings: MAX_SAVINGS,
-        captain_multiplier: 1,
+        captain_multiplier: DEFAULT_CAPTAIN_MULTIPLIER,
         clause_multiplier: DEFAULT_CLAUSE_MULTIPLIER,
         is_open: true
       };
@@ -1050,27 +1171,42 @@
   }
 
   function playerPoolSyncPayload(){
-    return state.poolPlayers.map((player) => ({
-      player_slug: player.slug,
-      player_name: player.name,
-      player_tier: player.tier || '',
-      player_rank: Number(player.rank || 9999),
-      round_rank: Number(player.roundRank || 9999),
-      total_points: Number(player.totalPoints || 0),
-      avg_fantasy_points: Number(player.avgFantasyPoints || 0),
-      played: Number(player.played || 0),
-      wins: Number(player.wins || 0),
-      current_fantasy_points: Number(player.currentFantasyPoints || 0),
-      current_raw_points: Number(player.currentRawPoints || 0),
-      current_won: !!player.currentWon,
-      current_streak: Number(player.currentStreak || 0),
-      best_streak: Number(player.bestStreak || 0),
-      history: Array.isArray(player.history) ? player.history : []
-    }));
+    const bySlug = new Map();
+    state.poolPlayers.forEach((player) => {
+      const slug = String(player?.slug || '').trim();
+      if (!slug) return;
+      const historyByRound = new Map();
+      (Array.isArray(player.history) ? player.history : []).forEach((entry) => {
+        const key = String(entry?.round_key || '').trim();
+        if (key) historyByRound.set(key, entry);
+      });
+      bySlug.set(slug, {
+        player_slug: slug,
+        player_name: player.name,
+        player_tier: player.tier || '',
+        player_rank: Number(player.rank || 9999),
+        round_rank: Number(player.roundRank || 9999),
+        current_price: Number(player.price || 0),
+        default_clause: Number(player.clausePrice || defaultClauseForPrice(player.price || 0)),
+        total_points: Number(player.totalPoints || 0),
+        avg_fantasy_points: Number(player.avgFantasyPoints || 0),
+        played: Number(player.played || 0),
+        wins: Number(player.wins || 0),
+        current_fantasy_points: Number(player.currentFantasyPoints || 0),
+        current_raw_points: Number(player.currentRawPoints || 0),
+        current_won: !!player.currentWon,
+        current_streak: Number(player.currentStreak || 0),
+        best_streak: Number(player.bestStreak || 0),
+        history: Array.from(historyByRound.values())
+      });
+    });
+    return Array.from(bySlug.values());
   }
 
   async function syncPlayerPoolToBackend(){
     if (!state.currentUser || state.schemaReady === false || !state.sheetRound?.key || !state.poolPlayers.length) return;
+    const roundKey = String(state.sheetRound.key || '');
+    if (state.poolSyncFailedRoundKey === roundKey && Date.now() - Number(state.poolSyncFailedAt || 0) < 10 * 60 * 1000) return false;
     try{
       const { error } = await rpcWithTimeout('fantasy_vbf_sync_player_pool', {
         p_season: CURRENT_SEASON,
@@ -1082,9 +1218,17 @@
       if (error) throw error;
       state.poolSyncedRoundKey = String(state.sheetRound?.key || '');
       state.poolSyncedAt = Date.now();
+      state.poolSyncFailedRoundKey = '';
+      state.poolSyncFailedAt = 0;
+      return true;
     } catch (error){
       if (isSchemaError(error)) markSchemaMissing(error);
-      else console.warn('fantasy syncPlayerPoolToBackend:', error?.message || error);
+      else {
+        state.poolSyncFailedRoundKey = roundKey;
+        state.poolSyncFailedAt = Date.now();
+        console.warn('fantasy syncPlayerPoolToBackend:', error?.message || error);
+      }
+      return false;
     }
   }
 
@@ -1104,6 +1248,21 @@
     const { data, error } = await withTimeout(readSb.from('profiles').select('id,username,display_name,avatar_url,member').in('id', ids), 'perfiles fantasy');
     if (error) return;
     (data || []).forEach((profile) => state.profilesById.set(String(profile.id), profile));
+  }
+
+  async function loadNotifications(){
+    if (!state.currentUser) return;
+    try{
+      const notesClient = getRpcClient();
+      const notesRes = await withTimeout(notesClient.from('fantasy_vbf_notifications').select('id,kind,title,body,payload,read_at,created_at').eq('user_id', state.currentUser.id).order('read_at', { ascending: true, nullsFirst: true }).order('created_at', { ascending: false }).limit(24), 'avisos fantasy', 5000);
+      if (notesRes.error) throw notesRes.error;
+      state.notifications = Array.isArray(notesRes.data) ? notesRes.data : [];
+    } catch (error){
+      state.notifications = [];
+      if (isSchemaError(error)) return;
+      const method = isTimeoutError(error) ? 'debug' : 'warn';
+      console[method]('fantasy loadNotifications:', error?.message || error);
+    }
   }
 
   async function loadLeagueContext(){
@@ -1144,16 +1303,8 @@
         ...state.seasonTeams.map((team) => team.user_id),
         ...state.transactions.map((tx) => tx.user_id)
       ];
-      const jobs = [loadProfiles(profileIds)];
-      if (state.currentUser){
-        jobs.push((async () => {
-          const notesClient = getRpcClient();
-          const notesRes = await withTimeout(notesClient.from('fantasy_vbf_notifications').select('id,kind,title,body,payload,read_at,created_at').eq('user_id', state.currentUser.id).order('read_at', { ascending: true, nullsFirst: true }).order('created_at', { ascending: false }).limit(24), 'avisos fantasy');
-          if (notesRes.error) throw notesRes.error;
-          state.notifications = Array.isArray(notesRes.data) ? notesRes.data : [];
-        })());
-      }
-      await Promise.all(jobs);
+      await loadProfiles(profileIds);
+      await loadNotifications();
       if (App.refreshFantasyNavAlerts) void App.refreshFantasyNavAlerts({ force: true });
     } catch (error){
       if (isSchemaError(error)) markSchemaMissing(error);
@@ -1176,7 +1327,7 @@
       maxWeeklyTransfers: Number(cfg.max_weekly_transfers || MAX_WEEKLY_TRANSFERS),
       maxWeeklyCaptainChanges: Number(cfg.max_weekly_captain_changes || MAX_WEEKLY_CAPTAIN_CHANGES),
       maxSavings: Number(cfg.max_savings || MAX_SAVINGS),
-      captainMultiplier: Number(cfg.captain_multiplier || 1),
+      captainMultiplier: Number(cfg.captain_multiplier || DEFAULT_CAPTAIN_MULTIPLIER),
       clauseMultiplier: Number(cfg.clause_multiplier || DEFAULT_CLAUSE_MULTIPLIER),
       isOpen: cfg.is_open !== false
     };
@@ -1438,7 +1589,10 @@
     const rows = rosterEntriesWithPlayers(entries).map((entry) => {
       const player = entry.player;
       const roundEntry = roundKey ? historyEntryForRound(player, roundKey) : null;
-      const weeklyPoints = roundKey ? Number(roundEntry?.fantasy_points || 0) : Number(player.currentFantasyPoints || 0);
+      const baseWeeklyPoints = roundKey ? Number(roundEntry?.fantasy_points || 0) : Number(player.currentFantasyPoints || 0);
+      const team = state.seasonTeams.find((item) => String(item.id || '') === String(entry.team_id || '')) || state.currentTeam || {};
+      const isCaptain = String(team.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
+      const weeklyPoints = isCaptain ? baseWeeklyPoints * config().captainMultiplier : baseWeeklyPoints;
       const roundLabel = String(roundEntry?.round_label || latestFantasyEntry(player)?.round_label || state.currentRound?.label || '');
       return {
         slug: String(entry.player_slug || player.slug || ''),
@@ -1450,6 +1604,7 @@
         price: Number(entry.buy_price || player.price || 0),
         clause: Number(entry.clause_price || player.clausePrice || defaultClauseForPrice(player.price || 0)),
         wins: Number(player.wins || 0),
+        isCaptain,
         delta: roundKey ? fantasyTrendDeltaForRound(player, roundKey) : fantasyTrendDelta(player),
         roundLabel,
         player
@@ -1479,7 +1634,7 @@
     ].filter(Boolean).join(' ');
     return `<div class="${listClasses}">${rows.map((row) => {
       const portrait = playerPortraitUrl(row.player);
-      const weeklyLabel = row.weeklyPoints > 0 ? formatPointsLabel(row.weeklyPoints) : 'Sin puntos';
+      const weeklyLabel = Number.isFinite(Number(row.weeklyPoints)) && row.weeklyPoints !== 0 ? formatPointsLabel(row.weeklyPoints) : 'Sin puntos';
       const deltaLabel = row.delta > 0 ? `+${formatPoints(row.delta)} vs cierre previo` : row.delta < 0 ? `-${formatPoints(Math.abs(row.delta))} vs cierre previo` : 'Mismo ritmo';
       const relativePct = Math.max(8, Math.round((row.share || 0) * 100));
       const railTitle = `${row.name}: ${weeklyLabel}. La barra representa su peso relativo frente al jugador que mas puntos te dio en el ultimo cierre del sabado (${relativePct}% del pico del equipo).`;
@@ -1488,7 +1643,7 @@
           <div class="impactAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(row.name)}" loading="lazy" decoding="async" />` : ''}</div>
           <div class="impactCopy">
             <strong>${escapeHtml(row.name)}</strong>
-            <span>#${intFmt.format(row.rank || 0)} · ${escapeHtml(tierLabel(row.tier))}</span>
+            <span>#${intFmt.format(row.rank || 0)} · ${escapeHtml(tierLabel(row.tier))}${row.isCaptain ? ' · Capitan' : ''}</span>
           </div>
         </div>
         <div class="impactScore">
@@ -1534,7 +1689,7 @@
         <small>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))}</small>
         <div class="comparePlayerTags">
           <span class="signalTag ${escapeAttr(pulse.tone)}">${escapeHtml(pulse.label)}</span>
-          <span>${weeklyPoints > 0 ? formatPointsLabel(weeklyPoints) : 'Sin puntos'} ultimo sabado</span>
+          <span>${Number(player.currentRawPoints || 0) > 0 ? formatPointsLabel(weeklyPoints) : 'Sin puntos'} ultimo sabado</span>
           ${metaHtml || ''}
         </div>
       </div>
@@ -1585,14 +1740,14 @@
     const chips = mode === 'surprise'
       ? [
         pulse.label,
-        latestPoints > 0 ? `${formatPointsLabel(latestPoints)} ultimo sabado` : 'Ult. sabado sin puntos',
+        Number(player.currentRawPoints || 0) > 0 ? `${formatPointsLabel(latestPoints)} ultimo sabado` : 'Ult. sabado sin puntos',
         `+${intFmt.format(delta)} puestos sobre VadeBack`
       ]
       : [
         pulse.label,
         `${intFmt.format(Math.round(player.totalPoints || 0))} berries historicas`,
         `${intFmt.format(player.wins || 0)} victorias`,
-        latestPoints > 0 ? `Ult. sabado ${formatPointsLabel(latestPoints)}` : 'Ult. sabado sin puntos'
+        Number(player.currentRawPoints || 0) > 0 ? `Ult. sabado ${formatPointsLabel(latestPoints)}` : 'Ult. sabado sin puntos'
       ];
     return `<button class="overviewFeatureCard ${frameClass(player.tier)}" type="button" data-open-player="${escapeAttr(player.slug || '')}" data-player-source="market">
       <div class="overviewFeatureVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div>
@@ -1705,7 +1860,7 @@
         rosterCount: roster.length,
         weeklyPoints,
         generalPoints: storedGeneralPoints(team),
-        rewardCoins: Number(weeklyState?.reward_coins || Math.max(0, Math.round(weeklyPoints * 1000))),
+        rewardCoins: Number(weeklyState?.reward_coins || weeklyRewardForPoints(weeklyPoints)),
         transfersUsed: Number(weeklyState?.transfers_used || 0),
         players
       };
@@ -2235,7 +2390,7 @@
     if (subtitle){
       subtitle.textContent = state.currentTeam
         ? ''
-        : 'Un solo equipo por manager, starter pack aleatorio por tramos de ranking y hasta 3 copias del mismo jugador en toda la liga.';
+        : 'Un solo equipo por manager, starter pack aleatorio sin Pirate King ni Yonkou y hasta 3 copias del mismo jugador en toda la liga.';
       subtitle.classList.toggle('hidden', !!state.currentTeam);
     }
     if (meta){
@@ -2256,7 +2411,7 @@
         <article class="fact factProduct">
           <span>Starter pack</span>
           <strong>${intFmt.format(cfg.starterPackSize)} jugadores</strong>
-          <small>Reparto por tramos: top 10, top 20 y resto del pool.</small>
+          <small>Aleatorio entre tiers Shichibukai, Supernova y Piratilla.</small>
         </article>
         <article class="fact factProduct">
           <span>Cupos por jugador</span>
@@ -2270,7 +2425,7 @@
         </article>` : '';
     }
     if (authHint){
-      authHint.textContent = state.currentUser ? 'Tu sesion esta lista. Al entrar se refrescan mercado, ranking, clausulas y avisos fantasy.' : 'Necesitas sesion para crear tu equipo, recibir tu starter pack y entrar al mercado.';
+      authHint.textContent = state.currentUser ? 'Tu sesion esta lista. Al entrar se refrescan mercado, ranking y clausulas fantasy.' : 'Necesitas sesion para crear tu equipo, recibir tu starter pack y entrar al mercado.';
       authHint.classList.toggle('hidden', !!state.currentTeam);
     }
   }
@@ -2288,7 +2443,7 @@
     }
     if (!state.currentTeam){
       const suggested = escapeAttr(readCurrentUserLabel());
-      host.innerHTML = `<div class="subPanelHead"><div><h3>Crea tu equipo OP15</h3><p>Empiezas con ${formatCoins(cfg.budget)} y el sistema te reparte un starter pack aleatorio con 1 top 10, 1 top 20 y 1 jugador del resto.</p></div><span class="pill strong">Starter pack</span></div><div class="setupStepGrid"><div class="setupStep"><strong>${renderCoinInline(cfg.budget, true)}</strong><span>Presupuesto</span></div><div class="setupStep"><strong>${intFmt.format(cfg.starterPackSize)}</strong><span>Jugadores iniciales</span></div><div class="setupStep"><strong>${intFmt.format(cfg.maxPlayerCopies)}</strong><span>Copias maximas</span></div></div><form class="miniForm" id="createTeamForm"><label class="control"><span>Nombre del equipo</span><input id="createTeamName" type="text" maxlength="60" placeholder="Ej: ${suggested}" value="${suggested}" autocomplete="off" /></label><button class="btn btnPrimary" type="submit" ${cfg.isOpen ? '' : 'disabled'}>${cfg.isOpen ? 'Crear equipo y recibir pack' : 'Mercado cerrado'}</button></form>`;
+      host.innerHTML = `<div class="subPanelHead"><div><h3>Crea tu equipo OP15</h3><p>Empiezas con ${formatCoins(cfg.budget)} y el sistema te reparte ${intFmt.format(cfg.starterPackSize)} jugadores aleatorios sin Pirate King ni Yonkou.</p></div><span class="pill strong">Starter pack</span></div><div class="setupStepGrid"><div class="setupStep"><strong>${renderCoinInline(cfg.budget, true)}</strong><span>Presupuesto</span></div><div class="setupStep"><strong>${intFmt.format(cfg.starterPackSize)}</strong><span>Jugadores iniciales</span></div><div class="setupStep"><strong>${intFmt.format(cfg.maxPlayerCopies)}</strong><span>Copias maximas</span></div></div><form class="miniForm" id="createTeamForm"><label class="control"><span>Nombre del equipo</span><input id="createTeamName" type="text" maxlength="60" placeholder="Ej: ${suggested}" value="${suggested}" autocomplete="off" /></label><button class="btn btnPrimary" type="submit" ${cfg.isOpen ? '' : 'disabled'}>${cfg.isOpen ? 'Crear equipo y recibir pack' : 'Mercado cerrado'}</button></form>`;
       return;
     }
     host.innerHTML = '';
@@ -2406,18 +2561,21 @@
       const pulse = playerPulse(player);
       const weeklyPoints = Number(player.currentFantasyPoints || 0);
       const clausePrice = Number(entry.clause_price || player.clausePrice || defaultClauseForPrice(player.price || 0));
+      const isCaptain = String(state.currentTeam?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
+      const captainBlocked = !marketOpenNow() || !config().isOpen;
       return `<article class="rosterTableRow ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="team">
         <div class="rosterTablePlayer">
           <div class="rosterTableAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</div>
           <div class="rosterTableCopy">
             <strong>${escapeHtml(player.name || 'Jugador')}</strong>
-            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))} · ${intFmt.format(player.wins || 0)} victorias</span>
+            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))} · ${intFmt.format(player.wins || 0)} victorias${isCaptain ? ' · Capitan' : ''}</span>
           </div>
         </div>
         <div class="rosterTableMetric"><span>Valor</span><strong>${formatCoins(player.price || 0)}</strong></div>
         <div class="rosterTableMetric"><span>Clausula</span><strong>${formatCoins(clausePrice)}</strong></div>
-        <div class="rosterTableMetric"><span>Ultimo sabado</span><strong>${weeklyPoints > 0 ? formatPointsLabel(weeklyPoints) : 'Sin puntos'}</strong></div>
+        <div class="rosterTableMetric"><span>Ultimo sabado</span><strong>${Number(player.currentRawPoints || 0) > 0 ? formatPointsLabel(weeklyPoints) : 'Sin puntos'}</strong></div>
         <div class="rosterTableMetric"><span>Lectura</span><strong>${escapeHtml(pulse.label)}</strong></div>
+        <button class="btn compactBtn ${isCaptain ? 'btnPrimary' : 'btnGhost'}" type="button" data-set-captain="${escapeAttr(entry.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">${isCaptain ? 'Capitan' : 'Capitan x1,5'}</button>
       </article>`;
     }).join('')}</div>`;
   }
@@ -2656,7 +2814,7 @@
         ? `${intFmt.format(copiesLeft)}/${intFmt.format(config().maxPlayerCopies)} libres`
         : 'Cupo completo';
       const availabilityTone = player.canDirectBuy ? 'good' : 'soft';
-      const weeklyLabel = Number(player.currentFantasyPoints || 0) > 0 ? formatPointsLabel(player.currentFantasyPoints || 0) : 'Sin puntos';
+      const weeklyLabel = Number(player.currentRawPoints || 0) > 0 ? formatPointsLabel(player.currentFantasyPoints || 0) : 'Sin puntos';
       const buttonLabel = blocked
         ? escapeHtml(blocked)
         : player.canDirectBuy
@@ -2757,6 +2915,32 @@
       });
     } finally {
       setActionBusy(submitButton, false);
+    }
+  }
+
+  async function saveCaptain(playerSlug, button){
+    if (!state.currentTeam) return;
+    const slug = String(playerSlug || '').trim();
+    if (!slug) return;
+    setActionBusy(button, true, 'Guardando');
+    try{
+      const rosterSlugs = leagueDerived().myRoster.map((row) => String(row.player_slug || '')).filter(Boolean);
+      const { error } = await rpcWithTimeout('fantasy_vbf_save_lineup', {
+        p_season: CURRENT_SEASON,
+        p_player_ids: rosterSlugs,
+        p_captain_player_slug: slug
+      }, 'guardar capitan fantasy');
+      if (error) throw error;
+      showPageMsg('Capitan guardado para el proximo cierre.', 'ok');
+      showFantasyToast('Capitan guardado', 'Aplicara x1,5 en la jornada cerrada.', 'ok');
+      await loadLeagueContext();
+      renderAll();
+    } catch (error){
+      if (isSchemaError(error)) markSchemaMissing(error);
+      showPageMsg(`No pude guardar el capitan: ${error?.message || error}`, 'err');
+      showFantasyToast('No pude guardar el capitan', error?.message || String(error || ''), 'err');
+    } finally {
+      setActionBusy(button, false);
     }
   }
 
@@ -2869,12 +3053,14 @@
 
   async function ensureActionDataFresh(){
     if (needsImmediateWeekRoll()) await maybeOpenNewWeek();
-    if (shouldSyncPoolForAction()) await syncPlayerPoolToBackend();
+    if (shouldSyncPoolForAction()){
+      const synced = await syncPlayerPoolToBackend();
+      if (synced === false) throw new Error('No pude sincronizar el pool fantasy. Prueba a recargar en unos minutos.');
+    }
   }
 
   async function ensureFantasyAccess(){
     if (fantasyAccessAllowed) return true;
-    setLoading(true, 'Comprobando acceso fantasy...');
     const result = await App.enforcePageAccess(sb, {
       requirePrivileged: true,
       allowNonMember: true
@@ -2904,7 +3090,8 @@
   async function refreshAllData(options){
     const opts = options || {};
     if (state.refreshPromise) return state.refreshPromise;
-    setLoading(true, opts.loadingLabel || (state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...'));
+    const silent = opts.silent === true;
+    if (!silent) setLoading(true, opts.loadingLabel || (state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...'));
     const promise = (async () => {
       if (!opts.skipSession) await safeRefreshSession();
       await Promise.all([
@@ -2913,16 +3100,24 @@
       ]);
       await loadLeagueContext();
       renderAll();
-      setLoading(false);
+      if (!silent) setLoading(false);
       void startBackgroundHydration();
     })().finally(() => {
       state.refreshPromise = null;
       state.initialized = true;
-      setLoading(false);
+      if (!silent) setLoading(false);
     });
     state.refreshPromise = promise;
     await promise;
     return promise;
+  }
+
+  async function refreshAllDataSilently(options){
+    const now = Date.now();
+    if (state.refreshPromise) return state.refreshPromise;
+    if (now - lastSilentRefreshAt < 30000) return null;
+    lastSilentRefreshAt = now;
+    return refreshAllData({ ...(options || {}), silent: true, skipSession: true });
   }
 
   $('reloadPlayersButton')?.addEventListener('click', async () => {
@@ -2943,6 +3138,13 @@
   $('marketSort')?.addEventListener('change', () => { state.marketSort = $('marketSort')?.value || 'vbf_full_rank'; renderMarket(); });
   document.addEventListener('submit', async (event) => { if (event.target?.id === 'createTeamForm') await createTeam(event); });
   function handleOpenPlayerClick(event){
+    const captainTrigger = event.target.closest('[data-set-captain]');
+    if (captainTrigger){
+      event.preventDefault();
+      event.stopPropagation();
+      void saveCaptain(captainTrigger.getAttribute('data-set-captain') || '', captainTrigger);
+      return true;
+    }
     const watchTrigger = event.target.closest('[data-toggle-watchlist]');
     if (watchTrigger){
       toggleWatchlist(watchTrigger.getAttribute('data-toggle-watchlist') || '');
@@ -3052,7 +3254,7 @@
 
   if (sb?.auth?.onAuthStateChange){
     sb.auth.onAuthStateChange(async (_event, session) => {
-      if (_event === 'TOKEN_REFRESHED') return;
+      if (_event === 'TOKEN_REFRESHED' || _event === 'INITIAL_SESSION') return;
       App.clearAccessStateCache();
       if (!session?.user){
         fantasyAccessAllowed = false;
@@ -3072,14 +3274,19 @@
       if (pendingRefresh){
         try { await pendingRefresh; } catch (_error) {}
       }
-      await refreshAllData({ forceSheet: false, skipSession: true, loadingLabel: state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...' });
+      await refreshAllDataSilently({ forceSheet: false });
     });
   }
 
   void (async () => {
-    if (!(await ensureFantasyAccess())) return;
+    setLoading(true, 'Cargando fantasy...');
+    if (!(await ensureFantasyAccess())){
+      setLoading(false);
+      return;
+    }
     await refreshAllData({ forceSheet: false, skipSession: true, loadingLabel: 'Cargando fantasy...' });
   })().catch((error) => {
+    setLoading(false);
     console.warn('fantasy init:', error?.message || error);
   });
 })();

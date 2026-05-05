@@ -84,24 +84,24 @@ immutable
 as $$
   select greatest(
     coalesce(p_price, 0),
-    ceil(greatest(coalesce(p_price, 0), 1) * greatest(coalesce(p_multiplier, 1.25), 1.1))::integer
+    ceil(greatest(coalesce(p_price, 0), 1) * greatest(coalesce(p_multiplier, 1.5), 1.1))::integer
   )
 $$;
 
 create table public.fantasy_vbf_seasons (
   season text primary key,
   label text not null,
-  budget integer not null default 100000 check (budget > 0),
+  budget integer not null default 150000 check (budget > 0),
   squad_size integer not null default 3 check (squad_size between 1 and 6),
   starter_size integer not null default 3 check (starter_size between 1 and 6),
   starter_pack_size integer not null default 3 check (starter_pack_size between 1 and 6),
   max_player_copies integer not null default 3 check (max_player_copies between 1 and 12),
   max_weekly_transfers integer not null default 999 check (max_weekly_transfers between 0 and 9999),
-  max_weekly_captain_changes integer not null default 0 check (max_weekly_captain_changes between 0 and 10),
-  weekly_base_reward integer not null default 0 check (weekly_base_reward >= 0),
+  max_weekly_captain_changes integer not null default 1 check (max_weekly_captain_changes between 0 and 10),
+  weekly_base_reward integer not null default 20000 check (weekly_base_reward >= 0),
   max_savings integer not null default 2147483647 check (max_savings >= 0),
-  captain_multiplier numeric(4,2) not null default 1 check (captain_multiplier >= 1),
-  clause_multiplier numeric(4,2) not null default 1.25 check (clause_multiplier >= 1.1),
+  captain_multiplier numeric(4,2) not null default 1.5 check (captain_multiplier >= 1),
+  clause_multiplier numeric(4,2) not null default 1.5 check (clause_multiplier >= 1.1),
   is_open boolean not null default true,
   current_round_key text,
   current_round_label text,
@@ -294,7 +294,7 @@ insert into public.fantasy_vbf_seasons (
   max_player_copies, max_weekly_transfers, max_weekly_captain_changes,
   weekly_base_reward, max_savings, captain_multiplier, clause_multiplier, is_open
 )
-values ('OP15', 'Fantasy OP15', 100000, 3, 3, 3, 3, 999, 0, 0, 2147483647, 1, 1.25, true);
+values ('OP15', 'Fantasy OP15', 150000, 3, 3, 3, 3, 999, 1, 20000, 2147483647, 1.5, 1.5, true);
 
 alter table public.fantasy_vbf_seasons enable row level security;
 alter table public.fantasy_vbf_player_pool enable row level security;
@@ -380,6 +380,8 @@ begin
     player_tier text not null,
     player_rank integer not null,
     round_rank integer not null,
+    current_price integer not null,
+    default_clause integer not null,
     total_points numeric(12,2) not null,
     avg_fantasy_points numeric(12,2) not null,
     played integer not null,
@@ -392,27 +394,49 @@ begin
   ) on commit drop;
 
   insert into fantasy_vbf_tmp_pool (
-    player_slug, player_name, player_tier, player_rank, round_rank, total_points,
-    avg_fantasy_points, played, wins, current_fantasy_points, current_raw_points,
+    player_slug, player_name, player_tier, player_rank, round_rank, current_price,
+    default_clause, total_points, avg_fantasy_points, played, wins, current_fantasy_points, current_raw_points,
     current_won, current_streak, best_streak
   )
-  select
-    trim(coalesce(item->>'player_slug', '')),
-    trim(coalesce(item->>'player_name', item->>'name', item->>'player_slug', '')),
-    trim(coalesce(item->>'player_tier', item->>'tier', '')),
-    greatest(coalesce((item->>'player_rank')::integer, (item->>'rank')::integer, 9999), 1),
-    greatest(coalesce((item->>'round_rank')::integer, 9999), 1),
-    greatest(coalesce((item->>'total_points')::numeric, 0), 0),
-    greatest(coalesce((item->>'avg_fantasy_points')::numeric, 0), 0),
-    greatest(coalesce((item->>'played')::integer, 0), 0),
-    greatest(coalesce((item->>'wins')::integer, 0), 0),
-    greatest(coalesce((item->>'current_fantasy_points')::numeric, 0), 0),
-    greatest(coalesce((item->>'current_raw_points')::integer, 0), 0),
-    coalesce((item->>'current_won')::boolean, false),
-    greatest(coalesce((item->>'current_streak')::integer, 0), 0),
-    greatest(coalesce((item->>'best_streak')::integer, 0), 0)
-  from jsonb_array_elements(coalesce(p_players, '[]'::jsonb)) as item
-  where trim(coalesce(item->>'player_slug', '')) <> '';
+  select distinct on (player_slug)
+    player_slug,
+    player_name,
+    player_tier,
+    player_rank,
+    round_rank,
+    current_price,
+    default_clause,
+    total_points,
+    avg_fantasy_points,
+    played,
+    wins,
+    current_fantasy_points,
+    current_raw_points,
+    current_won,
+    current_streak,
+    best_streak
+  from (
+    select
+      trim(coalesce(item->>'player_slug', '')) as player_slug,
+      trim(coalesce(item->>'player_name', item->>'name', item->>'player_slug', '')) as player_name,
+      trim(coalesce(item->>'player_tier', item->>'tier', '')) as player_tier,
+      greatest(coalesce((item->>'player_rank')::integer, (item->>'rank')::integer, 9999), 1) as player_rank,
+      greatest(coalesce((item->>'round_rank')::integer, 9999), 1) as round_rank,
+      greatest(coalesce(nullif(item->>'current_price', '')::integer, 0), 0) as current_price,
+      greatest(coalesce(nullif(item->>'default_clause', '')::integer, 0), 0) as default_clause,
+      greatest(coalesce((item->>'total_points')::numeric, 0), 0) as total_points,
+      coalesce((item->>'avg_fantasy_points')::numeric, 0) as avg_fantasy_points,
+      greatest(coalesce((item->>'played')::integer, 0), 0) as played,
+      greatest(coalesce((item->>'wins')::integer, 0), 0) as wins,
+      coalesce((item->>'current_fantasy_points')::numeric, 0) as current_fantasy_points,
+      greatest(coalesce((item->>'current_raw_points')::integer, 0), 0) as current_raw_points,
+      coalesce((item->>'current_won')::boolean, false) as current_won,
+      greatest(coalesce((item->>'current_streak')::integer, 0), 0) as current_streak,
+      greatest(coalesce((item->>'best_streak')::integer, 0), 0) as best_streak
+    from jsonb_array_elements(coalesce(p_players, '[]'::jsonb)) as item
+    where trim(coalesce(item->>'player_slug', '')) <> ''
+  ) src
+  order by player_slug, player_rank asc, round_rank asc;
 
   insert into public.fantasy_vbf_player_pool (
     season, player_slug, player_name, player_tier, player_rank, round_rank,
@@ -427,8 +451,28 @@ begin
     tmp.player_tier,
     tmp.player_rank,
     tmp.round_rank,
-    public.fantasy_vbf_price_bucket(tmp.round_rank),
-    public.fantasy_vbf_default_clause(public.fantasy_vbf_price_bucket(tmp.round_rank), v_cfg.clause_multiplier),
+    case
+      when tmp.current_price > 0 then tmp.current_price
+      when lower(trim(tmp.player_tier)) = 'pirate king' then 100000
+      when lower(trim(tmp.player_tier)) = 'yonkou' then 80000
+      when lower(trim(tmp.player_tier)) = 'shichibukai' then 60000
+      when lower(trim(tmp.player_tier)) = 'supernova' then 40000
+      else 20000
+    end,
+    case
+      when tmp.default_clause > 0 then tmp.default_clause
+      else public.fantasy_vbf_default_clause(
+        case
+          when tmp.current_price > 0 then tmp.current_price
+          when lower(trim(tmp.player_tier)) = 'pirate king' then 100000
+          when lower(trim(tmp.player_tier)) = 'yonkou' then 80000
+          when lower(trim(tmp.player_tier)) = 'shichibukai' then 60000
+          when lower(trim(tmp.player_tier)) = 'supernova' then 40000
+          else 20000
+        end,
+        v_cfg.clause_multiplier
+      )
+    end,
     tmp.total_points,
     tmp.avg_fantasy_points,
     tmp.played,
@@ -472,18 +516,29 @@ begin
   ) on commit drop;
 
   insert into fantasy_vbf_tmp_rounds (player_slug, round_key, round_label, round_order, raw_points, fantasy_points, won)
-  select
-    trim(coalesce(item->>'player_slug', '')),
-    trim(coalesce(hist->>'round_key', '')),
-    coalesce(nullif(trim(coalesce(hist->>'round_label', '')), ''), trim(coalesce(hist->>'round_key', ''))),
-    greatest(coalesce((hist->>'round_order')::integer, 0), 0),
-    case when trim(coalesce(hist->>'raw_points', '')) = '' then null else (hist->>'raw_points')::integer end,
-    case when trim(coalesce(hist->>'fantasy_points', '')) = '' then null else (hist->>'fantasy_points')::numeric end,
-    coalesce((hist->>'won')::boolean, false)
-  from jsonb_array_elements(coalesce(p_players, '[]'::jsonb)) as item
-  cross join lateral jsonb_array_elements(coalesce(item->'history', '[]'::jsonb)) as hist
-  where trim(coalesce(item->>'player_slug', '')) <> ''
-    and trim(coalesce(hist->>'round_key', '')) <> '';
+  select distinct on (player_slug, round_key)
+    player_slug,
+    round_key,
+    round_label,
+    round_order,
+    raw_points,
+    fantasy_points,
+    won
+  from (
+    select
+      trim(coalesce(item->>'player_slug', '')) as player_slug,
+      trim(coalesce(hist->>'round_key', '')) as round_key,
+      coalesce(nullif(trim(coalesce(hist->>'round_label', '')), ''), trim(coalesce(hist->>'round_key', ''))) as round_label,
+      greatest(coalesce((hist->>'round_order')::integer, 0), 0) as round_order,
+      case when trim(coalesce(hist->>'raw_points', '')) = '' then null else (hist->>'raw_points')::integer end as raw_points,
+      case when trim(coalesce(hist->>'fantasy_points', '')) = '' then null else (hist->>'fantasy_points')::numeric end as fantasy_points,
+      coalesce((hist->>'won')::boolean, false) as won
+    from jsonb_array_elements(coalesce(p_players, '[]'::jsonb)) as item
+    cross join lateral jsonb_array_elements(coalesce(item->'history', '[]'::jsonb)) as hist
+    where trim(coalesce(item->>'player_slug', '')) <> ''
+      and trim(coalesce(hist->>'round_key', '')) <> ''
+  ) src
+  order by player_slug, round_key, round_order desc;
 
   insert into public.fantasy_vbf_player_rounds (
     season, player_slug, round_key, round_label, round_order, raw_points, fantasy_points, won
@@ -543,8 +598,6 @@ declare
   v_selected text[] := array[]::text[];
   v_pick public.fantasy_vbf_player_pool%rowtype;
   v_idx integer;
-  v_min_rank integer;
-  v_max_rank integer;
   v_inserted integer := 0;
 begin
   if v_user is null then raise exception 'Debes iniciar sesion para crear tu equipo.'; end if;
@@ -572,10 +625,7 @@ begin
   values (v_season, v_user, v_name, v_cfg.budget)
   returning id into v_team_id;
 
-  for v_idx in 1..3 loop
-    v_min_rank := case v_idx when 1 then 1 when 2 then 11 else 21 end;
-    v_max_rank := case v_idx when 1 then 10 when 2 then 20 else 999999 end;
-
+  for v_idx in 1..v_cfg.starter_pack_size loop
     select pp.*
     into v_pick
     from public.fantasy_vbf_player_pool pp
@@ -586,31 +636,14 @@ begin
       group by player_slug
     ) used on used.player_slug = pp.player_slug
     where pp.season = v_season
-      and pp.player_rank between v_min_rank and v_max_rank
+      and lower(trim(pp.player_tier)) not in ('pirate king', 'yonkou')
       and coalesce(used.copies_used, 0) < v_cfg.max_player_copies
       and not (pp.player_slug = any(v_selected))
     order by random()
     limit 1;
 
     if not found then
-      select pp.*
-      into v_pick
-      from public.fantasy_vbf_player_pool pp
-      left join (
-        select player_slug, count(*) as copies_used
-        from public.fantasy_vbf_roster_players
-        where season = v_season
-        group by player_slug
-      ) used on used.player_slug = pp.player_slug
-      where pp.season = v_season
-        and coalesce(used.copies_used, 0) < v_cfg.max_player_copies
-        and not (pp.player_slug = any(v_selected))
-      order by pp.player_rank asc, random()
-      limit 1;
-    end if;
-
-    if not found then
-      raise exception 'No pude completar el starter pack con los cupos disponibles.';
+      raise exception 'No pude completar el starter pack sin Pirate King ni Yonkou con los cupos disponibles.';
     end if;
 
     insert into public.fantasy_vbf_roster_players (
@@ -646,6 +679,12 @@ begin
   if v_inserted <> v_cfg.starter_pack_size then
     raise exception 'No pude asignar el starter pack completo.';
   end if;
+
+  update public.fantasy_vbf_teams
+  set captain_player_slug = v_selected[1]
+  where id = v_team_id
+    and coalesce(captain_player_slug, '') = ''
+    and array_length(v_selected, 1) > 0;
 
   if v_cfg.current_round_key is not null then
     insert into public.fantasy_vbf_team_rounds (
@@ -998,8 +1037,10 @@ declare
   v_user uuid := auth.uid();
   v_season text := upper(trim(coalesce(p_season, '')));
   v_team public.fantasy_vbf_teams%rowtype;
+  v_cfg public.fantasy_vbf_seasons%rowtype;
   v_owned text[];
   v_requested text[];
+  v_captain text := nullif(trim(coalesce(p_captain_player_slug, '')), '');
 begin
   if v_user is null then raise exception 'Debes iniciar sesion para guardar la plantilla.'; end if;
   if jsonb_typeof(coalesce(p_player_ids, '[]'::jsonb)) <> 'array' then raise exception 'La plantilla debe ser un array JSON.'; end if;
@@ -1010,6 +1051,13 @@ begin
   for update;
 
   if not found then raise exception 'Primero debes crear tu equipo.'; end if;
+
+  select * into v_cfg
+  from public.fantasy_vbf_seasons
+  where season = v_season;
+
+  if not found then raise exception 'La temporada fantasy no existe.'; end if;
+  if v_cfg.is_open is not true then raise exception 'El mercado esta cerrado. No puedes cambiar capitan ahora.'; end if;
 
   select coalesce(array_agg(player_slug order by created_at), array[]::text[])
   into v_owned
@@ -1032,6 +1080,14 @@ begin
       raise exception 'La plantilla activa debe contener todos tus jugadores.';
     end if;
   end if;
+
+  if v_captain is not null and not (v_captain = any(v_owned)) then
+    raise exception 'El capitan debe ser un jugador de tu plantilla.';
+  end if;
+
+  update public.fantasy_vbf_teams
+  set captain_player_slug = v_captain
+  where id = v_team.id;
 end;
 $$;
 
@@ -1262,6 +1318,7 @@ declare
   v_rewards_applied boolean := false;
   v_snapshot_count integer := 0;
   v_pool_ready integer := 0;
+  v_cfg public.fantasy_vbf_seasons%rowtype;
   v_row record;
   v_reward integer := 0;
 begin
@@ -1269,6 +1326,12 @@ begin
     raise exception 'Debes iniciar sesion o ejecutar esta funcion desde backend para sincronizar.';
   end if;
   if v_round_key is null then raise exception 'La jornada no tiene week_key valido.'; end if;
+
+  select * into v_cfg
+  from public.fantasy_vbf_seasons
+  where season = v_season;
+
+  if not found then raise exception 'La temporada fantasy no existe.'; end if;
 
   insert into public.fantasy_vbf_rounds (season, round_key, round_label, round_order, rewards_applied)
   values (v_season, v_round_key, v_round_label, v_round_order, false)
@@ -1321,8 +1384,16 @@ begin
       synced_at = timezone('utc', now())
   from public.fantasy_vbf_teams t
   left join (
-    select rs.team_id, sum(coalesce(pp.current_fantasy_points, 0)) as weekly_points
+    select
+      rs.team_id,
+      sum(
+        case
+          when t.captain_player_slug = rs.player_slug then coalesce(pp.current_fantasy_points, 0) * greatest(coalesce(v_cfg.captain_multiplier, 1), 1)
+          else coalesce(pp.current_fantasy_points, 0)
+        end
+      ) as weekly_points
     from public.fantasy_vbf_roster_snapshots rs
+    join public.fantasy_vbf_teams t on t.id = rs.team_id
     left join public.fantasy_vbf_player_pool pp
       on pp.season = rs.season and pp.player_slug = rs.player_slug
     where rs.season = v_season
@@ -1353,7 +1424,7 @@ begin
       from public.fantasy_vbf_team_rounds
       where season = v_season and round_key = v_round_key
     loop
-      v_reward := greatest(round(coalesce(v_row.weekly_points, 0) * 1000)::integer, 0);
+      v_reward := greatest(round(coalesce(v_row.weekly_points, 0) * 3000)::integer, coalesce(v_cfg.weekly_base_reward, 20000), 0);
 
       update public.fantasy_vbf_teams
       set coins = coins + v_reward

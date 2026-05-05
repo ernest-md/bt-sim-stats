@@ -431,7 +431,9 @@
       }
       return { allowed: true, redirected: false, accessState };
     }catch(_err){
-      console.warn("enforcePageAccess:", _err?.message || _err);
+      const message = _err?.message || _err;
+      if (String(message || "").toLowerCase().includes("auth timeout")) console.debug("enforcePageAccess:", message);
+      else console.warn("enforcePageAccess:", message);
       return {
         allowed: true,
         redirected: false,
