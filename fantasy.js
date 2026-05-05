@@ -24,6 +24,10 @@
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
+  const PLAYER_POOL_CACHE_VERSION = '20260505h';
+  const PLAYER_POOL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+  const PLAYER_POOL_BACKGROUND_REFRESH_MS = 45 * 60 * 1000;
+  const TEAM_ROUNDS_SELECT = 'season,round_key,round_label,round_order,team_id,weekly_points,reward_coins,transfers_used';
   const PAGE_VIEW = String(document.body?.dataset?.fantasyView || 'overview').trim().toLowerCase();
   const DEFAULT_BUDGET = 150000;
   const DEFAULT_SQUAD_SIZE = 3;
@@ -57,6 +61,11 @@
   let actionRpcClient = null;
   let actionRpcToken = '';
   let backgroundHydrationPromise = null;
+  let playerPoolBackgroundPromise = null;
+  let snapshotsHydrationPromise = null;
+  let notificationsHydrationPromise = null;
+  let profilesHydrationPromise = null;
+  let accessExtrasPromise = null;
   let fantasyAccessAllowed = false;
   let watchlistRemoteDisabled = false;
   let lastSilentRefreshAt = 0;
@@ -129,10 +138,12 @@
     poolPlayers: [],
     eventLabels: [],
     playersBySlug: new Map(),
+    poolFromCache: false,
     seasonTeams: [],
     seasonRoster: [],
     seasonRounds: [],
     seasonSnapshots: [],
+    loadingSnapshots: false,
     teamRounds: [],
     transactions: [],
     notifications: [],
@@ -153,6 +164,7 @@
     modalPlayerSlug: '',
     modalSource: '',
     modalTeamId: '',
+    modalMarketPanel: '',
     confirmBuySlug: '',
     confirmBuyTargetTeamId: '',
     confirmBuyOutgoingSlug: '',
@@ -309,7 +321,9 @@
     }
     state.watchlistSlugs = next;
     saveWatchlist();
+    renderHero();
     renderWatchlistPanel();
+    renderMarketPanelModal();
     renderMarket();
     renderPlayerModal();
   }
@@ -377,6 +391,37 @@
     if (!overlay) return;
     overlay.classList.toggle('hidden', !active);
     document.body.setAttribute('aria-busy', active ? 'true' : 'false');
+  }
+
+  let pageScrollLockY = 0;
+
+  function lockPageScroll(){
+    if (document.body.dataset.fantasyScrollLocked === '1') return;
+    pageScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.dataset.fantasyScrollLocked = '1';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${pageScrollLockY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function unlockPageScroll(){
+    if (state.modalPlayerSlug || state.modalTeamId || state.modalMarketPanel || state.confirmBuySlug) return;
+    if (document.body.dataset.fantasyScrollLocked !== '1'){
+      document.body.style.overflow = '';
+      return;
+    }
+    const y = pageScrollLockY;
+    delete document.body.dataset.fantasyScrollLocked;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    window.scrollTo(0, y);
   }
 
   function isSchemaError(error){
@@ -528,6 +573,133 @@
   function getSheetUrl(force){
     const stamp = force ? `&cacheBust=${Date.now()}` : '';
     return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(CURRENT_SEASON)}${stamp}`;
+  }
+
+  function playerPoolCacheKey(){
+    return `barateamFantasyPlayerPool:${CURRENT_SEASON}:${PLAYER_POOL_CACHE_VERSION}`;
+  }
+
+  function readCachedPlayerPool(){
+    try{
+      const raw = window.localStorage?.getItem(playerPoolCacheKey());
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      const savedAt = Number(cached?.savedAt || 0);
+      if (cached?.season !== CURRENT_SEASON || cached?.version !== PLAYER_POOL_CACHE_VERSION) return null;
+      if (!savedAt || Date.now() - savedAt > PLAYER_POOL_CACHE_TTL_MS) return null;
+      const model = cached?.model || null;
+      if (!model || !Array.isArray(model.players) || !model.players.length) return null;
+      return model;
+    } catch (error){
+      console.debug('fantasy player pool cache read:', error?.message || error);
+      return null;
+    }
+  }
+
+  function writeCachedPlayerPool(model){
+    if (!model || !Array.isArray(model.players) || !model.players.length) return;
+    try{
+      const compactModel = {
+        players: model.players,
+        currentRound: model.currentRound || null,
+        eventLabels: Array.isArray(model.eventLabels) ? model.eventLabels : []
+      };
+      window.localStorage?.setItem(playerPoolCacheKey(), JSON.stringify({
+        season: CURRENT_SEASON,
+        version: PLAYER_POOL_CACHE_VERSION,
+        savedAt: Date.now(),
+        model: compactModel
+      }));
+    } catch (error){
+      console.debug('fantasy player pool cache write:', error?.message || error);
+    }
+  }
+
+  function cachedPlayerPoolAgeMs(){
+    try{
+      const raw = window.localStorage?.getItem(playerPoolCacheKey());
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      const savedAt = Number(cached?.savedAt || 0);
+      if (cached?.season !== CURRENT_SEASON || cached?.version !== PLAYER_POOL_CACHE_VERSION || !savedAt) return null;
+      return Math.max(0, Date.now() - savedAt);
+    } catch (_error){
+      return null;
+    }
+  }
+
+  function shouldRefreshPlayerPoolInBackground(force){
+    if (force) return true;
+    const age = cachedPlayerPoolAgeMs();
+    return age == null || age > PLAYER_POOL_BACKGROUND_REFRESH_MS;
+  }
+
+  function shouldRefreshBackendSeedInBackground(model){
+    const updatedAt = Date.parse(String(model?.backendUpdatedAt || ''));
+    if (!Number.isFinite(updatedAt)) return true;
+    return Math.max(0, Date.now() - updatedAt) > PLAYER_POOL_BACKGROUND_REFRESH_MS;
+  }
+
+  function hasFantasyNode(id){
+    return !!$(id);
+  }
+
+  function pageNeedsPlayerPool(){
+    return ['overview', 'market', 'team', 'ranking', 'standings'].includes(PAGE_VIEW)
+      || hasFantasyNode('marketGrid')
+      || hasFantasyNode('squadGrid')
+      || hasFantasyNode('standingsBoard')
+      || hasFantasyNode('topPlayersList')
+      || hasFantasyNode('roundPulsePanel')
+      || hasFantasyNode('scoutingPanel');
+  }
+
+  function pageNeedsTeamRounds(){
+    return ['overview', 'team', 'ranking', 'standings'].includes(PAGE_VIEW)
+      || hasFantasyNode('standingsBoard')
+      || hasFantasyNode('roundPulsePanel')
+      || hasFantasyNode('managerTrendPanel')
+      || hasFantasyNode('teamBreakdownPanel')
+      || hasFantasyNode('teamSummary');
+  }
+
+  function pageNeedsTransactions(){
+    return ['overview', 'market'].includes(PAGE_VIEW)
+      || hasFantasyNode('marketActivityPanel')
+      || hasFantasyNode('openActivityButton');
+  }
+
+  function pageNeedsSnapshots(){
+    return hasFantasyNode('managerTrendPanel') || hasFantasyNode('teamBreakdownPanel');
+  }
+
+  function pageNeedsNotifications(){
+    return !!state.currentUser && (PAGE_VIEW === 'market' || hasFantasyNode('marketNoticePanel'));
+  }
+
+  function leagueContextOptionsForPage(options){
+    const opts = options || {};
+    return {
+      includeSnapshots: opts.includeSnapshots === true,
+      includeNotifications: opts.includeNotifications === true || pageNeedsNotifications(),
+      includeProfiles: opts.includeProfiles === true,
+      includeTransactions: opts.includeTransactions === true || (opts.includeTransactions !== false && pageNeedsTransactions()),
+      includeTeamRounds: opts.includeTeamRounds === true || (opts.includeTeamRounds !== false && pageNeedsTeamRounds()),
+      hydrateSnapshots: opts.hydrateSnapshots !== false && pageNeedsSnapshots()
+    };
+  }
+
+  function roundDatePart(roundKey){
+    return String(roundKey || '').split(':').pop() || '';
+  }
+
+  function roundCountsForFantasy(roundKey){
+    const datePart = roundDatePart(roundKey);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)){
+      const dt = new Date(`${datePart}T00:00:00Z`);
+      return Number(dt.getUTCDay()) === 6;
+    }
+    return true;
   }
 
   function parseGviz(text){
@@ -791,17 +963,25 @@
     const series = chartSeries(player);
     if (!series.length) return '<div class="empty">Aun no hay historial para este jugador.</div>';
     const width = 620;
-    const height = 220;
+    const height = 240;
     const padX = 28;
-    const padTop = 20;
-    const padBottom = 30;
+    const padTop = 24;
+    const padBottom = 44;
     const plotWidth = width - padX * 2;
     const plotHeight = height - padTop - padBottom;
     const numericValues = series.map((item) => item.fantasy).filter((value) => Number.isFinite(value));
-    const maxValue = numericValues.length ? Math.max(...numericValues, 1) : 1;
+    const actualMin = numericValues.length ? Math.min(...numericValues, 0) : 0;
+    const actualMax = numericValues.length ? Math.max(...numericValues, 1) : 1;
+    const domainMin = actualMin < 0 ? actualMin : 0;
+    const domainMax = actualMax <= domainMin ? domainMin + 1 : actualMax;
+    const domainSpan = Math.max(1, domainMax - domainMin);
+    const paddedMin = domainMin < 0 ? domainMin - (domainSpan * .12) : 0;
+    const paddedMax = domainMax + (domainSpan * .08);
+    const paddedSpan = Math.max(1, paddedMax - paddedMin);
     const stepX = series.length > 1 ? plotWidth / (series.length - 1) : 0;
-    const yFor = (value) => padTop + (plotHeight - (Number(value || 0) / maxValue) * plotHeight);
+    const yFor = (value) => padTop + ((paddedMax - Number(value || 0)) / paddedSpan) * plotHeight;
     const xFor = (index) => padX + index * stepX;
+    const axisY = yFor(0);
 
     const segments = [];
     const bridges = [];
@@ -822,7 +1002,9 @@
     });
     if (current.length) segments.push(current.join(' '));
 
-    const gridValues = [0, maxValue / 2, maxValue];
+    const gridValues = domainMin < 0
+      ? [actualMin, 0, actualMax]
+      : [0, actualMax / 2, actualMax];
     const pointsSvg = series.map((item, index) => {
       const x = xFor(index).toFixed(2);
       if (Number.isFinite(item.fantasy)){
@@ -830,7 +1012,7 @@
         const title = `${item.label}${item.countsForFantasy ? ' · cuenta para fantasy' : ''}: ${formatPointsLabel(item.fantasy)}${Number.isFinite(item.raw) ? ` · ${intFmt.format(Math.round(item.raw))} pts VDBF` : ''}${item.won ? ' · ganador' : ''}`;
         const pointClass = `chartPoint${item.countsForFantasy ? ' scoring' : ''}${item.won ? ' won' : ''}`;
         const radius = item.countsForFantasy ? 8.5 : 6;
-        return `<line class="chartStem${item.countsForFantasy ? ' scoring' : ''}" x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${y}"></line><circle class="${pointClass}" cx="${x}" cy="${y}" r="${radius}"><title>${escapeHtml(title)}</title></circle>`;
+        return `<line class="chartStem${item.countsForFantasy ? ' scoring' : ''}" x1="${x}" y1="${axisY.toFixed(2)}" x2="${x}" y2="${y}"></line><circle class="${pointClass}" cx="${x}" cy="${y}" r="${radius}"><title>${escapeHtml(title)}</title></circle>`;
       }
       return `<circle class="chartPoint miss${item.countsForFantasy ? ' scoring' : ''}" cx="${x}" cy="${yFor(0).toFixed(2)}" r="${item.countsForFantasy ? '4.5' : '3.5'}"><title>${escapeHtml(`${item.label}${item.countsForFantasy ? ' · jornada fantasy' : ''}: sin participacion`)}</title></circle>`;
     }).join('');
@@ -842,7 +1024,7 @@
     }).join('');
     const bridgesSvg = bridges.map((points) => `<polyline class="chartBridge" points="${points}"></polyline>`).join('');
     const linesSvg = segments.map((points) => `<polyline class="chartLine" points="${points}"></polyline>`).join('');
-    return `<div class="chartCard"><div class="chartMeta"><span>Todos los torneos</span><strong>Sabados marcados para fantasy</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos por torneo">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
+    return `<div class="chartCard"><div class="chartMeta"><span>Todos los torneos</span><strong>Sabados marcados para fantasy</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos por torneo">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${axisY.toFixed(2)}" x2="${width - padX}" y2="${axisY.toFixed(2)}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
   }
 
   function tournamentScoreMeta(values){
@@ -1087,7 +1269,7 @@
   async function loadCurrentProfile(user){
     if (!user?.id){ state.currentProfile = null; return null; }
     try{
-      const { data, error } = await withTimeout(readSb.from('profiles').select('id,username,display_name,avatar_url,member').eq('id', user.id).maybeSingle(), 'perfil actual');
+      const { data, error } = await withTimeout(readSb.from('profiles').select('id,username,display_name,avatar_url,member,fantasy').eq('id', user.id).maybeSingle(), 'perfil actual');
       if (error) throw error;
       state.currentProfile = data || null;
     } catch (_error){
@@ -1120,7 +1302,7 @@
       state.schemaMessage = '';
       setSchemaMessage('');
       state.seasonConfig = data || {};
-      if (!state.currentRound && data?.current_round_key){
+      if (data?.current_round_key){
         state.currentRound = { key: data.current_round_key, label: data.current_round_label || data.current_round_key, order: Number(data.current_round_order || 0) };
       }
     } catch (error){
@@ -1145,25 +1327,222 @@
     }
   }
 
-  async function loadPlayerPool(force){
-    state.loadingPlayers = true;
-    renderHero();
+  function applyPlayerPoolModel(model, options){
+    const opts = options || {};
+    const players = Array.isArray(model?.players) ? model.players : [];
+    state.poolPlayers = players;
+    state.eventLabels = Array.isArray(model?.eventLabels) ? model.eventLabels : [];
+    state.playersBySlug = new Map(state.poolPlayers.map((player) => [player.slug, player]));
+    state.sheetRound = model?.currentRound || null;
+    state.poolFromCache = opts.fromCache === true;
+    if (!state.currentRound?.key) state.currentRound = model?.currentRound || state.currentRound;
+    return players.length > 0;
+  }
+
+  async function fetchPlayerPoolModel(force){
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 12000);
+    const response = await fetch(getSheetUrl(force), { cache: force ? 'no-store' : 'default', signal: controller.signal }).finally(() => window.clearTimeout(timer));
+    if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+    return buildPlayerPool(parseGviz(await response.text()));
+  }
+
+  function buildPlayerPoolFromBackend(poolRows, roundRows){
+    const bySlug = new Map();
+    (roundRows || []).forEach((row) => {
+      const slug = String(row?.player_slug || '').trim();
+      if (!slug) return;
+      if (!bySlug.has(slug)) bySlug.set(slug, []);
+      bySlug.get(slug).push(row);
+    });
+    bySlug.forEach((rows) => rows.sort((a, b) =>
+      Number(a.round_order || 0) - Number(b.round_order || 0)
+      || collator.compare(String(a.round_label || ''), String(b.round_label || ''))
+    ));
+
+    const roundLabelByKey = new Map();
+    (roundRows || []).forEach((row) => {
+      const key = String(row?.round_key || '').trim();
+      if (!key || !roundCountsForFantasy(key) || roundLabelByKey.has(key)) return;
+      roundLabelByKey.set(key, {
+        label: String(row.round_label || key).trim(),
+        order: Number(row.round_order || 0)
+      });
+    });
+
+    const firstRoundRow = (poolRows || []).find((row) => row?.current_round_key) || null;
+    const currentRoundKey = String(firstRoundRow?.current_round_key || '').trim();
+    const currentRoundMeta = currentRoundKey ? (roundRows || []).find((row) => String(row?.round_key || '') === currentRoundKey) : null;
+    const currentRound = currentRoundKey ? {
+      key: currentRoundKey,
+      label: String(firstRoundRow?.current_round_label || currentRoundMeta?.round_label || currentRoundKey).trim(),
+      order: Number(currentRoundMeta?.round_order || 0)
+    } : null;
+
+    const players = (poolRows || []).map((row) => {
+      const slug = String(row?.player_slug || '').trim();
+      const history = (bySlug.get(slug) || []).map((entry) => {
+        const raw = Number(entry.raw_points);
+        const fantasy = Number(entry.fantasy_points);
+        const roundKey = String(entry.round_key || '').trim();
+        return {
+          round_key: roundKey,
+          round_label: String(entry.round_label || roundKey).trim(),
+          round_order: Number(entry.round_order || 0),
+          raw_points: Number.isFinite(raw) ? Math.round(raw) : null,
+          fantasy_points: Number.isFinite(fantasy) ? Number(fantasy) : null,
+          won: entry.won === true,
+          counts_for_fantasy: roundCountsForFantasy(roundKey),
+          result_label: '',
+          wins: 0,
+          losses: 0,
+          rounds: 0,
+          is_tier1: false,
+          price_modifier: 0
+        };
+      });
+      const scoringHistory = history.filter((entry) => entry.counts_for_fantasy === true);
+      const played = Number(row.played || history.filter((entry) => Number(entry.raw_points || 0) > 0).length || 0);
+      const totalPoints = Number(row.total_points || 0);
+      return {
+        tier: String(row.player_tier || '').trim(),
+        berries: totalPoints,
+        name: String(row.player_name || slug).trim(),
+        slug,
+        sheetRow: [],
+        allPoints: history.map((entry) => Number.isFinite(Number(entry.raw_points)) ? Number(entry.raw_points) : null),
+        points: scoringHistory.map((entry) => Number.isFinite(Number(entry.raw_points)) ? Number(entry.raw_points) : null),
+        history,
+        totalPoints,
+        played,
+        avgPoints: played ? totalPoints / played : 0,
+        bestStreak: Number(row.best_streak || 0),
+        currentStreak: Number(row.current_streak || 0),
+        fantasyPlayed: scoringHistory.filter((entry) => Number.isFinite(Number(entry.fantasy_points))).length,
+        wins: Number(row.wins || 0),
+        rank: Number(row.player_rank || 9999),
+        roundRank: Number(row.round_rank || 9999),
+        price: Number(row.current_price || 0),
+        clausePrice: Number(row.default_clause || defaultClauseForPrice(row.current_price || 0)),
+        avgFantasyPoints: Number(row.avg_fantasy_points || 0),
+        currentFantasyPoints: Number(row.current_fantasy_points || 0),
+        currentRawPoints: Number(row.current_raw_points || 0),
+        currentWon: row.current_won === true,
+        currentResultLabel: '',
+        isTop5: Number(row.player_rank || 9999) <= 5,
+        isTop10: Number(row.player_rank || 9999) <= 10
+      };
+    }).filter((player) => player.slug && player.name)
+      .sort((a, b) => Number(a.rank || 9999) - Number(b.rank || 9999) || collator.compare(a.name, b.name));
+
+    const backendUpdatedAt = (poolRows || [])
+      .map((row) => Date.parse(String(row?.updated_at || '')))
+      .filter((value) => Number.isFinite(value))
+      .sort((a, b) => b - a)[0] || 0;
+
+    return {
+      players,
+      currentRound,
+      eventLabels: Array.from(roundLabelByKey.values())
+        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+        .map((entry) => entry.label),
+      backendUpdatedAt: backendUpdatedAt ? new Date(backendUpdatedAt).toISOString() : ''
+    };
+  }
+
+  async function fetchBackendPlayerPoolModel(){
+    const roundsPromise = withTimeout(
+      readSb.from('fantasy_vbf_player_rounds').select('player_slug,round_key,round_label,round_order,raw_points,fantasy_points,won').eq('season', CURRENT_SEASON).order('round_order', { ascending: true }),
+      'rondas pool backend fantasy',
+      1600
+    ).catch((error) => {
+      console.debug('fantasy backend player rounds seed:', error?.message || error);
+      return { data: [], error: null };
+    });
+    const poolRes = await withTimeout(
+      readSb.from('fantasy_vbf_player_pool').select('player_slug,player_name,player_tier,player_rank,round_rank,current_price,default_clause,total_points,avg_fantasy_points,played,wins,current_fantasy_points,current_raw_points,current_round_key,current_round_label,current_won,current_streak,best_streak,updated_at').eq('season', CURRENT_SEASON).order('player_rank', { ascending: true }),
+      'pool backend fantasy',
+      1600
+    );
+    const roundsRes = await Promise.race([
+      roundsPromise,
+      sleep(250).then(() => ({ data: [], error: null }))
+    ]);
+    if (poolRes.error) throw poolRes.error;
+    if (roundsRes.error) throw roundsRes.error;
+    const poolRows = Array.isArray(poolRes.data) ? poolRes.data : [];
+    if (!poolRows.length) return null;
+    return buildPlayerPoolFromBackend(poolRows, Array.isArray(roundsRes.data) ? roundsRes.data : []);
+  }
+
+  function refreshPlayerPoolInBackground(force){
+    if (playerPoolBackgroundPromise) return playerPoolBackgroundPromise;
+    playerPoolBackgroundPromise = (async () => {
+      const model = await fetchPlayerPoolModel(Boolean(force));
+      applyPlayerPoolModel(model, { fromCache: false });
+      writeCachedPlayerPool(model);
+      renderAll();
+      void startBackgroundHydration();
+      return model;
+    })().catch((error) => {
+      console.warn('fantasy player pool background:', error?.message || error);
+      return null;
+    }).finally(() => {
+      playerPoolBackgroundPromise = null;
+    });
+    return playerPoolBackgroundPromise;
+  }
+
+  async function loadPlayerPool(force, options){
+    const opts = options || {};
+    const silent = opts.silent === true;
+    const allowCache = !force && opts.allowCache === true;
+    if (!silent){
+      state.loadingPlayers = true;
+      renderHero();
+    }
+    if (allowCache){
+      const cached = readCachedPlayerPool();
+      if (cached && applyPlayerPoolModel(cached, { fromCache: true })){
+        state.loadingPlayers = false;
+        renderHero();
+        if (opts.refreshInBackground !== false && shouldRefreshPlayerPoolInBackground(false)) void refreshPlayerPoolInBackground(false);
+        return { fromCache: true };
+      }
+      try{
+        const backendModel = await fetchBackendPlayerPoolModel();
+        if (backendModel && applyPlayerPoolModel(backendModel, { fromCache: true })){
+          const refreshBackendSeed = shouldRefreshBackendSeedInBackground(backendModel);
+          writeCachedPlayerPool(backendModel);
+          state.loadingPlayers = false;
+          renderHero();
+          if (opts.refreshInBackground !== false && refreshBackendSeed) void refreshPlayerPoolInBackground(false);
+          return { fromCache: true, fromBackend: true };
+        }
+      } catch (error){
+        console.debug('fantasy backend player pool seed:', error?.message || error);
+      }
+    }
     try{
-      const controller = new AbortController();
-      const timer = window.setTimeout(() => controller.abort(), 12000);
-      const response = await fetch(getSheetUrl(force), { cache: force ? 'no-store' : 'default', signal: controller.signal }).finally(() => window.clearTimeout(timer));
-      if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-      const model = buildPlayerPool(parseGviz(await response.text()));
-      state.poolPlayers = model.players;
-      state.eventLabels = Array.isArray(model.eventLabels) ? model.eventLabels : [];
-      state.playersBySlug = new Map(state.poolPlayers.map((player) => [player.slug, player]));
-      state.sheetRound = model.currentRound || null;
-      if (!state.currentRound?.key) state.currentRound = model.currentRound || state.currentRound;
+      if (silent !== true && !state.loadingPlayers){
+        state.loadingPlayers = true;
+        renderHero();
+      }
+      const model = await fetchPlayerPoolModel(force);
+      applyPlayerPoolModel(model, { fromCache: false });
+      writeCachedPlayerPool(model);
+      return { fromCache: false };
     } catch (error){
-      state.poolPlayers = [];
-      state.eventLabels = [];
-      state.playersBySlug = new Map();
-      showPageMsg(`No pude cargar el sheet de ${CURRENT_SEASON}: ${error?.message || error}`, 'err');
+      if (!state.poolPlayers.length){
+        state.poolPlayers = [];
+        state.eventLabels = [];
+        state.playersBySlug = new Map();
+        state.poolFromCache = false;
+        if (!silent) showPageMsg(`No pude cargar el sheet de ${CURRENT_SEASON}: ${error?.message || error}`, 'err');
+      } else {
+        console.warn('fantasy loadPlayerPool:', error?.message || error);
+      }
+      return { fromCache: false, error };
     } finally {
       state.loadingPlayers = false;
       renderHero();
@@ -1250,6 +1629,19 @@
     (data || []).forEach((profile) => state.profilesById.set(String(profile.id), profile));
   }
 
+  function refreshProfilesInBackground(userIds){
+    if (profilesHydrationPromise) return profilesHydrationPromise;
+    profilesHydrationPromise = (async () => {
+      await loadProfiles(userIds);
+      renderAll();
+    })().catch((error) => {
+      console.warn('fantasy profiles background:', error?.message || error);
+    }).finally(() => {
+      profilesHydrationPromise = null;
+    });
+    return profilesHydrationPromise;
+  }
+
   async function loadNotifications(){
     if (!state.currentUser) return;
     try{
@@ -1265,7 +1657,64 @@
     }
   }
 
-  async function loadLeagueContext(){
+  function refreshNotificationsInBackground(){
+    if (notificationsHydrationPromise) return notificationsHydrationPromise;
+    notificationsHydrationPromise = (async () => {
+      await loadNotifications();
+      renderNotifications();
+      if (App.refreshFantasyNavAlerts) void App.refreshFantasyNavAlerts({ force: true });
+    })().catch((error) => {
+      console.warn('fantasy notifications background:', error?.message || error);
+    }).finally(() => {
+      notificationsHydrationPromise = null;
+    });
+    return notificationsHydrationPromise;
+  }
+
+  async function fetchRosterSnapshots(){
+    const { data, error } = await withTimeout(
+      readSb
+        .from('fantasy_vbf_roster_snapshots')
+        .select('season,round_key,round_label,round_order,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,captured_at,created_at')
+        .eq('season', CURRENT_SEASON)
+        .order('round_order', { ascending: true })
+        .order('captured_at', { ascending: true }),
+      'snapshots fantasy',
+      8000
+    );
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  }
+
+  function refreshSnapshotsInBackground(){
+    if (snapshotsHydrationPromise || state.schemaReady === false) return snapshotsHydrationPromise;
+    snapshotsHydrationPromise = (async () => {
+      state.loadingSnapshots = true;
+      const rows = await fetchRosterSnapshots();
+      state.seasonSnapshots = rows;
+      renderManagerTrend();
+      renderTeamBreakdown();
+      renderTeamModal();
+      return rows;
+    })().catch((error) => {
+      if (isSchemaError(error)) markSchemaMissing(error);
+      else console.warn('fantasy snapshots background:', error?.message || error);
+      return [];
+    }).finally(() => {
+      state.loadingSnapshots = false;
+      snapshotsHydrationPromise = null;
+    });
+    return snapshotsHydrationPromise;
+  }
+
+  async function loadLeagueContext(options){
+    const opts = leagueContextOptionsForPage(options || {});
+    const includeSnapshots = opts.includeSnapshots === true;
+    const includeNotifications = opts.includeNotifications === true;
+    const includeProfiles = opts.includeProfiles === true;
+    const includeTransactions = opts.includeTransactions === true;
+    const includeTeamRounds = opts.includeTeamRounds === true;
+    const hydrateSnapshots = opts.hydrateSnapshots === true;
     state.seasonTeams = [];
     state.seasonRoster = [];
     state.seasonRounds = [];
@@ -1282,9 +1731,9 @@
         withTimeout(readSb.from('fantasy_vbf_teams').select('id,season,user_id,team_name,coins,captain_player_slug,total_points,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'equipos fantasy'),
         withTimeout(readSb.from('fantasy_vbf_roster_players').select('id,season,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,acquisition_type,acquired_round_key,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'plantillas fantasy'),
         withTimeout(readSb.from('fantasy_vbf_rounds').select('season,round_key,round_label,round_order,rewards_applied,created_at,updated_at').eq('season', CURRENT_SEASON).order('round_order', { ascending: true }), 'rondas fantasy'),
-        withTimeout(readSb.from('fantasy_vbf_roster_snapshots').select('season,round_key,round_label,round_order,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,captured_at,created_at').eq('season', CURRENT_SEASON).order('round_order', { ascending: true }).order('captured_at', { ascending: true }), 'snapshots fantasy'),
-        withTimeout(readSb.from('fantasy_vbf_team_rounds').select('*').eq('season', CURRENT_SEASON).order('round_order', { ascending: true }), 'jornadas fantasy'),
-        withTimeout(readSb.from('fantasy_vbf_transactions').select('id,season,round_key,team_id,user_id,player_slug,player_name,tx_type,amount,counts_as_transfer,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: false }).limit(80), 'historial fantasy')
+        includeSnapshots ? fetchRosterSnapshots().then((data) => ({ data, error: null })).catch((error) => ({ data: [], error })) : Promise.resolve({ data: [], error: null }),
+        includeTeamRounds ? withTimeout(readSb.from('fantasy_vbf_team_rounds').select(TEAM_ROUNDS_SELECT).eq('season', CURRENT_SEASON).order('round_order', { ascending: true }), 'jornadas fantasy') : Promise.resolve({ data: [], error: null }),
+        includeTransactions ? withTimeout(readSb.from('fantasy_vbf_transactions').select('id,season,round_key,team_id,user_id,player_slug,player_name,tx_type,amount,counts_as_transfer,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: false }).limit(80), 'historial fantasy') : Promise.resolve({ data: [], error: null })
       ]);
       if (teamsRes.error) throw teamsRes.error;
       if (rosterRes.error) throw rosterRes.error;
@@ -1303,9 +1752,11 @@
         ...state.seasonTeams.map((team) => team.user_id),
         ...state.transactions.map((tx) => tx.user_id)
       ];
-      await loadProfiles(profileIds);
-      await loadNotifications();
-      if (App.refreshFantasyNavAlerts) void App.refreshFantasyNavAlerts({ force: true });
+      if (includeProfiles) await loadProfiles(profileIds);
+      else if (profileIds.length) void refreshProfilesInBackground(profileIds);
+      if (includeNotifications) await loadNotifications();
+      if (includeNotifications && App.refreshFantasyNavAlerts) void App.refreshFantasyNavAlerts({ force: true });
+      if (hydrateSnapshots && !includeSnapshots) void refreshSnapshotsInBackground();
     } catch (error){
       if (isSchemaError(error)) markSchemaMissing(error);
       else showPageMsg(`No pude cargar la liga fantasy: ${error?.message || error}`, 'err');
@@ -1673,7 +2124,11 @@
     return `<span class="compareMetric ${tone}"><small>${escapeHtml(label)}</small><strong>${escapeHtml(deltaText)}</strong></span>`;
   }
 
-  function renderComparePlayerCard(player, label, metaHtml, options){
+  function compareFact(label, value, tone){
+    return `<span class="${escapeAttr(tone || '')}"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong></span>`;
+  }
+
+  function renderComparePlayerCard(player, label, factsHtml, options){
     const opts = options || {};
     if (!player){
       return `<article class="comparePlayerCard empty"><div class="comparePlayerEmpty">${escapeHtml(opts.emptyText || 'Elige una salida para comparar.')}</div></article>`;
@@ -1690,8 +2145,8 @@
         <div class="comparePlayerTags">
           <span class="signalTag ${escapeAttr(pulse.tone)}">${escapeHtml(pulse.label)}</span>
           <span>${Number(player.currentRawPoints || 0) > 0 ? formatPointsLabel(weeklyPoints) : 'Sin puntos'} ultimo sabado</span>
-          ${metaHtml || ''}
         </div>
+        ${factsHtml ? `<div class="comparePlayerFacts">${factsHtml}</div>` : ''}
       </div>
     </article>`;
   }
@@ -1700,9 +2155,15 @@
     if (!targetPlayer) return '';
     const outgoingPlayer = outgoingEntry ? playerForRosterRow(outgoingEntry) : null;
     const targetCostLabel = mode === 'buyout' ? 'Coste clausula' : 'Coste fichaje';
-    const targetMeta = `<span>${renderCoinInline(cost || targetPlayer.price || 0, true)} ${escapeHtml(targetCostLabel.toLowerCase())}</span>${targetOwner ? `<span>Sale de ${escapeHtml(targetOwner.teamName || 'equipo rival')}</span>` : ''}`;
+    const targetFacts = [
+      compareFact(targetCostLabel, formatCoins(cost || targetPlayer.price || 0), 'good'),
+      targetOwner ? compareFact('Origen', targetOwner.teamName || 'Equipo rival') : ''
+    ].join('');
     const outgoingClause = outgoingEntry ? Number(outgoingEntry.clause_price || outgoingPlayer?.clausePrice || defaultClauseForPrice(outgoingPlayer?.price || 0)) : 0;
-    const outgoingMeta = outgoingPlayer ? `<span>${renderCoinInline(outgoingPlayer.price || 0, true)} valor</span><span>${renderCoinInline(outgoingClause, true)} clausula</span>` : '';
+    const outgoingFacts = outgoingPlayer ? [
+      compareFact('Valor', formatCoins(outgoingPlayer.price || 0)),
+      compareFact('Clausula', formatCoins(outgoingClause))
+    ].join('') : '';
     const targetWeekly = Number(targetPlayer.currentFantasyPoints || 0);
     const outgoingWeekly = Number(outgoingPlayer?.currentFantasyPoints || 0);
     const targetValue = Number(targetPlayer.price || cost || 0);
@@ -1717,8 +2178,8 @@
         </div>
       </div>
       <div class="transferCompareGrid">
-        ${renderComparePlayerCard(outgoingPlayer, 'Sale de tu equipo', outgoingMeta, { emptyText: needsReplacement ? 'Selecciona un jugador de tu plantilla.' : 'Hueco libre en plantilla.' })}
-        ${renderComparePlayerCard(targetPlayer, 'Entra al equipo', targetMeta)}
+        ${renderComparePlayerCard(outgoingPlayer, 'Sale de tu equipo', outgoingFacts, { emptyText: needsReplacement ? 'Selecciona un jugador de tu plantilla.' : 'Hueco libre en plantilla.' })}
+        ${renderComparePlayerCard(targetPlayer, 'Entra al equipo', targetFacts)}
       </div>
       ${outgoingPlayer ? `<div class="transferCompareMetrics">
         ${compareMetric('Ultimo sabado', targetWeekly, outgoingWeekly, (value) => formatPoints(value))}
@@ -1904,6 +2365,7 @@
 
   function buyBlockReason(player, roster){
     const cfg = config();
+    if (state.loadingLeague) return 'Cargando liga';
     if (!state.currentUser) return 'Inicia sesion';
     if (!state.currentTeam) return 'Crea equipo';
     if (!cfg.isOpen || !marketOpenNow()) return 'Mercado cerrado';
@@ -2022,15 +2484,12 @@
     return { label: 'Movimiento', tone: 'soft', verb: 'mueve' };
   }
 
-  function renderMarketActivity(){
-    const host = $('marketActivityPanel');
-    if (!host) return;
-    const rows = marketActivityRows(PAGE_VIEW === 'market' ? 10 : 6);
+  function renderMarketActivityHtml(limit){
+    const rows = marketActivityRows(limit);
     if (!rows.length){
-      host.innerHTML = '<div class="empty">Aun no hay movimientos de mercado para mostrar.</div>';
-      return;
+      return '<div class="empty">Aun no hay movimientos de mercado para mostrar.</div>';
     }
-    host.innerHTML = `<div class="activityList">${rows.map((tx) => {
+    return `<div class="activityList">${rows.map((tx) => {
       const meta = txTypeMeta(tx);
       const player = state.playersBySlug.get(String(tx.player_slug || '')) || null;
       const manager = profileNameForUser(tx.user_id);
@@ -2050,6 +2509,12 @@
         </div>
       </article>`;
     }).join('')}</div>`;
+  }
+
+  function renderMarketActivity(){
+    const host = $('marketActivityPanel');
+    if (!host) return;
+    host.innerHTML = renderMarketActivityHtml(PAGE_VIEW === 'market' ? 10 : 6);
   }
 
   function renderRoundPulse(){
@@ -2117,6 +2582,8 @@
     const statPlayers = $('statPlayers');
     const statTeams = $('statTeams');
     const statCurrentRound = $('statCurrentRound');
+    const watchlistButton = $('openWatchlistButton');
+    const activityButton = $('openActivityButton');
     if (statPlayers){
       if (state.loadingPlayers) statPlayers.textContent = '...';
       else animateStatNumber(statPlayers, state.poolPlayers.length);
@@ -2126,6 +2593,14 @@
       else animateStatNumber(statTeams, state.seasonTeams.length);
     }
     if (statCurrentRound) statCurrentRound.textContent = state.loadingPlayers ? '...' : (state.currentRound?.label || '-');
+    if (watchlistButton){
+      const count = Number(state.watchlistSlugs?.size || 0);
+      watchlistButton.textContent = count ? `Watchlist (${Math.min(count, 99)})` : 'Watchlist';
+    }
+    if (activityButton){
+      const count = marketActivityRows(99).length;
+      activityButton.textContent = count ? `Actividad (${Math.min(count, 99)})` : 'Actividad';
+    }
   }
 
   function openPlayerModal(slug, source){
@@ -2150,6 +2625,16 @@
     renderTeamModal();
   }
 
+  function openMarketPanelModal(panel){
+    state.modalMarketPanel = String(panel || '').trim();
+    renderMarketPanelModal();
+  }
+
+  function closeMarketPanelModal(){
+    state.modalMarketPanel = '';
+    renderMarketPanelModal();
+  }
+
   function openBuyConfirm(slug, targetTeamId){
     state.confirmBuySlug = String(slug || '').trim();
     state.confirmBuyTargetTeamId = String(targetTeamId || '').trim();
@@ -2166,6 +2651,7 @@
 
   function buyConfirmBlockReason(player, mode, cost, roster, targetOwner){
     const cfg = config();
+    if (state.loadingLeague) return 'Cargando liga';
     if (!state.currentUser) return 'Inicia sesion';
     if (!state.currentTeam) return 'Crea equipo';
     if (!cfg.isOpen || !marketOpenNow()) return 'Mercado cerrado';
@@ -2187,7 +2673,7 @@
     if (!state.confirmBuySlug){
       wrap.classList.add('hidden');
       wrap.setAttribute('aria-hidden', 'true');
-      if (!state.modalPlayerSlug) document.body.style.overflow = '';
+      unlockPageScroll();
       body.innerHTML = '';
       return;
     }
@@ -2220,7 +2706,7 @@
     body.innerHTML = `${ownerInfo}${comparisonHtml}${needsReplacement ? `<div class="confirmPicker"><div class="confirmPickerLabel">Jugador que sale de tu plantilla</div><div class="replaceGrid">${replacementOptions}</div></div>` : `<div class="helper">Tienes un hueco libre en plantilla, asi que esta ficha entra directa.</div>`}`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    lockPageScroll();
   }
 
   function renderPlayerInsightPanel(player, marketPlayer, source, rosterEntry){
@@ -2263,7 +2749,7 @@
     if (!state.modalPlayerSlug){
       wrap.classList.add('hidden');
       wrap.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
+      unlockPageScroll();
       body.innerHTML = '';
       return;
     }
@@ -2306,7 +2792,7 @@
     body.innerHTML = `<div class="modalVisual"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article>${watchAction}</div><div class="modalPanel"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div><div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Copias en liga' : 'Cupos usados'}</span><strong>${copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada fantasy</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Torneos jugados</span><strong>${intFmt.format(playedCount)}</strong><small>${intFmt.format(saturdayCount)} sabados fantasy</small></div></div>${insightPanel}${marketHint}${ownersBlock}<div class="historyWrap"><div class="historyTitle">Progresion por torneo</div>${renderHistoryChart(player)}</div>${directAction}</div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    lockPageScroll();
   }
 
   function renderTeamModal(){
@@ -2316,7 +2802,7 @@
     if (!state.modalTeamId){
       wrap.classList.add('hidden');
       wrap.setAttribute('aria-hidden', 'true');
-      if (!state.modalPlayerSlug && !state.confirmBuySlug) document.body.style.overflow = '';
+      unlockPageScroll();
       body.innerHTML = '';
       return;
     }
@@ -2376,7 +2862,36 @@
     </div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    lockPageScroll();
+  }
+
+  function renderMarketPanelModal(){
+    const wrap = $('marketPanelModalWrap');
+    const body = $('marketPanelModalBody');
+    const title = $('marketPanelModalTitle');
+    const subtitle = $('marketPanelModalSubtitle');
+    if (!wrap || !body) return;
+    const panel = String(state.modalMarketPanel || '').trim();
+    if (!panel){
+      wrap.classList.add('hidden');
+      wrap.setAttribute('aria-hidden', 'true');
+      unlockPageScroll();
+      body.innerHTML = '';
+      return;
+    }
+    const isWatchlist = panel === 'watchlist';
+    if (title) title.textContent = isWatchlist ? 'Mi watchlist' : 'Actividad reciente';
+    if (subtitle){
+      subtitle.textContent = isWatchlist
+        ? 'Objetivos marcados para vigilar precio, forma y cupos sin quitar protagonismo al mercado.'
+        : 'Movimientos de fichajes, clausulazos y premios que explican el ritmo de la liga.';
+    }
+    body.innerHTML = isWatchlist
+      ? renderWatchlistHtml(18)
+      : renderMarketActivityHtml(18);
+    wrap.classList.remove('hidden');
+    wrap.setAttribute('aria-hidden', 'false');
+    lockPageScroll();
   }
 
   function renderSeasonFacts(){
@@ -2637,15 +3152,12 @@
     return `<button class="watchButton ${active ? 'active' : ''} ${opts.compact ? 'compact' : ''}" type="button" data-toggle-watchlist="${escapeAttr(player?.slug || '')}" aria-pressed="${active ? 'true' : 'false'}" title="${active ? 'Quitar de la watchlist' : 'Anadir a la watchlist'}"><span aria-hidden="true">${active ? 'R' : '+'}</span><strong>${label}</strong></button>`;
   }
 
-  function renderWatchlistPanel(){
-    const host = $('watchlistPanel');
-    if (!host) return;
-    const rows = watchlistPlayers(8);
+  function renderWatchlistHtml(limit){
+    const rows = watchlistPlayers(limit);
     if (!rows.length){
-      host.innerHTML = '<div class="empty">Marca jugadores con "Seguir" para construir tu radar privado de mercado.</div>';
-      return;
+      return '<div class="empty">Marca jugadores con "Seguir" para construir tu radar privado de mercado.</div>';
     }
-    host.innerHTML = `<div class="watchGrid">${rows.map((player) => {
+    return `<div class="watchGrid">${rows.map((player) => {
       const portrait = playerPortraitUrl(player);
       const pulse = playerPulse(player);
       const cost = player.canDirectBuy ? Number(player.price || 0) : Number(player.minClause || defaultClauseForPrice(player.price || 0));
@@ -2665,6 +3177,12 @@
         </div>
       </article>`;
     }).join('')}</div>`;
+  }
+
+  function renderWatchlistPanel(){
+    const host = $('watchlistPanel');
+    if (!host) return;
+    host.innerHTML = renderWatchlistHtml(8);
   }
 
   function renderMarketQuickFilters(){
@@ -2887,6 +3405,7 @@
     renderMarket();
     renderNotifications();
     renderTeamModal();
+    renderMarketPanelModal();
     renderPlayerModal();
     renderBuyConfirm();
   }
@@ -3046,12 +3565,21 @@
   }
 
   function shouldSyncPoolForAction(){
-    if (!state.currentUser || state.schemaReady === false || !state.sheetRound?.key || !state.poolPlayers.length) return false;
+    if (!state.currentUser || state.schemaReady === false || state.poolFromCache || !state.sheetRound?.key || !state.poolPlayers.length) return false;
     if (String(state.poolSyncedRoundKey || '') !== String(state.sheetRound.key || '')) return true;
     return (Date.now() - Number(state.poolSyncedAt || 0)) > (10 * 60 * 1000);
   }
 
+  async function ensureFreshPlayerPoolForAction(){
+    if (state.poolFromCache && playerPoolBackgroundPromise) await playerPoolBackgroundPromise;
+    if (!state.poolFromCache && state.poolPlayers.length) return;
+    const result = await loadPlayerPool(false, { allowCache: false, silent: true });
+    if (result?.error && !state.poolPlayers.length) throw new Error('No pude refrescar el pool fantasy para operar. Prueba a recargar en unos minutos.');
+    renderAll();
+  }
+
   async function ensureActionDataFresh(){
+    await ensureFreshPlayerPoolForAction();
     if (needsImmediateWeekRoll()) await maybeOpenNewWeek();
     if (shouldSyncPoolForAction()){
       const synced = await syncPlayerPoolToBackend();
@@ -3059,20 +3587,114 @@
     }
   }
 
+  async function primeSessionNav(){
+    // Do not wait for the full fantasy access/role check before showing the logged-in user in the nav.
+    // This keeps the session UI responsive even if fantasy data or role checks are slow.
+    if (!sb?.auth?.getSession){
+      syncNavUser(state.currentUser);
+      return;
+    }
+    try{
+      const { data } = await withTimeout(sb.auth.getSession(), 'sesion inicial', 1500);
+      state.currentSession = data?.session || null;
+      state.currentUser = data?.session?.user || state.currentUser || null;
+      state.watchlistSlugs = new Set(readLocalWatchlist());
+      syncNavUser(state.currentUser);
+    } catch (error){
+      console.debug('fantasy primeSessionNav:', error?.message || error);
+      syncNavUser(state.currentUser);
+    }
+  }
+
+  function hydrateFantasyAccessExtras(){
+    if (accessExtrasPromise) return accessExtrasPromise;
+    accessExtrasPromise = (async () => {
+      const jobs = [
+        loadWatchlist(),
+        loadCurrentProfile(state.currentUser)
+      ];
+      await Promise.allSettled(jobs);
+      syncNavUser(state.currentUser);
+      renderHero();
+      renderWatchlistPanel();
+      renderMarket();
+      renderPlayerModal();
+      renderBuyConfirm();
+      if (App.applyRestrictedNavVisibility) void App.applyRestrictedNavVisibility(sb);
+    })().catch((error) => {
+      console.warn('fantasy access extras:', error?.message || error);
+    }).finally(() => {
+      accessExtrasPromise = null;
+    });
+    return accessExtrasPromise;
+  }
+
   async function ensureFantasyAccess(){
     if (fantasyAccessAllowed) return true;
-    const result = await App.enforcePageAccess(sb, {
-      requirePrivileged: true,
-      allowNonMember: true
-    });
-    if (!result?.allowed) return false;
-    fantasyAccessAllowed = true;
-    state.currentUser = result.accessState?.user || state.currentUser || null;
-    await loadWatchlist();
-    await loadCurrentProfile(state.currentUser);
+
+    let session = state.currentSession || null;
+    let user = state.currentUser || session?.user || null;
+
+    if (!user && sb?.auth?.getSession){
+      try{
+        const { data } = await withTimeout(sb.auth.getSession(), 'sesion fantasy', 2500);
+        session = data?.session || null;
+        user = session?.user || null;
+      } catch (error){
+        console.warn('fantasy session access:', error?.message || error);
+      }
+    }
+
+    state.currentSession = session || state.currentSession || null;
+    state.currentUser = user || null;
+    state.watchlistSlugs = new Set(readLocalWatchlist());
     syncNavUser(state.currentUser);
-    if (App.applyRestrictedNavVisibility) void App.applyRestrictedNavVisibility(sb);
-    return true;
+
+    if (!user?.id){
+      fantasyAccessAllowed = false;
+      const next = `${window.location.pathname}${window.location.search}`;
+      window.location.href = `login.html?next=${encodeURIComponent(next)}`;
+      return false;
+    }
+
+    try{
+      const { data: profile, error } = await withTimeout(
+        readSb.from('profiles')
+          .select('id,username,display_name,avatar_url,member,fantasy')
+          .eq('id', user.id)
+          .maybeSingle(),
+        'acceso fantasy',
+        5000
+      );
+      if (error) throw error;
+
+      state.currentProfile = profile || null;
+      syncNavUser(user);
+
+      if (profile?.fantasy !== true){
+        fantasyAccessAllowed = false;
+        setLoading(false);
+        showPageMsg('Tu usuario todavia no tiene acceso a VaDeFantasy.', 'err');
+        return false;
+      }
+
+      fantasyAccessAllowed = true;
+      renderWatchlistPanel();
+      if (App.applyRestrictedNavVisibility) void App.applyRestrictedNavVisibility(sb);
+      void hydrateFantasyAccessExtras();
+      return true;
+    } catch (error){
+      fantasyAccessAllowed = false;
+      setLoading(false);
+      const detail = String(error?.message || error || '');
+      console.warn('fantasy access profile:', detail);
+      if (detail.toLowerCase().includes('fantasy')){
+        showPageMsg('No se pudo comprobar el acceso a VaDeFantasy. Revisa que exista el campo profiles.fantasy y la RLS correspondiente.', 'err');
+      } else {
+        showPageMsg('No se pudo comprobar el acceso a VaDeFantasy.', 'err');
+      }
+      return false;
+    }
   }
 
   function startBackgroundHydration(){
@@ -3091,21 +3713,47 @@
     const opts = options || {};
     if (state.refreshPromise) return state.refreshPromise;
     const silent = opts.silent === true;
-    if (!silent) setLoading(true, opts.loadingLabel || (state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...'));
+    const progressive = opts.progressive === true;
+    if (!silent && !progressive) setLoading(true, opts.loadingLabel || (state.initialized ? 'Actualizando fantasy...' : 'Cargando fantasy...'));
     const promise = (async () => {
       if (!opts.skipSession) await safeRefreshSession();
+      const allowFastPoolCache = opts.forceSheet !== true && opts.allowPoolCache !== false;
+      const shouldLoadPool = opts.forceSheet === true || pageNeedsPlayerPool();
+      const leagueOptions = leagueContextOptionsForPage(opts);
+      if (progressive){
+        renderAll();
+        const tasks = [
+          loadSeasonConfig().then(() => renderAll()),
+          (shouldLoadPool ? loadPlayerPool(Boolean(opts.forceSheet), {
+            allowCache: allowFastPoolCache,
+            refreshInBackground: allowFastPoolCache,
+            silent: true
+          }) : Promise.resolve(null)).then(() => renderAll()),
+          loadLeagueContext(leagueOptions).then(() => renderAll())
+        ];
+        const results = await Promise.allSettled(tasks);
+        const failed = results.find((item) => item.status === 'rejected');
+        if (failed) throw failed.reason;
+        renderAll();
+        void startBackgroundHydration();
+        return results;
+      }
       await Promise.all([
         loadSeasonConfig(),
-        loadPlayerPool(Boolean(opts.forceSheet))
+        shouldLoadPool ? loadPlayerPool(Boolean(opts.forceSheet), {
+          allowCache: allowFastPoolCache,
+          refreshInBackground: allowFastPoolCache,
+          silent
+        }) : Promise.resolve(null)
       ]);
-      await loadLeagueContext();
+      await loadLeagueContext(leagueOptions);
       renderAll();
       if (!silent) setLoading(false);
       void startBackgroundHydration();
     })().finally(() => {
       state.refreshPromise = null;
       state.initialized = true;
-      if (!silent) setLoading(false);
+      if (!silent && !progressive) setLoading(false);
     });
     state.refreshPromise = promise;
     await promise;
@@ -3126,7 +3774,7 @@
     showPageMsg('Refrescando fantasy desde VBF...', 'ok');
     showFantasyToast('Refrescando datos', 'Sincronizando mercado y ranking.', 'info');
     try{
-      await refreshAllData({ forceSheet: true, skipSession: true, loadingLabel: 'Refrescando fantasy...' });
+      await refreshAllData({ forceSheet: true, skipSession: true, silent: true, progressive: true });
       showFantasyToast('Datos actualizados', 'Fantasy queda al dia.', 'ok');
     } catch (error){
       showFantasyToast('No pude refrescar', error?.message || String(error || ''), 'err');
@@ -3165,6 +3813,13 @@
   $('teamRosterTable')?.addEventListener('click', handleOpenPlayerClick);
   $('watchlistPanel')?.addEventListener('click', handleOpenPlayerClick);
   $('marketActivityPanel')?.addEventListener('click', handleOpenPlayerClick);
+  $('openWatchlistButton')?.addEventListener('click', () => openMarketPanelModal('watchlist'));
+  $('openActivityButton')?.addEventListener('click', () => openMarketPanelModal('activity'));
+  $('marketPanelModalWrap')?.addEventListener('click', (event) => {
+    if (event.target.closest('[data-close-market-panel-modal]')){ closeMarketPanelModal(); return; }
+    const keepPanelOpen = !!event.target.closest('[data-toggle-watchlist]');
+    if (handleOpenPlayerClick(event) && !keepPanelOpen) closeMarketPanelModal();
+  });
   $('roundPulsePanel')?.addEventListener('click', handleOpenPlayerClick);
   $('marketQuickFilters')?.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-market-filter]');
@@ -3249,42 +3904,44 @@
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && state.modalPlayerSlug) closePlayerModal();
     if (event.key === 'Escape' && state.modalTeamId) closeTeamModal();
+    if (event.key === 'Escape' && state.modalMarketPanel) closeMarketPanelModal();
     if (event.key === 'Escape' && state.confirmBuySlug) closeBuyConfirm();
   });
 
   if (sb?.auth?.onAuthStateChange){
     sb.auth.onAuthStateChange(async (_event, session) => {
+      // Update session/nav immediately. The access check can be slower and must not block the visible login state.
+      state.currentSession = session || null;
+      state.currentUser = session?.user || null;
+      state.watchlistSlugs = new Set(readLocalWatchlist());
+      syncNavUser(state.currentUser);
+
       if (_event === 'TOKEN_REFRESHED' || _event === 'INITIAL_SESSION') return;
       App.clearAccessStateCache();
       if (!session?.user){
         fantasyAccessAllowed = false;
         state.currentUser = null;
+        state.currentProfile = null;
         state.watchlistSlugs = new Set();
         syncNavUser(null);
-        await App.enforcePageAccess(sb, { requirePrivileged: true, allowNonMember: true });
         return;
       }
       if (!fantasyAccessAllowed && !(await ensureFantasyAccess())) return;
-      state.currentUser = session?.user || null;
-      await loadWatchlist();
-      syncNavUser(state.currentUser);
-      await loadCurrentProfile(state.currentUser);
+      void hydrateFantasyAccessExtras();
       if (state.actionInFlight) return;
-      const pendingRefresh = state.refreshPromise;
-      if (pendingRefresh){
-        try { await pendingRefresh; } catch (_error) {}
-      }
-      await refreshAllDataSilently({ forceSheet: false });
+      void refreshAllDataSilently({ forceSheet: false, progressive: true });
     });
   }
 
   void (async () => {
-    setLoading(true, 'Cargando fantasy...');
+    setLoading(false);
+    await primeSessionNav();
+    renderAll();
     if (!(await ensureFantasyAccess())){
       setLoading(false);
       return;
     }
-    await refreshAllData({ forceSheet: false, skipSession: true, loadingLabel: 'Cargando fantasy...' });
+    void refreshAllData({ forceSheet: false, skipSession: true, silent: true, progressive: true });
   })().catch((error) => {
     setLoading(false);
     console.warn('fantasy init:', error?.message || error);

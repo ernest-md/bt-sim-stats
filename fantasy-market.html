@@ -267,7 +267,7 @@
     @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats,.factGrid,.playerGrid{grid-template-columns:1fr 1fr}.actionRow .btn{flex:1 1 calc(50% - 4px)}.loadingCard{padding:14px 16px;border-radius:18px}.overlayNamePlain{font-size:15px}.overlaySubtitle{font-size:9px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRow{grid-template-columns:1fr}.standingRoster{grid-template-columns:repeat(3,minmax(0,1fr))}#squadGrid{grid-template-columns:1fr}}
     @media (max-width:420px){.playerGrid{grid-template-columns:1fr}}
   </style>
-  <link rel="stylesheet" href="fantasy-polish.css?v=20260505d" />
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260505g" />
 </head>
 <body data-requires-privileged="1" data-fantasy-view="market">
   <div class="topbar">
@@ -365,6 +365,20 @@
       </div>
     </div>
   </div>
+  <div class="modalWrap hidden" id="marketPanelModalWrap" aria-hidden="true">
+    <div class="modalBackdrop" data-close-market-panel-modal="1"></div>
+    <div class="modalCard marketPanelModalCard">
+      <button class="btn modalClose" type="button" data-close-market-panel-modal="1" aria-label="Cerrar panel">&#10005;</button>
+      <div class="marketPanelModalHead">
+        <div>
+          <div class="modalEyebrow">Mercado OP15</div>
+          <h3 class="modalTitle" id="marketPanelModalTitle">Panel de mercado</h3>
+          <p id="marketPanelModalSubtitle"></p>
+        </div>
+      </div>
+      <div class="marketPanelModalBody" id="marketPanelModalBody"></div>
+    </div>
+  </div>
   <div class="wrap">
     <section class="hero">
       <div class="heroTop">
@@ -374,6 +388,8 @@
           <p>Compara precios, cupos disponibles, forma reciente y clausulas antes de mover berries.</p>
         </div>
         <div class="pillRow">
+          <button class="btn btnGhost" id="openWatchlistButton" type="button">Watchlist</button>
+          <button class="btn btnGhost" id="openActivityButton" type="button">Actividad</button>
           <a class="btn btnGhost" href="fantasy-team.html">Mi equipo</a>
           <button class="btn btnPrimary" id="reloadPlayersButton" type="button">Refrescar datos</button>
         </div>
@@ -397,40 +413,6 @@
         <section class="card">
           <div class="sectionHead">
             <div>
-              <h2 id="teamCardTitle">Fantasy oficial OP15</h2>
-              <p id="teamCardSubtitle">Un solo equipo por manager, 3 jugadores por plantilla y cupo maximo de 3 equipos por jugador.</p>
-            </div>
-            <div class="inlineMeta" id="teamCardMeta"></div>
-          </div>
-          <div class="factGrid" id="seasonFacts"></div>
-          <div class="subPanel" id="teamSetupPanel"><div class="empty">Cargando estado de la liga...</div></div>
-          <div class="helper" id="authHint">Necesitas sesion para crear tu equipo, recibir tu starter pack y entrar al mercado.</div>
-          <div class="actionRow">
-            <a class="btn" href="fantasy.html">Volver al inicio</a>
-            <a class="btn" href="fantasy-team.html">Organizar equipo</a>
-          </div>
-        </section>
-        <section class="card">
-          <div class="sectionHead">
-            <div>
-                <h2>Mi watchlist</h2>
-                <p>Tu radar privado de objetivos: marca jugadores con "Seguir" y revisa aqui precio, clausula y forma antes de fichar.</p>
-            </div>
-          </div>
-          <div id="watchlistPanel"><div class="empty">Cargando watchlist...</div></div>
-        </section>
-        <section class="card">
-          <div class="sectionHead">
-            <div>
-                <h2>Actividad reciente</h2>
-                <p>Movimientos que explican como se esta moviendo el mercado ahora mismo.</p>
-            </div>
-          </div>
-          <div id="marketActivityPanel"><div class="empty">Cargando movimientos...</div></div>
-        </section>
-        <section class="card">
-          <div class="sectionHead">
-            <div>
                 <h2>Mercado OP15</h2>
                 <p>Explora a todos los jugadores, busca por nombre o tier y revisa que copias siguen libres y cuales ya estan en manos de otros managers.</p>
             </div>
@@ -446,10 +428,26 @@
           <div class="empty hidden" id="marketEmpty">No hay jugadores que coincidan con este filtro.</div>
           <div class="playerGrid" id="marketGrid"></div>
         </section>
+        <section class="card">
+          <div class="sectionHead">
+            <div>
+              <h2 id="teamCardTitle">Fantasy oficial OP15</h2>
+              <p id="teamCardSubtitle">Un solo equipo por manager, 3 jugadores por plantilla y cupo maximo de 3 equipos por jugador.</p>
+            </div>
+            <div class="inlineMeta" id="teamCardMeta"></div>
+          </div>
+          <div class="factGrid" id="seasonFacts"></div>
+          <div class="subPanel" id="teamSetupPanel"><div class="empty">Cargando estado de la liga...</div></div>
+          <div class="helper" id="authHint">Necesitas sesion para crear tu equipo, recibir tu starter pack y entrar al mercado.</div>
+          <div class="actionRow">
+            <a class="btn" href="fantasy.html">Volver al inicio</a>
+            <a class="btn" href="fantasy-team.html">Organizar equipo</a>
+          </div>
+        </section>
       </div>
     </div>
   </div>
   <script src="fantasy-player-portraits.js?v=20260504a"></script>
-  <script src="fantasy.js?v=20260505e"></script>
+  <script src="fantasy.js?v=20260505i"></script>
 </body>
 </html>

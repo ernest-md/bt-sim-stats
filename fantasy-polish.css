@@ -2526,6 +2526,47 @@ body[data-fantasy-view="market"] #marketGrid{
   line-height:1.1;
 }
 
+.comparePlayerFacts{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+  margin-top:4px;
+}
+
+.comparePlayerFacts span{
+  display:grid;
+  gap:2px;
+  min-width:0;
+  padding:7px 8px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:#fff;
+}
+
+.comparePlayerFacts small,
+.comparePlayerFacts strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.comparePlayerFacts small{
+  color:#64748b;
+  font-size:9px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.comparePlayerFacts strong{
+  color:#111827;
+  font-size:11px;
+  font-weight:1000;
+}
+
+.comparePlayerFacts span.good strong{
+  color:#0f766e;
+}
+
 .transferCompareMetrics{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -2916,7 +2957,10 @@ body[data-fantasy-view] .buyFullBtn{
 
 body[data-fantasy-view] .modalWrap{
   align-items:start;
-  padding-top:46px;
+  z-index:230000;
+  padding:24px;
+  overflow:hidden;
+  overscroll-behavior:contain;
 }
 
 body[data-fantasy-view] .modalCard,
@@ -2925,10 +2969,90 @@ body[data-fantasy-view] .confirmCard{
   box-shadow:0 30px 90px rgba(0,0,0,.38);
 }
 
+body[data-fantasy-view] .modalCard{
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100vh - 48px);
+  max-height:calc(100dvh - 48px);
+  overflow:hidden;
+}
+
+body[data-fantasy-view] .modalClose{
+  z-index:6;
+}
+
+body[data-fantasy-view] .modalGrid{
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  padding-right:6px;
+}
+
+body[data-fantasy-view] .modalPanel,
+body[data-fantasy-view] .modalVisual,
+body[data-fantasy-view] .historyWrap,
+body[data-fantasy-view] .chartCard{
+  min-width:0;
+}
+
+body[data-fantasy-view] .modalVisual{
+  display:grid;
+  align-content:start;
+  gap:12px;
+}
+
+body[data-fantasy-view] .modalVisual > .watchButton{
+  width:100%;
+}
+
+.marketPanelModalCard{
+  width:min(760px,94vw);
+  max-height:calc(100vh - 48px);
+  max-height:calc(100dvh - 48px);
+}
+
+.marketPanelModalHead{
+  padding-right:54px;
+}
+
+.marketPanelModalHead p{
+  margin:6px 0 0;
+  color:#64748b;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.4;
+}
+
+.marketPanelModalBody{
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding-right:4px;
+}
+
+body[data-fantasy-view] .modalPanel > div:first-child{
+  padding-right:54px;
+}
+
+body[data-fantasy-view] .historyWrap{
+  overflow:hidden;
+}
+
+body[data-fantasy-view] .chartCard{
+  max-width:100%;
+  overflow:hidden;
+}
+
+body[data-fantasy-view] .chartSvg{
+  max-width:100%;
+}
+
 body[data-fantasy-view] .confirmCard{
   width:min(720px,94vw);
   max-height:calc(100vh - 64px);
   overflow:auto;
+  overscroll-behavior:contain;
 }
 
 body[data-fantasy-view] .confirmCard h3{
@@ -3434,9 +3558,18 @@ button.pulseCard:hover{
     grid-template-columns:62px minmax(0,1fr);
   }
 
+  .comparePlayerFacts{
+    grid-template-columns:1fr;
+  }
+
   body[data-fantasy-view] .modalWrap{
     padding:14px;
     align-items:start;
+  }
+
+  body[data-fantasy-view] .modalCard{
+    max-height:calc(100vh - 28px);
+    max-height:calc(100dvh - 28px);
   }
 
   body[data-fantasy-view] .confirmCard{
