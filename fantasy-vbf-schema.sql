@@ -916,8 +916,18 @@ begin
       v_target.team_id,
       'clause_lost',
       format('Te han pagado la clausula de %s', v_pool.player_name),
-      format('Tu jugador %s ha salido por clausula. Recibes %s berries en tu saldo.', v_pool.player_name, v_buy_cost),
-      jsonb_build_object('player_slug', v_pool.player_slug, 'amount', v_buy_cost, 'team_id', v_target.team_id)
+      format('El equipo %s te ha quitado a %s pagando %s berries. Esa cantidad entra en tu saldo.', v_team.team_name, v_pool.player_name, v_buy_cost),
+      jsonb_build_object(
+        'player_slug', v_pool.player_slug,
+        'player_name', v_pool.player_name,
+        'amount', v_buy_cost,
+        'team_id', v_target.team_id,
+        'seller_team_id', v_target.team_id,
+        'seller_user_id', v_target.user_id,
+        'buyer_team_id', v_team.id,
+        'buyer_user_id', v_user,
+        'buyer_team_name', v_team.team_name
+      )
     ),
     (
       v_season,
@@ -926,7 +936,17 @@ begin
       'clause_won',
       format('Has fichado a %s por clausula', v_pool.player_name),
       format('Has pagado %s berries y ya ocupa una plaza en tu plantilla.', v_buy_cost),
-      jsonb_build_object('player_slug', v_pool.player_slug, 'amount', v_buy_cost, 'team_id', v_team.id)
+      jsonb_build_object(
+        'player_slug', v_pool.player_slug,
+        'player_name', v_pool.player_name,
+        'amount', v_buy_cost,
+        'team_id', v_team.id,
+        'buyer_team_id', v_team.id,
+        'buyer_user_id', v_user,
+        'buyer_team_name', v_team.team_name,
+        'seller_team_id', v_target.team_id,
+        'seller_user_id', v_target.user_id
+      )
     );
 
   if v_round.id is not null then

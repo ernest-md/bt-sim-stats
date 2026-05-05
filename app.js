@@ -404,10 +404,12 @@
       return { allowed: true, redirected: false, accessState: window.__barateamAccessState || null };
     }
 
+    const bodyDataset = document.body?.dataset || {};
     const loginHref = opts.loginHref || appPageHref("login.html");
     const indexHref = opts.indexHref || appPageHref("index.html");
-    const allowNonMember = opts.allowNonMember === true || isIndexPage() || isProfilePage();
-    const requireAdmin = opts.requireAdmin === true;
+    const requireAdmin = opts.requireAdmin === true || bodyDataset.requiresAdmin === "1";
+    const requirePrivileged = opts.requirePrivileged === true || bodyDataset.requiresPrivileged === "1";
+    const allowNonMember = opts.allowNonMember === true || requirePrivileged || isIndexPage() || isProfilePage();
 
     try{
       const accessState = await resolveAccessState(sb);
@@ -416,6 +418,10 @@
         return { allowed: false, redirected: true, accessState };
       }
       if (requireAdmin && !accessState.isAdmin){
+        window.location.replace(indexHref);
+        return { allowed: false, redirected: true, accessState };
+      }
+      if (requirePrivileged && !accessState.isPrivileged){
         window.location.replace(indexHref);
         return { allowed: false, redirected: true, accessState };
       }
@@ -441,10 +447,12 @@
     window.__barateamAccessGuardBound = "1";
 
     void enforcePageAccess(sb, options);
+    void applyRestrictedNavVisibility(sb);
     if (sb.auth && typeof sb.auth.onAuthStateChange === "function"){
       sb.auth.onAuthStateChange((_event, session) => {
         clearAccessStateCache(session?.user?.id || null);
         void enforcePageAccess(sb, options);
+        void applyRestrictedNavVisibility(sb);
       });
     }
   }
@@ -583,6 +591,10 @@
     const restrictedLinks = Array.from(document.querySelectorAll('a[data-vdbf-only="1"]'));
     const adminLinks = Array.from(document.querySelectorAll('a[data-admin-only="1"]'));
     const privilegedLinks = Array.from(document.querySelectorAll('a[data-privileged-only="1"]'));
+    const fantasyGroups = Array.from(document.querySelectorAll("#vadeFantasyMenu"))
+      .map((menu) => menu.closest(".navInlineGroup"))
+      .filter(Boolean);
+    const privilegedItems = Array.from(new Set([...privilegedLinks, ...fantasyGroups]));
 
     restrictedLinks.forEach((a) => {
       a.style.display = "none";
@@ -590,8 +602,8 @@
     adminLinks.forEach((a) => {
       a.style.display = "none";
     });
-    privilegedLinks.forEach((a) => {
-      a.style.display = "none";
+    privilegedItems.forEach((item) => {
+      item.style.display = "none";
     });
 
     if (!sb) return;
@@ -607,9 +619,11 @@
 
       const isAdmin = accessState.isAdmin;
       const isPrivileged = accessState.isPrivileged === true;
+      const membersLink = privilegedLinks.find((a) => /members\.html/i.test(String(a.getAttribute("href") || "")));
+      const membersHref = membersLink?.getAttribute("href") || appPageHref("members.html");
 
-      privilegedLinks.forEach((a) => {
-        a.style.display = isPrivileged ? "" : "none";
+      privilegedItems.forEach((item) => {
+        item.style.display = isPrivileged ? "" : "none";
       });
 
       if (isAdmin){
@@ -618,6 +632,11 @@
             href: restrictedLinks[0]?.getAttribute("href") || appPageHref("vade-back-fight.html"),
             label: "VDBF",
             icon: "V"
+          },
+          {
+            href: appPageHref("fantasy.html"),
+            label: "Fantasy",
+            icon: "F"
           },
           {
             href: appPageHref("packs.html"),
@@ -630,7 +649,7 @@
             icon: "F"
           },
           {
-            href: privilegedLinks[0]?.getAttribute("href") || appPageHref("members.html"),
+            href: membersHref,
             label: "Members",
             icon: "M"
           }
@@ -645,7 +664,12 @@
             icon: "V"
           },
           {
-            href: privilegedLinks[0]?.getAttribute("href") || appPageHref("members.html"),
+            href: appPageHref("fantasy.html"),
+            label: "Fantasy",
+            icon: "F"
+          },
+          {
+            href: membersHref,
             label: "Members",
             icon: "M"
           }
@@ -689,6 +713,104 @@
     const day = String(d.getDate()).padStart(2, "0");
     const prefix = options?.prefix || "";
     node.textContent = `${prefix}${y}-${m}-${day}`;
+  }
+
+  const FANTASY_ALERT_SEASON = "OP15";
+  let _fantasyNavAlertPromise = null;
+
+  function fantasyNavTargets(){
+    const groups = Array.from(document.querySelectorAll(".navInlineGroup"));
+    return groups
+      .map((group) => ({
+        group,
+        button: group.querySelector(".navInlineButton"),
+        menu: group.querySelector(".navInlineMenu")
+      }))
+      .filter((item) => {
+        const text = String(item.button?.textContent || "").trim().toLowerCase();
+        return item.button && item.menu && text.includes("vadefantasy");
+      });
+  }
+
+  function setFantasyNavAlertBadge(count){
+    const safeCount = Math.max(0, Number(count || 0));
+    fantasyNavTargets().forEach(({ button, menu }) => {
+      let buttonBadge = button.querySelector(".navAlertBadge");
+      if (safeCount > 0 && !buttonBadge){
+        buttonBadge = document.createElement("span");
+        buttonBadge.className = "navAlertBadge";
+        button.appendChild(buttonBadge);
+      }
+      if (buttonBadge){
+        if (safeCount > 0){
+          buttonBadge.textContent = safeCount > 9 ? "9+" : String(safeCount);
+          buttonBadge.setAttribute("aria-label", `${safeCount} clausulazo${safeCount === 1 ? "" : "s"} pendiente${safeCount === 1 ? "" : "s"}`);
+        } else {
+          buttonBadge.remove();
+        }
+      }
+
+      const teamLink = Array.from(menu.querySelectorAll("a")).find((link) => /fantasy-team\.html/.test(String(link.getAttribute("href") || "")));
+      if (!teamLink) return;
+      let menuBadge = teamLink.querySelector(".navInlineMenuBadge");
+      if (safeCount > 0 && !menuBadge){
+        menuBadge = document.createElement("span");
+        menuBadge.className = "navInlineMenuBadge";
+        teamLink.appendChild(menuBadge);
+      }
+      if (menuBadge){
+        if (safeCount > 0){
+          menuBadge.textContent = safeCount > 9 ? "9+" : String(safeCount);
+          menuBadge.setAttribute("aria-label", `${safeCount} aviso${safeCount === 1 ? "" : "s"}`);
+        } else {
+          menuBadge.remove();
+        }
+      }
+    });
+  }
+
+  async function refreshFantasyNavAlerts(options){
+    const opts = options || {};
+    if (!document.querySelector("#vadeFantasyMenu")) return 0;
+    if (!window.supabase || typeof window.supabase.createClient !== "function"){
+      setFantasyNavAlertBadge(0);
+      return 0;
+    }
+    if (_fantasyNavAlertPromise && !opts.force) return _fantasyNavAlertPromise;
+    _fantasyNavAlertPromise = (async () => {
+      try{
+        const sb = createClient();
+        const accessState = await resolveAccessState(sb);
+        const user = accessState?.user || null;
+        if (!user || accessState?.isPrivileged !== true){
+          setFantasyNavAlertBadge(0);
+          return 0;
+        }
+        const { data, error } = await sb
+          .from("fantasy_vbf_notifications")
+          .select("id")
+          .eq("season", FANTASY_ALERT_SEASON)
+          .eq("user_id", user.id)
+          .eq("kind", "clause_lost")
+          .is("read_at", null)
+          .limit(50);
+        if (error) throw error;
+        const count = Array.isArray(data) ? data.length : 0;
+        setFantasyNavAlertBadge(count);
+        return count;
+      } catch (_err){
+        setFantasyNavAlertBadge(0);
+        return 0;
+      } finally {
+        _fantasyNavAlertPromise = null;
+      }
+    })();
+    return _fantasyNavAlertPromise;
+  }
+
+  function initFantasyNavAlerts(){
+    if (!document.querySelector("#vadeFantasyMenu")) return;
+    void refreshFantasyNavAlerts({ force: true });
   }
 
   function initInlineTopbarMenus(){
@@ -989,6 +1111,8 @@
     bindProtectedNavLinks,
     initInlineTopbarMenus,
     initMobileTopbarToggle,
+    initFantasyNavAlerts,
+    refreshFantasyNavAlerts,
     setTopbarDate,
     initUserNav,
     syncTopbarAvatar
@@ -998,6 +1122,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       initInlineTopbarMenus();
       initMobileTopbarToggle();
+      initFantasyNavAlerts();
       if (!document.body?.dataset.skipGlobalAccessGuard && !isAccessGuardExemptPage()){
         try{
           initGlobalAccessGuard(createClient());
@@ -1009,6 +1134,7 @@
   } else {
     initInlineTopbarMenus();
     initMobileTopbarToggle();
+    initFantasyNavAlerts();
     if (!document.body?.dataset.skipGlobalAccessGuard && !isAccessGuardExemptPage()){
       try{
         initGlobalAccessGuard(createClient());

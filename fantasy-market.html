@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>VadeFantasy - Mercado</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260306b" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260424d"></script>
+  <script src="app.js?v=20260505c"></script>
   <style>
     :root{--bg:#09111f;--card:rgba(255,255,255,.94);--line:rgba(15,23,42,.1);--ink:#0f172a;--muted:#64748b;--shadow:0 18px 50px rgba(0,0,0,.34)}
     *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -267,9 +267,9 @@
     @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats,.factGrid,.playerGrid{grid-template-columns:1fr 1fr}.actionRow .btn{flex:1 1 calc(50% - 4px)}.loadingCard{padding:14px 16px;border-radius:18px}.overlayNamePlain{font-size:15px}.overlaySubtitle{font-size:9px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRow{grid-template-columns:1fr}.standingRoster{grid-template-columns:repeat(3,minmax(0,1fr))}#squadGrid{grid-template-columns:1fr}}
     @media (max-width:420px){.playerGrid{grid-template-columns:1fr}}
   </style>
-  <link rel="stylesheet" href="fantasy-polish.css?v=20260504e" />
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260505d" />
 </head>
-<body data-skip-global-access-guard="1" data-fantasy-view="market">
+<body data-requires-privileged="1" data-fantasy-view="market">
   <div class="topbar">
     <div class="bar with-auth-corner">
       <a class="brandLink" href="index.html" aria-label="Ir a la home">
@@ -299,12 +299,13 @@
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
         </div>
-        <div class="navInlineGroup is-current">
+        <div class="navInlineGroup is-current" data-fantasy-nav="1" style="display:none">
           <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true"><span>VadeFantasy</span><span class="navInlineCaret" aria-hidden="true">v</span></button>
           <div class="navInlineMenu" id="vadeFantasyMenu">
-            <a class="navInlineMenuLink" href="fantasy.html">Inicio</a>
-            <a class="navInlineMenuLink" href="fantasy-team.html">Organizar equipo</a>
-            <a class="navInlineMenuLink is-current" href="fantasy-market.html">Mercado</a>
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink is-current" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
+            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
           </div>
         </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
@@ -368,20 +369,25 @@
     <section class="hero">
       <div class="heroTop">
         <div>
-          <div class="eyebrow">Barateam Fantasy</div>
-          <h1>Fantasy Vade Back Fight OP15</h1>
-          <p>Empiezas con 100.000 berries y 3 jugadores aleatorios por tramos de ranking. El mercado solo abre de lunes a viernes, cada jugador puede estar en 3 equipos y los clausulazos se resuelven pagando su precio actual con prima.</p>
+          <div class="eyebrow">VadeFantasy OP15</div>
+          <h1>Mercado de fichajes</h1>
+          <p>Compara precios, cupos disponibles, forma reciente y clausulas antes de mover berries.</p>
         </div>
         <div class="pillRow">
-          <a class="btn btnGhost" href="vade-back-fight.html">Ver VBF</a>
-          <button class="btn btnPrimary" id="reloadPlayersButton" type="button">Refrescar fantasy</button>
+          <a class="btn btnGhost" href="fantasy-team.html">Mi equipo</a>
+          <button class="btn btnPrimary" id="reloadPlayersButton" type="button">Refrescar datos</button>
         </div>
       </div>
       <div class="heroStats">
-        <div class="heroStat"><b id="statPlayers">-</b><span>Jugadores disponibles</span></div>
-        <div class="heroStat"><b id="statTeams">-</b><span>Equipos inscritos</span></div>
-        <div class="heroStat"><b id="statCurrentRound">-</b><span>Jornada actual</span></div>
+        <div class="heroStat"><b id="statPlayers">-</b><span>Jugadores monitorizados</span></div>
+        <div class="heroStat"><b id="statTeams">-</b><span>Managers activos</span></div>
+        <div class="heroStat"><b id="statCurrentRound">-</b><span>Jornada fantasy</span></div>
       </div>
+      <nav class="fantasyTabs" aria-label="Navegacion VadeFantasy">
+        <a href="fantasy.html">Liga</a>
+        <a href="fantasy-team.html">Plantilla</a>
+        <a class="is-current" href="fantasy-market.html" aria-current="page">Mercado</a>
+      </nav>
       <div class="pageMsg" id="pageMsg"></div>
       <div class="schemaNote" id="schemaNote"></div>
     </section>
@@ -407,6 +413,24 @@
         <section class="card">
           <div class="sectionHead">
             <div>
+                <h2>Mi watchlist</h2>
+                <p>Tu radar privado de objetivos: marca jugadores con "Seguir" y revisa aqui precio, clausula y forma antes de fichar.</p>
+            </div>
+          </div>
+          <div id="watchlistPanel"><div class="empty">Cargando watchlist...</div></div>
+        </section>
+        <section class="card">
+          <div class="sectionHead">
+            <div>
+                <h2>Actividad reciente</h2>
+                <p>Movimientos que explican como se esta moviendo el mercado ahora mismo.</p>
+            </div>
+          </div>
+          <div id="marketActivityPanel"><div class="empty">Cargando movimientos...</div></div>
+        </section>
+        <section class="card">
+          <div class="sectionHead">
+            <div>
                 <h2>Mercado OP15</h2>
                 <p>Explora a todos los jugadores, busca por nombre o tier y revisa que copias siguen libres y cuales ya estan en manos de otros managers.</p>
             </div>
@@ -418,6 +442,7 @@
               <label class="control"><span>Orden</span><select id="marketSort"><option value="vbf_full_rank">VadeBack (Completa)</option><option value="weekly_desc">Mejor jornada anterior</option><option value="price_desc">Precio mas alto</option><option value="price_asc">Precio mas bajo</option><option value="wins_desc">Mas ganados</option><option value="name_asc">Nombre A-Z</option></select></label>
             </div>
           </div>
+          <div class="marketQuickFilters" id="marketQuickFilters"></div>
           <div class="empty hidden" id="marketEmpty">No hay jugadores que coincidan con este filtro.</div>
           <div class="playerGrid" id="marketGrid"></div>
         </section>
@@ -425,6 +450,6 @@
     </div>
   </div>
   <script src="fantasy-player-portraits.js?v=20260504a"></script>
-  <script src="fantasy.js?v=20260504e"></script>
+  <script src="fantasy.js?v=20260505e"></script>
 </body>
 </html>

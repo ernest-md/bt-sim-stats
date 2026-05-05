@@ -2060,3 +2060,1625 @@ body[data-fantasy-view="team"] #squadGrid .squadCard .playerVisual{
     left:8px;
   }
 }
+
+/* Product finish pass */
+body[data-fantasy-view],
+body[data-fantasy-view] *{
+  letter-spacing:0 !important;
+}
+
+body[data-fantasy-view]{
+  background:#121316;
+  color:#111827;
+}
+
+body[data-fantasy-view]::before{
+  background:
+    linear-gradient(120deg,rgba(18,19,22,.94) 0%,rgba(32,24,22,.82) 46%,rgba(12,39,36,.86) 100%),
+    linear-gradient(180deg,rgba(18,19,22,.2),rgba(18,19,22,.72)),
+    url("bg.png");
+  background-size:cover;
+  background-position:center;
+}
+
+body[data-fantasy-view] .topbar{
+  background:rgba(18,19,22,.84);
+  border-bottom-color:rgba(255,255,255,.1);
+}
+
+body[data-fantasy-view] .wrap{
+  max-width:1480px;
+  padding:18px 18px 48px;
+}
+
+body[data-fantasy-view] .hero{
+  display:grid;
+  gap:18px;
+  padding:24px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.16);
+  background:
+    linear-gradient(135deg,rgba(17,24,39,.94),rgba(20,83,45,.52)),
+    linear-gradient(90deg,rgba(180,83,9,.18),rgba(20,184,166,.18)),
+    url("bg.png");
+  background-size:cover;
+  background-position:center;
+  box-shadow:0 24px 70px rgba(0,0,0,.34);
+}
+
+body[data-fantasy-view] .hero::after{
+  background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%);
+}
+
+body[data-fantasy-view] .heroTop{
+  align-items:flex-start;
+}
+
+body[data-fantasy-view] .hero h1{
+  max-width:760px;
+  font-size:40px;
+  line-height:1.04;
+  letter-spacing:0;
+}
+
+body[data-fantasy-view] .hero p{
+  max-width:720px;
+  color:rgba(255,255,255,.82);
+  font-size:15px;
+}
+
+body[data-fantasy-view] .eyebrow{
+  color:rgba(252,211,77,.92);
+}
+
+body[data-fantasy-view] .hero .pillRow{
+  justify-content:flex-end;
+}
+
+body[data-fantasy-view] .heroStats{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  margin-top:0;
+}
+
+body[data-fantasy-view] .heroStat{
+  min-height:88px;
+  border-radius:8px;
+  border-color:rgba(255,255,255,.14);
+  background:rgba(255,255,255,.1);
+}
+
+body[data-fantasy-view] .heroStat::before{
+  background:#14b8a6;
+}
+
+body[data-fantasy-view] .heroStat b{
+  font-size:32px;
+}
+
+body[data-fantasy-view] .heroStat span{
+  color:rgba(255,255,255,.72);
+  font-size:12px;
+}
+
+.fantasyTabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  width:max-content;
+  max-width:100%;
+  padding:6px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:10px;
+  background:rgba(255,255,255,.08);
+}
+
+.fantasyTabs a{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  min-width:92px;
+  padding:8px 14px;
+  border-radius:7px;
+  color:rgba(255,255,255,.82);
+  text-decoration:none;
+  font-size:13px;
+  font-weight:1000;
+}
+
+.fantasyTabs a:hover{
+  color:#fff;
+  background:rgba(255,255,255,.09);
+}
+
+.fantasyTabs a.is-current{
+  color:#111827;
+  background:#fff;
+}
+
+body[data-fantasy-view] .card,
+body[data-fantasy-view] .subPanel,
+body[data-fantasy-view] .empty,
+body[data-fantasy-view] .helper,
+body[data-fantasy-view] .fact,
+body[data-fantasy-view] .modalCard,
+body[data-fantasy-view] .confirmCard,
+body[data-fantasy-view] .chartCard,
+body[data-fantasy-view] .standingRow,
+body[data-fantasy-view] .overviewFeatureCard,
+body[data-fantasy-view] .scoutCard,
+body[data-fantasy-view] .rosterTableRow,
+body[data-fantasy-view] .marketCard{
+  border-radius:8px;
+}
+
+body[data-fantasy-view] .card{
+  padding:22px;
+  border-color:rgba(255,255,255,.12);
+  background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(246,248,251,.97));
+  box-shadow:0 16px 42px rgba(17,24,39,.14);
+}
+
+body[data-fantasy-view] .card::before{
+  background:linear-gradient(180deg,rgba(255,255,255,.52),transparent 22%);
+}
+
+body[data-fantasy-view] .sectionHead{
+  align-items:flex-start;
+}
+
+body[data-fantasy-view] .sectionHead h2,
+body[data-fantasy-view] .teamRosterHead h3{
+  font-size:22px;
+  line-height:1.12;
+}
+
+body[data-fantasy-view] .sectionHead p,
+body[data-fantasy-view] .teamRosterHead p{
+  color:#5b6778;
+  font-size:13px;
+}
+
+body[data-fantasy-view] .btn{
+  border-radius:8px;
+}
+
+body[data-fantasy-view] .btnPrimary{
+  background:linear-gradient(135deg,#0f766e,#2563eb);
+  border-color:rgba(15,118,110,.28);
+}
+
+body[data-fantasy-view] .btnGhost{
+  border-color:rgba(255,255,255,.2);
+  background:rgba(255,255,255,.09);
+}
+
+body[data-fantasy-view] .pill,
+body[data-fantasy-view] .signalTag,
+body[data-fantasy-view] .marketSignal,
+body[data-fantasy-view] .trendBreakdownChip{
+  border-radius:999px;
+}
+
+body[data-fantasy-view] .pill.strong,
+body[data-fantasy-view] .signalTag.good,
+body[data-fantasy-view] .marketSignal.good{
+  background:rgba(20,184,166,.12);
+  border-color:rgba(20,184,166,.22);
+  color:#0f766e;
+}
+
+.factProduct{
+  min-height:126px;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.96));
+}
+
+.factProduct strong{
+  margin-top:8px;
+  font-size:22px;
+}
+
+.factProduct strong .coinInline{
+  font-size:22px;
+}
+
+.factProduct small{
+  color:#5b6778;
+}
+
+.setupStepGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+
+.setupStep{
+  display:grid;
+  gap:4px;
+  min-height:76px;
+  padding:12px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:rgba(248,250,252,.94);
+}
+
+.setupStep strong{
+  color:#111827;
+  font-size:20px;
+  font-weight:1000;
+  line-height:1.05;
+}
+
+.setupStep strong .coinInline{
+  font-size:18px;
+}
+
+.setupStep span{
+  color:#64748b;
+  font-size:12px;
+  font-weight:900;
+}
+
+.setupActions{
+  margin-top:14px;
+}
+
+body[data-fantasy-view] .marketFilters{
+  border-radius:8px;
+  background:#f8fafc;
+}
+
+body[data-fantasy-view] .control input,
+body[data-fantasy-view] .control select{
+  border-radius:8px;
+}
+
+body[data-fantasy-view="market"] #marketGrid{
+  grid-template-columns:repeat(auto-fill,minmax(188px,1fr));
+  gap:16px;
+}
+
+.marketCardMinimal{
+  display:grid;
+  gap:10px;
+  padding:10px;
+}
+
+.marketCardMinimal .playerVisual{
+  border-radius:8px;
+}
+
+.marketCardInfo{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+
+.marketCardInfo span{
+  min-width:0;
+  padding:8px 9px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:rgba(248,250,252,.96);
+}
+
+.marketCardInfo strong{
+  display:block;
+  overflow:hidden;
+  color:#111827;
+  font-size:12px;
+  font-weight:1000;
+  line-height:1.1;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.marketCardInfo small{
+  display:block;
+  margin-top:4px;
+  color:#64748b;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.marketCardSignal{
+  grid-column:1 / -1;
+  text-align:center;
+  color:#475569;
+  font-size:11px;
+  font-weight:1000;
+}
+
+.marketCardSignal.good{
+  background:rgba(20,184,166,.1);
+  border-color:rgba(20,184,166,.2);
+  color:#0f766e;
+}
+
+.marketCardSignal.soft{
+  background:rgba(226,232,240,.88);
+}
+
+.transferCompare{
+  display:grid;
+  gap:12px;
+  padding:12px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(248,250,252,.98),rgba(241,245,249,.92));
+}
+
+.transferCompareHead span{
+  display:block;
+  color:#64748b;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.transferCompareHead strong{
+  display:block;
+  margin-top:4px;
+  color:#111827;
+  font-size:14px;
+  font-weight:1000;
+  line-height:1.25;
+}
+
+.transferCompareGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.comparePlayerCard{
+  display:grid;
+  grid-template-columns:74px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  min-height:112px;
+  padding:10px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:rgba(255,255,255,.96);
+}
+
+.comparePlayerCard.empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-style:dashed;
+  background:rgba(255,255,255,.72);
+}
+
+.comparePlayerEmpty{
+  color:#64748b;
+  font-size:13px;
+  font-weight:900;
+  line-height:1.35;
+  text-align:center;
+}
+
+.comparePlayerVisual{
+  position:relative;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  border-radius:8px;
+  background:linear-gradient(165deg,#334155,#0f172a);
+}
+
+.comparePlayerVisual img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 12%;
+}
+
+.comparePlayerBody{
+  display:grid;
+  gap:4px;
+  min-width:0;
+}
+
+.comparePlayerBody > span{
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.comparePlayerBody strong{
+  overflow:hidden;
+  color:#111827;
+  font-size:16px;
+  font-weight:1000;
+  line-height:1.05;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.comparePlayerBody small{
+  color:#64748b;
+  font-size:11px;
+  font-weight:900;
+}
+
+.comparePlayerTags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:2px;
+}
+
+.comparePlayerTags span{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:4px 8px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:999px;
+  background:rgba(248,250,252,.94);
+  color:#475569;
+  font-size:10px;
+  font-weight:900;
+  line-height:1.1;
+}
+
+.transferCompareMetrics{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+
+.compareMetric{
+  display:grid;
+  gap:4px;
+  padding:9px 10px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:#fff;
+}
+
+.compareMetric small{
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.compareMetric strong{
+  color:#475569;
+  font-size:13px;
+  font-weight:1000;
+}
+
+.compareMetric.good strong{
+  color:#0f766e;
+}
+
+.compareMetric.bad strong{
+  color:#b91c1c;
+}
+
+.clauseNotice{
+  border-color:rgba(220,38,38,.18);
+  background:linear-gradient(180deg,rgba(254,242,242,.98),rgba(255,255,255,.94));
+}
+
+.clauseNotice > span{
+  color:#b91c1c;
+}
+
+.noticeActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+
+.marketBadge{
+  min-width:28px;
+  width:auto;
+  height:24px;
+  padding:0 8px;
+  border-radius:999px;
+  font-size:11px;
+}
+
+body[data-fantasy-view] .buyFullBtn{
+  border-radius:8px;
+}
+
+body[data-fantasy-view] .rosterTableRow{
+  grid-template-columns:minmax(220px,1.35fr) repeat(4,minmax(0,.85fr));
+}
+
+body[data-fantasy-view] .rosterTableMetric,
+body[data-fantasy-view] .impactStats span,
+body[data-fantasy-view] .modalStat,
+body[data-fantasy-view] .ownerRow,
+body[data-fantasy-view] .portfolioChip,
+body[data-fantasy-view] .trendBreakdownChip{
+  border-radius:8px;
+}
+
+body[data-fantasy-view] .chartLine{
+  stroke:#0f766e;
+}
+
+body[data-fantasy-view] .chartPoint,
+body[data-fantasy-view] .chartPoint.won{
+  fill:#0f766e;
+}
+
+body[data-fantasy-view] .chartPoint.scoring{
+  fill:#b45309;
+}
+
+@media (max-width:920px){
+  body[data-fantasy-view] .hero h1{
+    font-size:34px;
+  }
+
+  body[data-fantasy-view] .heroStats,
+  .setupStepGrid{
+    grid-template-columns:1fr;
+  }
+
+  body[data-fantasy-view] .hero .pillRow{
+    justify-content:flex-start;
+  }
+
+  body[data-fantasy-view] .fantasyTabs{
+    width:100%;
+  }
+
+  .fantasyTabs a{
+    flex:1 1 0;
+    min-width:0;
+  }
+
+  body[data-fantasy-view] .rosterTableRow{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media (max-width:560px){
+  body[data-fantasy-view] .wrap{
+    padding:10px 10px 34px;
+  }
+
+  body[data-fantasy-view] .hero{
+    padding:18px 14px;
+  }
+
+  body[data-fantasy-view] .hero h1{
+    font-size:28px;
+  }
+
+  body[data-fantasy-view] .card{
+    padding:16px;
+  }
+
+  body[data-fantasy-view] .factGrid,
+  body[data-fantasy-view="market"] #marketGrid,
+  .marketCardInfo,
+  .transferCompareGrid,
+  .transferCompareMetrics,
+  body[data-fantasy-view] .rosterTableRow{
+    grid-template-columns:1fr;
+  }
+
+  .marketCardSignal{
+    grid-column:auto;
+  }
+}
+
+/* Visual finish pass: sharper product surface */
+body[data-fantasy-view] .wrap{
+  display:grid;
+  gap:18px;
+}
+
+body[data-fantasy-view] .hero{
+  min-height:260px;
+  align-content:start;
+  overflow:hidden;
+}
+
+body[data-fantasy-view] .heroTop,
+body[data-fantasy-view] .heroStats,
+body[data-fantasy-view] .fantasyTabs,
+body[data-fantasy-view] .pageMsg,
+body[data-fantasy-view] .schemaNote{
+  position:relative;
+  z-index:1;
+}
+
+body[data-fantasy-view] .hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.34),transparent 58%),
+    linear-gradient(180deg,rgba(255,255,255,.08),transparent 34%,rgba(0,0,0,.18));
+  z-index:0;
+}
+
+body[data-fantasy-view] .hero::after{
+  inset:auto 24px 0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.44),transparent);
+}
+
+body[data-fantasy-view="team"] .hero{
+  background:
+    linear-gradient(135deg,rgba(15,23,42,.94),rgba(88,28,135,.44)),
+    linear-gradient(90deg,rgba(20,184,166,.16),rgba(245,158,11,.14)),
+    url("bg.png");
+  background-size:cover;
+  background-position:center;
+}
+
+body[data-fantasy-view="market"] .hero{
+  background:
+    linear-gradient(135deg,rgba(15,23,42,.94),rgba(124,45,18,.46)),
+    linear-gradient(90deg,rgba(20,184,166,.14),rgba(37,99,235,.16)),
+    url("bg.png");
+  background-size:cover;
+  background-position:center;
+}
+
+body[data-fantasy-view] .hero h1{
+  text-wrap:balance;
+}
+
+body[data-fantasy-view] .hero p,
+body[data-fantasy-view] .sectionHead p,
+body[data-fantasy-view] .teamRosterHead p{
+  text-wrap:pretty;
+}
+
+body[data-fantasy-view] .heroStats{
+  align-items:stretch;
+}
+
+body[data-fantasy-view] .heroStat{
+  display:grid;
+  align-content:center;
+  gap:8px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+}
+
+body[data-fantasy-view] .heroStat::before{
+  inset:14px auto 14px 0;
+  width:3px;
+}
+
+body[data-fantasy-view] .hero .btn{
+  min-height:42px;
+  border-color:rgba(255,255,255,.18);
+}
+
+body[data-fantasy-view] .pageGrid{
+  margin-top:0;
+  gap:18px;
+}
+
+body[data-fantasy-view] .stack{
+  gap:18px;
+}
+
+body[data-fantasy-view] .card{
+  border:1px solid rgba(15,23,42,.08);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.99),rgba(248,250,252,.96)),
+    linear-gradient(135deg,rgba(20,184,166,.04),rgba(37,99,235,.035));
+}
+
+body[data-fantasy-view] .card:hover{
+  box-shadow:0 20px 52px rgba(17,24,39,.16);
+}
+
+body[data-fantasy-view] .sectionHead{
+  padding-bottom:14px;
+  border-bottom:1px solid rgba(15,23,42,.07);
+}
+
+body[data-fantasy-view] .sectionHead + .empty,
+body[data-fantasy-view] .sectionHead + .overviewList,
+body[data-fantasy-view] .sectionHead + .standingsBoard,
+body[data-fantasy-view] .sectionHead + .toolbar,
+body[data-fantasy-view] .sectionHead + .factGrid,
+body[data-fantasy-view] .sectionHead + .subPanel,
+body[data-fantasy-view] .sectionHead + #managerTrendPanel,
+body[data-fantasy-view] .sectionHead + #teamBreakdownPanel,
+body[data-fantasy-view] .sectionHead + #scoutingPanel{
+  margin-top:16px;
+}
+
+body[data-fantasy-view] .factGrid{
+  gap:12px;
+}
+
+body[data-fantasy-view] .factProduct{
+  display:grid;
+  align-content:start;
+  gap:6px;
+  border-color:rgba(15,23,42,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+body[data-fantasy-view] .subPanel,
+body[data-fantasy-view] .helper,
+body[data-fantasy-view] .empty{
+  border-color:rgba(15,23,42,.08);
+}
+
+body[data-fantasy-view] .empty{
+  color:#64748b;
+  background:linear-gradient(180deg,rgba(248,250,252,.96),rgba(241,245,249,.9));
+}
+
+body[data-fantasy-view] .helper{
+  background:linear-gradient(180deg,rgba(240,253,250,.78),rgba(248,250,252,.94));
+}
+
+body[data-fantasy-view] .fantasyTabs{
+  align-self:start;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+body[data-fantasy-view] .fantasyTabs a{
+  transition:background .16s ease,color .16s ease,transform .16s ease;
+}
+
+body[data-fantasy-view] .fantasyTabs a:hover{
+  transform:translateY(-1px);
+}
+
+body[data-fantasy-view] .fantasyTabs a.is-current{
+  box-shadow:0 10px 26px rgba(0,0,0,.18);
+}
+
+body[data-fantasy-view] .overviewFeatureCard,
+body[data-fantasy-view] .scoutCard,
+body[data-fantasy-view] .standingRow,
+body[data-fantasy-view] .rosterTableRow,
+body[data-fantasy-view] .marketCardMinimal,
+body[data-fantasy-view] .impactRow{
+  border-color:rgba(15,23,42,.08);
+  box-shadow:0 8px 18px rgba(15,23,42,.06);
+}
+
+body[data-fantasy-view] .overviewFeatureCard:hover,
+body[data-fantasy-view] .scoutCard:hover,
+body[data-fantasy-view] .standingRow[data-open-team]:hover,
+body[data-fantasy-view] .rosterTableRow:hover,
+body[data-fantasy-view] .marketCardMinimal:hover{
+  transform:translateY(-3px);
+  border-color:rgba(20,184,166,.22);
+  box-shadow:0 18px 40px rgba(15,23,42,.14);
+}
+
+body[data-fantasy-view] .standingRow::before{
+  background:linear-gradient(180deg,#14b8a6,#2563eb);
+}
+
+body[data-fantasy-view] .standingWeekBar{
+  border-radius:8px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+body[data-fantasy-view] .teamBudgetBox{
+  border-radius:8px;
+}
+
+body[data-fantasy-view] .teamBudgetAmount{
+  font-size:38px;
+}
+
+body[data-fantasy-view] #squadGrid .squadCard{
+  box-shadow:0 12px 28px rgba(15,23,42,.1);
+}
+
+body[data-fantasy-view] .rosterTable{
+  margin-top:12px;
+}
+
+body[data-fantasy-view] .rosterTableMetric{
+  min-height:58px;
+  align-content:center;
+}
+
+body[data-fantasy-view] .marketFilters{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+body[data-fantasy-view] .marketCardMinimal{
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+
+body[data-fantasy-view] .marketCardMinimal .actionRow{
+  margin-top:0;
+}
+
+body[data-fantasy-view] .marketCardInfo span{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.74);
+}
+
+body[data-fantasy-view] .buyFullBtn{
+  min-height:40px;
+}
+
+body[data-fantasy-view] .modalWrap{
+  align-items:start;
+  padding-top:46px;
+}
+
+body[data-fantasy-view] .modalCard,
+body[data-fantasy-view] .confirmCard{
+  border-color:rgba(255,255,255,.2);
+  box-shadow:0 30px 90px rgba(0,0,0,.38);
+}
+
+body[data-fantasy-view] .confirmCard{
+  width:min(720px,94vw);
+  max-height:calc(100vh - 64px);
+  overflow:auto;
+}
+
+body[data-fantasy-view] .confirmCard h3{
+  padding-right:28px;
+}
+
+body[data-fantasy-view] .confirmBody{
+  gap:14px;
+}
+
+body[data-fantasy-view] .replaceOption{
+  border-radius:8px;
+}
+
+body[data-fantasy-view] .replaceOption:has(input:checked){
+  border-color:rgba(20,184,166,.32);
+  background:rgba(240,253,250,.92);
+}
+
+body[data-fantasy-view] .noticeItem{
+  border-radius:8px;
+}
+
+body[data-fantasy-view] .clauseNotice{
+  box-shadow:0 12px 28px rgba(185,28,28,.08);
+}
+
+body[data-fantasy-view] .loadingCard{
+  border-radius:8px;
+}
+
+.pulseGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.pulseCard{
+  display:grid;
+  gap:8px;
+  min-height:142px;
+  padding:14px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,250,252,.94));
+  color:#0f172a;
+  text-align:left;
+  box-shadow:0 12px 26px rgba(15,23,42,.07);
+}
+
+button.pulseCard{
+  cursor:pointer;
+}
+
+button.pulseCard:hover{
+  transform:translateY(-2px);
+  border-color:rgba(20,184,166,.24);
+  box-shadow:0 16px 34px rgba(15,23,42,.11);
+}
+
+.pulseCard strong{
+  overflow:hidden;
+  font-size:16px;
+  font-weight:1000;
+  line-height:1.15;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.pulseCard span{
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.35;
+}
+
+.pulseKicker{
+  width:max-content;
+  max-width:100%;
+  padding:5px 8px;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#4338ca;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.pulseKicker.good{ background:rgba(20,184,166,.12); color:#0f766e; }
+.pulseKicker.hot{ background:rgba(244,63,94,.1); color:#be123c; }
+.pulseKicker.gold{ background:rgba(245,158,11,.14); color:#92400e; }
+.pulseKicker.watch{ background:rgba(99,102,241,.12); color:#3730a3; }
+.pulseKicker.soft{ background:rgba(226,232,240,.84); color:#475569; }
+
+.pulseValue{
+  align-self:end;
+  color:#111827;
+  font-size:20px;
+  font-weight:1000;
+  line-height:1;
+}
+
+.compactHelper{
+  margin-top:12px;
+  padding:10px 12px;
+  font-size:12px;
+}
+
+.activityList{
+  display:grid;
+  gap:9px;
+}
+
+.activityItem{
+  display:grid;
+  grid-template-columns:104px minmax(0,1fr);
+  gap:12px;
+  align-items:center;
+  padding:11px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:rgba(255,255,255,.94);
+}
+
+.activityItem.good{ border-color:rgba(20,184,166,.18); }
+.activityItem.hot{ border-color:rgba(244,63,94,.18); }
+.activityItem.gold{ border-color:rgba(245,158,11,.2); }
+
+.activityBadge{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  padding:6px 8px;
+  border-radius:8px;
+  background:#f1f5f9;
+  color:#334155;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.activityItem.good .activityBadge{ background:rgba(20,184,166,.12); color:#0f766e; }
+.activityItem.hot .activityBadge{ background:rgba(244,63,94,.1); color:#be123c; }
+.activityItem.gold .activityBadge{ background:rgba(245,158,11,.14); color:#92400e; }
+
+.activityBody{
+  min-width:0;
+}
+
+.activityBody > strong,
+.activityBody > span,
+.activityBody > small{
+  display:block;
+  min-width:0;
+}
+
+.activityBody > strong{
+  overflow:hidden;
+  color:#111827;
+  font-size:13px;
+  font-weight:1000;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.activityBody > span{
+  margin-top:3px;
+  color:#475569;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.35;
+}
+
+.activityBody > small{
+  margin-top:5px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:900;
+}
+
+.activityBody > small .coinInline{
+  display:inline-flex;
+}
+
+.textAction{
+  display:inline;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#2563eb;
+  font:inherit;
+  font-weight:1000;
+  cursor:pointer;
+}
+
+.textAction:hover{
+  text-decoration:underline;
+}
+
+.marketQuickFilters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 12px;
+}
+
+.marketFilterChip{
+  min-height:34px;
+  padding:7px 11px;
+  border:1px solid rgba(15,23,42,.1);
+  border-radius:8px;
+  background:#fff;
+  color:#334155;
+  font-size:12px;
+  font-weight:1000;
+  cursor:pointer;
+}
+
+.marketFilterChip:hover,
+.marketFilterChip.active{
+  border-color:rgba(20,184,166,.28);
+  background:rgba(240,253,250,.94);
+  color:#0f766e;
+}
+
+.marketCardHead{
+  position:relative;
+}
+
+.watchButton{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:36px;
+  padding:8px 11px;
+  border:1px solid rgba(15,23,42,.12);
+  border-radius:8px;
+  background:rgba(255,255,255,.94);
+  color:#334155;
+  font-size:12px;
+  font-weight:1000;
+  cursor:pointer;
+  box-shadow:0 10px 22px rgba(15,23,42,.08);
+}
+
+.watchButton span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#4338ca;
+  font-size:11px;
+  font-weight:1000;
+}
+
+.watchButton.active{
+  border-color:rgba(99,102,241,.24);
+  background:#eef2ff;
+  color:#3730a3;
+}
+
+.watchButton.compact{
+  min-height:30px;
+  padding:6px 8px;
+  font-size:11px;
+}
+
+.marketCardHead > .watchButton{
+  position:absolute;
+  top:8px;
+  right:8px;
+  z-index:4;
+}
+
+.marketBadge.watch{
+  background:#4f46e5;
+}
+
+.marketCardMinimal.isWatched{
+  border-color:rgba(99,102,241,.28);
+  box-shadow:0 18px 40px rgba(79,70,229,.12);
+}
+
+.watchGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:10px;
+}
+
+.watchCard{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:rgba(255,255,255,.96);
+}
+
+.watchMain{
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  min-width:0;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#0f172a;
+  text-align:left;
+  cursor:pointer;
+}
+
+.watchAvatar{
+  position:relative;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  border-radius:8px;
+  background:linear-gradient(160deg,#334155,#0f172a);
+}
+
+.watchAvatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.watchCopy{
+  min-width:0;
+}
+
+.watchCopy strong,
+.watchCopy span{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.watchCopy strong{
+  color:#111827;
+  font-size:14px;
+  font-weight:1000;
+}
+
+.watchCopy span{
+  margin-top:3px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+}
+
+.watchCopy .signalTag{
+  display:inline-flex;
+  width:auto;
+  max-width:100%;
+  margin-top:7px;
+}
+
+.watchSide{
+  display:grid;
+  justify-items:end;
+  gap:8px;
+}
+
+.watchSide > span{
+  display:grid;
+  gap:3px;
+  justify-items:end;
+  color:#111827;
+  font-size:12px;
+  font-weight:1000;
+}
+
+.watchSide small{
+  color:#64748b;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.playerInsightPanel{
+  display:grid;
+  gap:12px;
+  padding:13px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(248,250,252,.98),rgba(255,255,255,.94));
+}
+
+.playerInsightHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:start;
+  gap:12px;
+}
+
+.playerInsightHead span:first-child{
+  display:block;
+  color:#64748b;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.playerInsightHead strong{
+  display:block;
+  margin-top:4px;
+  color:#111827;
+  font-size:16px;
+  font-weight:1000;
+  line-height:1.2;
+}
+
+.playerInsightGrid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+
+.playerInsightGrid span{
+  min-width:0;
+  padding:9px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:8px;
+  background:rgba(255,255,255,.9);
+}
+
+.playerInsightGrid small,
+.playerInsightGrid strong{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.playerInsightGrid small{
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+.playerInsightGrid strong{
+  margin-top:4px;
+  color:#111827;
+  font-size:13px;
+  font-weight:1000;
+}
+
+@media (max-width:920px){
+  body[data-fantasy-view] .hero{
+    min-height:0;
+  }
+
+  body[data-fantasy-view] .heroTop{
+    display:grid;
+  }
+
+  body[data-fantasy-view] .heroStats{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  body[data-fantasy-view] .heroStat{
+    min-height:76px;
+  }
+}
+
+@media (max-width:700px){
+  body[data-fantasy-view] .heroStats{
+    grid-template-columns:1fr;
+  }
+
+  body[data-fantasy-view] .heroStat{
+    min-height:68px;
+  }
+
+  .pulseGrid,
+  .playerInsightGrid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .activityItem,
+  .watchCard{
+    grid-template-columns:1fr;
+  }
+
+  .watchSide{
+    justify-items:start;
+  }
+
+  body[data-fantasy-view] .sectionHead{
+    padding-bottom:12px;
+  }
+
+  .comparePlayerCard{
+    grid-template-columns:62px minmax(0,1fr);
+  }
+
+  body[data-fantasy-view] .modalWrap{
+    padding:14px;
+    align-items:start;
+  }
+
+  body[data-fantasy-view] .confirmCard{
+    max-height:calc(100vh - 28px);
+  }
+}
+
+@media (max-width:420px){
+  body[data-fantasy-view] .fantasyTabs{
+    padding:4px;
+    gap:4px;
+  }
+
+  body[data-fantasy-view] .fantasyTabs a{
+    min-height:34px;
+    padding:7px 8px;
+    font-size:12px;
+  }
+
+  .comparePlayerTags span{
+    width:100%;
+    justify-content:center;
+  }
+}
+
+/* Interaction FX */
+.fantasyToastHost{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:240000;
+  display:grid;
+  gap:10px;
+  width:min(360px,calc(100vw - 28px));
+  pointer-events:none;
+}
+
+.fantasyToast{
+  display:grid;
+  gap:4px;
+  padding:13px 14px;
+  border:1px solid rgba(255,255,255,.16);
+  border-left:4px solid #2563eb;
+  border-radius:8px;
+  background:rgba(15,23,42,.94);
+  color:#fff;
+  box-shadow:0 20px 50px rgba(0,0,0,.28);
+  backdrop-filter:blur(14px);
+  animation:fantasyToastIn .22s ease-out both;
+  pointer-events:auto;
+}
+
+.fantasyToast.ok{
+  border-left-color:#14b8a6;
+}
+
+.fantasyToast.err{
+  border-left-color:#dc2626;
+}
+
+.fantasyToast strong{
+  font-size:13px;
+  font-weight:1000;
+  line-height:1.2;
+}
+
+.fantasyToast span{
+  color:rgba(255,255,255,.76);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.fantasyToast.isLeaving{
+  animation:fantasyToastOut .2s ease-in both;
+}
+
+.btn.isBusy{
+  cursor:progress;
+}
+
+.btnSpinner{
+  width:14px;
+  height:14px;
+  border-radius:999px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  animation:fantasySpin .72s linear infinite;
+}
+
+body[data-fantasy-view] .modalCard,
+body[data-fantasy-view] .confirmCard,
+body[data-fantasy-view] .loadingCard{
+  animation:fantasyModalIn .18s ease-out both;
+}
+
+body[data-fantasy-view] .transferCompare,
+body[data-fantasy-view] .comparePlayerCard,
+body[data-fantasy-view] .compareMetric,
+body[data-fantasy-view] .noticeItem,
+body[data-fantasy-view] .marketCardInfo{
+  animation:fantasySoftIn .2s ease-out both;
+}
+
+body[data-fantasy-view] .compareMetric.good{
+  background:linear-gradient(180deg,rgba(240,253,250,.98),rgba(255,255,255,.98));
+  border-color:rgba(20,184,166,.22);
+}
+
+body[data-fantasy-view] .compareMetric.bad{
+  background:linear-gradient(180deg,rgba(254,242,242,.98),rgba(255,255,255,.98));
+  border-color:rgba(220,38,38,.18);
+}
+
+body[data-fantasy-view] .noticeItem.isDismissing{
+  animation:fantasyNoticeOut .18s ease-in both;
+}
+
+body[data-fantasy-view] .playerPhoto,
+body[data-fantasy-view] .standingRosterVisual img,
+body[data-fantasy-view] .overviewFeatureVisual img,
+body[data-fantasy-view] .scoutVisual img,
+body[data-fantasy-view] .comparePlayerVisual img,
+body[data-fantasy-view] .rosterTableAvatar img{
+  transition:transform .22s ease,filter .22s ease;
+}
+
+body[data-fantasy-view] .marketCardMinimal:hover .playerPhoto,
+body[data-fantasy-view] .overviewFeatureCard:hover .overviewFeatureVisual img,
+body[data-fantasy-view] .scoutCard:hover .scoutVisual img,
+body[data-fantasy-view] .standingRosterCard:hover .standingRosterVisual img,
+body[data-fantasy-view] .rosterTableRow:hover .rosterTableAvatar img{
+  transform:scale(1.045);
+  filter:saturate(1.05);
+}
+
+body[data-fantasy-view] .buyFullBtn:not(:disabled){
+  position:relative;
+  overflow:hidden;
+}
+
+body[data-fantasy-view] .buyFullBtn:not(:disabled)::after{
+  content:"";
+  position:absolute;
+  inset:-40% auto -40% -60%;
+  width:45%;
+  transform:skewX(-18deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);
+  transition:transform .42s ease;
+}
+
+body[data-fantasy-view] .marketCardMinimal:hover .buyFullBtn:not(:disabled)::after{
+  transform:translateX(420%) skewX(-18deg);
+}
+
+body[data-fantasy-view] .heroStat b.isCounting{
+  color:#fef3c7;
+  text-shadow:0 0 18px rgba(250,204,21,.22);
+}
+
+body[data-fantasy-view][aria-busy="true"] .heroStat,
+body[data-fantasy-view][aria-busy="true"] .card{
+  position:relative;
+  overflow:hidden;
+}
+
+body[data-fantasy-view][aria-busy="true"] .heroStat::after,
+body[data-fantasy-view][aria-busy="true"] .card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.26),transparent);
+  animation:fantasyShimmer 1.2s ease-in-out infinite;
+  pointer-events:none;
+}
+
+body[data-fantasy-view] .clauseNotice{
+  animation:fantasyClauseGlow 2.2s ease-in-out infinite;
+}
+
+@keyframes fantasySpin{
+  to{ transform:rotate(360deg); }
+}
+
+@keyframes fantasyToastIn{
+  from{ opacity:0; transform:translateY(10px) scale(.98); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+
+@keyframes fantasyToastOut{
+  from{ opacity:1; transform:translateY(0) scale(1); }
+  to{ opacity:0; transform:translateY(8px) scale(.98); }
+}
+
+@keyframes fantasyModalIn{
+  from{ opacity:0; transform:translateY(8px) scale(.985); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+
+@keyframes fantasySoftIn{
+  from{ opacity:0; transform:translateY(6px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+@keyframes fantasyNoticeOut{
+  to{ opacity:0; transform:translateX(12px); max-height:0; padding-top:0; padding-bottom:0; margin:0; }
+}
+
+@keyframes fantasyShimmer{
+  to{ transform:translateX(100%); }
+}
+
+@keyframes fantasyClauseGlow{
+  0%,100%{ box-shadow:0 12px 28px rgba(185,28,28,.08); }
+  50%{ box-shadow:0 0 0 4px rgba(220,38,38,.08),0 18px 36px rgba(185,28,28,.13); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .fantasyToast,
+  .fantasyToast.isLeaving,
+  .btnSpinner,
+  body[data-fantasy-view] .modalCard,
+  body[data-fantasy-view] .confirmCard,
+  body[data-fantasy-view] .loadingCard,
+  body[data-fantasy-view] .transferCompare,
+  body[data-fantasy-view] .comparePlayerCard,
+  body[data-fantasy-view] .compareMetric,
+  body[data-fantasy-view] .noticeItem,
+  body[data-fantasy-view] .marketCardInfo,
+  body[data-fantasy-view][aria-busy="true"] .heroStat::after,
+  body[data-fantasy-view][aria-busy="true"] .card::after,
+  body[data-fantasy-view] .clauseNotice{
+    animation:none !important;
+  }
+
+  body[data-fantasy-view] .playerPhoto,
+  body[data-fantasy-view] .standingRosterVisual img,
+  body[data-fantasy-view] .overviewFeatureVisual img,
+  body[data-fantasy-view] .scoutVisual img,
+  body[data-fantasy-view] .comparePlayerVisual img,
+  body[data-fantasy-view] .rosterTableAvatar img,
+  body[data-fantasy-view] .fantasyTabs a{
+    transition:none !important;
+  }
+}
