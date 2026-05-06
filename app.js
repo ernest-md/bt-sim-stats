@@ -362,6 +362,7 @@
         profile: null,
         isLoggedIn: false,
         isMember: false,
+        hasFantasy: false,
         isAdmin: false,
         isPrivileged: false
       };
@@ -373,7 +374,7 @@
     if (!profile && sb){
       const { data } = await sb
         .from("profiles")
-        .select("id,username,display_name,avatar_url,app_role,member")
+        .select("id,username,display_name,avatar_url,app_role,member,fantasy")
         .eq("id", user.id)
         .maybeSingle();
       profile = data || null;
@@ -385,6 +386,7 @@
       profile: profile || null,
       isLoggedIn: true,
       isMember: profile?.member === true,
+      hasFantasy: profile?.fantasy === true,
       isAdmin: profile?.app_role === "admin",
       isPrivileged: profile?.app_role === "admin" || profile?.app_role === "vdj"
     };
@@ -409,7 +411,8 @@
     const indexHref = opts.indexHref || appPageHref("index.html");
     const requireAdmin = opts.requireAdmin === true || bodyDataset.requiresAdmin === "1";
     const requirePrivileged = opts.requirePrivileged === true || bodyDataset.requiresPrivileged === "1";
-    const allowNonMember = opts.allowNonMember === true || requirePrivileged || isIndexPage() || isProfilePage();
+    const requireFantasy = opts.requireFantasy === true || bodyDataset.requiresFantasy === "1";
+    const allowNonMember = opts.allowNonMember === true || requirePrivileged || requireFantasy || isIndexPage() || isProfilePage();
 
     try{
       const accessState = await resolveAccessState(sb);
@@ -422,6 +425,10 @@
         return { allowed: false, redirected: true, accessState };
       }
       if (requirePrivileged && !accessState.isPrivileged){
+        window.location.replace(indexHref);
+        return { allowed: false, redirected: true, accessState };
+      }
+      if (requireFantasy && !accessState.hasFantasy && !accessState.isPrivileged){
         window.location.replace(indexHref);
         return { allowed: false, redirected: true, accessState };
       }
@@ -593,10 +600,13 @@
     const restrictedLinks = Array.from(document.querySelectorAll('a[data-vdbf-only="1"]'));
     const adminLinks = Array.from(document.querySelectorAll('a[data-admin-only="1"]'));
     const privilegedLinks = Array.from(document.querySelectorAll('a[data-privileged-only="1"]'));
-    const fantasyGroups = Array.from(document.querySelectorAll("#vadeFantasyMenu"))
-      .map((menu) => menu.closest(".navInlineGroup"))
-      .filter(Boolean);
-    const privilegedItems = Array.from(new Set([...privilegedLinks, ...fantasyGroups]));
+    const fantasyGroups = Array.from(document.querySelectorAll('[data-fantasy-nav="1"]'));
+    const fantasyNavLinks = Array.from(new Set(fantasyGroups.flatMap((group) => {
+      return Array.from(group.querySelectorAll('a[href*="fantasy"]'));
+    })));
+    const fantasyVdbfLinks = Array.from(new Set(fantasyGroups.flatMap((group) => {
+      return Array.from(group.querySelectorAll('a[href*="vade-back-fight"]'));
+    })));
 
     restrictedLinks.forEach((a) => {
       a.style.display = "none";
@@ -604,7 +614,10 @@
     adminLinks.forEach((a) => {
       a.style.display = "none";
     });
-    privilegedItems.forEach((item) => {
+    privilegedLinks.forEach((item) => {
+      item.style.display = "none";
+    });
+    fantasyGroups.forEach((item) => {
       item.style.display = "none";
     });
 
@@ -621,10 +634,20 @@
 
       const isAdmin = accessState.isAdmin;
       const isPrivileged = accessState.isPrivileged === true;
+      const canUseFantasy = accessState.hasFantasy === true || isPrivileged;
       const membersLink = privilegedLinks.find((a) => /members\.html/i.test(String(a.getAttribute("href") || "")));
       const membersHref = membersLink?.getAttribute("href") || appPageHref("members.html");
 
-      privilegedItems.forEach((item) => {
+      privilegedLinks.forEach((item) => {
+        item.style.display = isPrivileged ? "" : "none";
+      });
+      fantasyGroups.forEach((item) => {
+        item.style.display = canUseFantasy ? "" : "none";
+      });
+      fantasyNavLinks.forEach((item) => {
+        item.style.display = canUseFantasy ? "" : "none";
+      });
+      fantasyVdbfLinks.forEach((item) => {
         item.style.display = isPrivileged ? "" : "none";
       });
 
@@ -784,7 +807,7 @@
         const sb = createClient();
         const accessState = await resolveAccessState(sb);
         const user = accessState?.user || null;
-        if (!user || accessState?.isPrivileged !== true){
+        if (!user || (accessState?.hasFantasy !== true && accessState?.isPrivileged !== true)){
           setFantasyNavAlertBadge(0);
           return 0;
         }

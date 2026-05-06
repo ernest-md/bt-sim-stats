@@ -36,7 +36,7 @@
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
-  const PLAYER_POOL_CACHE_VERSION = '20260506h';
+  const PLAYER_POOL_CACHE_VERSION = '20260506l';
   const PLAYER_POOL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const PLAYER_POOL_BACKGROUND_REFRESH_MS = 45 * 60 * 1000;
   const TEAM_ROUNDS_SELECT = 'season,round_key,round_label,round_order,team_id,weekly_points,reward_coins,transfers_used';
@@ -166,6 +166,7 @@
     loadingPlayers: false,
     loadingLeague: false,
     syncingRound: false,
+    adminActionInFlight: false,
     refreshPromise: null,
     currentRound: null,
     sheetRound: null,
@@ -895,8 +896,7 @@
   }
 
   function marketOpenNow(){
-    const parts = madridNowParts();
-    return !['Sat', 'Sun'].includes(parts.weekday);
+    return true;
   }
 
   function computeStreak(values){
@@ -1525,7 +1525,7 @@
   async function loadCurrentProfile(user){
     if (!user?.id){ state.currentProfile = null; return null; }
     try{
-      const { data, error } = await withTimeout(readSb.from('profiles').select('id,username,display_name,avatar_url,member,fantasy').eq('id', user.id).maybeSingle(), 'perfil actual');
+      const { data, error } = await withTimeout(readSb.from('profiles').select('id,username,display_name,avatar_url,member,fantasy,app_role').eq('id', user.id).maybeSingle(), 'perfil actual');
       if (error) throw error;
       state.currentProfile = data || null;
     } catch (_error){
@@ -1829,8 +1829,9 @@
     return Array.from(bySlug.values());
   }
 
-  async function syncPlayerPoolToBackend(){
-    if (currentPlayerPoolSourceKey() !== 'VADE') return false;
+  async function syncPlayerPoolToBackend(options){
+    const opts = options || {};
+    if (currentPlayerPoolSourceKey() !== 'VADE' && opts.allowCurrentSource !== true) return false;
     if (!state.currentUser || state.schemaReady === false || !state.sheetRound?.key || !state.poolPlayers.length) return;
     const roundKey = String(state.sheetRound.key || '');
     if (state.poolSyncFailedRoundKey === roundKey && Date.now() - Number(state.poolSyncFailedAt || 0) < 10 * 60 * 1000) return false;
@@ -2121,6 +2122,10 @@
     };
   }
 
+  function isFantasyAdmin(){
+    return String(state.currentProfile?.app_role || '').trim().toLowerCase() === 'admin';
+  }
+
   function getTeamRound(teamId, roundKey){
     return state.teamRounds.find((row) => String(row.team_id) === String(teamId) && String(row.round_key) === String(roundKey || '')) || null;
   }
@@ -2180,6 +2185,19 @@
     const currentKey = String(displayRoundMeta()?.round_key || '');
     if (!currentKey) return 0;
     return Number(getTeamRound(teamId, currentKey)?.reward_coins || 0);
+  }
+
+  function liveWeeklyPointsForRoster(roster, team, roundKey){
+    return (roster || []).reduce((sum, entry) => {
+      const player = entry?.player || playerForRosterRow(entry);
+      if (!player) return sum;
+      const roundEntry = roundKey ? historyEntryForRound(player, roundKey) : null;
+      const basePoints = roundEntry
+        ? Number(roundEntry.fantasy_points || 0)
+        : Number(player.currentFantasyPoints || 0);
+      const isCaptain = String(team?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
+      return sum + (isCaptain ? basePoints * config().captainMultiplier : basePoints);
+    }, 0);
   }
 
   function currentWeekTeamRows(){
@@ -2551,15 +2569,22 @@
     });
 
     const teamById = new Map(state.seasonTeams.map((team) => [String(team.id), team]));
+    const displayRound = displayRoundMeta();
+    const displayRoundKey = String(displayRound?.round_key || state.currentRound?.key || '');
     const standings = state.seasonTeams.map((team) => {
       const roster = rosterByTeam.get(String(team.id)) || [];
-      const weeklyPoints = storedWeeklyPoints(team.id);
+      const weeklyState = getTeamRound(team.id, displayRoundKey);
+      const syncedWeeklyPoints = Number(weeklyState?.weekly_points || 0);
+      const hasSyncedWeeklyPoints = weeklyState && (Number(weeklyState.weekly_points || 0) !== 0 || roundMetaForKey(displayRoundKey)?.rewards_applied === true);
+      const liveWeeklyPoints = liveWeeklyPointsForRoster(roster, team, displayRoundKey);
+      const weeklyPoints = hasSyncedWeeklyPoints ? syncedWeeklyPoints : liveWeeklyPoints;
       const coachName = profileNameForUser(team.user_id);
       const teamName = String(team.team_name || '').trim() || coachName || 'Equipo';
-      const weeklyState = getTeamRound(team.id, state.currentRound?.key || '');
       const players = roster
         .map((row) => ({ ...row, player: playerForRosterRow(row) }))
         .sort((a, b) => (a.player.rank || 9999) - (b.player.rank || 9999) || collator.compare(a.player.name || '', b.player.name || ''));
+      const storedTotal = storedGeneralPoints(team);
+      const generalPoints = storedTotal + (!hasSyncedWeeklyPoints ? weeklyPoints : 0);
       return {
         id: String(team.id),
         userId: String(team.user_id),
@@ -2568,7 +2593,7 @@
         coins: Number(team.coins || 0),
         rosterCount: roster.length,
         weeklyPoints,
-        generalPoints: storedGeneralPoints(team),
+        generalPoints,
         rewardCoins: Number(weeklyState?.reward_coins || weeklyRewardForPoints(weeklyPoints)),
         transfersUsed: Number(weeklyState?.transfers_used || 0),
         players
@@ -2849,6 +2874,38 @@
       const count = marketActivityRows(99).length;
       activityButton.textContent = count ? `Actividad (${Math.min(count, 99)})` : 'Actividad';
     }
+    renderAdminRoundControls();
+  }
+
+  function adminRoundMeta(){
+    return state.sheetRound || state.currentRound || null;
+  }
+
+  function renderAdminRoundControls(){
+    const host = $('fantasyAdminRoundControls');
+    if (!host) return;
+    if (!isFantasyAdmin()){
+      host.classList.add('hidden');
+      host.innerHTML = '';
+      return;
+    }
+    const round = adminRoundMeta();
+    const marketStatus = config().isOpen && marketOpenNow() ? 'Mercado abierto' : 'Mercado cerrado';
+    const source = currentPlayerPoolSourceKey();
+    host.classList.remove('hidden');
+    host.innerHTML = `<div class="fantasyAdminPanel">
+      <div class="fantasyAdminInfo">
+        <span>Panel admin</span>
+        <strong>${escapeHtml(round?.label || 'Sin jornada')}</strong>
+        <small>${escapeHtml(marketStatus)} · Datos ${escapeHtml(source)}</small>
+      </div>
+      <div class="fantasyAdminActions">
+        <button class="btn btnGhost" type="button" data-admin-round-action="lock" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Bloquear jornada</button>
+        <button class="btn btnGhost" type="button" data-admin-round-action="unlock" ${state.adminActionInFlight ? 'disabled' : ''}>Desbloquear jornada</button>
+        <button class="btn btnGhost" type="button" data-admin-round-action="snapshot" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Capturar snapshot</button>
+        <button class="btn btnPrimary" type="button" data-admin-round-action="process" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Procesar jornada fantasy</button>
+      </div>
+    </div>`;
   }
 
   function openPlayerModal(slug, source){
@@ -3536,7 +3593,7 @@
     const latestTeamRound = closedRound ? getTeamRound(state.currentTeam.id, closedRound.round_key) : null;
     const latestPoints = latestTeamRound
       ? Number(latestTeamRound.weekly_points || 0)
-      : derived.squadCards.reduce((sum, entry) => sum + Number(entry.player?.currentFantasyPoints || 0), 0);
+      : liveWeeklyPointsForRoster(derived.squadCards, state.currentTeam, displayRoundMeta()?.round_key || state.currentRound?.key || '');
     summary.innerHTML = `<span class="pill strong" title="Jugadores ocupando ahora mismo tu roster fantasy.">${derived.squadCards.length}/${intFmt.format(config().squadSize)} jugadores</span><span class="pill" title="Valor actual combinado de tu plantilla.">${renderCoinInline(rosterValue, true)} valor</span><span class="pill" title="Exposicion total de clausulas vivas.">${renderCoinInline(clauseValue, true)} clausulas</span><span class="pill" title="Puntos de tu ultimo cierre fantasy.">${formatPointsLabel(latestPoints)} ultimo cierre</span>`;
     if (!derived.squadCards.length){
       if (table){
@@ -3784,6 +3841,59 @@
     }
   }
 
+  async function runAdminRoundAction(action, trigger){
+    if (!isFantasyAdmin()) return;
+    const round = adminRoundMeta();
+    if (!round?.key){
+      showFantasyToast('Sin jornada', 'Primero carga una jornada desde el Excel.', 'err');
+      return;
+    }
+    state.adminActionInFlight = true;
+    renderAdminRoundControls();
+    setActionBusy(trigger, true, action === 'process' ? 'Procesando' : action === 'snapshot' ? 'Capturando' : action === 'unlock' ? 'Desbloqueando' : 'Bloqueando');
+    try{
+      if (action === 'lock'){
+        const { error } = await rpcWithTimeout('fantasy_vbf_lock_round', {
+          p_season: CURRENT_SEASON,
+          p_round_key: round.key,
+          p_round_label: round.label || round.key,
+          p_round_order: Number(round.order || 0)
+        }, 'bloquear jornada fantasy', 12000);
+        if (error) throw error;
+        showFantasyToast('Jornada bloqueada', 'Mercado cerrado y jornada preparada.', 'ok');
+      } else if (action === 'unlock'){
+        const { error } = await rpcWithTimeout('fantasy_vbf_unlock_round', {
+          p_season: CURRENT_SEASON
+        }, 'desbloquear jornada fantasy', 12000);
+        if (error) throw error;
+        showFantasyToast('Jornada desbloqueada', 'Mercado abierto sin procesar puntos.', 'ok');
+      } else if (action === 'snapshot'){
+        const { error } = await rpcWithTimeout('fantasy_vbf_capture_current_round_snapshot', {
+          p_season: CURRENT_SEASON,
+          p_force: true
+        }, 'capturar snapshot fantasy', 12000);
+        if (error) throw error;
+        showFantasyToast('Snapshot capturado', 'Plantillas congeladas para esta jornada.', 'ok');
+      } else if (action === 'process'){
+        await loadPlayerPool(true, { silent: true, allowCache: false, refreshInBackground: false });
+        const synced = await syncPlayerPoolToBackend({ allowCurrentSource: true });
+        if (!synced) throw new Error('No pude sincronizar el pool de jugadores antes de procesar.');
+        const { error } = await rpcWithTimeout('fantasy_vbf_process_current_round', {
+          p_season: CURRENT_SEASON
+        }, 'procesar jornada fantasy', 18000);
+        if (error) throw error;
+        showFantasyToast('Jornada procesada', 'Puntos, ranking y berries actualizados. Mercado abierto.', 'ok');
+      }
+      await refreshAllData({ forceSheet: true, skipSession: true, silent: true, progressive: true });
+    } catch (error){
+      showFantasyToast('Accion admin fallida', error?.message || String(error || ''), 'err');
+    } finally {
+      state.adminActionInFlight = false;
+      setActionBusy(trigger, false);
+      renderAdminRoundControls();
+    }
+  }
+
   function isMonday(){
     return madridNowParts().weekday === 'Mon';
   }
@@ -3836,7 +3946,7 @@
     await ensureFreshPlayerPoolForAction();
     if (needsImmediateWeekRoll()) await maybeOpenNewWeek();
     if (shouldSyncPoolForAction()){
-      const synced = await syncPlayerPoolToBackend();
+      const synced = await syncPlayerPoolToBackend({ allowCurrentSource: true });
       if (synced === false) throw new Error('No pude sincronizar el pool fantasy. Prueba a recargar en unos minutos.');
     }
   }
@@ -3954,7 +4064,7 @@
   function startBackgroundHydration(){
     if (backgroundHydrationPromise) return backgroundHydrationPromise;
     backgroundHydrationPromise = (async () => {
-      if (shouldSyncPoolForAction()) await syncPlayerPoolToBackend();
+      if (shouldSyncPoolForAction()) await syncPlayerPoolToBackend({ allowCurrentSource: true });
     })().catch((error) => {
       console.warn('fantasy background hydration:', error?.message || error);
     }).finally(() => {
@@ -4048,6 +4158,11 @@
     } catch (error){
       showFantasyToast('No pude cambiar la fuente', error?.message || String(error || ''), 'err');
     }
+  });
+  $('fantasyAdminRoundControls')?.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-admin-round-action]');
+    if (!trigger) return;
+    void runAdminRoundAction(trigger.getAttribute('data-admin-round-action') || '', trigger);
   });
   $('marketSearch')?.addEventListener('input', () => { state.marketSearch = $('marketSearch')?.value || ''; renderMarket(); });
   $('marketSort')?.addEventListener('change', () => { state.marketSort = $('marketSort')?.value || 'vbf_full_rank'; renderMarket(); });
