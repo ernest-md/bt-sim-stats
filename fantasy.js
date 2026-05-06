@@ -178,6 +178,7 @@
     modalSource: '',
     modalTeamId: '',
     modalMarketPanel: '',
+    renameTeamOpen: false,
     confirmBuySlug: '',
     confirmBuyTargetTeamId: '',
     confirmBuyOutgoingSlug: '',
@@ -720,6 +721,7 @@
   function pageNeedsTransactions(){
     return ['overview', 'market'].includes(PAGE_VIEW)
       || hasFantasyNode('marketActivityPanel')
+      || hasFantasyNode('myActivityPanel')
       || hasFantasyNode('openActivityButton');
   }
 
@@ -728,7 +730,7 @@
   }
 
   function pageNeedsNotifications(){
-    return !!state.currentUser && (PAGE_VIEW === 'market' || hasFantasyNode('marketNoticePanel'));
+    return !!state.currentUser && (PAGE_VIEW === 'market' || hasFantasyNode('marketNoticePanel') || hasFantasyNode('myActivityPanel'));
   }
 
   function leagueContextOptionsForPage(options){
@@ -1153,7 +1155,8 @@
     }).join('');
     const bridgesSvg = bridges.map((points) => `<polyline class="chartBridge" points="${points}"></polyline>`).join('');
     const linesSvg = segments.map((points) => `<polyline class="chartLine" points="${points}"></polyline>`).join('');
-    return `<div class="chartCard"><div class="chartMeta"><span>Sabados fantasy</span><strong>Solo jornadas que puntuan</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos de sabados fantasy">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${axisY.toFixed(2)}" x2="${width - padX}" y2="${axisY.toFixed(2)}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
+    const scoringHelp = `<div class="chartScoringHelp" tabindex="0" aria-label="Ver reglas de puntuacion fantasy"><span class="chartScoringEye" aria-hidden="true">&#128065;&#65039;</span><div class="chartScoringTooltip" role="tooltip">${renderFantasyScoringLegend()}</div></div>`;
+    return `<div class="chartCard"><div class="chartMeta"><span>Sabados fantasy</span><div class="chartScoringLabel"><strong>Solo jornadas que puntuan</strong>${scoringHelp}</div></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos de sabados fantasy">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${axisY.toFixed(2)}" x2="${width - padX}" y2="${axisY.toFixed(2)}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
   }
 
   function renderFantasyScoringLegend(){
@@ -1164,7 +1167,8 @@
     const rows = (Array.isArray(player?.history) ? player.history : [])
       .filter((entry) => entry?.counts_for_fantasy === true && Number.isFinite(Number(entry?.raw_points)) && Number(entry.raw_points) > 0)
       .slice()
-      .sort((a, b) => Number(b.round_order || 0) - Number(a.round_order || 0));
+      .sort((a, b) => Number(b.round_order || 0) - Number(a.round_order || 0))
+      .slice(0, 5);
     if (!rows.length){
       return `<div class="playerTournamentHistory"><div class="historyTitle">Historial fantasy</div><div class="empty compactEmpty">Aun no ha jugado ningun sabado fantasy.</div></div>`;
     }
@@ -1416,6 +1420,7 @@
         price: tierBasePrice(row[0]),
         clausePrice: defaultClauseForPrice(tierBasePrice(row[0])),
         avgFantasyPoints: 0,
+        totalFantasyPoints: 0,
         currentFantasyPoints: 0,
         currentRawPoints: 0,
         currentWon: false,
@@ -1508,6 +1513,7 @@
       const playedFantasy = scoringHistory.filter((entry) => Number.isFinite(Number(entry.fantasy_points))).length;
       const totalFantasy = scoringHistory.reduce((sum, entry) => sum + (Number(entry.fantasy_points || 0)), 0);
       player.fantasyPlayed = playedFantasy;
+      player.totalFantasyPoints = totalFantasy;
       player.avgFantasyPoints = playedFantasy ? totalFantasy / playedFantasy : 0;
       player.price = scoringHistory.reduce((price, entry) => price + Number(entry.price_modifier || 0), tierBasePrice(player.tier));
       player.price = Math.max(1000, Math.round(player.price));
@@ -1660,6 +1666,7 @@
       const scoringHistory = history.filter((entry) => entry.counts_for_fantasy === true);
       const played = Number(row.played || history.filter((entry) => Number(entry.raw_points || 0) > 0).length || 0);
       const totalPoints = Number(row.total_points || 0);
+      const totalFantasyPoints = scoringHistory.reduce((sum, entry) => sum + Number(entry.fantasy_points || 0), 0);
       return {
         tier: String(row.player_tier || '').trim(),
         berries: totalPoints,
@@ -1681,6 +1688,7 @@
         price: Number(row.current_price || 0),
         clausePrice: Number(row.default_clause || defaultClauseForPrice(row.current_price || 0)),
         avgFantasyPoints: Number(row.avg_fantasy_points || 0),
+        totalFantasyPoints,
         currentFantasyPoints: Number(row.current_fantasy_points || 0),
         currentRawPoints: Number(row.current_raw_points || 0),
         currentWon: row.current_won === true,
@@ -2115,6 +2123,7 @@
       acquisitionType: String(row.acquisition_type || 'market'),
       wins: 0,
       avgFantasyPoints: 0,
+      totalFantasyPoints: 0,
       currentFantasyPoints: 0,
       currentStreak: 0,
       isTop5: rank <= 5,
@@ -2457,49 +2466,19 @@
 
   function renderOverviewFeature(player, mode){
     const portrait = playerPortraitUrl(player);
-    const pulse = playerPulse(player);
-    const latestPoints = Number(player.currentFantasyPoints || 0);
-    const delta = surpriseDelta(player);
-    const rankValue = mode === 'surprise' ? (player.roundRank || 0) : (player.rank || 0);
     const subtitle = mode === 'surprise'
       ? `${tierLabel(player.tier)} · jornada #${intFmt.format(player.roundRank || 0)}`
       : `${tierLabel(player.tier)} · ranking VBF #${intFmt.format(player.rank || 0)}`;
-    const chips = mode === 'surprise'
-      ? [
-        pulse.label,
-        Number(player.currentRawPoints || 0) > 0 ? `${formatPointsLabel(latestPoints)} ultimo sabado` : 'Ult. sabado sin puntos',
-        `+${intFmt.format(delta)} puestos sobre VadeBack`
-      ]
-      : [
-        pulse.label,
-        `${intFmt.format(Math.round(player.totalPoints || 0))} berries historicas`,
-        `${intFmt.format(player.wins || 0)} victorias`,
-        Number(player.currentRawPoints || 0) > 0 ? `Ult. sabado ${formatPointsLabel(latestPoints)}` : 'Ult. sabado sin puntos'
-      ];
-    return `<button class="overviewFeatureCard ${frameClass(player.tier)}" type="button" data-open-player="${escapeAttr(player.slug || '')}" data-player-source="market">
-      <div class="overviewFeatureVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div>
-      <div class="overviewFeatureBody">
-        <div class="overviewFeatureHead">
-          <div class="overviewFeatureTopline">
-            <div class="overviewFeatureName">${escapeHtml(player.name || 'Jugador')}</div>
-            <div class="overviewFeatureMarkers">
-              <span class="overviewRankChip">#${intFmt.format(rankValue)}</span>
-            </div>
-          </div>
-          <div class="overviewFeatureSubtitle">${escapeHtml(subtitle)}</div>
-        </div>
-        <div class="overviewFeatureStats compact">${chips.map((text, index) => index === 0 ? `<span class="signalTag ${escapeAttr(pulse.tone)}">${escapeHtml(text)}</span>` : `<span>${escapeHtml(text)}</span>`).join('')}</div>
-      </div>
+    return `<button class="overviewFeatureCard overviewPlayerTile ${frameClass(player.tier)}" type="button" data-open-player="${escapeAttr(player.slug || '')}" data-player-source="market">
+      <div class="overviewFeatureVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div><div class="overviewFeatureOverlay"><strong>${escapeHtml(player.name || 'Jugador')}</strong><small>${escapeHtml(subtitle)}</small></div></div>
     </button>`;
   }
 
   function marketBadgeForPlayer(player){
     const delta = fantasyTrendDelta(player);
-    if (isWatched(player.slug)) return { icon: 'R', title: 'En tu radar: jugador guardado en tu watchlist.', tone: 'watch' };
-    if (player.currentWon) return { icon: 'W', title: 'Ganador: viene de cerrar la mejor jornada puntuable del sabado.', tone: 'gold' };
-    if (surpriseDelta(player) >= 6 && Number(player.currentFantasyPoints || 0) > 0) return { icon: '+', title: 'Oportunidad: esta rindiendo por encima de su sitio natural en VadeBack.', tone: 'good' };
-    if (delta >= 6 || Number(player.currentFantasyPoints || 0) >= 16) return { icon: 'H', title: 'En racha: viene encadenando cierres fantasy muy fuertes.', tone: 'hot' };
-    if (delta <= -4) return { icon: '-', title: 'A la baja: llega con menos ritmo que en cierres anteriores.', tone: 'soft' };
+    if (player.currentWon) return { iconHtml: '&#9819;', title: 'Winner: viene de ganar el ultimo sabado fantasy.', tone: 'gold' };
+    if (delta >= 3 || surpriseDelta(player) >= 6 || Number(player.currentFantasyPoints || 0) >= 16) return { iconHtml: '&uarr;', title: 'Al alza: mejora ritmo o rendimiento fantasy reciente.', tone: 'good' };
+    if (delta <= -3) return { iconHtml: '&darr;', title: 'A la baja: llega con menos ritmo que en cierres anteriores.', tone: 'danger' };
     return null;
   }
 
@@ -2518,6 +2497,7 @@
     if (mode === 'clause') return !direct;
     if (mode === 'hot') return fantasyTrendDelta(player) >= 4 || Number(player.currentFantasyPoints || 0) >= 16 || player.currentWon === true;
     if (mode === 'bargain') return direct && fantasyValueScore(player, player.price || 0) >= 1.25;
+    if (mode === 'vadefantasy') return true;
     return true;
   }
 
@@ -2528,7 +2508,8 @@
       free: 'Libres',
       clause: 'Clausulables',
       hot: 'En racha',
-      bargain: 'Gangas'
+      bargain: 'Gangas',
+      vadefantasy: 'VaDeFantasy'
     };
     return map[String(state.marketFilter || 'all')] || map.all;
   }
@@ -2540,6 +2521,7 @@
     if (mode === 'wins_desc') return (b.wins || 0) - (a.wins || 0) || (b.totalPoints || 0) - (a.totalPoints || 0);
     if (mode === 'name_asc') return collator.compare(a.name, b.name);
     if (mode === 'general_desc') return (b.totalPoints || 0) - (a.totalPoints || 0) || collator.compare(a.name, b.name);
+    if (mode === 'vadefantasy_desc') return (b.totalFantasyPoints || 0) - (a.totalFantasyPoints || 0) || (b.avgFantasyPoints || 0) - (a.avgFantasyPoints || 0) || collator.compare(a.name, b.name);
     return (b.currentFantasyPoints || 0) - (a.currentFantasyPoints || 0) || (b.totalPoints || 0) - (a.totalPoints || 0) || collator.compare(a.name, b.name);
   }
 
@@ -2631,7 +2613,7 @@
       const query = state.marketSearch.trim().toLowerCase();
       const textMatch = !query || player.name.toLowerCase().includes(query) || String(player.tier || '').toLowerCase().includes(query);
       return textMatch && marketFilterAllows(player, { count: player.copiesUsed || 0 });
-    }).sort((a, b) => sortPlayers(a, b, state.marketSort)).slice(0, MAX_MARKET_CARDS);
+    }).sort((a, b) => sortPlayers(a, b, String(state.marketFilter || '') === 'vadefantasy' ? 'vadefantasy_desc' : state.marketSort)).slice(0, MAX_MARKET_CARDS);
 
     return { standings, squadCards, marketPlayers, myRoster, ownershipBySlug };
   }
@@ -2790,6 +2772,81 @@
     host.innerHTML = renderMarketActivityHtml(PAGE_VIEW === 'market' ? 10 : 6);
   }
 
+  function personalActivityRows(limit){
+    if (!state.currentUser || !state.currentTeam) return [];
+    const userId = String(state.currentUser.id || '');
+    const teamId = String(state.currentTeam.id || '');
+    const txRows = (state.transactions || [])
+      .filter((tx) => String(tx.user_id || '') === userId || String(tx.team_id || '') === teamId)
+      .map((tx) => ({ type: 'tx', createdAt: tx.created_at || '', tx }));
+    const noteRows = (state.notifications || [])
+      .filter((note) => String(note.team_id || '') === teamId || String(notificationPayload(note).team_id || '') === teamId || String(note.user_id || userId) === userId)
+      .map((note) => ({ type: 'note', createdAt: note.created_at || '', note }));
+    return [...txRows, ...noteRows]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, Number(limit || 10));
+  }
+
+  function renderPersonalActivityItem(row){
+    if (row?.type === 'note'){
+      const note = row.note || {};
+      const kind = String(note.kind || '').replace(/_/g, ' ') || 'Aviso';
+      const dateLabel = App.formatRelativeTime ? App.formatRelativeTime(note.created_at, '') : '';
+      return `<article class="activityItem notice">
+        <div class="activityBadge">${escapeHtml(kind)}</div>
+        <div class="activityBody">
+          <strong>${escapeHtml(note.title || 'Aviso fantasy')}</strong>
+          <span>${escapeHtml(note.body || '')}</span>
+          <small>${dateLabel ? escapeHtml(dateLabel) : 'Aviso de equipo'}</small>
+        </div>
+      </article>`;
+    }
+    const tx = row.tx || {};
+    const meta = txTypeMeta(tx);
+    const player = state.playersBySlug.get(String(tx.player_slug || '')) || null;
+    const amount = Number(tx.amount || 0);
+    const dateLabel = App.formatRelativeTime ? App.formatRelativeTime(tx.created_at, '') : '';
+    const playerName = player?.name || tx.player_name || 'jugador';
+    const actionHtml = String(tx.tx_type || '') === 'system_reward'
+      ? 'Cobras recompensa de jornada'
+      : `${escapeHtml(meta.verb.charAt(0).toUpperCase() + meta.verb.slice(1))} ${tx.player_slug ? `<button class="textAction" type="button" data-open-player="${escapeAttr(tx.player_slug || '')}" data-player-source="market">${escapeHtml(playerName)}</button>` : escapeHtml(playerName)}`;
+    return `<article class="activityItem ${escapeAttr(meta.tone)}">
+      <div class="activityBadge">${escapeHtml(meta.label)}</div>
+      <div class="activityBody">
+        <strong>${escapeHtml(state.currentTeam?.team_name || 'Tu equipo')}</strong>
+        <span>${actionHtml}</span>
+        <small>${amount > 0 ? renderCoinInline(amount, true) : 'Sin coste'}${dateLabel ? ` · ${escapeHtml(dateLabel)}` : ''}</small>
+      </div>
+    </article>`;
+  }
+
+  function renderPersonalActivityHtml(limit){
+    const rows = personalActivityRows(limit);
+    if (!rows.length){
+      return '<div class="empty">Todavia no hay movimientos asociados a tu equipo.</div>';
+    }
+    return `<div class="activityList personalActivityList">${rows.map(renderPersonalActivityItem).join('')}</div>`;
+  }
+
+  function renderPersonalActivity(){
+    const block = $('myActivityBlock');
+    const host = $('myActivityPanel');
+    const button = $('openMyActivityButton');
+    if (!block || !host) return;
+    const rows = personalActivityRows(99);
+    if (!state.currentTeam){
+      block.classList.add('hidden');
+      host.innerHTML = '';
+      return;
+    }
+    block.classList.remove('hidden');
+    host.innerHTML = renderPersonalActivityHtml(10);
+    if (button){
+      button.hidden = rows.length <= 10;
+      button.textContent = rows.length > 10 ? `Ver todas (${Math.min(rows.length, 99)})` : 'Ver todas';
+    }
+  }
+
   function renderRoundPulse(){
     const host = $('roundPulsePanel');
     if (!host) return;
@@ -2824,6 +2881,7 @@
         meta: `#${intFmt.format(topPlayer.player.rank || 0)} VBF · ${tierLabel(topPlayer.player.tier)}`,
         value: formatPointsLabel(topPlayer.weeklyPoints),
         slug: topPlayer.player.slug,
+        portrait: playerPortraitUrl(topPlayer.player),
         tone: 'gold'
       } : null,
       riser ? {
@@ -2832,6 +2890,7 @@
         meta: `Cambio vs cierre previo`,
         value: riser.delta > 0 ? `+${formatPoints(riser.delta)}` : formatPoints(riser.delta),
         slug: riser.player.slug,
+        portrait: playerPortraitUrl(riser.player),
         tone: riser.delta >= 0 ? 'hot' : 'soft'
       } : null,
       bargain ? {
@@ -2840,14 +2899,17 @@
         meta: `${formatPointsLabel(bargain.weeklyPoints)} por ${formatCoins(bargain.player.price || 0)}`,
         value: decFmt.format(bargain.valueScore),
         slug: bargain.player.slug,
+        portrait: playerPortraitUrl(bargain.player),
         tone: 'watch'
       } : null
     ].filter(Boolean);
     host.innerHTML = `<div class="pulseGrid">${pulseCards.map((card) => {
       const content = `<div class="pulseKicker ${escapeAttr(card.tone)}">${escapeHtml(card.kicker)}</div><strong>${escapeHtml(card.title)}</strong><span>${escapeHtml(card.meta)}</span><div class="pulseValue">${card.value}</div>`;
+      const bgStyle = card.portrait ? ` style="--pulse-bg:url('${escapeAttr(card.portrait)}')"` : '';
+      const cardClass = `pulseCard${card.portrait ? ' hasPlayerBg' : ''}`;
       return card.slug
-        ? `<button class="pulseCard" type="button" data-open-player="${escapeAttr(card.slug)}" data-player-source="market">${content}</button>`
-        : `<article class="pulseCard">${content}</article>`;
+        ? `<button class="${cardClass}" type="button" data-open-player="${escapeAttr(card.slug)}" data-player-source="market"${bgStyle}>${content}</button>`
+        : `<article class="${cardClass}">${content}</article>`;
     }).join('')}</div><div class="helper compactHelper">Pulso calculado con ${escapeHtml(round?.round_label || state.currentRound?.label || 'la jornada actual')} y el historico fantasy disponible.</div>`;
   }
 
@@ -3078,7 +3140,7 @@
     const ownerRows = (marketPlayer?.owners || []).map((owner) => {
       const disabled = owner.isMine || !marketOpenNow() || Number(state.currentTeam?.coins || 0) < Number(owner.clausePrice || 0);
       const title = owner.isMine ? 'Ya tienes esta copia' : (!marketOpenNow() ? 'Mercado cerrado' : (Number(state.currentTeam?.coins || 0) < Number(owner.clausePrice || 0) ? 'Sin berries suficientes' : `Pagar clausula a ${owner.teamName}`));
-      return `<div class="ownerRow"><div class="ownerMeta"><strong>${escapeHtml(owner.teamName || 'Equipo')}</strong><span>${escapeHtml(owner.coachName || 'Manager')}</span><span class="ownerHint">${owner.isMine ? 'Tu copia actual' : 'Copia en juego'}</span></div><button class="btn btnPrimary compactBtn" type="button" data-buy-confirm="${escapeAttr(player.slug || '')}" data-buy-target-team="${escapeAttr(owner.teamId || '')}" ${disabled ? 'disabled' : ''} title="${escapeAttr(title)}">Clausula - ${renderCoinInline(owner.clausePrice || 0, true)}</button></div>`;
+      return `<div class="ownerCard"><div class="ownerMeta"><strong>${escapeHtml(owner.teamName || 'Equipo')}</strong><span>${escapeHtml(owner.coachName || 'Manager')}</span><span class="ownerHint">${owner.isMine ? 'Tu copia actual' : 'Copia en juego'}</span></div><button class="btn btnPrimary compactBtn" type="button" data-buy-confirm="${escapeAttr(player.slug || '')}" data-buy-target-team="${escapeAttr(owner.teamId || '')}" ${disabled ? 'disabled' : ''} title="${escapeAttr(title)}"><span class="clauseBtnLabel">Clausula</span>${renderCoinInline(owner.clausePrice || 0, true)}</button></div>`;
     }).join('');
     const marketHint = source === 'market'
       ? (marketPlayer?.canDirectBuy
@@ -3095,12 +3157,16 @@
       ? `<div class="modalActions captainModalActions"><button class="btn ${isCaptain ? 'btnPrimary' : 'btnGood'}" type="button" data-set-captain="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">${isCaptain ? 'Capit&aacute;n actual' : 'Hacer Capit&aacute;n'}</button><div class="helper compactHelper">El capit&aacute;n punt&uacute;a x${formatPoints(config().captainMultiplier)} en cada cierre fantasy. Solo una ficha puede llevar el bonus.</div></div>`
       : '';
     const ownersBlock = source === 'market' && ownerRows
-      ? `<div class="historyWrap"><div class="historyTitle">Equipos donde juega ahora</div><div class="ownerList">${ownerRows}</div></div>`
+      ? `<div class="historyWrap"><div class="historyTitle">Equipos donde juega ahora</div><div class="ownerGrid">${ownerRows}</div></div>`
       : '';
     const watchAction = source === 'market' ? renderWatchButton(player) : '';
     const insightPanel = renderPlayerInsightPanel(player, marketPlayer, source, rosterEntry);
     const tournamentHistory = renderPlayerTournamentHistory(player);
-    body.innerHTML = `<div class="modalVisual"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article>${watchAction}${tournamentHistory}</div><div class="modalPanel"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div><div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Copias en liga' : 'Cupos usados'}</span><strong>${copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada fantasy</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Torneos jugados</span><strong>${intFmt.format(playedCount)}</strong><small>${intFmt.format(saturdayCount)} sabados fantasy</small></div></div>${captainAction}${insightPanel}${marketHint}${ownersBlock}<div class="historyWrap"><div class="historyTitle">Progresion de sabados</div>${renderHistoryChart(player)}${renderFantasyScoringLegend()}</div>${directAction}</div>`;
+    const teamOwnershipBlock = source === 'team' ? `<div class="modalOwnershipBlock">${marketHint}</div>` : '';
+    const marketOwnershipBlock = source === 'market'
+      ? `<div class="modalOwnershipBlock modalDealStrip ${ownersBlock ? 'hasOwners' : ''} ${directAction ? 'hasDirectAction' : ''}"><div class="modalDealLead">${marketHint}${directAction}</div>${ownersBlock}</div>`
+      : '';
+    body.innerHTML = `<div class="modalVisual"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article>${watchAction}${tournamentHistory}${teamOwnershipBlock}</div><div class="modalPanel"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div><div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Copias en liga' : 'Cupos usados'}</span><strong>${copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada fantasy</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Torneos jugados</span><strong>${intFmt.format(playedCount)}</strong><small>${intFmt.format(saturdayCount)} sabados fantasy</small></div></div>${captainAction}${insightPanel}<div class="historyWrap"><div class="historyTitle">Progresion de sabados</div>${renderHistoryChart(player)}</div>${marketOwnershipBlock}</div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
     lockPageScroll();
@@ -3191,15 +3257,20 @@
       return;
     }
     const isWatchlist = panel === 'watchlist';
-    if (title) title.textContent = isWatchlist ? 'Mi watchlist' : 'Actividad reciente';
+    const isMine = panel === 'my_activity';
+    if (title) title.textContent = isWatchlist ? 'Mi watchlist' : isMine ? 'Mi actividad fantasy' : 'Actividad reciente';
     if (subtitle){
       subtitle.textContent = isWatchlist
         ? 'Objetivos marcados para vigilar precio, forma y cupos sin quitar protagonismo al mercado.'
+        : isMine
+          ? 'Todos los movimientos recientes relacionados con tu equipo.'
         : 'Movimientos de fichajes, clausulazos y premios que explican el ritmo de la liga.';
     }
     body.innerHTML = isWatchlist
       ? renderWatchlistHtml(18)
-      : renderMarketActivityHtml(18);
+      : isMine
+        ? renderPersonalActivityHtml(80)
+        : renderMarketActivityHtml(18);
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
     lockPageScroll();
@@ -3212,7 +3283,15 @@
     const title = $('teamCardTitle');
     const subtitle = $('teamCardSubtitle');
     const meta = $('teamCardMeta');
-    if (title) title.textContent = state.currentTeam ? (state.currentTeam.team_name || 'Mi equipo') : 'Fantasy oficial OP15';
+    if (title){
+      title.classList.toggle('isTeamTitle', !!state.currentTeam);
+      if (state.currentTeam){
+        const teamName = state.currentTeam.team_name || 'Mi equipo';
+        title.innerHTML = `<span>${escapeHtml(teamName)}</span>${PAGE_VIEW === 'team' ? `<button class="teamRenameButton" type="button" data-open-rename-team="1" aria-label="Cambiar nombre de ${escapeAttr(teamName)}" title="Cambiar nombre del equipo">&#9998;</button>` : ''}`;
+      } else {
+        title.textContent = 'Fantasy oficial OP15';
+      }
+    }
     if (subtitle){
       subtitle.textContent = state.currentTeam
         ? ''
@@ -3280,11 +3359,11 @@
     const topPlayersHost = $('topPlayersList');
     const surpriseHost = $('surprisePlayersList');
     if (topPlayersHost){
-      const rows = topGeneralPlayers(5);
+      const rows = topGeneralPlayers(4);
       topPlayersHost.innerHTML = rows.map((player) => renderOverviewFeature(player, 'general')).join('') || '<div class="empty">Aun no hay datos de jugadores.</div>';
     }
     if (surpriseHost){
-      const rows = topSurprisePlayers(5);
+      const rows = topSurprisePlayers(4);
       surpriseHost.innerHTML = rows.map((player) => renderOverviewFeature(player, 'surprise')).join('') || '<div class="empty">Todavia no hay sorpresas marcadas esta jornada.</div>';
     }
   }
@@ -3423,6 +3502,11 @@
       const portrait = playerPortraitUrl(player);
       const pulse = playerPulse(player);
       const badge = entry.direct ? `Fichable por ${formatCoins(entry.cost)}` : `Clausula desde ${formatCoins(entry.cost)}`;
+      const details = entry.details || marketDetailsForPlayer(player, leagueDerived());
+      const copiesLabel = details.canDirectBuy
+        ? `${intFmt.format(details.copiesLeft || 0)}/${intFmt.format(config().maxPlayerCopies)} cupos libres`
+        : 'Cupo completo';
+      const gainLabel = entry.gain > 0 ? `+${formatPoints(entry.gain)} pts vs tu pieza mas floja` : entry.gain < 0 ? `${formatPoints(entry.gain)} pts vs tu pieza mas floja` : 'Empata con tu pieza mas floja';
       return `<button class="scoutCard ${frameClass(player.tier)}" type="button" data-open-player="${escapeAttr(player.slug || '')}" data-player-source="market">
         <div class="scoutVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div>
         <div class="scoutBody">
@@ -3430,10 +3514,12 @@
             <strong>${escapeHtml(player.name || 'Jugador')}</strong>
             <span class="signalTag ${escapeAttr(pulse.tone)}">${escapeHtml(pulse.label)}</span>
           </div>
-          <div class="scoutMeta">${escapeHtml(entry.reason)}</div>
+          <div class="scoutMeta">${escapeHtml(entry.reason)} · ${escapeHtml(gainLabel)}</div>
           <div class="scoutStats">
             <span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong><small>ultimo sabado</small></span>
             <span><strong>#${intFmt.format(player.rank || 0)}</strong><small>ranking VBF</small></span>
+            <span><strong>${formatPointsLabel(player.totalFantasyPoints || 0)}</strong><small>VaDeFantasy</small></span>
+            <span><strong>${escapeHtml(copiesLabel)}</strong><small>disponibilidad</small></span>
           </div>
           <div class="scoutFoot">${escapeHtml(badge)}</div>
         </div>
@@ -3460,7 +3546,11 @@
     const opts = options || {};
     const active = isWatched(player?.slug);
     const label = active ? 'Siguiendo' : 'Seguir';
-    return `<button class="watchButton ${active ? 'active' : ''} ${opts.compact ? 'compact' : ''}" type="button" data-toggle-watchlist="${escapeAttr(player?.slug || '')}" aria-pressed="${active ? 'true' : 'false'}" title="${active ? 'Quitar de la watchlist' : 'Anadir a la watchlist'}"><span aria-hidden="true">${active ? 'R' : '+'}</span><strong>${label}</strong></button>`;
+    const tooltip = active ? 'Quitar de la watchlist' : 'Anadir a watchlist: vigila precio, forma y cupos.';
+    if (opts.compact){
+      return `<button class="watchButton compact iconOnly ${active ? 'active' : ''}" type="button" data-toggle-watchlist="${escapeAttr(player?.slug || '')}" aria-pressed="${active ? 'true' : 'false'}" aria-label="${escapeAttr(tooltip)}" title="${escapeAttr(tooltip)}" data-tooltip="${escapeAttr(tooltip)}"><span aria-hidden="true">+</span><strong>${label}</strong></button>`;
+    }
+    return `<button class="watchButton ${active ? 'active' : ''}" type="button" data-toggle-watchlist="${escapeAttr(player?.slug || '')}" aria-pressed="${active ? 'true' : 'false'}" title="${escapeAttr(tooltip)}"><span aria-hidden="true">+</span><strong>${label}</strong></button>`;
   }
 
   function renderWatchlistHtml(limit){
@@ -3505,7 +3595,8 @@
       ['free', 'Libres'],
       ['clause', 'Clausulables'],
       ['hot', 'En racha'],
-      ['bargain', 'Gangas']
+      ['bargain', 'Gangas'],
+      ['vadefantasy', 'VaDeFantasy']
     ];
     host.innerHTML = items.map(([value, label]) => `<button class="marketFilterChip ${String(state.marketFilter || 'all') === value ? 'active' : ''}" type="button" data-market-filter="${escapeAttr(value)}">${escapeHtml(label)}</button>`).join('');
   }
@@ -3643,14 +3734,13 @@
         ? `${intFmt.format(copiesLeft)}/${intFmt.format(config().maxPlayerCopies)} libres`
         : 'Cupo completo';
       const availabilityTone = player.canDirectBuy ? 'good' : 'soft';
-      const weeklyLabel = Number(player.currentRawPoints || 0) > 0 ? formatPointsLabel(player.currentFantasyPoints || 0) : 'Sin puntos';
       const buttonLabel = blocked
         ? escapeHtml(blocked)
         : player.canDirectBuy
-          ? `Fichar · ${intFmt.format(price)}`
-          : `Clausula · ${intFmt.format(minClause)}`;
-      const badgeHtml = badge?.icon ? `<span class="marketBadge ${escapeAttr(badge.tone)}" title="${escapeAttr(badge.title || '')}" aria-label="${escapeAttr(badge.title || '')}">${escapeHtml(badge.icon)}</span>` : '';
-      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${renderWatchButton(player, { compact: true })}${renderPlayerVisual(player, overlay)}</div><div class="marketCardInfo"><span><strong>${renderCoinInline(player.canDirectBuy ? price : minClause, true)}</strong><small>${player.canDirectBuy ? 'precio' : 'clausula'}</small></span><span><strong>${weeklyLabel}</strong><small>ultimo sabado</small></span><span class="marketCardSignal ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</span></div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
+          ? `Fichar · ${renderCoinInline(price, true)}`
+          : `Clausula · ${renderCoinInline(minClause, true)}`;
+      const badgeHtml = badge?.iconHtml ? `<span class="marketBadge ${escapeAttr(badge.tone)}" title="${escapeAttr(badge.title || '')}" aria-label="${escapeAttr(badge.title || '')}">${badge.iconHtml}</span>` : '';
+      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${renderWatchButton(player, { compact: true })}${renderPlayerVisual(player, overlay)}</div><div class="marketCardAvailability ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
     }).join('');
   }
 
@@ -3659,11 +3749,11 @@
     if (!host) return;
     const card = host.closest('.card');
     const clauseNotes = unreadClauseLostNotifications();
-    const otherNotes = state.notifications.filter((note) => !(String(note?.kind || '') === 'clause_lost' && !note?.read_at));
+    const otherNotes = state.notifications.filter((note) => !(String(note?.kind || '') === 'clause_lost') && !note?.read_at);
     const visibleNotes = [
       ...clauseNotes,
-      ...otherNotes.filter((note) => !note?.read_at).slice(0, Math.max(0, 4 - clauseNotes.length))
-    ];
+      ...otherNotes
+    ].slice(0, 8);
     if (!state.currentUser || !visibleNotes.length){
       host.classList.add('hidden');
       host.innerHTML = '';
@@ -3672,12 +3762,9 @@
     }
     if (card) card.classList.remove('hidden');
     host.classList.remove('hidden');
-    const badgeText = clauseNotes.length
-      ? `${intFmt.format(clauseNotes.length)} clausulazo${clauseNotes.length === 1 ? '' : 's'}`
-      : `${intFmt.format(visibleNotes.length)} aviso${visibleNotes.length === 1 ? '' : 's'}`;
-    host.innerHTML = `<div class="subPanelHead"><div><h3>Avisos de mercado</h3><p>${clauseNotes.length ? 'Tienes clausulazos pendientes de revisar. Marcalos como vistos para limpiar el aviso de la navbar.' : 'Resumen rapido de starter pack, clausulas y recompensas semanales.'}</p></div><span class="pill ${clauseNotes.length ? 'danger' : ''}">${escapeHtml(badgeText)}</span></div><div class="noticeList">${visibleNotes.map((note) => {
+    host.innerHTML = `<div class="noticeList noticeListInline">${visibleNotes.map((note) => {
       if (String(note.kind || '') === 'clause_lost' && !note.read_at) return renderClauseLostNotice(note);
-      return `<article class="noticeItem"><span>${escapeHtml(String(note.kind || '').replace(/_/g, ' '))}</span><strong>${escapeHtml(note.title || 'Aviso')}</strong><p>${escapeHtml(note.body || '')}</p></article>`;
+      return `<article class="noticeItem"><span>${escapeHtml(String(note.kind || '').replace(/_/g, ' '))}</span><strong>${escapeHtml(note.title || 'Aviso')}</strong><p>${escapeHtml(note.body || '')}</p><div class="noticeActions"><button class="btn btnPrimary compactBtn" type="button" data-mark-notification-read="${escapeAttr(note.id || '')}">Visto</button></div></article>`;
     }).join('')}</div>`;
   }
 
@@ -3699,6 +3786,60 @@
     }
   }
 
+  function openRenameTeamModal(){
+    state.renameTeamOpen = true;
+    renderRenameTeamModal();
+  }
+
+  function closeRenameTeamModal(){
+    state.renameTeamOpen = false;
+    renderRenameTeamModal();
+  }
+
+  function renderRenameTeamModal(){
+    const wrap = $('renameTeamModalWrap');
+    const input = $('renameTeamName');
+    if (!wrap || !input) return;
+    if (!state.renameTeamOpen || !state.currentTeam){
+      const wasOpen = wrap.getAttribute('aria-hidden') === 'false';
+      wrap.classList.add('hidden');
+      wrap.setAttribute('aria-hidden', 'true');
+      if (wasOpen) unlockPageScroll();
+      return;
+    }
+    input.value = String(state.currentTeam.team_name || '').trim();
+    wrap.classList.remove('hidden');
+    wrap.setAttribute('aria-hidden', 'false');
+    lockPageScroll();
+    window.setTimeout(() => input.focus(), 0);
+  }
+
+  async function renameTeam(event){
+    event.preventDefault();
+    if (!state.currentTeam) return;
+    const input = $('renameTeamName');
+    const nextName = String(input?.value || '').trim();
+    if (!nextName) return showPageMsg('Pon un nombre para tu equipo.', 'err');
+    const submitButton = event.submitter || event.target?.querySelector?.('button[type="submit"]') || null;
+    setActionBusy(submitButton, true, 'Guardando');
+    try{
+      await withActionLock(async () => {
+        const { error } = await rpcWithTimeout('fantasy_vbf_rename_team', { p_season: CURRENT_SEASON, p_team_name: nextName }, 'renombrar equipo fantasy');
+        if (error) throw error;
+        state.currentTeam = { ...state.currentTeam, team_name: nextName };
+        state.seasonTeams = state.seasonTeams.map((team) => String(team.id || '') === String(state.currentTeam.id || '') ? { ...team, team_name: nextName } : team);
+        closeRenameTeamModal();
+        renderAll();
+        showFantasyToast('Nombre actualizado', `${nextName} ya aparece en tu equipo.`, 'ok');
+      });
+    } catch (error){
+      showPageMsg(`No pude cambiar el nombre del equipo: ${error?.message || error}`, 'err');
+      showFantasyToast('No pude cambiar el nombre', error?.message || String(error || ''), 'err');
+    } finally {
+      setActionBusy(submitButton, false);
+    }
+  }
+
   function renderAll(){
     renderHero();
     renderSeasonFacts();
@@ -3715,10 +3856,12 @@
     renderMarketActivity();
     renderMarket();
     renderNotifications();
+    renderPersonalActivity();
     renderTeamModal();
     renderMarketPanelModal();
     renderPlayerModal();
     renderBuyConfirm();
+    renderRenameTeamModal();
   }
 
   async function createTeam(event){
@@ -4194,9 +4337,11 @@
   $('squadGrid')?.addEventListener('click', handleOpenPlayerClick);
   $('teamRosterTable')?.addEventListener('click', handleOpenPlayerClick);
   $('watchlistPanel')?.addEventListener('click', handleOpenPlayerClick);
+  $('myActivityPanel')?.addEventListener('click', handleOpenPlayerClick);
   $('marketActivityPanel')?.addEventListener('click', handleOpenPlayerClick);
   $('openWatchlistButton')?.addEventListener('click', () => openMarketPanelModal('watchlist'));
   $('openActivityButton')?.addEventListener('click', () => openMarketPanelModal('activity'));
+  $('openMyActivityButton')?.addEventListener('click', () => openMarketPanelModal('my_activity'));
   $('marketPanelModalWrap')?.addEventListener('click', (event) => {
     if (event.target.closest('[data-close-market-panel-modal]')){ closeMarketPanelModal(); return; }
     const keepPanelOpen = !!event.target.closest('[data-toggle-watchlist]');
@@ -4218,6 +4363,13 @@
   $('topPlayersList')?.addEventListener('click', handleOpenPlayerClick);
   $('surprisePlayersList')?.addEventListener('click', handleOpenPlayerClick);
   $('scoutingPanel')?.addEventListener('click', handleOpenPlayerClick);
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-open-rename-team]')) openRenameTeamModal();
+  });
+  document.addEventListener('submit', async (event) => { if (event.target?.id === 'renameTeamForm') await renameTeam(event); });
+  $('renameTeamModalWrap')?.addEventListener('click', (event) => {
+    if (event.target.closest('[data-close-rename-team]')) closeRenameTeamModal();
+  });
   $('marketNoticePanel')?.addEventListener('click', async (event) => {
     const markButton = event.target.closest('[data-mark-notification-read]');
     if (markButton){
@@ -4293,6 +4445,7 @@
     if (event.key === 'Escape' && state.modalTeamId) closeTeamModal();
     if (event.key === 'Escape' && state.modalMarketPanel) closeMarketPanelModal();
     if (event.key === 'Escape' && state.confirmBuySlug) closeBuyConfirm();
+    if (event.key === 'Escape' && state.renameTeamOpen) closeRenameTeamModal();
   });
 
   if (sb?.auth?.onAuthStateChange){

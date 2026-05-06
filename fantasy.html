@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -11,7 +11,7 @@
   <style>
     :root{--bg:#09111f;--card:rgba(255,255,255,.94);--line:rgba(15,23,42,.1);--ink:#0f172a;--muted:#64748b;--shadow:0 18px 50px rgba(0,0,0,.34)}
     *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    body::before{content:"";position:fixed;inset:0;background:radial-gradient(1200px 800px at 8% 8%,rgba(124,58,237,.34),transparent 60%),radial-gradient(950px 700px at 92% 18%,rgba(6,182,212,.28),transparent 60%),linear-gradient(180deg,rgba(9,17,31,.78),rgba(9,17,31,.82)),url("bg.png");background-size:cover;background-position:center;z-index:-1}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(1200px 800px at 8% 8%,rgba(37,99,235,.3),transparent 60%),radial-gradient(950px 700px at 92% 18%,rgba(220,38,38,.22),transparent 60%),linear-gradient(180deg,rgba(9,17,31,.34),rgba(9,17,31,.48)),url("VDF_BG.png");background-size:cover;background-position:center top;z-index:-1}
     .brand{display:flex;flex-direction:column;align-items:center;color:#fff;font-weight:900;letter-spacing:.4px;margin-right:6px;line-height:1.1}
     .brand small{display:block;text-align:center;padding-left:4px;font-weight:700;color:rgba(255,255,255,.72);letter-spacing:.2px}
     .wrap{max-width:1440px;margin:0 auto;padding:14px}
@@ -267,49 +267,22 @@
     @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats,.factGrid,.playerGrid{grid-template-columns:1fr 1fr}.actionRow .btn{flex:1 1 calc(50% - 4px)}.loadingCard{padding:14px 16px;border-radius:18px}.overlayNamePlain{font-size:15px}.overlaySubtitle{font-size:9px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRow{grid-template-columns:1fr}.standingRoster{grid-template-columns:repeat(3,minmax(0,1fr))}#squadGrid{grid-template-columns:1fr}}
     @media (max-width:420px){.playerGrid{grid-template-columns:1fr}}
   </style>
-  <link rel="stylesheet" href="fantasy-polish.css?v=20260506e" />
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260506l" />
 </head>
 <body data-requires-fantasy="1" data-fantasy-view="overview">
   <div class="topbar">
     <div class="bar with-auth-corner">
-      <a class="brandLink" href="index.html" aria-label="Ir a la home">
+      <nav class="vdfTopNav" aria-label="Navegacion principal VaDeFantasy">
+        <a class="vdfTopNavLink is-current" href="fantasy.html" aria-current="page">Liga</a>
+        <a class="vdfTopNavLink" href="fantasy-team.html">Plantilla</a>
+        <a class="vdfTopNavLink" href="fantasy-market.html">Mercado</a>
+      </nav>
+      <a class="brandLink vdfBrandLink" href="fantasy.html" aria-label="Ir a VaDeFantasy">
         <div class="brand">
-          <img class="brandLogo" src="BT_LOGO.png" alt="BARATEAM HUB" />
-          <small>fantasy</small>
+          <img class="brandLogo" src="VDF.png" alt="VaDeFantasy" />
         </div>
       </a>
-        <div class="nav hubNavFlow">
-          <a class="navInlineLink" href="index.html">Home</a>
-        <div class="navInlineGroup">
-          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="simStatsMenu" aria-haspopup="true"><span>SIM Stats</span><span class="navInlineCaret" aria-hidden="true">v</span></button>
-          <div class="navInlineMenu" id="simStatsMenu">
-            <a class="navInlineMenuLink" href="sim-stats/frontend/stats.html" data-requires-auth="1">Stats Propios</a>
-            <a class="navInlineMenuLink" href="sim-stats/frontend/team-stats.html" data-requires-auth="1">Team Stats</a>
-            <a class="navInlineMenuLink" href="leader-stats.html">Global Leader Stats</a>
-          </div>
-        </div>
-        <a class="navInlineLink" href="ranking.html" data-requires-auth="1">Ranking</a>
-        <div class="navInlineGroup">
-          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="cardToolsMenu" aria-haspopup="true"><span>Card Tools</span><span class="navInlineCaret" aria-hidden="true">v</span></button>
-          <div class="navInlineMenu" id="cardToolsMenu">
-            <a class="navInlineMenuLink" href="cards.html">Card List</a>
-            <a class="navInlineMenuLink" href="decks.html">DeckLists</a>
-            <a class="navInlineMenuLink" href="deck-builder.html">Deck Builder</a>
-            <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
-            <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
-          </div>
-        </div>
-        <div class="navInlineGroup is-current" data-fantasy-nav="1" style="display:none">
-          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true"><span>VadeFantasy</span><span class="navInlineCaret" aria-hidden="true">v</span></button>
-          <div class="navInlineMenu" id="vadeFantasyMenu">
-            <a class="navInlineMenuLink is-current" href="fantasy.html" data-privileged-only="1">Liga</a>
-            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
-            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
-            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
-          </div>
-        </div>
-        <a class="navInlineLink" href="encuestas.html">Encuestas</a>
-      </div>
+      <a class="vdfOriginalLink" href="index.html" aria-label="Volver a Barateam"><img src="favicon.ico" alt="" /> Barateam</a>
     </div>
   </div>
   <div class="authCorner">
@@ -365,6 +338,20 @@
       </div>
     </div>
   </div>
+  <div class="modalWrap hidden" id="marketPanelModalWrap" aria-hidden="true">
+    <div class="modalBackdrop" data-close-market-panel-modal="1"></div>
+    <div class="modalCard marketPanelModalCard">
+      <button class="btn modalClose" type="button" data-close-market-panel-modal="1" aria-label="Cerrar panel">&#10005;</button>
+      <div class="marketPanelModalHead">
+        <div>
+          <div class="modalEyebrow">VadeFantasy OP15</div>
+          <h3 class="modalTitle" id="marketPanelModalTitle">Panel fantasy</h3>
+          <p id="marketPanelModalSubtitle"></p>
+        </div>
+      </div>
+      <div class="marketPanelModalBody" id="marketPanelModalBody"></div>
+    </div>
+  </div>
   <div class="wrap">
     <section class="hero">
       <div class="heroTop">
@@ -391,11 +378,6 @@
         <div class="heroStat"><b id="statCurrentRound">-</b><span>Jornada fantasy</span></div>
       </div>
       <div id="fantasyAdminRoundControls" class="hidden"></div>
-      <nav class="fantasyTabs" aria-label="Navegacion VadeFantasy">
-        <a class="is-current" href="fantasy.html" aria-current="page">Liga</a>
-        <a href="fantasy-team.html">Plantilla</a>
-        <a href="fantasy-market.html">Mercado</a>
-      </nav>
       <div class="pageMsg" id="pageMsg"></div>
       <div class="schemaNote" id="schemaNote"></div>
     </section>
@@ -412,9 +394,15 @@
           </div>
           <div class="factGrid" id="seasonFacts"></div>
           <div class="subPanel" id="teamSetupPanel"><div class="empty">Cargando estado de la liga...</div></div>
-          <div class="actionRow">
-            <a class="btn" href="fantasy-team.html">Organizar equipo</a>
-            <a class="btn btnPrimary" href="fantasy-market.html">Ir al mercado</a>
+          <div class="teamActivityBlock hidden" id="myActivityBlock">
+            <div class="teamActivityHead">
+              <div>
+                <strong>Actividad contigo</strong>
+                <span>Ultimos movimientos de tu equipo</span>
+              </div>
+              <button class="btn compactBtn" id="openMyActivityButton" type="button">Ver todas</button>
+            </div>
+            <div id="myActivityPanel"><div class="empty">Cargando tus movimientos...</div></div>
           </div>
           <div class="helper" id="authHint">Necesitas sesion para crear tu equipo, recibir tu starter pack y entrar al mercado.</div>
         </section>
@@ -445,7 +433,7 @@
         <section class="card">
           <div class="sectionHead">
             <div>
-                <h2>Top 5 general</h2>
+                <h2>Top general</h2>
                 <p>Los jugadores que mas puntos han dado en el historico completo de Vade Back Fight.</p>
             </div>
           </div>
@@ -460,19 +448,10 @@
           </div>
           <div class="overviewList" id="surprisePlayersList"></div>
         </section>
-        <section class="card">
-          <div class="sectionHead">
-            <div>
-                <h2>Actividad de mercado</h2>
-                <p>Ultimos fichajes, clausulazos, starter packs y salidas registrados en la liga.</p>
-            </div>
-          </div>
-          <div id="marketActivityPanel"><div class="empty">Cargando movimientos...</div></div>
-        </section>
       </div>
     </div>
   </div>
   <script src="fantasy-player-portraits.js?v=20260504a"></script>
-  <script src="fantasy.js?v=20260506l"></script>
+  <script src="fantasy.js?v=20260506o"></script>
 </body>
 </html>
