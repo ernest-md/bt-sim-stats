@@ -1058,6 +1058,63 @@
     }).filter((item) => item.label);
   }
 
+  function priceModifierFromFantasyEntry(entry){
+    const exact = Number(entry?.price_modifier);
+    const raw = Number(entry?.raw_points);
+    if (Number.isFinite(exact) && exact !== 0) return { value: exact, estimated: false };
+    if (!Number.isFinite(raw) || raw <= 0) return { value: 0, estimated: false };
+    if (entry?.won === true) return { value: RESULT_PRICE_MODIFIERS['5-0'], estimated: true };
+    const fantasy = Number(entry?.fantasy_points);
+    if (!Number.isFinite(fantasy)) return { value: 0, estimated: false };
+    if (fantasy >= 15) return { value: RESULT_PRICE_MODIFIERS['5-0'], estimated: true };
+    if (fantasy >= 13) return { value: RESULT_PRICE_MODIFIERS['4-1'], estimated: true };
+    if (fantasy >= 7) return { value: RESULT_PRICE_MODIFIERS['3-2'], estimated: true };
+    if (fantasy >= 3) return { value: RESULT_PRICE_MODIFIERS['2-3'], estimated: true };
+    if (fantasy >= -1) return { value: RESULT_PRICE_MODIFIERS['1-4'], estimated: true };
+    return { value: RESULT_PRICE_MODIFIERS['0-5'], estimated: true };
+  }
+
+  function priceSeries(player){
+    const history = (Array.isArray(player?.history) ? player.history : [])
+      .filter((entry) => entry?.counts_for_fantasy === true)
+      .slice()
+      .sort((a, b) => Number(a.round_order || 0) - Number(b.round_order || 0));
+    let price = tierBasePrice(player?.tier);
+    let hasMovement = false;
+    let usesEstimated = false;
+    const rows = history.map((entry, index) => {
+      const modifierMeta = priceModifierFromFantasyEntry(entry);
+      const modifier = Number(modifierMeta.value || 0);
+      if (modifier !== 0) hasMovement = true;
+      if (modifierMeta.estimated) usesEstimated = true;
+      price = Math.max(1000, Math.round(price + modifier));
+      return {
+        index,
+        label: String(entry?.round_label || entry?.round_key || `J${index + 1}`).trim(),
+        value: price,
+        modifier,
+        estimated: modifierMeta.estimated,
+        played: Number(entry?.raw_points || 0) > 0,
+        fantasy: Number(entry?.fantasy_points)
+      };
+    }).filter((item) => item.label);
+    return { rows, hasMovement, usesEstimated, basePrice: tierBasePrice(player?.tier), currentPrice: Number(player?.price || 0) };
+  }
+
+  function signedCoins(value){
+    const number = Math.round(Number(value || 0));
+    if (number === 0) return '0 berries';
+    return `${number > 0 ? '+' : '-'}${formatCoins(Math.abs(number))}`;
+  }
+
+  function compactCoins(value){
+    const number = Math.round(Number(value || 0));
+    const abs = Math.abs(number);
+    if (abs >= 1000000) return `${decFmt.format(number / 1000000)}M`;
+    if (abs >= 1000) return `${intFmt.format(Math.round(number / 1000))}k`;
+    return intFmt.format(number);
+  }
+
   function plainPoints(value){
     const number = Number(value || 0);
     const abs = Math.abs(number);
@@ -1161,18 +1218,68 @@
     return `<div class="chartCard"><div class="chartMeta"><span>Sabados fantasy</span><div class="chartScoringLabel"><strong>Solo jornadas que puntuan</strong>${scoringHelp}</div></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos de sabados fantasy">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${axisY.toFixed(2)}" x2="${width - padX}" y2="${axisY.toFixed(2)}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
   }
 
+  function renderPriceChart(player){
+    const series = priceSeries(player);
+    const currentPrice = series.currentPrice || series.basePrice || 0;
+    if (!series.rows.length){
+      return `<div class="chartCard priceChartCard priceChartEmpty"><div class="chartMeta"><span>Precio por jornada</span><strong>${formatCoins(currentPrice)} actual</strong></div><div class="empty compactEmpty">Aun no hay cierres fantasy para calcular precio.</div></div>`;
+    }
+    if (!series.hasMovement && currentPrice !== series.basePrice){
+      return `<div class="chartCard priceChartCard priceChartEmpty"><div class="chartMeta"><span>Precio por jornada</span><strong>${formatCoins(currentPrice)} actual</strong></div><div class="empty compactEmpty">El historico cargado no trae precio por jornada todavia.</div></div>`;
+    }
+    const width = 620;
+    const height = 220;
+    const padX = 34;
+    const padTop = 22;
+    const padBottom = 42;
+    const plotWidth = width - padX * 2;
+    const plotHeight = height - padTop - padBottom;
+    const values = series.rows.map((item) => item.value).filter((value) => Number.isFinite(value));
+    const actualMin = values.length ? Math.min(...values, series.basePrice) : series.basePrice;
+    const actualMax = values.length ? Math.max(...values, currentPrice) : currentPrice;
+    const baseSpan = Math.max(10000, actualMax - actualMin);
+    const paddedMin = Math.max(0, actualMin - (baseSpan * .18));
+    const paddedMax = actualMax + (baseSpan * .14);
+    const paddedSpan = Math.max(1, paddedMax - paddedMin);
+    const stepX = series.rows.length > 1 ? plotWidth / (series.rows.length - 1) : 0;
+    const xFor = (index) => series.rows.length > 1 ? padX + index * stepX : width / 2;
+    const yFor = (value) => padTop + ((paddedMax - Number(value || 0)) / paddedSpan) * plotHeight;
+    const yBase = yFor(series.basePrice);
+    const points = series.rows.map((item, index) => `${xFor(index).toFixed(2)},${yFor(item.value).toFixed(2)}`).join(' ');
+    const gridValues = [actualMin, actualMin + ((actualMax - actualMin) / 2), actualMax]
+      .filter((value, index, list) => index === 0 || Math.round(value) !== Math.round(list[index - 1]));
+    const gridSvg = gridValues.map((value) => {
+      const y = yFor(value).toFixed(2);
+      return `<line class="chartGridLine" x1="${padX}" y1="${y}" x2="${width - padX}" y2="${y}"></line><text x="0" y="${Number(y) + 4}" font-size="10" font-weight="900" fill="#64748b">${escapeHtml(compactCoins(value))}</text>`;
+    }).join('');
+    const labelsSvg = series.rows.map((item, index) => `<text x="${xFor(index).toFixed(2)}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="1000" fill="#0f172a">${escapeHtml(item.label)}</text>`).join('');
+    const pointsSvg = series.rows.map((item, index) => {
+      const x = xFor(index);
+      const y = yFor(item.value);
+      const tone = item.modifier > 0 ? 'up' : item.modifier < 0 ? 'down' : 'flat';
+      const tooltipWidth = 210;
+      const tooltipHeight = 94;
+      const tooltipX = Math.max(2, Math.min(width - tooltipWidth - 2, x - (tooltipWidth / 2)));
+      const tooltipY = Math.max(2, y - tooltipHeight - 16);
+      const sourceLabel = item.estimated ? 'Estimado' : 'Directo';
+      return `<g class="chartPointGroup pricePointGroup"><line class="chartStem priceStem ${tone}" x1="${x.toFixed(2)}" y1="${yBase.toFixed(2)}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}"></line><circle class="chartPoint priceChartPoint ${tone}" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="7.5"></circle><foreignObject class="chartTooltip" x="${tooltipX.toFixed(2)}" y="${tooltipY.toFixed(2)}" width="${tooltipWidth}" height="${tooltipHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="chartTooltipBox priceTooltipBox"><div class="chartTooltipHead"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(sourceLabel)}</strong></div><div><span>Precio</span><strong>${escapeHtml(formatCoins(item.value))}</strong></div><div><span>Cambio</span><strong>${escapeHtml(signedCoins(item.modifier))}</strong></div></div></foreignObject></g>`;
+    }).join('');
+    const last = series.rows[series.rows.length - 1];
+    return `<div class="chartCard priceChartCard"><div class="chartMeta"><span>Precio por jornada</span><strong>${formatCoins(currentPrice || last.value)} actual</strong></div><svg class="chartSvg priceChartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de precio por jornada fantasy">${gridSvg}<line class="chartAxis priceBaseAxis" x1="${padX}" y1="${yBase.toFixed(2)}" x2="${width - padX}" y2="${yBase.toFixed(2)}"></line><polyline class="chartLine priceChartLine" points="${points}"></polyline>${pointsSvg}${labelsSvg}</svg></div>`;
+  }
+
   function renderFantasyScoringLegend(){
     return `<div class="fantasyScoringLegend"><div><span>Victoria</span><strong>+3 pts</strong></div><div><span>Derrota</span><strong>-1 pt</strong></div><div><span>4+ victorias</span><strong>+2 pts</strong></div><div><span>Ganador</span><strong>+5 pts</strong></div><p>Si gana el torneo, solo recibe el bonus de ganador; no se suma tambien el bonus de 4 victorias.</p></div>`;
   }
 
   function renderPlayerTournamentHistory(player){
     const rows = (Array.isArray(player?.history) ? player.history : [])
-      .filter((entry) => entry?.counts_for_fantasy === true && Number.isFinite(Number(entry?.raw_points)) && Number(entry.raw_points) > 0)
+      .filter((entry) => entry?.counts_for_fantasy === true)
       .slice()
       .sort((a, b) => Number(b.round_order || 0) - Number(a.round_order || 0))
-      .slice(0, 5);
+      .slice(0, 10);
     if (!rows.length){
-      return `<div class="playerTournamentHistory"><div class="historyTitle">Historial fantasy</div><div class="empty compactEmpty">Aun no ha jugado ningun sabado fantasy.</div></div>`;
+      return `<div class="playerTournamentHistory"><div class="historyTitle">Jornadas recientes</div><div class="empty compactEmpty">Aun no hay jornadas fantasy.</div></div>`;
     }
     const items = rows.map((entry) => {
       const label = String(entry.round_label || entry.round_key || '').trim();
@@ -1180,7 +1287,7 @@
       const points = Number(entry.fantasy_points || 0);
       return `<div class="playerTournamentRow"><span>${escapeHtml(label)}</span><strong>${escapeHtml(result)}</strong><em>${formatPointsLabel(points)}</em></div>`;
     }).join('');
-    return `<div class="playerTournamentHistory"><div class="historyTitle">Historial fantasy</div><div class="playerTournamentRows">${items}</div></div>`;
+    return `<div class="playerTournamentHistory"><div class="historyTitle">Jornadas recientes</div><div class="playerTournamentRows">${items}</div></div>`;
   }
 
   const TIER_WIN_POINTS = {
@@ -3169,14 +3276,14 @@
       ? `<div class="modalOwnershipBlock modalDealStack ${ownersBlock ? 'hasOwners' : ''}"><div class="modalDealLead">${marketHint}</div>${ownersBlock}</div>`
       : '';
     const summaryContent = `<div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Copias en liga' : 'Cupos usados'}</span><strong>${copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada fantasy</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Torneos jugados</span><strong>${intFmt.format(playedCount)}</strong><small>${intFmt.format(saturdayCount)} sabados fantasy</small></div></div>${insightPanel}`;
-    const historyContent = `<div class="historyWrap"><div class="historyTitle">Progresion de sabados</div>${renderHistoryChart(player)}</div>${tournamentHistory}`;
+    const historyContent = `<div class="historyWrap"><div class="historyTitle">Progresion de sabados</div>${renderHistoryChart(player)}${renderPriceChart(player)}</div>`;
     const marketContent = source === 'market' ? marketOwnershipBlock : teamOwnershipBlock;
     const footerActions = source === 'market' ? directAction : captainAction;
     const activeTab = new Set(['summary', 'history', 'market']).has(String(state.modalPlayerTab || '')) ? String(state.modalPlayerTab) : 'summary';
     state.modalPlayerTab = activeTab;
     const tabButton = (id, label) => `<button class="${activeTab === id ? 'active' : ''}" type="button" data-player-modal-tab="${escapeAttr(id)}" aria-pressed="${activeTab === id ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
     const panel = (id, html) => `<div class="playerModalTabPanel ${activeTab === id ? 'active' : ''}" data-player-modal-panel="${escapeAttr(id)}">${html}</div>`;
-    body.innerHTML = `<div class="modalVisual modalVisualSticky"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article>${watchAction}</div><div class="modalPanel playerModalPanel"><div class="playerModalHeader"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div></div><div class="playerModalTabs">${tabButton('summary', 'Resumen')}${tabButton('history', 'Historial')}${tabButton('market', source === 'team' ? 'Plantilla' : 'Mercado')}</div><div class="playerModalTabPanels">${panel('summary', summaryContent)}${panel('history', historyContent)}${panel('market', marketContent)}</div>${footerActions ? `<div class="playerModalActionRail">${footerActions}</div>` : ''}</div>`;
+    body.innerHTML = `<div class="modalVisual modalVisualSticky"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article>${tournamentHistory}${watchAction}</div><div class="modalPanel playerModalPanel"><div class="playerModalHeader"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div></div><div class="playerModalTabs">${tabButton('summary', 'Resumen')}${tabButton('history', 'Historial')}${tabButton('market', source === 'team' ? 'Plantilla' : 'Mercado')}</div><div class="playerModalTabPanels">${panel('summary', summaryContent)}${panel('history', historyContent)}${panel('market', marketContent)}</div>${footerActions ? `<div class="playerModalActionRail">${footerActions}</div>` : ''}</div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
     lockPageScroll();
