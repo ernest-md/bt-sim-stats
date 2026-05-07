@@ -1185,26 +1185,34 @@
     const gridValues = domainMin < 0
       ? [actualMin, 0, actualMax]
       : [0, actualMax / 2, actualMax];
-    const pointsSvg = series.map((item, index) => {
+    const pointMarksSvg = series.map((item, index) => {
       const x = xFor(index).toFixed(2);
       if (Number.isFinite(item.fantasy)){
         const y = yFor(item.fantasy).toFixed(2);
-        const breakdown = fantasyPointBreakdown(item);
-        const tooltipWidth = 190;
-        const tooltipHeight = item.won ? 132 : (breakdown.fourWinsBonus ? 132 : 108);
-        const tooltipX = Math.max(2, Math.min(width - tooltipWidth - 2, Number(x) - (tooltipWidth / 2)));
-        const tooltipY = Math.max(2, Number(y) - tooltipHeight - 16);
         const pointClass = `chartPoint${item.countsForFantasy ? ' scoring' : ''}${item.won ? ' won' : ''}`;
         const radius = item.countsForFantasy ? 8.5 : 6;
+        return `<line class="chartStem${item.countsForFantasy ? ' scoring' : ''}" x1="${x}" y1="${axisY.toFixed(2)}" x2="${x}" y2="${y}"></line><circle class="${pointClass}" cx="${x}" cy="${y}" r="${radius}"></circle>`;
+      }
+      return `<circle class="chartPoint miss${item.countsForFantasy ? ' scoring' : ''}" cx="${x}" cy="${yFor(0).toFixed(2)}" r="${item.countsForFantasy ? '4.5' : '3.5'}"><title>${escapeHtml(`${item.label}${item.countsForFantasy ? ' · jornada fantasy' : ''}: sin participacion`)}</title></circle>`;
+    }).join('');
+
+    const tooltipsSvg = series.map((item, index) => {
+      if (!Number.isFinite(item.fantasy)) return '';
+      const x = xFor(index);
+      const y = yFor(item.fantasy);
+      const breakdown = fantasyPointBreakdown(item);
+      const tooltipWidth = 190;
+      const tooltipHeight = item.won ? 132 : (breakdown.fourWinsBonus ? 132 : 108);
+      const tooltipX = Math.max(2, Math.min(width - tooltipWidth - 2, x - (tooltipWidth / 2)));
+      const tooltipY = Math.max(2, y - tooltipHeight - 16);
+      const radius = item.countsForFantasy ? 8.5 : 6;
         const rows = [
           `<div><span>Victorias</span><strong>${plainPoints(breakdown.winPoints)}</strong></div>`,
           `<div><span>Derrotas</span><strong>${plainPoints(breakdown.lossPoints)}</strong></div>`,
           breakdown.fourWinsBonus ? `<div><span>Bonus +4 victorias</span><strong>${plainPoints(breakdown.fourWinsBonus)}</strong></div>` : '',
           breakdown.winnerBonus ? `<div><span>Bonus ganador</span><strong>${plainPoints(breakdown.winnerBonus)}</strong></div>` : ''
         ].filter(Boolean).join('');
-        return `<g class="chartPointGroup"><line class="chartStem${item.countsForFantasy ? ' scoring' : ''}" x1="${x}" y1="${axisY.toFixed(2)}" x2="${x}" y2="${y}"></line><circle class="${pointClass}" cx="${x}" cy="${y}" r="${radius}"></circle><foreignObject class="chartTooltip" x="${tooltipX.toFixed(2)}" y="${tooltipY.toFixed(2)}" width="${tooltipWidth}" height="${tooltipHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="chartTooltipBox"><div class="chartTooltipHead"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.resultLabel || `${breakdown.wins}-${breakdown.losses}`)}</strong></div>${rows}<div class="chartTooltipTotal"><span>Total</span><strong>${totalPointsText(breakdown.total)}</strong></div></div></foreignObject></g>`;
-      }
-      return `<circle class="chartPoint miss${item.countsForFantasy ? ' scoring' : ''}" cx="${x}" cy="${yFor(0).toFixed(2)}" r="${item.countsForFantasy ? '4.5' : '3.5'}"><title>${escapeHtml(`${item.label}${item.countsForFantasy ? ' · jornada fantasy' : ''}: sin participacion`)}</title></circle>`;
+      return `<g class="chartPointGroup chartTooltipGroup"><circle class="chartHitArea" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${Math.max(16, radius + 8)}"></circle><foreignObject class="chartTooltip" x="${tooltipX.toFixed(2)}" y="${tooltipY.toFixed(2)}" width="${tooltipWidth}" height="${tooltipHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="chartTooltipBox"><div class="chartTooltipHead"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.resultLabel || `${breakdown.wins}-${breakdown.losses}`)}</strong></div>${rows}<div class="chartTooltipTotal"><span>Total</span><strong>${totalPointsText(breakdown.total)}</strong></div></div></foreignObject></g>`;
     }).join('');
 
     const labelsSvg = series.map((item, index) => `<text x="${xFor(index).toFixed(2)}" y="${height - 8}" text-anchor="middle" font-size="${item.countsForFantasy ? '10' : '9'}" font-weight="${item.countsForFantasy ? '1000' : '800'}" fill="${item.countsForFantasy ? '#0f172a' : '#64748b'}">${escapeHtml(item.label)}</text>`).join('');
@@ -1215,7 +1223,7 @@
     const bridgesSvg = bridges.map((points) => `<polyline class="chartBridge" points="${points}"></polyline>`).join('');
     const linesSvg = segments.map((points) => `<polyline class="chartLine" points="${points}"></polyline>`).join('');
     const scoringHelp = `<div class="chartScoringHelp" tabindex="0" aria-label="Ver reglas de puntuacion fantasy"><span class="chartScoringEye" aria-hidden="true">&#128065;&#65039;</span><div class="chartScoringTooltip" role="tooltip">${renderFantasyScoringLegend()}</div></div>`;
-    return `<div class="chartCard"><div class="chartMeta"><span>Sabados fantasy</span><div class="chartScoringLabel"><strong>Solo jornadas que puntuan</strong>${scoringHelp}</div></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos de sabados fantasy">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${axisY.toFixed(2)}" x2="${width - padX}" y2="${axisY.toFixed(2)}"></line>${bridgesSvg}${linesSvg}${pointsSvg}${labelsSvg}</svg></div>`;
+    return `<div class="chartCard"><div class="chartMeta"><span>Sabados fantasy</span><div class="chartScoringLabel"><strong>Solo jornadas que puntuan</strong>${scoringHelp}</div></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de puntos de sabados fantasy">${gridSvg}<line class="chartAxis" x1="${padX}" y1="${axisY.toFixed(2)}" x2="${width - padX}" y2="${axisY.toFixed(2)}"></line>${bridgesSvg}${linesSvg}${labelsSvg}${pointMarksSvg}${tooltipsSvg}</svg></div>`;
   }
 
   function renderPriceChart(player){
@@ -1253,19 +1261,25 @@
       return `<line class="chartGridLine" x1="${padX}" y1="${y}" x2="${width - padX}" y2="${y}"></line><text x="0" y="${Number(y) + 4}" font-size="10" font-weight="900" fill="#64748b">${escapeHtml(compactCoins(value))}</text>`;
     }).join('');
     const labelsSvg = series.rows.map((item, index) => `<text x="${xFor(index).toFixed(2)}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="1000" fill="#0f172a">${escapeHtml(item.label)}</text>`).join('');
-    const pointsSvg = series.rows.map((item, index) => {
+    const pointMarksSvg = series.rows.map((item, index) => {
       const x = xFor(index);
       const y = yFor(item.value);
       const tone = item.modifier > 0 ? 'up' : item.modifier < 0 ? 'down' : 'flat';
+      return `<line class="chartStem priceStem ${tone}" x1="${x.toFixed(2)}" y1="${yBase.toFixed(2)}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}"></line><circle class="chartPoint priceChartPoint ${tone}" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="7.5"></circle>`;
+    }).join('');
+
+    const tooltipsSvg = series.rows.map((item, index) => {
+      const x = xFor(index);
+      const y = yFor(item.value);
       const tooltipWidth = 210;
       const tooltipHeight = 94;
       const tooltipX = Math.max(2, Math.min(width - tooltipWidth - 2, x - (tooltipWidth / 2)));
       const tooltipY = Math.max(2, y - tooltipHeight - 16);
       const sourceLabel = item.estimated ? 'Estimado' : 'Directo';
-      return `<g class="chartPointGroup pricePointGroup"><line class="chartStem priceStem ${tone}" x1="${x.toFixed(2)}" y1="${yBase.toFixed(2)}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}"></line><circle class="chartPoint priceChartPoint ${tone}" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="7.5"></circle><foreignObject class="chartTooltip" x="${tooltipX.toFixed(2)}" y="${tooltipY.toFixed(2)}" width="${tooltipWidth}" height="${tooltipHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="chartTooltipBox priceTooltipBox"><div class="chartTooltipHead"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(sourceLabel)}</strong></div><div><span>Precio</span><strong>${escapeHtml(formatCoins(item.value))}</strong></div><div><span>Cambio</span><strong>${escapeHtml(signedCoins(item.modifier))}</strong></div></div></foreignObject></g>`;
+      return `<g class="chartPointGroup chartTooltipGroup pricePointGroup"><circle class="chartHitArea" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="16"></circle><foreignObject class="chartTooltip" x="${tooltipX.toFixed(2)}" y="${tooltipY.toFixed(2)}" width="${tooltipWidth}" height="${tooltipHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="chartTooltipBox priceTooltipBox"><div class="chartTooltipHead"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(sourceLabel)}</strong></div><div><span>Precio</span><strong>${escapeHtml(formatCoins(item.value))}</strong></div><div><span>Cambio</span><strong>${escapeHtml(signedCoins(item.modifier))}</strong></div></div></foreignObject></g>`;
     }).join('');
     const last = series.rows[series.rows.length - 1];
-    return `<div class="chartCard priceChartCard"><div class="chartMeta"><span>Precio por jornada</span><strong>${formatCoins(currentPrice || last.value)} actual</strong></div><svg class="chartSvg priceChartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de precio por jornada fantasy">${gridSvg}<line class="chartAxis priceBaseAxis" x1="${padX}" y1="${yBase.toFixed(2)}" x2="${width - padX}" y2="${yBase.toFixed(2)}"></line><polyline class="chartLine priceChartLine" points="${points}"></polyline>${pointsSvg}${labelsSvg}</svg></div>`;
+    return `<div class="chartCard priceChartCard"><div class="chartMeta"><span>Precio por jornada</span><strong>${formatCoins(currentPrice || last.value)} actual</strong></div><svg class="chartSvg priceChartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica de precio por jornada fantasy">${gridSvg}<line class="chartAxis priceBaseAxis" x1="${padX}" y1="${yBase.toFixed(2)}" x2="${width - padX}" y2="${yBase.toFixed(2)}"></line><polyline class="chartLine priceChartLine" points="${points}"></polyline>${labelsSvg}${pointMarksSvg}${tooltipsSvg}</svg></div>`;
   }
 
   function renderFantasyScoringLegend(){
@@ -3530,7 +3544,8 @@
       roundKey: String(row.round_key || ''),
       value: Number(row.weekly_points || 0),
       reward: Number(row.reward_coins || 0),
-      breakdown: contributionBreakdownText(state.currentTeam.id, row.round_key, derived.myRoster || [])
+      breakdown: contributionBreakdownText(state.currentTeam.id, row.round_key, derived.myRoster || []),
+      breakdownRows: contributionRowsForTeamRound(state.currentTeam.id, row.round_key, derived.myRoster || [])
     }));
     const width = 620;
     const height = 220;
@@ -3544,14 +3559,27 @@
     const xFor = (index) => padX + index * stepX;
     const yFor = (value) => padTop + (plotHeight - (Number(value || 0) / maxValue) * plotHeight);
     const points = series.map((item, index) => `${xFor(index).toFixed(2)},${yFor(item.value).toFixed(2)}`).join(' ');
-    const pointsSvg = series.map((item, index) => {
+    const pointMarksSvg = series.map((item, index) => {
       const x = xFor(index).toFixed(2);
       const y = yFor(item.value).toFixed(2);
-      const tooltip = `${item.label}: ${formatPointsLabel(item.value)} · ${formatCoins(item.reward)}${item.breakdown ? ` · ${item.breakdown}` : (index === series.length - 1 && latestBreakdownText ? ` · ${latestBreakdownText}` : '')}`;
-      return `<line class="chartStem scoring" x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${y}"></line><circle class="chartPoint scoring" cx="${x}" cy="${y}" r="8"><title>${escapeHtml(tooltip)}</title></circle>`;
+      return `<line class="chartStem scoring" x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${y}"></line><circle class="chartPoint scoring" cx="${x}" cy="${y}" r="8"></circle>`;
+    }).join('');
+    const tooltipsSvg = series.map((item, index) => {
+      const x = xFor(index);
+      const y = yFor(item.value);
+      const breakdownRows = (item.breakdownRows && item.breakdownRows.length ? item.breakdownRows : latestBreakdown).slice(0, config().squadSize);
+      const tooltipWidth = 244;
+      const tooltipHeight = Math.min(154, 66 + (breakdownRows.length * 25));
+      const tooltipX = Math.max(2, Math.min(width - tooltipWidth - 2, x - (tooltipWidth / 2)));
+      const preferredY = y - tooltipHeight - 14;
+      const tooltipY = preferredY >= 2 ? preferredY : Math.min(height - tooltipHeight - 2, y + 14);
+      const rosterHtml = breakdownRows.length
+        ? breakdownRows.map((row) => `<div><span>${escapeHtml(row.name)}</span><strong>${formatPointsLabel(row.weeklyPoints)}</strong></div>`).join('')
+        : '<div><span>Sin snapshot</span><strong>-</strong></div>';
+      return `<g class="chartPointGroup chartTooltipGroup managerTrendPointGroup"><circle class="chartHitArea" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="17"></circle><foreignObject class="chartTooltip managerTrendTooltip" x="${tooltipX.toFixed(2)}" y="${tooltipY.toFixed(2)}" width="${tooltipWidth}" height="${tooltipHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="chartTooltipBox managerTrendTooltipBox"><div class="chartTooltipHead"><span>${escapeHtml(item.label)}</span><strong>${formatPointsLabel(item.value)}</strong></div><div><span>Berries</span><strong>${formatCoins(item.reward)}</strong></div><div class="managerTooltipRoster">${rosterHtml}</div></div></foreignObject></g>`;
     }).join('');
     const labelsSvg = series.map((item, index) => `<text x="${xFor(index).toFixed(2)}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="900" fill="#0f172a">${escapeHtml(item.label)}</text>`).join('');
-    host.innerHTML = `<div class="chartCard"><div class="chartMeta"><span>Evolucion del manager</span><strong>${formatPointsLabel(series[series.length - 1]?.value || 0)} ultima jornada</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica semanal del manager"><line class="chartAxis" x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}"></line><polyline class="chartLine" points="${points}"></polyline>${pointsSvg}${labelsSvg}</svg>${latestBreakdown.length ? `<div class="trendBreakdown"><div class="trendBreakdownHead">Ultimo cierre · pasa el raton por el punto para ver el resumen</div>${latestBreakdown.map((row) => `<span class="trendBreakdownChip"><strong>${escapeHtml(row.name)}</strong>${formatPointsLabel(row.weeklyPoints)}</span>`).join('')}</div>` : ''}</div>`;
+    host.innerHTML = `<div class="chartCard"><div class="chartMeta"><span>Evolucion del manager</span><strong>${formatPointsLabel(series[series.length - 1]?.value || 0)} ultima jornada</strong></div><svg class="chartSvg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafica semanal del manager"><line class="chartAxis" x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}"></line><polyline class="chartLine" points="${points}"></polyline>${labelsSvg}${pointMarksSvg}${tooltipsSvg}</svg>${latestBreakdown.length ? `<div class="trendBreakdown"><div class="trendBreakdownHead">Ultimo cierre · pasa el raton por el punto para ver el resumen</div>${latestBreakdown.map((row) => `<span class="trendBreakdownChip"><strong>${escapeHtml(row.name)}</strong>${formatPointsLabel(row.weeklyPoints)}</span>`).join('')}</div>` : ''}</div>`;
   }
 
   function renderTeamBreakdown(){

@@ -2838,6 +2838,13 @@ body[data-fantasy-view] .chartPointGroup .chartPoint{
   cursor:help;
 }
 
+body[data-fantasy-view] .chartHitArea{
+  fill:transparent;
+  stroke:transparent;
+  pointer-events:all;
+  cursor:help;
+}
+
 body[data-fantasy-view] .chartTooltip{
   display:none;
   pointer-events:none;
@@ -2901,6 +2908,43 @@ body[data-fantasy-view] .chartTooltipTotal{
   margin-top:3px;
   padding-top:6px;
   border-top:1px solid rgba(15,23,42,.08);
+}
+
+body[data-fantasy-view] .managerTrendTooltipBox{
+  gap:6px;
+  padding:10px;
+}
+
+body[data-fantasy-view] .managerTrendTooltipBox .chartTooltipHead strong{
+  background:#fee2e2;
+  color:#b91c1c;
+}
+
+body[data-fantasy-view] .managerTooltipRoster{
+  display:grid !important;
+  gap:4px;
+  padding-top:6px;
+  border-top:1px solid rgba(15,23,42,.08);
+}
+
+body[data-fantasy-view] .managerTooltipRoster div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:20px;
+}
+
+body[data-fantasy-view] .managerTooltipRoster span{
+  min-width:0;
+  overflow:hidden;
+  color:#334155;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+body[data-fantasy-view] .managerTooltipRoster strong{
+  color:#1d4ed8;
 }
 
 body[data-fantasy-view] .playerTournamentHistory{
