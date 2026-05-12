@@ -798,6 +798,10 @@
     return Number.isFinite(parsed) ? parsed : NaN;
   }
 
+  function cleanImportedPlayerName(value){
+    return String(value || '').trim().replace(/\s*\(-\s*10\s*%\)\s*$/i, '').trim();
+  }
+
   function serialDateInfo(serial){
     const number = Number(serial);
     if (!Number.isFinite(number) || number < 30000){
@@ -1502,7 +1506,7 @@
     const eventMeta = eventColumns.map((event, eventPos) => tournamentScoreMeta(eventHeaders[eventPos], sourceRows.map((row) => getNumber(row[event.index]))));
 
     const players = sourceRows.map((row) => {
-      const name = String(row[2] || '').trim();
+      const name = cleanImportedPlayerName(row[2]);
       const slug = slugifyPlayerName(name);
       const berries = getNumber(row[1]);
       const allPoints = allEventColumns.map((event) => {
@@ -1772,6 +1776,7 @@
 
     const players = (poolRows || []).map((row) => {
       const slug = String(row?.player_slug || '').trim();
+      const name = cleanImportedPlayerName(row.player_name || slug);
       const history = (bySlug.get(slug) || []).map((entry) => {
         const raw = Number(entry.raw_points);
         const fantasy = Number(entry.fantasy_points);
@@ -1799,7 +1804,7 @@
       return {
         tier: String(row.player_tier || '').trim(),
         berries: totalPoints,
-        name: String(row.player_name || slug).trim(),
+        name,
         slug,
         sheetRow: [],
         allPoints: history.map((entry) => Number.isFinite(Number(entry.raw_points)) ? Number(entry.raw_points) : null),

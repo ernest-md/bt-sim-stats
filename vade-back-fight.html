@@ -858,6 +858,10 @@
       return Number.isFinite(n) ? n : NaN;
     }
 
+    function cleanImportedPlayerName(value){
+      return String(value || "").trim().replace(/\s*\(-\s*10\s*%\)\s*$/i, "").trim();
+    }
+
     function serialDateToLabel(serial){
       const n = Number(serial);
       if (!Number.isFinite(n) || n < 30000) return String(serial || "");
@@ -1089,7 +1093,7 @@
         return {
           tier: String(r[0] || "").trim(),
           berries: Number.isFinite(berries) ? berries : 0,
-          name: String(r[2] || "").trim(),
+          name: cleanImportedPlayerName(r[2]),
           points
         };
       });
