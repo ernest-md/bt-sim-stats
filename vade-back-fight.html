@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>VADE BACK FIGHT - Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260305c"></script>
+  <script src="app.js?v=20260506a"></script>
   <style>
     :root{
       --bg:#0b1220;
@@ -427,6 +427,25 @@
       color:var(--pc-win-badge-ink);
       border:1px solid var(--pc-win-badge-border);
     }
+    .resultBadge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:42px;
+      border-radius:999px;
+      padding:3px 8px;
+      background:rgba(255,255,255,.14);
+      color:var(--pc-surface-ink);
+      border:1px solid rgba(255,255,255,.22);
+      font-size:11px;
+      font-weight:1000;
+      letter-spacing:.2px;
+    }
+    .resultBadge.won{
+      background:var(--pc-win-badge-bg);
+      color:var(--pc-win-badge-ink);
+      border-color:var(--pc-win-badge-border);
+    }
     .playerCard.theme-pirate-king{
       --pc-card-bg:#111827;
       --pc-card-border:rgba(250,204,21,.45);
@@ -617,7 +636,17 @@
             <a class="navInlineMenuLink" href="cards.html">Card List</a>
             <a class="navInlineMenuLink" href="decks.html">DeckLists</a>
             <a class="navInlineMenuLink" href="op-wrapped.html">OP Wrapped</a>
-            <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
+          </div>
+        </div>
+        <div class="navInlineGroup" data-fantasy-nav="1" style="display:none">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true">
+            <span>VadeFantasy</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="vadeFantasyMenu">
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
           </div>
         </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
@@ -647,7 +676,7 @@
 
   <div class="wrap">
     <div class="hero">
-      <h1 id="heroTitle">VADE BACK FIGHT - OP15</h1>
+      <h1 id="heroTitle">VADE BACK FIGHT - VADE</h1>
       <p>Datos en tiempo real desde Google Sheets (solo lectura).</p>
       <div class="heroStats">
         <div class="stat"><b id="statPlayers">-</b><span>Jugadores</span></div>
@@ -660,13 +689,6 @@
         <div class="toolbar">
           <button id="btnReload" class="btn2" type="button">Recargar hoja</button>
           <a class="btnGhost" id="openSheet" target="_blank" rel="noreferrer noopener">Abrir Google Sheet</a>
-          <label class="sheetPicker" for="sheetSelect">
-            <span></span>
-            <select id="sheetSelect">
-              <option value="OP15" selected>OP15</option>
-              <option value="OP14">OP14</option>
-            </select>
-          </label>
           <div class="search">
             <input id="playerSearch" type="search" list="playersList" placeholder="Buscar jugador..." autocomplete="off" />
             <datalist id="playersList"></datalist>
@@ -714,10 +736,16 @@
   </div>
 
   <script>
-    const SHEET_ID = "1bRu9xDWAO8vBLF2GkzmsGL2M4P3AqczkDCXl6t-coFo";
-    const AVAILABLE_SHEETS = ["OP15", "OP14"];
-    const DEFAULT_SHEET_NAME = "OP15";
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing`;
+    const SHEET_SOURCES = {
+      VADE: {
+        label: "VADE",
+        id: "1bRu9xDWAO8vBLF2GkzmsGL2M4P3AqczkDCXl6t-coFo",
+        sheet: "OP15",
+        title: "VADE"
+      }
+    };
+    const AVAILABLE_SHEETS = Object.keys(SHEET_SOURCES);
+    const DEFAULT_SHEET_NAME = "VADE";
 
     const thead = document.getElementById("thead");
     const tbody = document.getElementById("tbody");
@@ -733,19 +761,12 @@
     const statPlayersEl = document.getElementById("statPlayers");
     const statEventsEl = document.getElementById("statEvents");
     const heroTitleEl = document.getElementById("heroTitle");
-    const sheetSelectEl = document.getElementById("sheetSelect");
 
-    document.getElementById("openSheet").href = SHEET_URL;
     document.getElementById("btnReload").addEventListener("click", loadSheet);
     document.getElementById("btnClearSearch").addEventListener("click", clearSelection);
     playerSearchEl.addEventListener("change", () => selectPlayerByName(playerSearchEl.value));
     playerSearchEl.addEventListener("input", () => {
       if (!playerSearchEl.value.trim()) clearSelection();
-    });
-    sheetSelectEl.addEventListener("change", async () => {
-      currentSheetName = normalizeSheetName(sheetSelectEl.value);
-      syncSheetUi();
-      await loadSheet();
     });
 
     let currentModel = null;
@@ -758,14 +779,23 @@
     }
 
     function getSheetUrl(sheetName){
-      return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+      const source = SHEET_SOURCES[normalizeSheetName(sheetName)] || SHEET_SOURCES[DEFAULT_SHEET_NAME];
+      const selector = source.gid ? `gid=${encodeURIComponent(source.gid)}` : `sheet=${encodeURIComponent(source.sheet || "OP15")}`;
+      return `https://docs.google.com/spreadsheets/d/${source.id}/gviz/tq?tqx=out:json&${selector}`;
+    }
+
+    function getSheetEditUrl(sheetName){
+      const source = SHEET_SOURCES[normalizeSheetName(sheetName)] || SHEET_SOURCES[DEFAULT_SHEET_NAME];
+      const gid = source.gid ? `#gid=${encodeURIComponent(source.gid)}` : "";
+      return `https://docs.google.com/spreadsheets/d/${source.id}/edit${gid}`;
     }
 
     function syncSheetUi(){
       const sheetName = normalizeSheetName(currentSheetName);
+      const source = SHEET_SOURCES[sheetName] || SHEET_SOURCES[DEFAULT_SHEET_NAME];
       currentSheetName = sheetName;
-      sheetSelectEl.value = sheetName;
-      heroTitleEl.textContent = `VADE BACK FIGHT - ${sheetName}`;
+      heroTitleEl.textContent = `VADE BACK FIGHT - ${source.title || sheetName}`;
+      document.getElementById("openSheet").href = getSheetEditUrl(sheetName);
     }
 
     function showError(msg){
@@ -787,6 +817,7 @@
       if (!table || !Array.isArray(table.cols) || !Array.isArray(table.rows)) {
         throw new Error("Formato GViz inesperado");
       }
+      const colLabels = table.cols.map((col) => String(col?.label || "").trim());
       const rows = table.rows.map((r) =>
         (r?.c || []).map((cell) => {
           const v = cell?.v;
@@ -796,7 +827,7 @@
           return String(v || "").trim();
         })
       );
-      return { rows };
+      return { rows, colLabels };
     }
 
     function normalizeTable(rows){
@@ -835,6 +866,155 @@
       const day = String(dt.getUTCDate());
       const month = dt.toLocaleString("es-ES", { month: "short", timeZone: "UTC" }).replace(".", "");
       return `${day}-${month}`;
+    }
+
+    function looksLikeEventDateCell(value){
+      const n = Number(value);
+      if (Number.isFinite(n) && n >= 30000) return true;
+      const text = String(value || "").trim().toLowerCase();
+      return /^\d{1,2}\s*[-/]\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|\d{1,2})/.test(text)
+        || /^\d{4}-\d{2}-\d{2}$/.test(text);
+    }
+
+    function eventHeaderInfo(rows){
+      const candidates = (rows || []).slice(0, 4);
+      let dateRowIndex = 0;
+      let bestScore = -1;
+      candidates.forEach((row, index) => {
+        const score = (row || []).slice(3).reduce((sum, cell) => sum + (looksLikeEventDateCell(cell) ? 1 : 0), 0);
+        if (score > bestScore){
+          bestScore = score;
+          dateRowIndex = index;
+        }
+      });
+      return {
+        dateRowIndex,
+        dateRow: rows[dateRowIndex] || rows[0] || [],
+        metaRow: dateRowIndex > 0 ? rows[dateRowIndex - 1] || [] : []
+      };
+    }
+
+    function parseEventMeta(value){
+      const text = String(value || "").trim();
+      const tier = Number(text.match(/tier\s*(\d+)/i)?.[1] || 0);
+      const players = Number(text.match(/\((\d+)\)/)?.[1] || 0);
+      return {
+        label: text,
+        tier: Number.isFinite(tier) ? tier : 0,
+        players: Number.isFinite(players) ? players : 0
+      };
+    }
+
+    const TIER_WIN_POINTS = {
+      1: [4000, 6000, 8000, 10000],
+      2: [2000, 3000, 4000, 5000],
+      3: [1000, 2000, 3000, 4000]
+    };
+
+    function hintedWinPointsForEvent(meta){
+      const tier = Number(meta?.tier || 0);
+      const players = Number(meta?.players || 0);
+      if (![1, 2, 3].includes(tier)) return 5000;
+      if (tier === 1){
+        if (players <= 8) return 4000;
+        if (players <= 16) return 6000;
+        if (players <= 24) return 8000;
+        return 10000;
+      }
+      if (tier === 2){
+        if (players <= 8) return 2000;
+        if (players <= 16) return 3000;
+        if (players <= 24) return 4000;
+        return 5000;
+      }
+      if (players <= 8) return 1000;
+      if (players <= 16) return 2000;
+      if (players <= 24) return 3000;
+      return 4000;
+    }
+
+    function winPointCandidatesForEvent(meta){
+      const tier = Number(meta?.tier || 0);
+      const list = TIER_WIN_POINTS[tier] || TIER_WIN_POINTS[2];
+      const hinted = hintedWinPointsForEvent(meta);
+      return Array.from(new Set([hinted, ...list])).filter(Boolean);
+    }
+
+    function winnerBonusForEvent(meta){
+      const tier = Number(meta?.tier || 0);
+      if (tier === 1) return 8000;
+      if (tier === 2) return 6000;
+      if (tier === 3) return 4000;
+      return 6000;
+    }
+
+    function eventRoundEstimate(scores, winPoints, winnerBonus){
+      const values = (scores || []).filter((value) => Number.isFinite(value) && value > 0);
+      const maxScore = values.length ? Math.max(...values) : 0;
+      const possibleWinnerBase = maxScore - winnerBonus;
+      if (maxScore > 0 && possibleWinnerBase > 0 && possibleWinnerBase % winPoints === 0){
+        return Math.max(4, Math.min(6, possibleWinnerBase / winPoints));
+      }
+      const exactWins = values
+        .filter((score) => score % winPoints === 0)
+        .map((score) => score / winPoints)
+        .filter((wins) => Number.isFinite(wins) && wins > 0);
+      const maxWins = exactWins.length ? Math.max(...exactWins) : 0;
+      if (maxWins >= 4) return Math.max(4, Math.min(6, maxWins));
+      return 4;
+    }
+
+    function parseEventResultWithMeta(score, meta){
+      const raw = Number(score || 0);
+      if (!Number.isFinite(raw) || raw <= 0 || !meta) return null;
+      const winPoints = Number(meta.winPoints || 0);
+      const winnerBonus = Number(meta.winnerBonus || 0);
+      const maxScore = Number(meta.maxScore || 0);
+      const rounds = Number(meta.rounds || 0);
+      if (!winPoints || !rounds) return null;
+      const possibleWinnerBase = raw - winnerBonus;
+      const winnerWins = possibleWinnerBase > 0 && possibleWinnerBase % winPoints === 0 ? possibleWinnerBase / winPoints : 0;
+      if (raw === maxScore && winnerWins > 0 && winnerWins <= rounds){
+        return { wins: winnerWins, losses: Math.max(0, rounds - winnerWins), label: `${winnerWins}-${Math.max(0, rounds - winnerWins)}`, won: true };
+      }
+      if (raw % winPoints !== 0) return null;
+      const wins = raw / winPoints;
+      if (wins > rounds) return null;
+      const losses = Math.max(0, rounds - wins);
+      return { wins, losses, label: `${wins}-${losses}`, won: false };
+    }
+
+    function eventScoreMeta(meta, scores){
+      const winnerBonus = winnerBonusForEvent(meta);
+      const values = (scores || []).filter((value) => Number.isFinite(value) && value > 0);
+      const maxScore = values.length ? Math.max(...values) : 0;
+      let best = null;
+      winPointCandidatesForEvent(meta).forEach((winPoints) => {
+        const candidate = {
+          ...meta,
+          winPoints,
+          winnerBonus,
+          rounds: eventRoundEstimate(values, winPoints, winnerBonus),
+          maxScore
+        };
+        const results = values.map((value) => parseEventResultWithMeta(value, candidate));
+        const validCount = results.filter(Boolean).length;
+        const winnerCount = results.filter((result) => result?.won === true).length;
+        const hintedBonus = winPoints === hintedWinPointsForEvent(meta) ? 1 : 0;
+        const score = (validCount * 20) + (winnerCount * 4) + hintedBonus - ((values.length - validCount) * 30);
+        if (!best || score > best.score) best = { ...candidate, score };
+      });
+      return best || {
+        ...meta,
+        winPoints: hintedWinPointsForEvent(meta),
+        winnerBonus,
+        rounds: 4,
+        maxScore
+      };
+    }
+
+    function parseEventResult(score, meta){
+      return parseEventResultWithMeta(score, meta);
     }
 
     function tierClass(tier){
@@ -884,15 +1064,20 @@
       const rows = normalizeTable(payload?.rows || []);
       if (!rows.length) return null;
 
-      const headerRow = rows[0] || [];
-      const sourceRows = rows.slice(1).filter((r) => String(r[2] || "").trim() !== "");
+      const headers = eventHeaderInfo(rows);
+      const headerRow = headers.dateRow || [];
+      const metaRow = headers.metaRow || [];
+      const colLabels = Array.isArray(payload?.colLabels) ? payload.colLabels : [];
+      const sourceRows = rows.slice(headers.dateRowIndex + 1).filter((r) => String(r[2] || "").trim() !== "");
       if (!sourceRows.length) return null;
 
       const eventIndexes = [];
       const eventLabels = [];
+      const eventHeaders = [];
       for (let i = 3; i < headerRow.length; i++){
         eventIndexes.push(i);
         eventLabels.push(serialDateToLabel(headerRow[i]) || `T${i - 2}`);
+        eventHeaders.push(parseEventMeta(metaRow[i] || colLabels[i]));
       }
 
       const players = sourceRows.map((r) => {
@@ -917,6 +1102,9 @@
         });
         return max;
       });
+      const eventMeta = eventIndexes.map((idx, eventPos) =>
+        eventScoreMeta(eventHeaders[eventPos], sourceRows.map((row) => getNumber(row[idx])))
+      );
 
       players.forEach((p) => {
         let wins = 0;
@@ -926,7 +1114,7 @@
           if (Number.isFinite(v) && v > 0){
             played += 1;
             totalPoints += v;
-            if (eventMax[i] > 0 && v === eventMax[i]) wins += 1;
+            if (parseEventResult(v, eventMeta[i])?.won === true) wins += 1;
           }
         });
         p.wins = wins;
@@ -948,7 +1136,7 @@
         events: eventIndexes.length
       };
 
-      return { players, eventLabels, eventMax, totals };
+      return { players, eventLabels, eventMax, eventMeta, totals };
     }
 
     function formatTierTag(tier){
@@ -1064,14 +1252,15 @@
       const playedEvents = [];
       player.points.forEach((v, idx) => {
         if (Number.isFinite(v) && v > 0){
-          const won = (model.eventMax[idx] || 0) > 0 && v === model.eventMax[idx];
-          playedEvents.push({ label: model.eventLabels[idx] || `T${idx + 1}`, score: v, won });
+          const result = parseEventResult(v, model.eventMeta[idx]);
+          const won = result?.won === true;
+          playedEvents.push({ label: model.eventLabels[idx] || `T${idx + 1}`, score: v, won, resultLabel: result?.label || "-" });
         }
       });
 
       const allPlayedHtml = playedEvents.length
         ? playedEvents.slice().reverse().map((e) =>
-          `<tr class="${e.won ? "wonRow" : ""}"><td class="left">${escapeHtml(e.label)}</td><td>${e.score}</td><td>${e.won ? '<span class="winBadge">GANADO</span>' : "-"}</td></tr>`
+          `<tr class="${e.won ? "wonRow" : ""}"><td class="left">${escapeHtml(e.label)}</td><td>${e.score}</td><td><span class="resultBadge ${e.won ? "won" : ""}">${escapeHtml(e.resultLabel)}</span></td></tr>`
         ).join("")
         : `<tr><td colspan="3" class="empty">Sin torneos puntuados</td></tr>`;
 

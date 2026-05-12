@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -6,9 +6,9 @@
   <title>Home · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
-  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260305c"></script>
+  <script src="app.js?v=20260506a"></script>
 
   <style>
     :root{
@@ -1486,6 +1486,18 @@
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
         </div>
+        <div class="navInlineGroup" data-fantasy-nav="1" style="display:none">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true">
+            <span>VadeFantasy</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="vadeFantasyMenu">
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
+            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
+          </div>
+        </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
     </div>
@@ -1513,9 +1525,6 @@
   </div>
 
 <div class="wrap">
-    <div class="hero">
-      <h1>Bienvenidos al hub del equipo</h1>
-    </div>
 
     <div class="grid">
       <div class="card" id="postsCard">
@@ -2243,7 +2252,6 @@
   }
 
   const FEATURED_RANKING_MIN_GAMES = 40;
-  const LEADER_WR_RANKING_MIN_GAMES = 15;
 
   function featuredTopPlayerPool(rows){
     const list = Array.isArray(rows) ? rows : [];
@@ -2587,8 +2595,9 @@
       return b.wr - a.wr;
     }).slice(0, 3);
 
-    const wrPool = rows.filter((x) => x.games >= LEADER_WR_RANKING_MIN_GAMES);
-    const byWr = wrPool
+    const minGames = 3;
+    const wrPool = rows.filter((x) => x.games >= minGames);
+    const byWr = (wrPool.length ? wrPool : rows)
       .sort((a, b) => {
         if (b.wr !== a.wr) return b.wr - a.wr;
         return b.games - a.games;
@@ -2912,7 +2921,7 @@
         </div>
       </div>
       <div class="leaderRanks">
-        ${leaderRankCardHtml(`Top 3 lideres por WR (min. ${LEADER_WR_RANKING_MIN_GAMES})`, leaderRankings?.byWr || [])}
+        ${leaderRankCardHtml("Top 3 lideres por WR", leaderRankings?.byWr || [])}
         ${leaderRankCardHtml("Top 3 lideres mas jugados", leaderRankings?.byPlayed || [])}
       </div>
     `;
