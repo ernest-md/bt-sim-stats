@@ -31,7 +31,7 @@
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
-  const PLAYER_POOL_CACHE_VERSION = '20260507e';
+  const PLAYER_POOL_CACHE_VERSION = '20260512a';
   const PLAYER_POOL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const PLAYER_POOL_BACKGROUND_REFRESH_MS = 45 * 60 * 1000;
   const TEAM_ROUNDS_SELECT = 'season,round_key,round_label,round_order,team_id,weekly_points,reward_coins,transfers_used';
@@ -800,6 +800,13 @@
 
   function cleanImportedPlayerName(value){
     return String(value || '').trim().replace(/\s*\(-\s*10\s*%\)\s*$/i, '').trim();
+  }
+
+  function cleanImportedPlayerSlug(slug, name){
+    const rawSlug = String(slug || '').trim();
+    const cleanName = cleanImportedPlayerName(name);
+    const cleanSlug = slugifyPlayerName(cleanName);
+    return rawSlug.endsWith('-10') && cleanSlug ? cleanSlug : rawSlug;
   }
 
   function serialDateInfo(serial){
@@ -1724,7 +1731,18 @@
 
   function applyPlayerPoolModel(model, options){
     const opts = options || {};
-    const players = Array.isArray(model?.players) ? model.players : [];
+    const playersByCleanSlug = new Map();
+    (Array.isArray(model?.players) ? model.players : []).forEach((player) => {
+      const name = cleanImportedPlayerName(player?.name || player?.player_name || player?.slug);
+      const slug = cleanImportedPlayerSlug(player?.slug, name) || slugifyPlayerName(name);
+      if (!slug || !name) return;
+      const next = { ...player, name, slug };
+      const existing = playersByCleanSlug.get(slug);
+      if (!existing || Number(next.rank || 9999) < Number(existing.rank || 9999)){
+        playersByCleanSlug.set(slug, next);
+      }
+    });
+    const players = Array.from(playersByCleanSlug.values());
     state.poolPlayers = players;
     state.eventLabels = Array.isArray(model?.eventLabels) ? model.eventLabels : [];
     state.playersBySlug = new Map(state.poolPlayers.map((player) => [player.slug, player]));
@@ -1775,9 +1793,11 @@
     } : null;
 
     const players = (poolRows || []).map((row) => {
-      const slug = String(row?.player_slug || '').trim();
-      const name = cleanImportedPlayerName(row.player_name || slug);
-      const history = (bySlug.get(slug) || []).map((entry) => {
+      const rawSlug = String(row?.player_slug || '').trim();
+      const name = cleanImportedPlayerName(row.player_name || rawSlug);
+      const slug = cleanImportedPlayerSlug(rawSlug, name) || slugifyPlayerName(name) || rawSlug;
+      const historyRows = (bySlug.get(rawSlug) || []).concat(rawSlug !== slug ? (bySlug.get(slug) || []) : []);
+      const history = historyRows.map((entry) => {
         const raw = Number(entry.raw_points);
         const fantasy = Number(entry.fantasy_points);
         const roundKey = String(entry.round_key || '').trim();
