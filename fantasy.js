@@ -3136,6 +3136,74 @@
     renderMarketPanelModal();
   }
 
+  function renderFantasyInfoHtml(){
+    return `
+      <div class="fantasyInfoPanel">
+        <section class="fantasyInfoLead">
+          <strong>Guia rapida para probar VadeFantasy.</strong>
+          <span>Crea tu equipo, revisa el mercado, prueba fichajes y clausulazos, y deja feedback si algo no se entiende o se siente injusto antes de jugarlo en serio.</span>
+        </section>
+        <div class="fantasyInfoGrid">
+          <article class="fantasyInfoCard">
+            <span>Equipo inicial</span>
+            <strong>3 jugadores por manager</strong>
+            <p>Al crear equipo recibes 3 jugadores iniciales aleatorios. Ese pack no incluye Pirate King ni Yonkou: empieza desde Shichibukai, Supernova o Piratilla para que haya margen de mercado.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Capitan</span>
+            <strong>Bonus x1,5</strong>
+            <p>Puedes elegir un capitan dentro de tu plantilla. En cada cierre fantasy, sus puntos de esa jornada cuentan x1,5. Solo puede haber un capitan activo por equipo.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Fichajes normales</span>
+            <strong>Compra desde el pool</strong>
+            <p>Si un jugador tiene cupos libres, puedes ficharlo pagando su precio de mercado. Si ya tienes 3 jugadores, eliges quien sale. Tras comprarlo queda protegido 4 horas para que no te lo roben al instante.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Clausulazos</span>
+            <strong>Mas caro que fichar normal</strong>
+            <p>Si un jugador ya esta en equipos rivales, puedes pagar la clausula de una copia concreta. La clausula cuesta mas que su precio normal, ahora x1,5 por defecto. El vendedor recibe esas berries y tu nuevo jugador queda protegido 24 horas.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Puntuacion</span>
+            <strong>Resultados Vade Back Fight</strong>
+            <p>Cuenta el rendimiento detectado en los torneos fantasy del Excel VBF. Cada victoria suma 3, cada derrota resta 1, ganar el torneo da +5 y hacer 4 victorias sin ganar da +2. Si un jugador no juega esa semana, no resta: simplemente suma 0.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Mercado</span>
+            <strong>Cierre semanal</strong>
+            <p>El mercado se cierra los viernes a las 23:59. En ese momento se captura una foto de todas las plantillas. Esa foto es la que puntua, aunque luego fiches o pierdas jugadores.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Precio de fichas</span>
+            <strong>Tier + resultados</strong>
+            <p>Cada ficha parte de un precio base por tier: Pirate King, Yonkou, Shichibukai, Supernova o Piratilla. Despues sube o baja por resultados: 5-0 sube fuerte, 4-1 sube, 3-2 sube poco, 2-3 baja poco, 1-4 baja y 0-5 baja fuerte.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Variacion</span>
+            <strong>Jugar importa</strong>
+            <p>El precio se recalcula con el historico fantasy. Ganar, hacer buen resultado y ganar torneos empuja el valor hacia arriba. No jugar no penaliza puntos de jornada, pero tampoco genera subida ni aporta berries.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Jugadores de oficio</span>
+            <strong>Parche si falta plantilla</strong>
+            <p>Si al cerrar mercado un equipo no llega a 3 jugadores, el sistema completa la foto de esa jornada con jugadores de oficio. En la medida de lo posible, se priorizan jugadores que ya estuvieron en la jornada anterior.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Impacto de oficio</span>
+            <strong>Puntuan a medio gas</strong>
+            <p>Un jugador de oficio puntua con multiplicador reducido, ahora x0,5. No cuenta como capitan, no tiene clausula real para tu plantilla y desaparece despues del calculo de la jornada.</p>
+          </article>
+        </div>
+        <section class="fantasyInfoFlow">
+          <div><span>1</span><p>Crea tu equipo inicial y revisa que plantilla te ha tocado.</p></div>
+          <div><span>2</span><p>Revisa el mercado, ficha desde el pool o prueba clausulazos sobre equipos rivales.</p></div>
+          <div><span>3</span><p>El viernes a las 23:59 se cierra el mercado con el equipo que tengas en ese momento.</p></div>
+          <div><span>4</span><p>Cuando se actualice VDBF, se reparten puntos, berries y se vuelve a abrir el mercado manualmente.</p></div>
+        </section>
+      </div>`;
+  }
+
   function openBuyConfirm(slug, targetTeamId){
     state.confirmBuySlug = String(slug || '').trim();
     state.confirmBuyTargetTeamId = String(targetTeamId || '').trim();
@@ -3423,17 +3491,22 @@
       body.innerHTML = '';
       return;
     }
+    const isInfo = panel === 'info';
     const isWatchlist = panel === 'watchlist';
     const isMine = panel === 'my_activity';
-    if (title) title.textContent = isWatchlist ? 'Mi watchlist' : isMine ? 'Mi actividad fantasy' : 'Actividad reciente';
+    if (title) title.textContent = isInfo ? 'Informacion' : isWatchlist ? 'Mi watchlist' : isMine ? 'Mi actividad fantasy' : 'Actividad reciente';
     if (subtitle){
-      subtitle.textContent = isWatchlist
+      subtitle.textContent = isInfo
+        ? 'Guia detallada para probar plantillas, mercado, capitanes, clausulas, precios, jugadores de oficio y cierre de jornada.'
+        : isWatchlist
         ? 'Objetivos marcados para vigilar precio, forma y cupos sin quitar protagonismo al mercado.'
         : isMine
           ? 'Todos los movimientos recientes relacionados con tu equipo.'
         : 'Movimientos de fichajes, clausulazos y premios que explican el ritmo de la liga.';
     }
-    body.innerHTML = isWatchlist
+    body.innerHTML = isInfo
+      ? renderFantasyInfoHtml()
+      : isWatchlist
       ? renderWatchlistHtml(18)
       : isMine
         ? renderPersonalActivityHtml(80)
@@ -4561,6 +4634,7 @@
   $('watchlistPanel')?.addEventListener('click', handleOpenPlayerClick);
   $('myActivityPanel')?.addEventListener('click', handleOpenPlayerClick);
   $('marketActivityPanel')?.addEventListener('click', handleOpenPlayerClick);
+  $('openFantasyInfoButton')?.addEventListener('click', () => openMarketPanelModal('info'));
   $('openWatchlistButton')?.addEventListener('click', () => openMarketPanelModal('watchlist'));
   $('openActivityButton')?.addEventListener('click', () => openMarketPanelModal('activity'));
   $('openMyActivityButton')?.addEventListener('click', () => openMarketPanelModal('my_activity'));
