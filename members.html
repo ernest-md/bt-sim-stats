@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Members · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260305c"></script>
+  <script src="app.js?v=20260506a"></script>
   <style>
     :root{
       --bg:#0b1220;
@@ -76,9 +76,9 @@
     .heroStats{
       margin-top:12px;
       display:grid;
-      grid-template-columns:repeat(3,minmax(140px,1fr));
+      grid-template-columns:repeat(4,minmax(140px,1fr));
       gap:10px;
-      max-width:560px;
+      max-width:720px;
     }
     .stat{
       border:1px solid rgba(255,255,255,.2);
@@ -185,7 +185,8 @@
     .teamCol{ width:160px; }
     .roleCol{ width:120px; }
     .memberCol{ width:110px; text-align:center; }
-    .actionCol{ width:170px; text-align:center; }
+    .fantasyCol{ width:130px; text-align:center; }
+    .actionCol{ width:210px; text-align:center; }
     .badge{
       display:inline-flex;
       align-items:center;
@@ -226,6 +227,9 @@
       cursor:pointer;
       box-shadow:0 8px 20px rgba(14,165,233,.14);
       transition:transform .08s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    .actionCol .rowBtn{
+      margin:3px 4px;
     }
     .rowBtn.alt{
       border-color:rgba(239,68,68,.22);
@@ -286,6 +290,18 @@
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
         </div>
+        <div class="navInlineGroup" data-fantasy-nav="1" style="display:none">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true">
+            <span>VadeFantasy</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="vadeFantasyMenu">
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
+            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
+          </div>
+        </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
       <div class="authCorner">
@@ -310,11 +326,12 @@
   <div class="wrap">
     <section class="hero">
       <h1>Gestion de miembros</h1>
-      <p>Lista de perfiles y validacion manual del campo <strong>member</strong>.</p>
+      <p>Lista de perfiles y validacion manual de accesos <strong>member</strong> y <strong>fantasy</strong>.</p>
       <div class="heroStats">
         <div class="stat"><b id="totalCount">0</b><span>Perfiles</span></div>
         <div class="stat"><b id="memberCount">0</b><span>Miembros activos</span></div>
-        <div class="stat"><b id="pendingCount">0</b><span>Pendientes</span></div>
+        <div class="stat"><b id="fantasyCount">0</b><span>Va de Fantasy</span></div>
+        <div class="stat"><b id="pendingCount">0</b><span>Pendientes member</span></div>
       </div>
     </section>
 
@@ -339,11 +356,12 @@
               <th class="teamCol">Equipo</th>
               <th class="roleCol">Rol</th>
               <th class="memberCol">Member</th>
-              <th class="actionCol">Accion</th>
+              <th class="fantasyCol">Va de Fantasy</th>
+              <th class="actionCol">Acciones</th>
             </tr>
           </thead>
           <tbody id="membersTableBody">
-            <tr><td colspan="6" class="empty">Cargando perfiles...</td></tr>
+            <tr><td colspan="7" class="empty">Cargando perfiles...</td></tr>
           </tbody>
         </table>
       </div>
@@ -396,8 +414,10 @@
     function updateStats(rows){
       const list = Array.isArray(rows) ? rows : [];
       const memberCount = list.filter((row) => row.member === true).length;
+      const fantasyCount = list.filter((row) => row.fantasy === true).length;
       $("totalCount").textContent = String(list.length);
       $("memberCount").textContent = String(memberCount);
+      $("fantasyCount").textContent = String(fantasyCount);
       $("pendingCount").textContent = String(list.length - memberCount);
     }
 
@@ -407,7 +427,9 @@
         row.username,
         row.display_name,
         row.team,
-        row.app_role
+        row.app_role,
+        row.member === true ? "member activo" : "member no",
+        row.fantasy === true ? "fantasy activo va de fantasy" : "fantasy no"
       ].map((value) => String(value || "").toLowerCase()).join(" ");
       return haystack.includes(query);
     }
@@ -417,7 +439,7 @@
       if (!tbody) return;
 
       if (!rows.length){
-        tbody.innerHTML = `<tr><td colspan="6" class="empty">No hay perfiles para mostrar.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">No hay perfiles para mostrar.</td></tr>`;
         return;
       }
 
@@ -428,19 +450,30 @@
           <td class="teamCol">${escapeHtml(row.team || "SIN EQUIPO")}</td>
           <td class="roleCol"><span class="badge role">${escapeHtml(roleLabel(row.app_role))}</span></td>
           <td class="memberCol"><span class="badge ${row.member === true ? "ok" : "off"}">${row.member === true ? "ACTIVO" : "NO"}</span></td>
+          <td class="fantasyCol"><span class="badge ${row.fantasy === true ? "ok" : "off"}">${row.fantasy === true ? "ACTIVO" : "NO"}</span></td>
           <td class="actionCol">
             <button class="rowBtn ${row.member === true ? "alt" : ""}" data-profile-id="${escapeAttr(row.id)}" data-next-member="${row.member === true ? "0" : "1"}" type="button">
               ${row.member === true ? "Desactivar" : "Hacer miembro"}
+            </button>
+            <button class="rowBtn ${row.fantasy === true ? "alt" : ""}" data-profile-id="${escapeAttr(row.id)}" data-next-fantasy="${row.fantasy === true ? "0" : "1"}" type="button">
+              ${row.fantasy === true ? "Quitar fantasy" : "Dar fantasy"}
             </button>
           </td>
         </tr>
       `).join("");
 
-      for (const btn of tbody.querySelectorAll(".rowBtn")){
+      for (const btn of tbody.querySelectorAll("[data-next-member]")){
         btn.addEventListener("click", async () => {
           const profileId = btn.getAttribute("data-profile-id");
           const nextMember = btn.getAttribute("data-next-member") === "1";
           await updateMember(profileId, nextMember, btn);
+        });
+      }
+      for (const btn of tbody.querySelectorAll("[data-next-fantasy]")){
+        btn.addEventListener("click", async () => {
+          const profileId = btn.getAttribute("data-profile-id");
+          const nextFantasy = btn.getAttribute("data-next-fantasy") === "1";
+          await updateFantasy(profileId, nextFantasy, btn);
         });
       }
     }
@@ -458,17 +491,18 @@
       showPageMsg("", "ok");
       $("toolbarHint").textContent = "Cargando perfiles...";
       const tbody = $("membersTableBody");
-      if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="empty">Cargando perfiles...</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="empty">Cargando perfiles...</td></tr>`;
 
       const { data, error } = await sb
         .from("profiles")
-        .select("id,username,display_name,team,app_role,member")
+        .select("id,username,display_name,team,app_role,member,fantasy")
         .order("member", { ascending: false })
+        .order("fantasy", { ascending: false })
         .order("username", { ascending: true });
 
       if (error){
         console.error(error);
-        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="empty">No pude cargar los perfiles.</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="empty">No pude cargar los perfiles.</td></tr>`;
         showPageMsg("No pude cargar los perfiles: " + error.message, "err");
         return;
       }
@@ -497,6 +531,30 @@
       }catch(error){
         console.error(error);
         showPageMsg("No pude actualizar el perfil: " + (error.message || error), "err");
+      }finally{
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function updateFantasy(profileId, nextFantasy, btn){
+      if (!profileId) return;
+      try{
+        if (btn) btn.disabled = true;
+        const { error } = await sb
+          .from("profiles")
+          .update({ fantasy: nextFantasy, updated_at: new Date().toISOString() })
+          .eq("id", profileId);
+
+        if (error) throw error;
+
+        const row = currentRows.find((item) => String(item.id) === String(profileId));
+        if (row) row.fantasy = nextFantasy;
+        updateStats(currentRows);
+        applySearch();
+        showPageMsg(nextFantasy ? "Perfil con acceso a Va de Fantasy." : "Acceso a Va de Fantasy retirado.", "ok");
+      }catch(error){
+        console.error(error);
+        showPageMsg("No pude actualizar el acceso fantasy: " + (error.message || error), "err");
       }finally{
         if (btn) btn.disabled = false;
       }
