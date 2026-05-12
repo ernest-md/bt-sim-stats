@@ -676,7 +676,7 @@
 
   <div class="wrap">
     <div class="hero">
-      <h1 id="heroTitle">VADE BACK FIGHT - PRUEBAS</h1>
+      <h1 id="heroTitle">VADE BACK FIGHT - VADE</h1>
       <p>Datos en tiempo real desde Google Sheets (solo lectura).</p>
       <div class="heroStats">
         <div class="stat"><b id="statPlayers">-</b><span>Jugadores</span></div>
@@ -689,13 +689,6 @@
         <div class="toolbar">
           <button id="btnReload" class="btn2" type="button">Recargar hoja</button>
           <a class="btnGhost" id="openSheet" target="_blank" rel="noreferrer noopener">Abrir Google Sheet</a>
-          <label class="sheetPicker" for="sheetSelect">
-            <span></span>
-            <select id="sheetSelect">
-              <option value="PRUEBAS" selected>PRUEBAS</option>
-              <option value="VADE">VADE</option>
-            </select>
-          </label>
           <div class="search">
             <input id="playerSearch" type="search" list="playersList" placeholder="Buscar jugador..." autocomplete="off" />
             <datalist id="playersList"></datalist>
@@ -744,12 +737,6 @@
 
   <script>
     const SHEET_SOURCES = {
-      PRUEBAS: {
-        label: "PRUEBAS",
-        id: "1dlUEEZhUf_p-p8pAPpB3RmJE0AMwoZ35u1nBTZZBYrc",
-        gid: "1775308876",
-        title: "PRUEBAS"
-      },
       VADE: {
         label: "VADE",
         id: "1bRu9xDWAO8vBLF2GkzmsGL2M4P3AqczkDCXl6t-coFo",
@@ -758,7 +745,7 @@
       }
     };
     const AVAILABLE_SHEETS = Object.keys(SHEET_SOURCES);
-    const DEFAULT_SHEET_NAME = "PRUEBAS";
+    const DEFAULT_SHEET_NAME = "VADE";
 
     const thead = document.getElementById("thead");
     const tbody = document.getElementById("tbody");
@@ -774,18 +761,12 @@
     const statPlayersEl = document.getElementById("statPlayers");
     const statEventsEl = document.getElementById("statEvents");
     const heroTitleEl = document.getElementById("heroTitle");
-    const sheetSelectEl = document.getElementById("sheetSelect");
 
     document.getElementById("btnReload").addEventListener("click", loadSheet);
     document.getElementById("btnClearSearch").addEventListener("click", clearSelection);
     playerSearchEl.addEventListener("change", () => selectPlayerByName(playerSearchEl.value));
     playerSearchEl.addEventListener("input", () => {
       if (!playerSearchEl.value.trim()) clearSelection();
-    });
-    sheetSelectEl.addEventListener("change", async () => {
-      currentSheetName = normalizeSheetName(sheetSelectEl.value);
-      syncSheetUi();
-      await loadSheet();
     });
 
     let currentModel = null;
@@ -813,7 +794,6 @@
       const sheetName = normalizeSheetName(currentSheetName);
       const source = SHEET_SOURCES[sheetName] || SHEET_SOURCES[DEFAULT_SHEET_NAME];
       currentSheetName = sheetName;
-      sheetSelectEl.value = sheetName;
       heroTitleEl.textContent = `VADE BACK FIGHT - ${source.title || sheetName}`;
       document.getElementById("openSheet").href = getSheetEditUrl(sheetName);
     }

@@ -31,7 +31,7 @@ returns boolean
 language sql
 stable
 as $$
-  select true
+  select extract(isodow from timezone('Europe/Madrid', coalesce(p_now, now())))::integer not in (6, 7)
 $$;
 
 create or replace function public.fantasy_vbf_lock_round(
@@ -177,8 +177,11 @@ as $$
 declare
   v_season text := upper(trim(coalesce(p_season, '')));
   v_cfg public.fantasy_vbf_seasons%rowtype;
+  v_snapshot jsonb := '{}'::jsonb;
 begin
   -- Intended for a trusted Supabase scheduled job / pg_cron, not for direct client use.
+  -- It is intentionally idempotent: repeated executions keep the market closed
+  -- and only recreate the snapshot when it does not already exist.
   select *
   into v_cfg
   from public.fantasy_vbf_seasons
@@ -188,6 +191,14 @@ begin
   if not found then raise exception 'La temporada fantasy no existe.'; end if;
   if nullif(v_cfg.current_round_key, '') is null then raise exception 'No hay jornada actual para bloquear.'; end if;
 
+  v_snapshot := public.fantasy_vbf_capture_round_snapshot(
+    v_season,
+    v_cfg.current_round_key,
+    v_cfg.current_round_label,
+    v_cfg.current_round_order,
+    false
+  );
+
   update public.fantasy_vbf_seasons
   set is_open = false
   where season = v_season;
@@ -196,6 +207,7 @@ begin
     'season', v_season,
     'round_key', v_cfg.current_round_key,
     'locked', true,
+    'snapshot', v_snapshot,
     'source', 'auto'
   );
 end;
@@ -326,4 +338,12 @@ grant execute on function public.fantasy_vbf_market_is_open(timestamptz) to anon
 
 -- Optional Supabase scheduled job / pg_cron idea:
 -- select public.fantasy_vbf_auto_lock_current_round('OP15');
--- Run it Fridays at 23:59 Europe/Madrid. Do not grant this function to clients.
+-- Run it at the planned lineup deadline, for example Saturday 00:00 Europe/Madrid.
+-- Supabase cron usually runs in UTC, so adjust for Europe/Madrid daylight saving time.
+-- Example while Madrid is UTC+2:
+-- select cron.schedule(
+--   'fantasy-op15-lock-snapshot',
+--   '0 22 * * 5',
+--   $$select public.fantasy_vbf_auto_lock_current_round('OP15');$$
+-- );
+-- Do not grant this function to clients.

@@ -21,18 +21,13 @@
 
   const CURRENT_SEASON = 'OP15';
   const PLAYER_POOL_SOURCES = {
-    PRUEBAS: {
-      label: 'PRUEBAS',
-      id: '1dlUEEZhUf_p-p8pAPpB3RmJE0AMwoZ35u1nBTZZBYrc',
-      gid: '1775308876'
-    },
     VADE: {
       label: 'VADE',
       id: '1bRu9xDWAO8vBLF2GkzmsGL2M4P3AqczkDCXl6t-coFo',
       sheet: CURRENT_SEASON
     }
   };
-  const DEFAULT_PLAYER_POOL_SOURCE = 'PRUEBAS';
+  const DEFAULT_PLAYER_POOL_SOURCE = 'VADE';
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
@@ -4529,17 +4524,6 @@
     }
   });
   syncPlayerPoolSourcePicker();
-  $('fantasySheetSelect')?.addEventListener('change', async () => {
-    const sourceKey = setPlayerPoolSource($('fantasySheetSelect')?.value || DEFAULT_PLAYER_POOL_SOURCE);
-    showPageMsg(`Cargando datos de ${sourceKey}...`, 'ok');
-    showFantasyToast('Fuente de datos', `Fantasy usara ${sourceKey}.`, 'info');
-    try{
-      await refreshAllData({ forceSheet: true, skipSession: true, silent: true, progressive: true });
-      showFantasyToast('Datos cargados', `Datos actualizados desde ${sourceKey}.`, 'ok');
-    } catch (error){
-      showFantasyToast('No pude cambiar la fuente', error?.message || String(error || ''), 'err');
-    }
-  });
   $('fantasyAdminRoundControls')?.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-admin-round-action]');
     if (!trigger) return;
