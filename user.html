@@ -551,57 +551,37 @@
       return (data && data[0]) || null;
     }
 
-    async function fetchPlayerByProfileId(profileId){
-      const { data, error } = await sb
-        .from("players")
-        .select("id,name,profile_id")
-        .eq("profile_id", profileId)
-        .limit(1)
-        .maybeSingle();
-      if (error){
-        console.warn("player by profile:", error.message);
-        return null;
-      }
-      return data || null;
-    }
-
-    async function fetchMatchesByPlayerInExpansion(playerId, expansion){
-      if (!playerId || !expansion) return [];
+    async function fetchMatchesByPlayerInExpansion(profileId, expansion){
+      if (!profileId || !expansion) return [];
       const startIso = `${expansion.start_date}T00:00:00`;
       const endIso = `${expansion.end_date}T23:59:59.999`;
-      const pageSize = 1000;
-      const maxRows = 6000;
-      let from = 0;
+      const { data, error } = await sb.rpc("get_public_profile_expansion_stats_v1", {
+        p_profile_id: profileId,
+        p_start_at: startIso,
+        p_end_at: endIso
+      });
+      if (error){
+        console.warn("public profile summary:", error.message);
+        return [];
+      }
+
       const rows = [];
-      while (from < maxRows){
-        const to = from + pageSize - 1;
-        const { data, error } = await sb
-          .from("matches")
-          .select(`
-            id,
-            result,
-            match_date,
-            player_leader,
-            player:leaders!matches_player_leader_fkey (
-              code,
-              name,
-              image_url,
-              parallel_image_url
-            )
-          `)
-          .eq("player_id", playerId)
-          .gte("match_date", startIso)
-          .lte("match_date", endIso)
-          .order("match_date", { ascending: false })
-          .range(from, to);
-        if (error){
-          console.warn("matches public summary:", error.message);
-          break;
+      for (const item of (Array.isArray(data) ? data : [])){
+        const games = Math.max(0, Number(item?.games || 0));
+        const wins = Math.min(games, Math.max(0, Number(item?.wins || 0)));
+        const player = {
+          code: item?.leader_code || "",
+          name: item?.leader_name || item?.leader_code || "",
+          image_url: item?.leader_image_url || "",
+          parallel_image_url: item?.leader_parallel_image_url || ""
+        };
+        for (let i = 0; i < games; i += 1){
+          rows.push({
+            result: i < wins ? "Won" : "Lost",
+            player_leader: item?.leader_code || "",
+            player
+          });
         }
-        const batch = data || [];
-        rows.push(...batch);
-        if (batch.length < pageSize) break;
-        from += pageSize;
       }
       return rows;
     }
@@ -836,12 +816,7 @@
         renderCurrentExpansionSummary(null, []);
         return;
       }
-      const player = await fetchPlayerByProfileId(targetUserId);
-      if (!player){
-        renderCurrentExpansionSummary(expansion, []);
-        return;
-      }
-      const matches = await fetchMatchesByPlayerInExpansion(player.id, expansion);
+      const matches = await fetchMatchesByPlayerInExpansion(targetUserId, expansion);
       renderCurrentExpansionSummary(expansion, matches);
     }
 

@@ -819,69 +819,30 @@
     async function fetchLeaderPlayerStats(leader){
       const cacheKey = String(leader?.code || "").trim().toUpperCase();
       if (!cacheKey) throw new Error("El lider no tiene codigo valido.");
-      const { data: sessionData } = await sb.auth.getSession();
-      if (!sessionData?.session?.user) throw new Error("Inicia sesion para ver el top de jugadores.");
       await fetchStatsExpansions();
       const selectedExpansion = selectedStatsExpansion();
       const expansionCacheKey = selectedExpansion?.id || "all";
       const statsCacheKey = `${cacheKey}:${expansionCacheKey}`;
       if (state.playerStatsCache.has(statsCacheKey)) return state.playerStatsCache.get(statsCacheKey);
-      let query = sb
-        .from("matches")
-        .select(`
-          player_id,
-          match_date,
-          result,
-          player:players!matches_player_id_fkey (
-            name,
-            profile_id,
-            owner:profiles!players_profile_id_fkey (
-              username,
-              display_name,
-              member
-            )
-          )
-        `)
-        .eq("player_leader", cacheKey);
-      if (selectedExpansion?.start_date && selectedExpansion?.end_date){
-        query = query
-          .gte("match_date", `${selectedExpansion.start_date}T00:00:00`)
-          .lte("match_date", `${selectedExpansion.end_date}T23:59:59.999`);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      const byPlayer = new Map();
-      (Array.isArray(data) ? data : []).forEach((row) => {
-        const playerId = String(row?.player_id || "").trim();
-        if (!row?.player?.profile_id) return;
-        if (!playerId) return;
-        if (!byPlayer.has(playerId)) {
-          byPlayer.set(playerId, {
-            playerId,
-            name: playerDisplayName({
-              player_name: row?.player?.name,
-              profile_username: row?.player?.owner?.username,
-              profile_display_name: row?.player?.owner?.display_name
-            }),
-            games: 0,
-            wins: 0
-          });
-        }
-        const entry = byPlayer.get(playerId);
-        entry.games += 1;
-        if (row?.result === "Won") entry.wins += 1;
+      const startAt = selectedExpansion?.start_date ? `${selectedExpansion.start_date}T00:00:00` : null;
+      const endAt = selectedExpansion?.end_date ? `${selectedExpansion.end_date}T23:59:59.999` : null;
+      const { data, error } = await sb.rpc("get_public_leader_player_stats_v1", {
+        p_leader_code: cacheKey,
+        p_start_at: startAt,
+        p_end_at: endAt
       });
-      const topPlayers = Array.from(byPlayer.values())
-        .map((entry) => ({
-          ...entry,
-          winrate: entry.games > 0 ? (entry.wins / entry.games) * 100 : 0
-        }))
-        .sort((a, b) => {
-          if (b.games !== a.games) return b.games - a.games;
-          if (b.winrate !== a.winrate) return b.winrate - a.winrate;
-          return a.name.localeCompare(b.name, "es");
-        })
-        .slice(0, 5);
+      if (error) throw error;
+      const topPlayers = (Array.isArray(data) ? data : []).map((row) => ({
+        playerId: row?.player_id || "",
+        name: playerDisplayName({
+          player_name: row?.player_name,
+          profile_username: row?.profile_username,
+          profile_display_name: row?.profile_display_name
+        }),
+        games: Number(row?.games || 0),
+        wins: Number(row?.wins || 0),
+        winrate: Number(row?.winrate || 0)
+      }));
       const result = { expansion: selectedExpansion, players: topPlayers };
       state.playerStatsCache.set(statsCacheKey, result);
       return result;
