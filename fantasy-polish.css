@@ -2356,6 +2356,11 @@ body[data-fantasy-view] .sectionHead{
   align-items:flex-start;
 }
 
+body[data-fantasy-view] .sectionHead > div:first-child{
+  flex:1 1 0;
+  min-width:0;
+}
+
 body[data-fantasy-view] .sectionHead h2,
 body[data-fantasy-view] .teamRosterHead h3{
   font-size:22px;
@@ -2366,6 +2371,9 @@ body[data-fantasy-view] .sectionHead p,
 body[data-fantasy-view] .teamRosterHead p{
   color:#5b6778;
   font-size:13px;
+  max-width:none;
+  overflow-wrap:break-word;
+  text-wrap:wrap;
 }
 
 body[data-fantasy-view] .btn{
@@ -3262,10 +3270,13 @@ body[data-fantasy-view] .hero h1{
   text-wrap:balance;
 }
 
-body[data-fantasy-view] .hero p,
+body[data-fantasy-view] .hero p{
+  text-wrap:pretty;
+}
+
 body[data-fantasy-view] .sectionHead p,
 body[data-fantasy-view] .teamRosterHead p{
-  text-wrap:pretty;
+  text-wrap:wrap;
 }
 
 body[data-fantasy-view] .heroStats{
