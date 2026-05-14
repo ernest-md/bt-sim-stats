@@ -31,7 +31,7 @@
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
-  const PLAYER_POOL_CACHE_VERSION = '20260514a';
+  const PLAYER_POOL_CACHE_VERSION = '20260514b';
   const PLAYER_POOL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const PLAYER_POOL_BACKGROUND_REFRESH_MS = 45 * 60 * 1000;
   const TEAM_ROUNDS_SELECT = 'season,round_key,round_label,round_order,team_id,weekly_points,reward_coins,transfers_used';
@@ -97,6 +97,12 @@
       '4-1': 11500,
       '5-0': 18000
     }
+  };
+  const STREAK_PRICE_ADJUSTMENTS = {
+    comeback2: 1000,
+    comeback3: 2000,
+    comedown2: -1000,
+    comedown3: -2000
   };
   let authRpcQueue = Promise.resolve();
   let actionRpcClient = null;
@@ -1040,6 +1046,47 @@
     return Number(table[String(resultLabel || '').trim()] || 0);
   }
 
+  function entryWasPlayed(entry){
+    return Number(entry?.raw_points || 0) > 0;
+  }
+
+  function playedFantasyEntries(player){
+    const history = Array.isArray(player?.history) ? player.history : [];
+    return history.filter((entry) => entry?.counts_for_fantasy === true && entryWasPlayed(entry));
+  }
+
+  function streakPriceAdjustment(baseModifier, hotStreak, coldStreak){
+    const modifier = Number(baseModifier || 0);
+    if (modifier > 0 && coldStreak >= 2){
+      return coldStreak >= 3 ? STREAK_PRICE_ADJUSTMENTS.comeback3 : STREAK_PRICE_ADJUSTMENTS.comeback2;
+    }
+    if (modifier < 0 && hotStreak >= 2){
+      return hotStreak >= 3 ? STREAK_PRICE_ADJUSTMENTS.comedown3 : STREAK_PRICE_ADJUSTMENTS.comedown2;
+    }
+    return 0;
+  }
+
+  function applyPriceStreakAdjustments(scoringHistory){
+    let hotStreak = 0;
+    let coldStreak = 0;
+    (Array.isArray(scoringHistory) ? scoringHistory : [])
+      .slice()
+      .sort((a, b) => Number(a.round_order || 0) - Number(b.round_order || 0))
+      .forEach((entry) => {
+        const baseModifier = Number(entry.price_modifier || 0);
+        let adjustment = 0;
+        if (entryWasPlayed(entry)){
+          adjustment = streakPriceAdjustment(baseModifier, hotStreak, coldStreak);
+          if (baseModifier > 0){ hotStreak += 1; coldStreak = 0; }
+          else if (baseModifier < 0){ coldStreak += 1; hotStreak = 0; }
+          else { hotStreak = 0; coldStreak = 0; }
+        }
+        entry.base_price_modifier = baseModifier;
+        entry.streak_modifier = adjustment;
+        entry.price_modifier = baseModifier + adjustment;
+      });
+  }
+
   function isStarterEligibleTier(tier){
     const key = normalizeTierKey(tier);
     return key !== 'pirate king' && key !== 'yonkou';
@@ -1683,7 +1730,8 @@
         };
       });
       const scoringHistory = player.history.filter((entry) => entry.counts_for_fantasy === true);
-      const playedFantasy = scoringHistory.filter((entry) => Number.isFinite(Number(entry.fantasy_points))).length;
+      applyPriceStreakAdjustments(scoringHistory);
+      const playedFantasy = scoringHistory.filter((entry) => entryWasPlayed(entry)).length;
       const totalFantasy = scoringHistory.reduce((sum, entry) => sum + (Number(entry.fantasy_points || 0)), 0);
       player.fantasyPlayed = playedFantasy;
       player.totalFantasyPoints = totalFantasy;
@@ -1851,6 +1899,10 @@
         };
       });
       const scoringHistory = history.filter((entry) => entry.counts_for_fantasy === true);
+      scoringHistory.forEach((entry) => {
+        entry.price_modifier = priceModifierFromFantasyEntry(entry, row.player_tier).value;
+      });
+      applyPriceStreakAdjustments(scoringHistory);
       const played = Number(row.played || history.filter((entry) => Number(entry.raw_points || 0) > 0).length || 0);
       const totalPoints = Number(row.total_points || 0);
       const totalFantasyPoints = scoringHistory.reduce((sum, entry) => sum + Number(entry.fantasy_points || 0), 0);
@@ -1868,7 +1920,7 @@
         avgPoints: played ? totalPoints / played : 0,
         bestStreak: Number(row.best_streak || 0),
         currentStreak: Number(row.current_streak || 0),
-        fantasyPlayed: scoringHistory.filter((entry) => Number.isFinite(Number(entry.fantasy_points))).length,
+        fantasyPlayed: scoringHistory.filter((entry) => entryWasPlayed(entry)).length,
         wins: Number(row.wins || 0),
         rank: Number(row.player_rank || 9999),
         roundRank: Number(row.round_rank || 9999),
@@ -2422,14 +2474,12 @@
   }
 
   function latestFantasyEntry(player){
-    const history = Array.isArray(player?.history) ? player.history : [];
-    const rows = history.filter((entry) => entry?.counts_for_fantasy === true);
+    const rows = playedFantasyEntries(player);
     return rows.length ? rows[rows.length - 1] : null;
   }
 
   function previousFantasyEntry(player){
-    const history = Array.isArray(player?.history) ? player.history : [];
-    const rows = history.filter((entry) => entry?.counts_for_fantasy === true);
+    const rows = playedFantasyEntries(player);
     return rows.length > 1 ? rows[rows.length - 2] : null;
   }
 
@@ -2467,7 +2517,7 @@
     const currentOrder = Number(current?.round_order || roundMetaForKey(roundKey)?.round_order || 0);
     if (!currentOrder) return null;
     const rows = history
-      .filter((entry) => entry?.counts_for_fantasy === true && Number(entry?.round_order || 0) < currentOrder)
+      .filter((entry) => entry?.counts_for_fantasy === true && entryWasPlayed(entry) && Number(entry?.round_order || 0) < currentOrder)
       .sort((a, b) => Number(a.round_order || 0) - Number(b.round_order || 0));
     return rows.length ? rows[rows.length - 1] : null;
   }
@@ -2475,7 +2525,7 @@
   function fantasyTrendDeltaForRound(player, roundKey){
     const latest = historyEntryForRound(player, roundKey);
     const previous = previousFantasyEntryForRound(player, roundKey);
-    if (!latest) return 0;
+    if (!latest || !entryWasPlayed(latest)) return 0;
     if (!previous) return Number(latest.fantasy_points || 0);
     return Number(latest.fantasy_points || 0) - Number(previous.fantasy_points || 0);
   }
@@ -3246,12 +3296,12 @@
           <article class="fantasyInfoCard">
             <span>Precio de fichas</span>
             <strong>Tier + resultados</strong>
-            <p>Cada ficha parte de un precio base por tier: Pirate King, Yonkou, Shichibukai, Supernova o Piratilla. Despues sube o baja por resultados: 5-0 sube fuerte, 4-1 sube, 3-2 sube poco, 2-3 baja poco, 1-4 baja y 0-5 baja fuerte.</p>
+            <p>Cada ficha parte de un precio base por tier. Despues sube o baja segun el resultado y la exigencia de su rango: a los top se les pide mas y los Piratilla tienen mas premio por sorprender.</p>
           </article>
           <article class="fantasyInfoCard">
             <span>Variacion</span>
             <strong>Jugar importa</strong>
-            <p>El precio se recalcula con el historico fantasy. Ganar, hacer buen resultado y ganar torneos empuja el valor hacia arriba. No jugar no penaliza puntos de jornada, pero tampoco genera subida ni aporta berries.</p>
+            <p>El precio se recalcula con el historico fantasy. No jugar no corta rachas ni penaliza: solo las jornadas jugadas pueden activar bonus por remontar una mala racha o castigo por caer tras venir fuerte.</p>
           </article>
           <article class="fantasyInfoCard">
             <span>Jugadores de oficio</span>
