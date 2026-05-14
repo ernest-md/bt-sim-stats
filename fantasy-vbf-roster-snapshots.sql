@@ -279,12 +279,10 @@ begin
       synced_at = timezone('utc', now())
   from public.fantasy_vbf_teams t
   left join (
-    select rs.team_id, sum(coalesce(pr.fantasy_points, 0)) as weekly_points
+    select rs.team_id, sum(coalesce(pp.current_fantasy_points, 0)) as weekly_points
     from public.fantasy_vbf_roster_snapshots rs
-    left join public.fantasy_vbf_player_rounds pr
-      on pr.season = rs.season
-      and pr.player_slug = rs.player_slug
-      and pr.round_key = rs.round_key
+    left join public.fantasy_vbf_player_pool pp
+      on pp.season = rs.season and pp.player_slug = rs.player_slug
     where rs.season = v_season
       and rs.round_key = v_round_key
     group by rs.team_id
@@ -351,14 +349,10 @@ begin
   update public.fantasy_vbf_teams t
   set total_points = coalesce(points.total_points, 0)
   from (
-    select tr.team_id, sum(tr.weekly_points) as total_points
-    from public.fantasy_vbf_team_rounds tr
-    join public.fantasy_vbf_rounds r
-      on r.season = tr.season and r.round_key = tr.round_key
-    where tr.season = v_season
-      and r.rewards_applied = true
-      and tr.round_order <= v_round_order
-    group by tr.team_id
+    select team_id, sum(weekly_points) as total_points
+    from public.fantasy_vbf_team_rounds
+    where season = v_season
+    group by team_id
   ) points
   where t.id = points.team_id;
 

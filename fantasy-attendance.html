@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VadeFantasy - Asistencia</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260514a" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260514a"></script>
+  <style>
+    :root{--bg:#09111f;--card:rgba(255,255,255,.94);--line:rgba(15,23,42,.1);--ink:#0f172a;--muted:#64748b;--shadow:0 18px 50px rgba(0,0,0,.34)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .brand{display:flex;flex-direction:column;align-items:center;color:#fff;font-weight:900;letter-spacing:.4px;margin-right:6px;line-height:1.1}
+    .brand small{display:block;text-align:center;padding-left:4px;font-weight:700;color:rgba(255,255,255,.72);letter-spacing:.2px}
+    .wrap{max-width:1180px;margin:0 auto;padding:14px}
+    .heroTop,.sectionHead,.toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .heroStats,.pageGrid{display:grid;gap:10px}
+    .heroStats{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .pageGrid{grid-template-columns:1fr;margin-top:14px;align-items:start}
+    .card,.hero{border:1px solid rgba(255,255,255,.18);box-shadow:var(--shadow)}
+    .hero{border-radius:24px;padding:18px 16px;color:#fff}
+    .hero h1{margin:0;font-size:30px;font-weight:1000;line-height:1.02;letter-spacing:-.02em}
+    .hero p{margin:8px 0 0;color:rgba(255,255,255,.86);font-size:13px;line-height:1.48;max-width:78ch}
+    .heroStat{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);border-radius:14px;padding:10px 12px}
+    .heroStat b{display:block;font-size:20px;font-weight:1000}
+    .heroStat span{font-size:12px;font-weight:800;color:rgba(255,255,255,.86)}
+    .card{background:var(--card);border-radius:22px;padding:14px;min-width:0}
+    .sectionHead h2{margin:0;font-size:18px;font-weight:1000;letter-spacing:-.02em}
+    .sectionHead p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+    .pillRow,.inlineMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .pageMsg,.schemaNote,.empty{margin-top:12px;border-radius:16px;padding:12px 14px}
+    .pageMsg{display:none;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;font-size:13px;line-height:1.45;white-space:pre-line}
+    .pageMsg.ok{display:block;border-color:rgba(34,197,94,.24);background:rgba(34,197,94,.14);color:#dcfce7}
+    .pageMsg.err{display:block;border-color:rgba(239,68,68,.24);background:rgba(239,68,68,.14);color:#fee2e2}
+    .schemaNote{display:none;border:1px dashed rgba(251,191,36,.34);background:rgba(245,158,11,.12);color:#fef3c7;font-size:13px;line-height:1.45}
+    .schemaNote code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#fff7ed}
+    .empty{border:1px dashed rgba(15,23,42,.14);background:rgba(255,255,255,.54);color:#475569;font-size:14px;line-height:1.5}
+    .control span{display:block;color:#64748b;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .control input,.control select{width:100%;min-width:0;border:1px solid rgba(15,23,42,.12);border-radius:12px;padding:10px 12px;background:#fff;color:#0f172a;font:inherit;outline:none}
+    .attendanceToolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(160px,220px);gap:10px;margin-top:14px}
+    @media (max-width:720px){.heroStats,.attendanceToolbar{grid-template-columns:1fr}.wrap{padding:10px}}
+  </style>
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260514b" />
+</head>
+<body data-requires-fantasy="1" data-requires-privileged="1" data-fantasy-view="attendance">
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <nav class="vdfTopNav" aria-label="Navegacion principal VaDeFantasy">
+        <a class="vdfTopNavLink" href="fantasy.html">Liga</a>
+        <a class="vdfTopNavLink" href="fantasy-team.html">Plantilla</a>
+        <a class="vdfTopNavLink" href="fantasy-market.html">Mercado</a>
+        <a class="vdfTopNavLink is-current" href="fantasy-attendance.html" aria-current="page">Asistencia</a>
+      </nav>
+      <a class="brandLink vdfBrandLink" href="fantasy.html" aria-label="Ir a VaDeFantasy">
+        <div class="brand">
+          <img class="brandLogo" src="VDF.png" alt="VaDeFantasy" />
+        </div>
+      </a>
+      <a class="vdfOriginalLink" href="index.html" aria-label="Volver a Barateam"><img src="favicon.ico" alt="" /> Barateam</a>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head"><strong id="userEmail">-</strong><span>Sesion iniciada</span></div>
+        <a href="profile.html">Configurar perfil</a>
+        <a href="user.html" id="publicProfileLink" style="display:none;">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+  <div class="loadingOverlay hidden" id="loadingOverlay" aria-live="polite" aria-busy="true">
+    <div class="loadingCard">
+      <div class="loadingSpinner" aria-hidden="true"></div>
+      <div class="loadingText">
+        <strong>Cargando asistencia...</strong>
+        <span id="loadingLabel">Estamos refrescando jugadores, jornada y permisos.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero">
+      <div class="heroTop">
+        <div>
+          <div class="eyebrow">VadeFantasy OP15</div>
+          <h1>Asistencia semanal</h1>
+          <p>Gestiona que jugadores van al torneo semanal para marcar su estado en VaDeFantasy.</p>
+        </div>
+        <div class="pillRow">
+          <a class="btn btnGhost" href="fantasy.html">Volver a liga</a>
+          <button class="btn btnPrimary" id="reloadPlayersButton" type="button">Refrescar datos</button>
+        </div>
+      </div>
+      <div class="heroStats">
+        <div class="heroStat"><b id="statPlayers">-</b><span>Jugadores monitorizados</span></div>
+        <div class="heroStat"><b id="statTeams">-</b><span>Managers activos</span></div>
+        <div class="heroStat"><b id="statCurrentRound">-</b><span>Jornada fantasy</span></div>
+      </div>
+      <div id="fantasyAdminRoundControls" class="hidden"></div>
+      <div class="pageMsg" id="pageMsg"></div>
+      <div class="schemaNote" id="schemaNote"></div>
+    </section>
+
+    <div class="pageGrid attendanceOnly">
+      <section class="card">
+        <div class="sectionHead">
+          <div>
+            <h2>Jugadores</h2>
+            <p id="attendanceRoundLabel">Cargando jornada...</p>
+          </div>
+          <div class="inlineMeta" id="attendanceSummary"></div>
+        </div>
+        <div class="attendanceToolbar">
+          <label class="control"><span>Buscar</span><input id="attendanceSearch" type="search" placeholder="Jugador o tier" autocomplete="off" /></label>
+          <label class="control"><span>Estado</span><select id="attendanceFilter"><option value="all">Todos</option><option value="going">Asisten</option><option value="out">No asisten</option></select></label>
+        </div>
+        <div class="empty hidden" id="attendanceEmpty">No hay jugadores para mostrar.</div>
+        <div class="attendanceList" id="attendanceList"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="fantasy-player-portraits.js?v=20260504a"></script>
+  <script src="fantasy.js?v=20260514b"></script>
+</body>
+</html>

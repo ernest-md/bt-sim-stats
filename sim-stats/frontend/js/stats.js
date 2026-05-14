@@ -431,7 +431,7 @@ function buildLeaderStats(matches) {
     // ========================
 
     const validMatchups = Object.values(data.matchups)
-      .filter(m => m.games >= 3)
+      .filter(m => m.games >= 5)
       .map(m => ({
         ...m,
         wr: (m.wins / m.games) * 100

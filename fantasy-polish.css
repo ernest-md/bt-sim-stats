@@ -2356,11 +2356,6 @@ body[data-fantasy-view] .sectionHead{
   align-items:flex-start;
 }
 
-body[data-fantasy-view] .sectionHead > div:first-child{
-  flex:1 1 0;
-  min-width:0;
-}
-
 body[data-fantasy-view] .sectionHead h2,
 body[data-fantasy-view] .teamRosterHead h3{
   font-size:22px;
@@ -2371,9 +2366,6 @@ body[data-fantasy-view] .sectionHead p,
 body[data-fantasy-view] .teamRosterHead p{
   color:#5b6778;
   font-size:13px;
-  max-width:none;
-  overflow-wrap:break-word;
-  text-wrap:wrap;
 }
 
 body[data-fantasy-view] .btn{
@@ -2910,16 +2902,16 @@ body[data-fantasy-view] .chartPointGroup:focus-within .chartTooltip{
 
 body[data-fantasy-view] .chartTooltipBox{
   display:grid;
-  gap:5px;
+  gap:6px;
   width:100%;
-  padding:9px 10px;
+  padding:10px 11px;
   border:1px solid rgba(15,23,42,.16);
   border-radius:8px;
   background:rgba(255,255,255,.98);
   box-shadow:0 18px 42px rgba(15,23,42,.22);
   color:#0f172a;
-  font-size:11px;
-  line-height:1.15;
+  font-size:12px;
+  line-height:1.18;
 }
 
 body[data-fantasy-view] .chartTooltipBox > div{
@@ -2947,7 +2939,7 @@ body[data-fantasy-view] .chartTooltipHead{
 
 body[data-fantasy-view] .chartTooltipHead span{
   color:#0f172a;
-  font-size:12px;
+  font-size:13px;
 }
 
 body[data-fantasy-view] .chartTooltipHead strong{
@@ -3270,13 +3262,10 @@ body[data-fantasy-view] .hero h1{
   text-wrap:balance;
 }
 
-body[data-fantasy-view] .hero p{
-  text-wrap:pretty;
-}
-
+body[data-fantasy-view] .hero p,
 body[data-fantasy-view] .sectionHead p,
 body[data-fantasy-view] .teamRosterHead p{
-  text-wrap:wrap;
+  text-wrap:pretty;
 }
 
 body[data-fantasy-view] .heroStats{
@@ -5373,7 +5362,7 @@ body[data-fantasy-view="team"] #squadGrid .squadCard .playerVisual{
 .squadSlotIndex{
   position:absolute;
   top:14px;
-  left:14px;
+  right:14px;
   z-index:5;
   display:inline-flex;
   align-items:center;
@@ -6178,5 +6167,246 @@ body[data-fantasy-view] .standingRow .temporaryBadge{
   body[data-fantasy-view] .rosterTableAvatar img,
   body[data-fantasy-view] .fantasyTabs a{
     transition:none !important;
+  }
+}
+
+.attendanceBadge{
+  position:absolute;
+  z-index:6;
+  right:8px;
+  bottom:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  padding:0;
+  border-radius:999px;
+  border:2px solid rgba(255,255,255,.86);
+  background:rgba(15,23,42,.22);
+  box-shadow:0 8px 18px rgba(15,23,42,.28);
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.attendanceBadge.isGoing{
+  background:rgba(22,163,74,.18);
+}
+
+.attendanceBadge img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.attendanceBadge.compact{
+  width:28px;
+  height:28px;
+  right:6px;
+  bottom:6px;
+  border-width:2px;
+}
+
+body[data-fantasy-view="market"] .marketCardMinimal .attendanceBadge{
+  top:8px;
+  right:auto;
+  bottom:auto;
+  left:8px;
+}
+
+body[data-fantasy-view="team"] #squadGrid .squadCard .attendanceBadge{
+  top:8px;
+  right:auto;
+  bottom:auto;
+  left:8px;
+}
+
+body[data-fantasy-view]:not([data-fantasy-view="attendance"]) .heroStats{
+  display:none !important;
+}
+
+body[data-fantasy-view="attendance"] .wrap{
+  max-width:1180px;
+}
+
+body[data-fantasy-view="attendance"] .attendanceOnly{
+  grid-template-columns:1fr;
+}
+
+.attendanceList{
+  display:grid;
+  gap:10px;
+  margin-top:14px;
+}
+
+.attendanceRow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto 58px;
+  align-items:center;
+  gap:14px;
+  min-height:74px;
+  padding:10px 12px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(248,250,252,.94));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+.attendanceRow.isGoing{
+  border-color:rgba(34,197,94,.22);
+  background:linear-gradient(180deg,rgba(240,253,244,.98),rgba(255,255,255,.94));
+}
+
+.attendancePlayer{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.attendanceAvatar{
+  position:relative;
+  width:54px;
+  height:54px;
+  flex:0 0 54px;
+  overflow:hidden;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.72);
+  background:linear-gradient(165deg,#334155,#0f172a);
+  box-shadow:0 10px 20px rgba(15,23,42,.12);
+}
+
+.attendanceAvatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 12%;
+}
+
+.attendanceCopy{
+  display:grid;
+  gap:4px;
+  min-width:0;
+}
+
+.attendanceCopy strong{
+  color:#0f172a;
+  font-size:16px;
+  font-weight:1000;
+  line-height:1.05;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.attendanceCopy span{
+  color:#64748b;
+  font-size:12px;
+  font-weight:900;
+  line-height:1.25;
+}
+
+.attendanceStatePill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:86px;
+  min-height:30px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(15,23,42,.08);
+  background:rgba(241,245,249,.96);
+  color:#475569;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.attendanceStatePill.isGoing{
+  border-color:rgba(34,197,94,.22);
+  background:rgba(34,197,94,.12);
+  color:#166534;
+}
+
+.attendanceStatePill.isOut{
+  border-color:rgba(100,116,139,.18);
+  background:rgba(226,232,240,.8);
+  color:#475569;
+}
+
+.attendanceToggle{
+  display:inline-flex;
+  justify-content:flex-end;
+  cursor:pointer;
+}
+
+.attendanceToggle input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.attendanceToggle span{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:46px;
+  height:32px;
+  border-radius:12px;
+  border:1px solid rgba(15,23,42,.14);
+  background:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+  transition:background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.attendanceToggle span::before{
+  content:"";
+  width:18px;
+  height:18px;
+  border-radius:7px;
+  border:2px solid rgba(100,116,139,.55);
+  background:rgba(248,250,252,.96);
+  transition:background-color .16s ease, border-color .16s ease, transform .16s ease;
+}
+
+.attendanceToggle input:checked + span{
+  border-color:rgba(34,197,94,.34);
+  background:rgba(34,197,94,.14);
+  box-shadow:0 8px 18px rgba(34,197,94,.12), inset 0 1px 0 rgba(255,255,255,.82);
+}
+
+.attendanceToggle input:checked + span::before{
+  border-color:#16a34a;
+  background:#22c55e;
+  box-shadow:inset 0 0 0 3px #f0fdf4;
+}
+
+.attendanceToggle input:focus-visible + span{
+  outline:3px solid rgba(37,99,235,.28);
+  outline-offset:2px;
+}
+
+.attendanceToggle input:disabled + span{
+  opacity:.58;
+  cursor:wait;
+}
+
+@media (max-width:700px){
+  .attendanceRow{
+    grid-template-columns:minmax(0,1fr) 52px;
+    gap:10px;
+  }
+
+  .attendanceStatePill{
+    grid-column:1 / -1;
+    justify-self:start;
+  }
+
+  .attendanceToggle{
+    grid-column:2;
+    grid-row:1;
   }
 }

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Matchup Stats · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260306a" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260305c"></script>
+  <script src="app.js?v=20260506a"></script>
   <style>
     :root{
       --bg:#0b1220;
@@ -782,6 +782,18 @@
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
         </div>
+        <div class="navInlineGroup" data-fantasy-nav="1" style="display:none">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true">
+            <span>VadeFantasy</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="vadeFantasyMenu">
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
+            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
+          </div>
+        </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
     </div>
@@ -825,8 +837,7 @@
         <div class="heroControls">
           <label class="filter" id="datasetFilter">Fuente
             <select id="datasetSelect">
-              <option value="standard">Standard</option>
-              <option value="standard_last_week">Standard Last Week</option>
+              <option value="west_private">West (Private)</option>
             </select>
           </label>
           <label class="filter" id="dateFilter">Fecha
@@ -899,18 +910,11 @@
 
   <script>
     const DATASETS = {
-      standard: {
-        label: "Standard",
-        statsPrefix: "stats_west_",
-        decklistPrefix: "decklist_west_",
-        techPrefix: "matchuptech_west_",
-        curvePrefix: "curve_lw_"
-      },
-      standard_last_week: {
-        label: "Standard Last Week",
-        statsPrefix: "stats_lw_",
-        decklistPrefix: "decklist_lw_",
-        techPrefix: "matchuptech_lw_",
+      west_private: {
+        label: "West (Private)",
+        statsPrefix: "stats_west_p_",
+        decklistPrefix: "decklist_west_p_",
+        techPrefix: "matchuptech_west_p_",
         curvePrefix: "curve_lw_"
       }
     };
@@ -1790,7 +1794,7 @@
       sourceMeta.textContent = "";
       try{
         const requestedDate = dateInput.value || toYmd(new Date());
-        const loaded = await loadDatasetWithFallback(requestedDate, datasetSelect.value || "standard");
+        const loaded = await loadDatasetWithFallback(requestedDate, datasetSelect.value || "west_private");
         const statRows = normalizeStatsRows(loaded.stats);
         const deckRows = normalizeDecklistRows(loaded.decklist);
         const techRows = normalizeTechRows(loaded.tech);
@@ -1819,7 +1823,7 @@
         syncSelects();
         await renderMatchup();
 
-        statusText.textContent = `Fuente cargada: ${DATASETS[datasetSelect.value || "standard"].label}`;
+        statusText.textContent = `Fuente cargada: ${DATASETS[datasetSelect.value || "west_private"].label}`;
         sourceMeta.textContent = `Fecha usada: ${loaded.ymd}${loaded.ymd !== requestedDate ? ` · fallback desde ${requestedDate}` : ""}`;
       }catch(err){
         playerPanel.innerHTML = `<div class="emptyState">No se pudieron cargar los datos.</div>`;

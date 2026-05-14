@@ -101,12 +101,6 @@ create table public.fantasy_vbf_seasons (
   max_weekly_captain_changes integer not null default 1 check (max_weekly_captain_changes between 0 and 10),
   weekly_base_reward integer not null default 20000 check (weekly_base_reward >= 0),
   max_savings integer not null default 2147483647 check (max_savings >= 0),
-  min_roster_size integer not null default 1,
-  max_weekly_clause_buyouts_made integer not null default 1 check (max_weekly_clause_buyouts_made between 0 and 20),
-  max_weekly_clause_buyouts_received integer not null default 2 check (max_weekly_clause_buyouts_received between 0 and 20),
-  buy_protection_hours integer not null default 4 check (buy_protection_hours between 0 and 168),
-  clause_protection_hours integer not null default 24 check (clause_protection_hours between 0 and 168),
-  replacement_points_multiplier numeric(4,2) not null default 0.5 check (replacement_points_multiplier between 0 and 1),
   captain_multiplier numeric(4,2) not null default 1.5 check (captain_multiplier >= 1),
   clause_multiplier numeric(4,2) not null default 1.5 check (clause_multiplier >= 1.1),
   is_open boolean not null default true,
@@ -114,8 +108,7 @@ create table public.fantasy_vbf_seasons (
   current_round_label text,
   current_round_order integer,
   created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  check (min_roster_size between 1 and squad_size)
+  updated_at timestamptz not null default timezone('utc', now())
 );
 
 create table public.fantasy_vbf_player_pool (
@@ -185,8 +178,6 @@ create table public.fantasy_vbf_roster_players (
   clause_price integer not null check (clause_price >= 0),
   acquisition_type text not null default 'market' check (acquisition_type in ('starter', 'market', 'buyout')),
   acquired_round_key text,
-  protected_until timestamptz,
-  protection_reason text check (protection_reason is null or protection_reason in ('market_buy', 'clause_buyout')),
   created_at timestamptz not null default timezone('utc', now()),
   unique (season, team_id, player_slug)
 );
@@ -205,9 +196,6 @@ create table public.fantasy_vbf_roster_snapshots (
   player_rank integer not null default 9999,
   buy_price integer not null default 0 check (buy_price >= 0),
   clause_price integer not null default 0 check (clause_price >= 0),
-  snapshot_source text not null default 'roster' check (snapshot_source in ('roster', 'replacement')),
-  points_multiplier numeric(4,2) not null default 1 check (points_multiplier between 0 and 2),
-  is_captain boolean not null default false,
   captured_at timestamptz not null default timezone('utc', now()),
   created_at timestamptz not null default timezone('utc', now()),
   unique (season, round_key, team_id, player_slug)
@@ -288,7 +276,6 @@ create index fantasy_vbf_player_pool_season_idx on public.fantasy_vbf_player_poo
 create index fantasy_vbf_player_rounds_round_idx on public.fantasy_vbf_player_rounds (season, round_key, round_order, fantasy_points desc nulls last);
 create index fantasy_vbf_roster_team_idx on public.fantasy_vbf_roster_players (team_id, created_at desc);
 create index fantasy_vbf_roster_slug_idx on public.fantasy_vbf_roster_players (season, player_slug, clause_price, created_at);
-create index fantasy_vbf_roster_protected_idx on public.fantasy_vbf_roster_players (season, player_slug, protected_until) where protected_until is not null;
 create index fantasy_vbf_roster_snapshots_team_idx on public.fantasy_vbf_roster_snapshots (season, round_key, team_id, captured_at desc);
 create index fantasy_vbf_roster_snapshots_slug_idx on public.fantasy_vbf_roster_snapshots (season, player_slug, round_key, captured_at desc);
 create index fantasy_vbf_team_rounds_round_idx on public.fantasy_vbf_team_rounds (season, round_key, weekly_rank);
@@ -1401,15 +1388,15 @@ begin
     select
       rs.team_id,
       sum(
-        coalesce(pr.fantasy_points, 0)
-        * greatest(coalesce(rs.points_multiplier, 1), 0)
-        * case when coalesce(rs.is_captain, false) then greatest(coalesce(v_cfg.captain_multiplier, 1), 1) else 1 end
+        case
+          when t.captain_player_slug = rs.player_slug then coalesce(pp.current_fantasy_points, 0) * greatest(coalesce(v_cfg.captain_multiplier, 1), 1)
+          else coalesce(pp.current_fantasy_points, 0)
+        end
       ) as weekly_points
     from public.fantasy_vbf_roster_snapshots rs
-    left join public.fantasy_vbf_player_rounds pr
-      on pr.season = rs.season
-      and pr.player_slug = rs.player_slug
-      and pr.round_key = rs.round_key
+    join public.fantasy_vbf_teams t on t.id = rs.team_id
+    left join public.fantasy_vbf_player_pool pp
+      on pp.season = rs.season and pp.player_slug = rs.player_slug
     where rs.season = v_season
       and rs.round_key = v_round_key
     group by rs.team_id
@@ -1476,14 +1463,10 @@ begin
   update public.fantasy_vbf_teams t
   set total_points = coalesce(points.total_points, 0)
   from (
-    select tr.team_id, sum(tr.weekly_points) as total_points
-    from public.fantasy_vbf_team_rounds tr
-    join public.fantasy_vbf_rounds r
-      on r.season = tr.season and r.round_key = tr.round_key
-    where tr.season = v_season
-      and r.rewards_applied = true
-      and tr.round_order <= v_round_order
-    group by tr.team_id
+    select team_id, sum(weekly_points) as total_points
+    from public.fantasy_vbf_team_rounds
+    where season = v_season
+    group by team_id
   ) points
   where t.id = points.team_id;
 

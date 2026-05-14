@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Ranking · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260305c"></script>
+  <script src="app.js?v=20260506a"></script>
   <style>
     :root{ --bg:#0b1220; --card: rgba(255,255,255,.92); --shadow: 0 18px 50px rgba(0,0,0,.35); }
     body{
@@ -296,37 +296,6 @@
       top: 0;
       z-index: 2;
     }
-    .sortBtn{
-      appearance:none;
-      border:0;
-      padding:0;
-      background:none;
-      color:inherit;
-      font:inherit;
-      text-transform:inherit;
-      letter-spacing:inherit;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      gap:4px;
-      white-space:nowrap;
-    }
-    .sortBtn:hover,
-    .sortBtn[aria-sort="ascending"],
-    .sortBtn[aria-sort="descending"]{
-      color:#0f172a;
-    }
-    .sortArrow{
-      width:10px;
-      display:inline-block;
-      font-size:10px;
-      line-height:1;
-      color:#94a3b8;
-    }
-    .sortBtn[aria-sort="ascending"] .sortArrow,
-    .sortBtn[aria-sort="descending"] .sortArrow{
-      color:#7c3aed;
-    }
     tr:last-child td{ border-bottom: 0; }
     tr:hover td{ background: rgba(124,58,237,.06); }
     tr.rankRow td{
@@ -506,6 +475,18 @@
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
         </div>
+        <div class="navInlineGroup" data-fantasy-nav="1" style="display:none">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true">
+            <span>VadeFantasy</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="vadeFantasyMenu">
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
+            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
+          </div>
+        </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
     </div>
@@ -555,11 +536,11 @@
         <table>
           <thead>
             <tr>
-              <th><button class="sortBtn" type="button" data-sort-key="rank" aria-sort="ascending"># <span class="sortArrow" aria-hidden="true">▲</span></button></th>
+              <th>#</th>
               <th>Jugador</th>
-              <th><button class="sortBtn" type="button" data-sort-key="games" aria-sort="none">Partidas <span class="sortArrow" aria-hidden="true">↕</span></button></th>
+              <th>Partidas</th>
               <th><button class="infoLinkBtn" id="eloInfoBtn" type="button" aria-haspopup="dialog" aria-controls="eloInfoModal">ELO</button></th>
-              <th><button class="sortBtn" type="button" data-sort-key="wr" aria-sort="none">WR <span class="sortArrow" aria-hidden="true">↕</span></button></th>
+              <th>WR</th>
               <th>Victorias</th>
               <th>Derrotas</th>
               <th>Lider mas jugado</th>
@@ -603,10 +584,8 @@
     const escapeAttr = window.BarateamApp.escapeAttr;
     const RANKING_MIN_GAMES = 40;
     const rankingViewTabs = Array.from(document.querySelectorAll("#rankingViewTabs .viewTab"));
-    const rankingSortButtons = Array.from(document.querySelectorAll(".sortBtn[data-sort-key]"));
     let allRankingRows = [];
     let rankingView = "principal";
-    let rankingSort = { key: "rank", dir: "asc" };
 
     window.BarateamApp.bindProtectedNavLinks(sb);
     const navController = window.BarateamApp.initUserNav({
@@ -912,37 +891,7 @@
         if (b.games !== a.games) return b.games - a.games;
         return b.wins - a.wins;
       });
-      ranking.forEach((row, idx) => {
-        row.realRank = idx + 1;
-      });
       return ranking;
-    }
-
-    function compareRankingRows(a, b, key){
-      if (key === "games"){
-        if (b.games !== a.games) return b.games - a.games;
-        return a.realRank - b.realRank;
-      }
-      if (key === "wr"){
-        if (b.wr !== a.wr) return b.wr - a.wr;
-        return a.realRank - b.realRank;
-      }
-      return a.realRank - b.realRank;
-    }
-
-    function sortRankingRows(rows){
-      const sorted = [...rows].sort((a, b) => compareRankingRows(a, b, rankingSort.key));
-      if (rankingSort.dir === "desc") sorted.reverse();
-      return sorted;
-    }
-
-    function updateSortButtons(){
-      rankingSortButtons.forEach((btn) => {
-        const isActive = btn.dataset.sortKey === rankingSort.key;
-        const arrow = btn.querySelector(".sortArrow");
-        btn.setAttribute("aria-sort", isActive ? (rankingSort.dir === "asc" ? "ascending" : "descending") : "none");
-        if (arrow) arrow.textContent = isActive ? (rankingSort.dir === "asc" ? "▲" : "▼") : "↕";
-      });
     }
 
     function applyRankingFilters(){
@@ -951,11 +900,11 @@
         return;
       }
       if (rankingView === "rookies"){
-        renderRanking(sortRankingRows(allRankingRows.filter((row) => !row.isRankEligible)), rankingView);
+        renderRanking(allRankingRows.filter((row) => !row.isRankEligible), rankingView);
         return;
       }
       const eligible = allRankingRows.filter((row) => row.isRankEligible);
-      renderRanking(sortRankingRows(eligible.length ? eligible : allRankingRows), rankingView);
+      renderRanking(eligible.length ? eligible : allRankingRows, rankingView);
     }
 
     function renderRanking(rows, view = "principal"){
@@ -970,7 +919,7 @@
       }
       body.innerHTML = rows.map((r, idx) => `
         <tr class="rankRow rank-${idx + 1}">
-          <td class="rankPos">${r.realRank || (idx + 1)}</td>
+          <td class="rankPos">${idx + 1}</td>
           <td class="playerName">${r.profileId ? `<a class="userLink" href="${escapeAttr(profileHrefById(r.profileId))}">${escapeHtml(r.name)}</a>` : escapeHtml(r.name)}</td>
           <td class="statStrong">${r.games}</td>
           <td class="statStrong">${Math.round(r.elo)}</td>
@@ -1017,19 +966,6 @@
           applyRankingFilters();
         });
       });
-      rankingSortButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const key = btn.dataset.sortKey || "rank";
-          if (rankingSort.key === key){
-            rankingSort.dir = rankingSort.dir === "asc" ? "desc" : "asc";
-          }else{
-            rankingSort = { key, dir: key === "rank" ? "asc" : "desc" };
-          }
-          updateSortButtons();
-          applyRankingFilters();
-        });
-      });
-      updateSortButtons();
       const { data } = await sb.auth.getSession();
       if (!data?.session?.user){
         location.replace("login.html");

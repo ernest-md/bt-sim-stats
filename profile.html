@@ -6,9 +6,9 @@
   <title>Perfil - Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
-  <link rel="stylesheet" href="app.css?v=20260305b" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260305c"></script>
+  <script src="app.js?v=20260506a"></script>
 
   <style>
     :root{
@@ -265,7 +265,6 @@
     }
     .ok{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); color:#166534; }
     .err{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); color:#991b1b; }
-
     .blockingOverlay{
       position: fixed;
       inset: 0;
@@ -348,6 +347,18 @@
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
         </div>
+        <div class="navInlineGroup" data-fantasy-nav="1" style="display:none">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true">
+            <span>VadeFantasy</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="vadeFantasyMenu">
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
+            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
+          </div>
+        </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
 
@@ -389,7 +400,6 @@
         <option value="LABOOMERS">LABOOMERS</option>
         <option value="YONKOJOS">YONKOJOS</option>
         <option value="CARDGUILD">CARDGUILD</option>
-        <option value="DIVINE CREW">DIVINE CREW</option>
       </select>
 
       <div class="simConnect" id="simConnectBlock">

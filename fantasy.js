@@ -31,7 +31,7 @@
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
-  const PLAYER_POOL_CACHE_VERSION = '20260512a';
+  const PLAYER_POOL_CACHE_VERSION = '20260514b';
   const PLAYER_POOL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const PLAYER_POOL_BACKGROUND_REFRESH_MS = 45 * 60 * 1000;
   const TEAM_ROUNDS_SELECT = 'season,round_key,round_label,round_order,team_id,weekly_points,reward_coins,transfers_used';
@@ -56,13 +56,53 @@
     supernova: 40000,
     piratilla: 20000
   };
-  const RESULT_PRICE_MODIFIERS = {
-    '0-5': -10000,
-    '1-4': -7500,
-    '2-3': -2500,
-    '3-2': 2500,
-    '4-1': 7500,
-    '5-0': 10000
+  const RESULT_PRICE_MODIFIERS_BY_TIER = {
+    'pirate king': {
+      '0-5': -10000,
+      '1-4': -6000,
+      '2-3': -3000,
+      '3-2': 1000,
+      '4-1': 5500,
+      '5-0': 10000
+    },
+    yonkou: {
+      '0-5': -10000,
+      '1-4': -6000,
+      '2-3': -3000,
+      '3-2': 1000,
+      '4-1': 5500,
+      '5-0': 10000
+    },
+    shichibukai: {
+      '0-5': -7000,
+      '1-4': -3000,
+      '2-3': -1500,
+      '3-2': 3000,
+      '4-1': 7500,
+      '5-0': 12000
+    },
+    supernova: {
+      '0-5': -5000,
+      '1-4': -2500,
+      '2-3': 1000,
+      '3-2': 5000,
+      '4-1': 9500,
+      '5-0': 14000
+    },
+    piratilla: {
+      '0-5': -3000,
+      '1-4': -1000,
+      '2-3': 1000,
+      '3-2': 6000,
+      '4-1': 11500,
+      '5-0': 18000
+    }
+  };
+  const STREAK_PRICE_ADJUSTMENTS = {
+    comeback2: 1000,
+    comeback3: 2000,
+    comedown2: -1000,
+    comedown3: -2000
   };
   let authRpcQueue = Promise.resolve();
   let actionRpcClient = null;
@@ -156,6 +196,15 @@
     notifications: [],
     currentTeam: null,
     profilesById: new Map(),
+    attendanceRows: [],
+    attendanceBySlug: new Map(),
+    attendanceRoundKey: '',
+    attendanceLoaded: false,
+    attendanceSchemaReady: null,
+    attendanceSearch: '',
+    attendanceFilter: 'all',
+    attendanceActionSlugs: new Set(),
+    loadingAttendance: false,
     schemaReady: null,
     schemaMessage: '',
     loadingPlayers: false,
@@ -697,13 +746,14 @@
   }
 
   function pageNeedsPlayerPool(){
-    return ['overview', 'market', 'team', 'ranking', 'standings'].includes(PAGE_VIEW)
+    return ['overview', 'market', 'team', 'ranking', 'standings', 'attendance'].includes(PAGE_VIEW)
       || hasFantasyNode('marketGrid')
       || hasFantasyNode('squadGrid')
       || hasFantasyNode('standingsBoard')
       || hasFantasyNode('topPlayersList')
       || hasFantasyNode('roundPulsePanel')
-      || hasFantasyNode('scoutingPanel');
+      || hasFantasyNode('scoutingPanel')
+      || hasFantasyNode('attendanceList');
   }
 
   function pageNeedsTeamRounds(){
@@ -728,6 +778,16 @@
 
   function pageNeedsNotifications(){
     return !!state.currentUser && (PAGE_VIEW === 'market' || hasFantasyNode('marketNoticePanel') || hasFantasyNode('myActivityPanel'));
+  }
+
+  function pageNeedsAttendance(){
+    return ['overview', 'market', 'team', 'attendance'].includes(PAGE_VIEW)
+      || hasFantasyNode('marketGrid')
+      || hasFantasyNode('squadGrid')
+      || hasFantasyNode('standingsBoard')
+      || hasFantasyNode('topPlayersList')
+      || hasFantasyNode('roundPulsePanel')
+      || hasFantasyNode('attendanceList');
   }
 
   function leagueContextOptionsForPage(options){
@@ -990,6 +1050,63 @@
     return TIER_BASE_PRICES[normalizeTierKey(tier)] || TIER_BASE_PRICES.piratilla;
   }
 
+  function resultLabelForWins(wins){
+    const count = clamp(Math.round(Number(wins || 0)), 0, 5);
+    if (count >= 5) return '5-0';
+    if (count === 4) return '4-1';
+    if (count === 3) return '3-2';
+    if (count === 2) return '2-3';
+    if (count === 1) return '1-4';
+    return '0-5';
+  }
+
+  function resultPriceModifier(tier, resultLabel){
+    const key = normalizeTierKey(tier);
+    const table = RESULT_PRICE_MODIFIERS_BY_TIER[key] || RESULT_PRICE_MODIFIERS_BY_TIER.piratilla;
+    return Number(table[String(resultLabel || '').trim()] || 0);
+  }
+
+  function entryWasPlayed(entry){
+    return Number(entry?.raw_points || 0) > 0;
+  }
+
+  function playedFantasyEntries(player){
+    const history = Array.isArray(player?.history) ? player.history : [];
+    return history.filter((entry) => entry?.counts_for_fantasy === true && entryWasPlayed(entry));
+  }
+
+  function streakPriceAdjustment(baseModifier, hotStreak, coldStreak){
+    const modifier = Number(baseModifier || 0);
+    if (modifier > 0 && coldStreak >= 2){
+      return coldStreak >= 3 ? STREAK_PRICE_ADJUSTMENTS.comeback3 : STREAK_PRICE_ADJUSTMENTS.comeback2;
+    }
+    if (modifier < 0 && hotStreak >= 2){
+      return hotStreak >= 3 ? STREAK_PRICE_ADJUSTMENTS.comedown3 : STREAK_PRICE_ADJUSTMENTS.comedown2;
+    }
+    return 0;
+  }
+
+  function applyPriceStreakAdjustments(scoringHistory){
+    let hotStreak = 0;
+    let coldStreak = 0;
+    (Array.isArray(scoringHistory) ? scoringHistory : [])
+      .slice()
+      .sort((a, b) => Number(a.round_order || 0) - Number(b.round_order || 0))
+      .forEach((entry) => {
+        const baseModifier = Number(entry.price_modifier || 0);
+        let adjustment = 0;
+        if (entryWasPlayed(entry)){
+          adjustment = streakPriceAdjustment(baseModifier, hotStreak, coldStreak);
+          if (baseModifier > 0){ hotStreak += 1; coldStreak = 0; }
+          else if (baseModifier < 0){ coldStreak += 1; hotStreak = 0; }
+          else { hotStreak = 0; coldStreak = 0; }
+        }
+        entry.base_price_modifier = baseModifier;
+        entry.streak_modifier = adjustment;
+        entry.price_modifier = baseModifier + adjustment;
+      });
+  }
+
   function isStarterEligibleTier(tier){
     const key = normalizeTierKey(tier);
     return key !== 'pirate king' && key !== 'yonkou';
@@ -1033,10 +1150,11 @@
     return profile.display_name || profile.username || fallback || 'Mi equipo';
   }
 
-  function renderPlayerVisual(player, overlayHtml){
+  function renderPlayerVisual(player, overlayHtml, options){
+    const opts = options || {};
     const tier = escapeHtml(player.tier || 'Sin tier');
     const portraitUrl = playerPortraitUrl(player);
-    return `<div class="playerVisual ${tierClass(player.tier)} ${portraitUrl ? 'has-photo' : ''}">${portraitUrl ? `<img class="playerPhoto" src="${escapeAttr(portraitUrl)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}${portraitUrl ? '<div class="playerPhotoShade"></div>' : ''}<div class="playerArtFallback"></div>${overlayHtml ? `<div class="playerOverlay">${overlayHtml}</div>` : ''}</div>`;
+    return `<div class="playerVisual ${tierClass(player.tier)} ${portraitUrl ? 'has-photo' : ''}">${opts.attendanceBadge ? renderAttendanceBadge(player.slug) : ''}${portraitUrl ? `<img class="playerPhoto" src="${escapeAttr(portraitUrl)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}${portraitUrl ? '<div class="playerPhotoShade"></div>' : ''}<div class="playerArtFallback"></div>${overlayHtml ? `<div class="playerOverlay">${overlayHtml}</div>` : ''}</div>`;
   }
 
   function teamEntryBySlug(playerSlug){
@@ -1064,20 +1182,22 @@
     }).filter((item) => item.label);
   }
 
-  function priceModifierFromFantasyEntry(entry){
+  function priceModifierFromFantasyEntry(entry, tier){
     const exact = Number(entry?.price_modifier);
     const raw = Number(entry?.raw_points);
     if (Number.isFinite(exact) && exact !== 0) return { value: exact, estimated: false };
     if (!Number.isFinite(raw) || raw <= 0) return { value: 0, estimated: false };
-    if (entry?.won === true) return { value: RESULT_PRICE_MODIFIERS['5-0'], estimated: true };
+    if (entry?.won === true) return { value: resultPriceModifier(tier, '5-0'), estimated: true };
+    const resultLabel = String(entry?.result_label || '').trim();
+    if (resultLabel) return { value: resultPriceModifier(tier, resultLabel), estimated: true };
     const fantasy = Number(entry?.fantasy_points);
     if (!Number.isFinite(fantasy)) return { value: 0, estimated: false };
-    if (fantasy >= 15) return { value: RESULT_PRICE_MODIFIERS['5-0'], estimated: true };
-    if (fantasy >= 13) return { value: RESULT_PRICE_MODIFIERS['4-1'], estimated: true };
-    if (fantasy >= 7) return { value: RESULT_PRICE_MODIFIERS['3-2'], estimated: true };
-    if (fantasy >= 3) return { value: RESULT_PRICE_MODIFIERS['2-3'], estimated: true };
-    if (fantasy >= -1) return { value: RESULT_PRICE_MODIFIERS['1-4'], estimated: true };
-    return { value: RESULT_PRICE_MODIFIERS['0-5'], estimated: true };
+    if (fantasy >= 15) return { value: resultPriceModifier(tier, '5-0'), estimated: true };
+    if (fantasy >= 13) return { value: resultPriceModifier(tier, '4-1'), estimated: true };
+    if (fantasy >= 7) return { value: resultPriceModifier(tier, '3-2'), estimated: true };
+    if (fantasy >= 3) return { value: resultPriceModifier(tier, '2-3'), estimated: true };
+    if (fantasy >= -1) return { value: resultPriceModifier(tier, '1-4'), estimated: true };
+    return { value: resultPriceModifier(tier, '0-5'), estimated: true };
   }
 
   function priceSeries(player){
@@ -1089,7 +1209,7 @@
     let hasMovement = false;
     let usesEstimated = false;
     const rows = history.map((entry, index) => {
-      const modifierMeta = priceModifierFromFantasyEntry(entry);
+      const modifierMeta = priceModifierFromFantasyEntry(entry, player?.tier);
       const modifier = Number(modifierMeta.value || 0);
       if (modifier !== 0) hasMovement = true;
       if (modifierMeta.estimated) usesEstimated = true;
@@ -1207,8 +1327,8 @@
       const x = xFor(index);
       const y = yFor(item.fantasy);
       const breakdown = fantasyPointBreakdown(item);
-      const tooltipWidth = 190;
-      const tooltipHeight = item.won ? 132 : (breakdown.fourWinsBonus ? 132 : 108);
+      const tooltipWidth = 214;
+      const tooltipHeight = item.won ? 148 : (breakdown.fourWinsBonus ? 148 : 122);
       const tooltipX = Math.max(2, Math.min(width - tooltipWidth - 2, x - (tooltipWidth / 2)));
       const tooltipY = Math.max(2, y - tooltipHeight - 16);
       const radius = item.countsForFantasy ? 8.5 : 6;
@@ -1277,8 +1397,8 @@
     const tooltipsSvg = series.rows.map((item, index) => {
       const x = xFor(index);
       const y = yFor(item.value);
-      const tooltipWidth = 210;
-      const tooltipHeight = 94;
+      const tooltipWidth = 228;
+      const tooltipHeight = 104;
       const tooltipX = Math.max(2, Math.min(width - tooltipWidth - 2, x - (tooltipWidth / 2)));
       const tooltipY = Math.max(2, y - tooltipHeight - 16);
       const sourceLabel = item.estimated ? 'Estimado' : 'Directo';
@@ -1423,7 +1543,7 @@
     };
   }
 
-  function parseTournamentResult(rawValue, meta){
+  function parseTournamentResult(rawValue, meta, tier){
     const raw = Number(rawValue || 0);
     if (!Number.isFinite(raw) || raw <= 0){
       return {
@@ -1452,16 +1572,8 @@
     const winnerBonus = won ? 5 : 0;
     const fourWinsBonus = !winnerBonus && wins >= 4 ? 2 : 0;
     let fantasyPoints = (wins * 3) - losses + winnerBonus + fourWinsBonus;
-    let priceModifier = RESULT_PRICE_MODIFIERS[resultLabel];
-    if (!Number.isFinite(priceModifier)){
-      if (wins >= 5) priceModifier = RESULT_PRICE_MODIFIERS['5-0'];
-      else if (wins === 4) priceModifier = RESULT_PRICE_MODIFIERS['4-1'];
-      else if (wins === 3) priceModifier = RESULT_PRICE_MODIFIERS['3-2'];
-      else if (wins === 2) priceModifier = RESULT_PRICE_MODIFIERS['2-3'];
-      else if (wins === 1) priceModifier = RESULT_PRICE_MODIFIERS['1-4'];
-      else priceModifier = RESULT_PRICE_MODIFIERS['0-5'];
-    }
-    if (wins >= 5 || won) priceModifier = RESULT_PRICE_MODIFIERS['5-0'];
+    const priceResultLabel = wins >= 5 || won ? '5-0' : resultLabelForWins(wins);
+    const priceModifier = resultPriceModifier(tier, priceResultLabel);
     return {
       raw: Math.round(raw),
       wins,
@@ -1580,7 +1692,7 @@
     players.forEach((player) => {
       let wins = 0;
       player.allPoints.forEach((value, eventPos) => {
-        const result = parseTournamentResult(value, allEventMeta[eventPos]);
+        const result = parseTournamentResult(value, allEventMeta[eventPos], player.tier);
         wins += Number(result.wins || 0);
       });
       player.wins = wins;
@@ -1597,30 +1709,19 @@
       player.isTop10 = index < 10;
     });
 
-    const latestScoredEventPos = (() => {
-      for (let index = eventColumns.length - 1; index >= 0; index -= 1){
-        const event = eventColumns[index];
-        const hasScores = sourceRows.some((row) => {
-          const value = getNumber(row[event.index]);
-          return Number.isFinite(value) && value > 0;
-        });
-        if (hasScores) return index;
-      }
-      return eventColumns.length ? eventColumns.length - 1 : -1;
-    })();
-
     let currentRound = null;
-    if (latestScoredEventPos >= 0){
-      const event = eventColumns[latestScoredEventPos];
-      currentRound = { key: `${CURRENT_SEASON}:${event.key}`, label: event.label || `T${latestScoredEventPos + 1}`, order: event.order };
+    if (eventColumns.length){
+      const roundIndex = eventColumns.length - 1;
+      const event = eventColumns[roundIndex];
+      currentRound = { key: `${CURRENT_SEASON}:${event.key}`, label: event.label || `T${roundIndex + 1}`, order: event.order };
       const ranking = players.map((player) => ({
         slug: player.slug,
-        raw: Number.isFinite(player.points[latestScoredEventPos]) ? player.points[latestScoredEventPos] : 0
+        raw: Number.isFinite(player.points[roundIndex]) ? player.points[roundIndex] : 0
       })).sort((a, b) => b.raw - a.raw || collator.compare(a.slug, b.slug));
       const roundRankBySlug = new Map(ranking.map((entry, index) => [entry.slug, index + 1]));
       players.forEach((player) => {
-        const rawPoints = player.points[latestScoredEventPos];
-        const result = parseTournamentResult(rawPoints, eventMeta[latestScoredEventPos]);
+        const rawPoints = player.points[roundIndex];
+        const result = parseTournamentResult(rawPoints, eventMeta[roundIndex], player.tier);
         player.currentRawPoints = result.raw;
         player.currentWon = result.won;
         player.currentFantasyPoints = result.fantasyPoints;
@@ -1632,7 +1733,7 @@
     players.forEach((player) => {
       player.history = allEventColumns.map((event, eventPos) => {
         const raw = getNumber(player.sheetRow?.[event.index]);
-        const result = parseTournamentResult(raw, allEventMeta[eventPos]);
+        const result = parseTournamentResult(raw, allEventMeta[eventPos], player.tier);
         return {
           round_key: `${CURRENT_SEASON}:${event.key}`,
           round_label: event.label,
@@ -1650,7 +1751,8 @@
         };
       });
       const scoringHistory = player.history.filter((entry) => entry.counts_for_fantasy === true);
-      const playedFantasy = scoringHistory.filter((entry) => Number.isFinite(Number(entry.fantasy_points))).length;
+      applyPriceStreakAdjustments(scoringHistory);
+      const playedFantasy = scoringHistory.filter((entry) => entryWasPlayed(entry)).length;
       const totalFantasy = scoringHistory.reduce((sum, entry) => sum + (Number(entry.fantasy_points || 0)), 0);
       player.fantasyPlayed = playedFantasy;
       player.totalFantasyPoints = totalFantasy;
@@ -1818,6 +1920,10 @@
         };
       });
       const scoringHistory = history.filter((entry) => entry.counts_for_fantasy === true);
+      scoringHistory.forEach((entry) => {
+        entry.price_modifier = priceModifierFromFantasyEntry(entry, row.player_tier).value;
+      });
+      applyPriceStreakAdjustments(scoringHistory);
       const played = Number(row.played || history.filter((entry) => Number(entry.raw_points || 0) > 0).length || 0);
       const totalPoints = Number(row.total_points || 0);
       const totalFantasyPoints = scoringHistory.reduce((sum, entry) => sum + Number(entry.fantasy_points || 0), 0);
@@ -1835,7 +1941,7 @@
         avgPoints: played ? totalPoints / played : 0,
         bestStreak: Number(row.best_streak || 0),
         currentStreak: Number(row.current_streak || 0),
-        fantasyPlayed: scoringHistory.filter((entry) => Number.isFinite(Number(entry.fantasy_points))).length,
+        fantasyPlayed: scoringHistory.filter((entry) => entryWasPlayed(entry)).length,
         wins: Number(row.wins || 0),
         rank: Number(row.player_rank || 9999),
         roundRank: Number(row.round_rank || 9999),
@@ -2051,6 +2157,51 @@
       profilesHydrationPromise = null;
     });
     return profilesHydrationPromise;
+  }
+
+  async function loadAttendance(){
+    if (!pageNeedsAttendance()){
+      resetAttendanceState('');
+      return;
+    }
+    const roundKey = attendanceRoundKey();
+    if (!roundKey || state.schemaReady === false){
+      resetAttendanceState(roundKey);
+      return;
+    }
+    state.loadingAttendance = true;
+    try{
+      const { data, error } = await withTimeout(
+        readSb
+          .from('fantasy_vbf_weekly_attendance')
+          .select('season,round_key,player_slug,player_name,attending,updated_at,updated_by')
+          .eq('season', CURRENT_SEASON)
+          .eq('round_key', roundKey),
+        'asistencia fantasy',
+        6000
+      );
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      state.attendanceRows = rows;
+      state.attendanceBySlug = new Map(rows.map((row) => [String(row.player_slug || ''), row]));
+      state.attendanceRoundKey = roundKey;
+      state.attendanceLoaded = true;
+      state.attendanceSchemaReady = true;
+      if (PAGE_VIEW === 'attendance') setSchemaMessage('');
+    } catch (error){
+      resetAttendanceState(roundKey);
+      if (isSchemaError(error)){
+        state.attendanceSchemaReady = false;
+        if (PAGE_VIEW === 'attendance'){
+          setSchemaMessage(`La asistencia semanal necesita la migracion <code>fantasy-vbf-weekly-attendance.sql</code> en Supabase.<br><span style="opacity:.88;">Detalle: ${escapeHtml(error?.message || error)}</span>`);
+        }
+      } else {
+        console.warn('fantasy loadAttendance:', error?.message || error);
+        if (PAGE_VIEW === 'attendance') showPageMsg(`No pude cargar la asistencia: ${error?.message || error}`, 'err');
+      }
+    } finally {
+      state.loadingAttendance = false;
+    }
   }
 
   async function loadNotifications(){
@@ -2289,6 +2440,50 @@
     return String(state.currentProfile?.app_role || '').trim().toLowerCase() === 'admin';
   }
 
+  function isFantasyStaff(){
+    const role = String(state.currentProfile?.app_role || '').trim().toLowerCase();
+    return role === 'admin' || role === 'vdj';
+  }
+
+  function attendanceRoundMeta(){
+    return state.currentRound || state.sheetRound || null;
+  }
+
+  function attendanceRoundKey(){
+    return String(attendanceRoundMeta()?.key || attendanceRoundMeta()?.round_key || '').trim();
+  }
+
+  function resetAttendanceState(roundKey){
+    state.attendanceRows = [];
+    state.attendanceBySlug = new Map();
+    state.attendanceRoundKey = String(roundKey || '');
+    state.attendanceLoaded = false;
+  }
+
+  function attendanceKnownForRound(){
+    const key = attendanceRoundKey();
+    return !!key && state.attendanceLoaded === true && String(state.attendanceRoundKey || '') === key;
+  }
+
+  function attendanceRowForSlug(playerSlug){
+    const slug = String(playerSlug || '').trim();
+    if (!slug || !attendanceKnownForRound()) return null;
+    return state.attendanceBySlug.get(slug) || { player_slug: slug, attending: false };
+  }
+
+  function isPlayerAttending(playerSlug){
+    const row = attendanceRowForSlug(playerSlug);
+    return row ? row.attending === true : null;
+  }
+
+  function renderAttendanceBadge(playerSlug, options){
+    const status = isPlayerAttending(playerSlug);
+    if (status !== true) return '';
+    const opts = options || {};
+    const label = 'Inscrito al torneo semanal';
+    return `<span class="attendanceBadge isGoing${opts.compact ? ' compact' : ''}" title="${escapeAttr(label)}" aria-label="${escapeAttr(label)}"><img src="inscrito.png" alt="" aria-hidden="true" /></span>`;
+  }
+
   function getTeamRound(teamId, roundKey){
     return state.teamRounds.find((row) => String(row.team_id) === String(teamId) && String(row.round_key) === String(roundKey || '')) || null;
   }
@@ -2300,12 +2495,8 @@
   }
 
   function closedRounds(){
-    const currentOrder = Number(state.currentRound?.order || 0);
     return state.seasonRounds
-      .filter((row) =>
-        row?.rewards_applied === true
-        && (!currentOrder || Number(row.round_order || 0) <= currentOrder)
-      )
+      .filter((row) => row?.rewards_applied === true)
       .slice()
       .sort((a, b) => Number(a.round_order || 0) - Number(b.round_order || 0));
   }
@@ -2393,20 +2584,12 @@
   }
 
   function latestFantasyEntry(player){
-    const history = Array.isArray(player?.history) ? player.history : [];
-    const rows = history.filter((entry) =>
-      entry?.counts_for_fantasy === true
-      && Number.isFinite(Number(entry?.fantasy_points))
-    );
+    const rows = playedFantasyEntries(player);
     return rows.length ? rows[rows.length - 1] : null;
   }
 
   function previousFantasyEntry(player){
-    const history = Array.isArray(player?.history) ? player.history : [];
-    const rows = history.filter((entry) =>
-      entry?.counts_for_fantasy === true
-      && Number.isFinite(Number(entry?.fantasy_points))
-    );
+    const rows = playedFantasyEntries(player);
     return rows.length > 1 ? rows[rows.length - 2] : null;
   }
 
@@ -2444,7 +2627,7 @@
     const currentOrder = Number(current?.round_order || roundMetaForKey(roundKey)?.round_order || 0);
     if (!currentOrder) return null;
     const rows = history
-      .filter((entry) => entry?.counts_for_fantasy === true && Number(entry?.round_order || 0) < currentOrder)
+      .filter((entry) => entry?.counts_for_fantasy === true && entryWasPlayed(entry) && Number(entry?.round_order || 0) < currentOrder)
       .sort((a, b) => Number(a.round_order || 0) - Number(b.round_order || 0));
     return rows.length ? rows[rows.length - 1] : null;
   }
@@ -2452,7 +2635,7 @@
   function fantasyTrendDeltaForRound(player, roundKey){
     const latest = historyEntryForRound(player, roundKey);
     const previous = previousFantasyEntryForRound(player, roundKey);
-    if (!latest) return 0;
+    if (!latest || !entryWasPlayed(latest)) return 0;
     if (!previous) return Number(latest.fantasy_points || 0);
     return Number(latest.fantasy_points || 0) - Number(previous.fantasy_points || 0);
   }
@@ -2666,6 +2849,7 @@
     if (mode === 'watchlist') return isWatched(player.slug);
     if (mode === 'free') return direct;
     if (mode === 'clause') return !direct;
+    if (mode === 'attending') return isPlayerAttending(player.slug) === true;
     if (mode === 'hot') return fantasyTrendDelta(player) >= 4 || Number(player.currentFantasyPoints || 0) >= 16 || player.currentWon === true;
     if (mode === 'bargain') return direct && fantasyValueScore(player, player.price || 0) >= 1.25;
     return true;
@@ -2677,6 +2861,7 @@
       watchlist: 'Mi watchlist',
       free: 'Libres',
       clause: 'Clausulables',
+      attending: 'Inscritos',
       hot: 'En racha',
       bargain: 'Gangas'
     };
@@ -3124,7 +3309,7 @@
   function renderAdminRoundControls(){
     const host = $('fantasyAdminRoundControls');
     if (!host) return;
-    if (!isFantasyAdmin()){
+    if (PAGE_VIEW !== 'attendance' || !isFantasyAdmin()){
       host.classList.add('hidden');
       host.innerHTML = '';
       return;
@@ -3146,6 +3331,111 @@
         <button class="btn btnPrimary" type="button" data-admin-round-action="process" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Procesar jornada fantasy</button>
       </div>
     </div>`;
+  }
+
+  function attendancePlayers(){
+    const query = String(state.attendanceSearch || '').trim().toLowerCase();
+    const filter = String(state.attendanceFilter || 'all');
+    return state.poolPlayers
+      .slice()
+      .sort((a, b) => Number(a.rank || 9999) - Number(b.rank || 9999) || collator.compare(a.name, b.name))
+      .filter((player) => {
+        const attending = isPlayerAttending(player.slug) === true;
+        if (filter === 'going' && !attending) return false;
+        if (filter === 'out' && attending) return false;
+        if (!query) return true;
+        return [
+          player.name,
+          player.slug,
+          player.tier,
+          tierLabel(player.tier)
+        ].map((value) => String(value || '').toLowerCase()).join(' ').includes(query);
+      });
+  }
+
+  function renderAttendanceAdmin(){
+    const list = $('attendanceList');
+    const empty = $('attendanceEmpty');
+    const summary = $('attendanceSummary');
+    const roundLabel = $('attendanceRoundLabel');
+    if (!list || !empty) return;
+
+    const round = attendanceRoundMeta();
+    const roundKey = attendanceRoundKey();
+    if (roundLabel){
+      roundLabel.textContent = roundKey
+        ? `Jornada ${round?.label || round?.round_label || roundKey}`
+        : 'Sin jornada activa';
+    }
+
+    const allPlayers = state.poolPlayers.slice();
+    const goingCount = attendanceKnownForRound()
+      ? allPlayers.filter((player) => isPlayerAttending(player.slug) === true).length
+      : 0;
+    if (summary){
+      summary.innerHTML = [
+        `<span class="pill strong">${intFmt.format(allPlayers.length)} jugadores</span>`,
+        `<span class="pill good">${intFmt.format(goingCount)} asisten</span>`,
+        `<span class="pill ${attendanceKnownForRound() ? 'warn' : ''}">${intFmt.format(Math.max(0, allPlayers.length - goingCount))} no asisten</span>`
+      ].join('');
+    }
+
+    if (!isFantasyStaff()){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = state.currentProfile ? 'Solo Admin o VDJ pueden gestionar la asistencia.' : 'Comprobando permisos...';
+      return;
+    }
+
+    if (state.attendanceSchemaReady === false){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = 'Falta aplicar fantasy-vbf-weekly-attendance.sql en Supabase.';
+      return;
+    }
+
+    if (!roundKey){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = 'No hay jornada activa para guardar asistencia.';
+      return;
+    }
+
+    if (state.loadingPlayers || state.loadingAttendance || !attendanceKnownForRound()){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = 'Cargando jugadores y asistencia...';
+      return;
+    }
+
+    const players = attendancePlayers();
+    if (!players.length){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = state.poolPlayers.length ? 'No hay jugadores que coincidan con este filtro.' : 'Todavia no hay jugadores cargados.';
+      return;
+    }
+
+    empty.classList.add('hidden');
+    list.innerHTML = players.map((player) => {
+      const attending = isPlayerAttending(player.slug) === true;
+      const portrait = playerPortraitUrl(player);
+      const busy = state.attendanceActionSlugs.has(String(player.slug || ''));
+      return `<article class="attendanceRow ${attending ? 'isGoing' : 'isOut'}">
+        <div class="attendancePlayer">
+          <div class="attendanceAvatar ${tierClass(player.tier)}">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</div>
+          <div class="attendanceCopy">
+            <strong>${escapeHtml(player.name || 'Jugador')}</strong>
+            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))}</span>
+          </div>
+        </div>
+        <span class="attendanceStatePill ${attending ? 'isGoing' : 'isOut'}">${attending ? 'Asiste' : 'No asiste'}</span>
+        <label class="attendanceToggle" title="${escapeAttr(attending ? 'Marcar que no asiste' : 'Marcar que asiste')}">
+          <input type="checkbox" data-attendance-player="${escapeAttr(player.slug || '')}" ${attending ? 'checked' : ''} ${busy ? 'disabled' : ''} />
+          <span aria-hidden="true"></span>
+        </label>
+      </article>`;
+    }).join('');
   }
 
   function openPlayerModal(slug, source){
@@ -3223,12 +3513,12 @@
           <article class="fantasyInfoCard">
             <span>Precio de fichas</span>
             <strong>Tier + resultados</strong>
-            <p>Cada ficha parte de un precio base por tier: Pirate King, Yonkou, Shichibukai, Supernova o Piratilla. Despues sube o baja por resultados: 5-0 sube fuerte, 4-1 sube, 3-2 sube poco, 2-3 baja poco, 1-4 baja y 0-5 baja fuerte.</p>
+            <p>Cada ficha parte de un precio base por tier. Despues sube o baja segun el resultado y la exigencia de su rango: a los top se les pide mas y los Piratilla tienen mas premio por sorprender.</p>
           </article>
           <article class="fantasyInfoCard">
             <span>Variacion</span>
             <strong>Jugar importa</strong>
-            <p>El precio se recalcula con el historico fantasy. Ganar, hacer buen resultado y ganar torneos empuja el valor hacia arriba. No jugar no penaliza puntos de jornada, pero tampoco genera subida ni aporta berries.</p>
+            <p>El precio se recalcula con el historico fantasy. No jugar no corta rachas ni penaliza: solo las jornadas jugadas pueden activar bonus por remontar una mala racha o castigo por caer tras venir fuerte.</p>
           </article>
           <article class="fantasyInfoCard">
             <span>Jugadores de oficio</span>
@@ -3908,6 +4198,7 @@
       ['watchlist', 'Watchlist'],
       ['free', 'Libres'],
       ['clause', 'Clausulables'],
+      ['attending', 'Inscritos'],
       ['hot', 'En racha'],
       ['bargain', 'Gangas']
     ];
@@ -4020,7 +4311,7 @@
       const player = entry.player;
       const isCaptain = String(state.currentTeam?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
       const overlay = `<div class="playerOverlayBottom"><div class="overlayNamePlain">${escapeHtml(player.name)}</div><div class="overlaySubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div>`;
-      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${renderPlayerVisual(player, overlay)}</div></article>`;
+      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${renderPlayerVisual(player, overlay, { attendanceBadge: true })}</div></article>`;
     }).join('');
     if (table){
       table.innerHTML = PAGE_VIEW === 'team' ? renderRosterTable(derived.squadCards) : '';
@@ -4070,7 +4361,7 @@
           ? `Fichar · ${renderCoinInline(price, true)}`
           : `Clausula · ${renderCoinInline(minClause, true)}`;
       const badgeHtml = badge?.iconHtml ? `<span class="marketBadge ${escapeAttr(badge.tone)}" title="${escapeAttr(badge.title || '')}" aria-label="${escapeAttr(badge.title || '')}">${badge.iconHtml}</span>` : '';
-      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${renderWatchButton(player, { compact: true })}${renderPlayerVisual(player, overlay)}</div><div class="marketCardAvailability ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
+      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${renderPlayerVisual(player, overlay, { attendanceBadge: true })}</div><div class="marketCardAvailability ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
     }).join('');
   }
 
@@ -4113,6 +4404,68 @@
     } catch (error){
       showPageMsg(`No pude marcar el aviso como visto: ${error?.message || error}`, 'err');
       showFantasyToast('No pude marcar el aviso', error?.message || String(error || ''), 'err');
+    }
+  }
+
+  async function setPlayerAttendance(playerSlug, attending, trigger){
+    const slug = String(playerSlug || '').trim();
+    const roundKey = attendanceRoundKey();
+    if (!slug || !roundKey) return;
+    if (!isFantasyStaff()){
+      showFantasyToast('Sin permisos', 'Solo Admin o VDJ pueden gestionar la asistencia.', 'err');
+      renderAttendanceAdmin();
+      return;
+    }
+    const player = state.playersBySlug.get(slug) || { slug, name: slug };
+    const previous = isPlayerAttending(slug) === true;
+    state.attendanceActionSlugs.add(slug);
+    if (trigger) trigger.disabled = true;
+    renderAttendanceAdmin();
+    try{
+      const { error } = await rpcWithTimeout('fantasy_vbf_set_weekly_attendance', {
+        p_season: CURRENT_SEASON,
+        p_round_key: roundKey,
+        p_player_slug: slug,
+        p_attending: attending === true
+      }, `guardar asistencia de ${player.name || slug}`, 12000);
+      if (error) throw error;
+      const row = {
+        season: CURRENT_SEASON,
+        round_key: roundKey,
+        player_slug: slug,
+        player_name: player.name || slug,
+        attending: attending === true,
+        updated_at: new Date().toISOString(),
+        updated_by: state.currentUser?.id || null
+      };
+      state.attendanceBySlug.set(slug, row);
+      state.attendanceRows = Array.from(state.attendanceBySlug.values());
+      state.attendanceLoaded = true;
+      state.attendanceRoundKey = roundKey;
+      renderAll();
+      showFantasyToast('Asistencia actualizada', `${player.name || slug}: ${attending ? 'asiste' : 'no asiste'}.`, 'ok');
+    } catch (error){
+      if (isSchemaError(error)){
+        state.attendanceSchemaReady = false;
+        setSchemaMessage(`La asistencia semanal necesita la migracion <code>fantasy-vbf-weekly-attendance.sql</code> en Supabase.<br><span style="opacity:.88;">Detalle: ${escapeHtml(error?.message || error)}</span>`);
+      }
+      if (attendanceKnownForRound()){
+        const previousRow = {
+          season: CURRENT_SEASON,
+          round_key: roundKey,
+          player_slug: slug,
+          player_name: player.name || slug,
+          attending: previous
+        };
+        state.attendanceBySlug.set(slug, previousRow);
+        state.attendanceRows = Array.from(state.attendanceBySlug.values());
+      }
+      renderAll();
+      showFantasyToast('No pude guardar asistencia', error?.message || String(error || ''), 'err');
+    } finally {
+      state.attendanceActionSlugs.delete(slug);
+      if (trigger) trigger.disabled = false;
+      renderAttendanceAdmin();
     }
   }
 
@@ -4186,6 +4539,7 @@
     renderWatchlistPanel();
     renderMarketActivity();
     renderMarket();
+    renderAttendanceAdmin();
     renderNotifications();
     renderPersonalActivity();
     renderTeamModal();
@@ -4407,6 +4761,7 @@
       if (error) throw error;
       state.currentRound = { ...state.sheetRound };
       await loadSeasonConfig();
+      await loadAttendance();
       await loadLeagueContext();
       showPageMsg(`Nueva jornada ${state.sheetRound.label} iniciada. La plantilla se mantiene, se recalculan precios y el mercado semanal vuelve a abrir.`, 'ok');
       return true;
@@ -4477,6 +4832,7 @@
       renderHero();
       renderWatchlistPanel();
       renderMarket();
+      renderAttendanceAdmin();
       renderPlayerModal();
       renderBuyConfirm();
       if (App.applyRestrictedNavVisibility) void App.applyRestrictedNavVisibility(sb);
@@ -4519,7 +4875,7 @@
     try{
       const { data: profile, error } = await withTimeout(
         readSb.from('profiles')
-          .select('id,username,display_name,avatar_url,member,fantasy')
+          .select('id,username,display_name,avatar_url,member,fantasy,app_role')
           .eq('id', user.id)
           .maybeSingle(),
         'acceso fantasy',
@@ -4530,7 +4886,16 @@
       state.currentProfile = profile || null;
       syncNavUser(user);
 
-      if (profile?.fantasy !== true){
+      const role = String(profile?.app_role || '').trim().toLowerCase();
+      const privileged = role === 'admin' || role === 'vdj';
+      if (PAGE_VIEW === 'attendance' && !privileged){
+        fantasyAccessAllowed = false;
+        setLoading(false);
+        showPageMsg('Solo Admin o VDJ pueden acceder a la asistencia semanal.', 'err');
+        return false;
+      }
+
+      if (profile?.fantasy !== true && !privileged){
         fantasyAccessAllowed = false;
         setLoading(false);
         showPageMsg('Tu usuario todavia no tiene acceso a VaDeFantasy.', 'err');
@@ -4593,6 +4958,7 @@
         const results = await Promise.allSettled(tasks);
         const failed = results.find((item) => item.status === 'rejected');
         if (failed) throw failed.reason;
+        await loadAttendance();
         renderAll();
         void startBackgroundHydration();
         return results;
@@ -4605,6 +4971,7 @@
           silent
         }) : Promise.resolve(null)
       ]);
+      await loadAttendance();
       await loadLeagueContext(leagueOptions);
       renderAll();
       if (!silent) setLoading(false);
@@ -4650,7 +5017,14 @@
   });
   $('marketSearch')?.addEventListener('input', () => { state.marketSearch = $('marketSearch')?.value || ''; renderMarket(); });
   $('marketSort')?.addEventListener('change', () => { state.marketSort = $('marketSort')?.value || 'vbf_full_rank'; renderMarket(); });
+  $('attendanceSearch')?.addEventListener('input', () => { state.attendanceSearch = $('attendanceSearch')?.value || ''; renderAttendanceAdmin(); });
+  $('attendanceFilter')?.addEventListener('change', () => { state.attendanceFilter = $('attendanceFilter')?.value || 'all'; renderAttendanceAdmin(); });
   document.addEventListener('submit', async (event) => { if (event.target?.id === 'createTeamForm') await createTeam(event); });
+  document.addEventListener('change', (event) => {
+    const trigger = event.target?.closest?.('[data-attendance-player]');
+    if (!trigger) return;
+    void setPlayerAttendance(trigger.getAttribute('data-attendance-player') || '', trigger.checked === true, trigger);
+  });
   function handleOpenPlayerClick(event){
     const captainTrigger = event.target.closest('[data-set-captain]');
     if (captainTrigger){

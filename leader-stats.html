@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Leader Stats · Barateam Hub</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260306a" />
+  <link rel="stylesheet" href="app.css?v=20260505b" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260305c"></script>
+  <script src="app.js?v=20260506a"></script>
   <style>
     :root{
       --bg:#0b1220;
@@ -429,13 +429,10 @@
     body.matchupModalOpen{
       overflow:hidden;
     }
-    body.matchupModalOpen .authCorner{
-      display:none;
-    }
     .matchupModal{
       position:fixed;
       inset:0;
-      z-index:210100;
+      z-index:12000;
       display:none;
       align-items:center;
       justify-content:center;
@@ -684,6 +681,18 @@
             <a class="navInlineMenuLink" href="leader-finder.html">Lideres</a>
           </div>
         </div>
+        <div class="navInlineGroup" data-fantasy-nav="1" style="display:none">
+          <button class="navInlineButton" type="button" aria-expanded="false" aria-controls="vadeFantasyMenu" aria-haspopup="true">
+            <span>VadeFantasy</span>
+            <span class="navInlineCaret" aria-hidden="true">v</span>
+          </button>
+          <div class="navInlineMenu" id="vadeFantasyMenu">
+            <a class="navInlineMenuLink" href="fantasy.html" data-privileged-only="1">Liga</a>
+            <a class="navInlineMenuLink" href="fantasy-team.html" data-privileged-only="1">Plantilla</a>
+            <a class="navInlineMenuLink" href="fantasy-market.html" data-privileged-only="1">Mercado</a>
+            <a class="navInlineMenuLink" href="vade-back-fight.html" data-privileged-only="1">Ranking VBF</a>
+          </div>
+        </div>
         <a class="navInlineLink" href="encuestas.html">Encuestas</a>
       </div>
     </div>
@@ -722,12 +731,6 @@
       <div class="heroTop">
         <h1>Global Leader Stats</h1>
         <div class="heroControls">
-          <label class="filter">Fuente
-            <select id="datasetSelect">
-              <option value="standard">Global</option>
-              <option value="standard_last_week">Ultima semana</option>
-            </select>
-          </label>
           <label class="filter hiddenControl">Fecha
             <input id="dateInput" type="date">
           </label>
@@ -856,7 +859,6 @@
     const matchupsBody = document.getElementById("matchupsBody");
     const matchupLimit = document.getElementById("matchupLimit");
     const matchupMeta = document.getElementById("matchupMeta");
-    const datasetSelect = document.getElementById("datasetSelect");
     const statusText = document.getElementById("statusText");
     const errorBox = document.getElementById("errorBox");
     const loadingOverlay = document.getElementById("loadingOverlay");
@@ -877,10 +879,6 @@
     let matchupSort = { key: "games", dir: "desc" };
     const MATCHUP_MODAL_DEFAULT_DECKS = "3";
     const MATCHUP_MODAL_DEFAULT_TECHS = "all";
-    const DATASET_LABELS = {
-      standard: "Global",
-      standard_last_week: "Ultima semana"
-    };
 
     function toYmd(dateObj){
       const y = dateObj.getFullYear();
@@ -1093,7 +1091,6 @@
     function buildMatchupModalUrl(playerCode, opponentCode){
       const url = new URL("matchup-stats.html", window.location.href);
       url.searchParams.set("embed", "1");
-      url.searchParams.set("dataset", String(datasetSelect?.value || "standard"));
       url.searchParams.set("player", playerCode);
       url.searchParams.set("opponent", opponentCode);
       url.searchParams.set("decks", MATCHUP_MODAL_DEFAULT_DECKS);
@@ -1123,8 +1120,7 @@
 
     async function fetchStatsByDate(ymd){
       const compact = toCompact(ymd);
-      const dataset = String(datasetSelect?.value || "standard");
-      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/leader-stats?date=${compact}&dataset=${encodeURIComponent(dataset)}`;
+      const url = `${window.BarateamApp.SUPABASE_URL}/functions/v1/leader-stats?date=${compact}`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`No disponible (${res.status}) para ${ymd}`);
       const payload = await res.json();
@@ -1339,8 +1335,7 @@
         }
         renderLeaders();
         renderDetail();
-        const datasetLabel = DATASET_LABELS[String(datasetSelect?.value || "standard")] || "Global";
-        statusText.textContent = `Fuente: ${datasetLabel} · ${ymd} · ${leaders.length} leaders`;
+        statusText.textContent = `Fuente: ${ymd} · ${leaders.length} leaders`;
       } catch (err){
         leaders = [];
         selectedLeaderCode = null;
@@ -1426,7 +1421,6 @@
 
     searchInput.addEventListener("input", renderLeaders);
     matchupLimit.addEventListener("change", renderDetail);
-    datasetSelect.addEventListener("change", reload);
     btnReload.addEventListener("click", reload);
 
     (function init(){
