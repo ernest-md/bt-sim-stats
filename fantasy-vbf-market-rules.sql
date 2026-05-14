@@ -1,5 +1,6 @@
 -- Fantasy OP15 - market integrity rules and office replacements.
--- Apply after fantasy-vbf-schema.sql, fantasy-vbf-roster-snapshots.sql and fantasy-vbf-weekly-admin.sql.
+-- Apply after fantasy-vbf-schema.sql, fantasy-vbf-roster-snapshots.sql,
+-- fantasy-vbf-weekly-admin.sql and fantasy-vbf-weekly-attendance.sql.
 
 alter table public.fantasy_vbf_seasons
   add column if not exists min_roster_size integer not null default 1,
@@ -606,7 +607,7 @@ begin
       and pr.round_order < v_round_order
       and coalesce(pr.raw_points, 0) > 0
     order by pr.round_order desc
-    limit 2
+    limit 1
   ),
   candidates as (
     select
@@ -650,6 +651,17 @@ begin
       row_number() over (
         partition by tn.team_id
         order by
+          case
+            when exists (
+              select 1
+              from public.fantasy_vbf_weekly_attendance wa
+              where wa.season = v_season
+                and wa.round_key = v_round_key
+                and wa.player_slug = pp.player_slug
+                and wa.attending is true
+            ) then 0
+            else 1
+          end asc,
           case
             when lower(trim(pp.player_tier)) in ('pirate king', 'yonkou') then 4
             when not exists (
@@ -730,10 +742,6 @@ begin
     having count(rs.id) < coalesce(v_cfg.squad_size, 3)
   ) missing;
 
-  if v_incomplete_snapshots > 0 then
-    raise exception 'No pude completar jugadores de oficio para % equipo(s). Revisa que el pool fantasy tenga suficientes jugadores.', v_incomplete_snapshots;
-  end if;
-
   insert into public.fantasy_vbf_team_rounds (
     season, team_id, user_id, round_key, round_label, round_order,
     weekly_points, weekly_rank, reward_coins, transfers_used, captain_changes_used
@@ -754,7 +762,8 @@ begin
     'captured', true,
     'players', v_inserted + v_replacements,
     'real_players', v_inserted,
-    'replacement_players', v_replacements
+    'replacement_players', v_replacements,
+    'incomplete_teams', v_incomplete_snapshots
   );
 end;
 $$;

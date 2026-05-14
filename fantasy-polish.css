@@ -6200,6 +6200,7 @@ body[data-fantasy-view="overview"] .standingRoster{
 }
 
 body[data-fantasy-view] .standingRow .standingRosterCard{
+  align-self:start;
   gap:3px;
   padding:0;
   border:0;
@@ -6223,6 +6224,7 @@ body[data-fantasy-view] .standingRow .standingRosterVisual{
 
 body[data-fantasy-view] .standingRow .standingRosterVisual.empty{
   box-shadow:none;
+  border:1px dashed rgba(148,163,184,.38);
 }
 
 body[data-fantasy-view] .standingRow .standingRosterShade{

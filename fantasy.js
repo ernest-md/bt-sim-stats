@@ -3577,7 +3577,7 @@
           <article class="fantasyInfoCard">
             <span>Jugadores de oficio</span>
             <strong>Jugadores de oficio</strong>
-            <p>Si al cerrar mercado un equipo no llega a 3 jugadores, el sistema completa la foto de esa jornada con jugadores de oficio. En la medida de lo posible, se priorizan jugadores que ya estuvieron en la jornada anterior. No pueden ser capitanes y puntuan a la mitad.</p>
+            <p>Si al cerrar mercado un equipo no llega a 3 jugadores, el sistema completa la foto de esa jornada con jugadores de oficio. Primero prioriza asistentes marcados; si no bastan, usa jugadores que hayan jugado la ultima jornada. No pueden ser capitanes y puntuan a la mitad.</p>
           </article>
         </div>
         <section class="fantasyInfoFlow">
@@ -4322,7 +4322,7 @@
       const slots = Array.from({ length: config().squadSize }, (_, index) => row.players[index] || null);
       const roster = slots.map((entry) => {
         if (!entry){
-          return `<div class="standingRosterCard empty" aria-hidden="true"><div class="standingRosterVisual empty"></div><span class="standingRosterName">Hueco libre</span></div>`;
+          return `<div class="standingRosterCard empty" aria-hidden="true"><div class="standingRosterVisual empty"></div><span class="standingRosterName">Vacío</span></div>`;
         }
         const portrait = playerPortraitUrl(entry.player);
         const isTemporary = String(entry.snapshot_source || '').toLowerCase() === 'replacement';
