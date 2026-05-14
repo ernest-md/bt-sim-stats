@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>VadeFantasy - Organizar equipo</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="app.css?v=20260505b" />
+  <link rel="stylesheet" href="app.css?v=20260514a" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260506a"></script>
+  <script src="app.js?v=20260514a"></script>
   <style>
     :root{--bg:#09111f;--card:rgba(255,255,255,.94);--line:rgba(15,23,42,.1);--ink:#0f172a;--muted:#64748b;--shadow:0 18px 50px rgba(0,0,0,.34)}
     *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -267,7 +267,7 @@
     @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats,.factGrid,.playerGrid{grid-template-columns:1fr 1fr}.actionRow .btn{flex:1 1 calc(50% - 4px)}.loadingCard{padding:14px 16px;border-radius:18px}.overlayNamePlain{font-size:15px}.overlaySubtitle{font-size:9px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRow{grid-template-columns:1fr}.standingRoster{grid-template-columns:repeat(3,minmax(0,1fr))}#squadGrid{grid-template-columns:1fr}}
     @media (max-width:420px){.playerGrid{grid-template-columns:1fr}}
   </style>
-  <link rel="stylesheet" href="fantasy-polish.css?v=20260507l" />
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260514b" />
 </head>
 <body data-requires-fantasy="1" data-fantasy-view="team">
   <div class="topbar">
@@ -276,6 +276,7 @@
         <a class="vdfTopNavLink" href="fantasy.html">Liga</a>
         <a class="vdfTopNavLink is-current" href="fantasy-team.html" aria-current="page">Plantilla</a>
         <a class="vdfTopNavLink" href="fantasy-market.html">Mercado</a>
+        <a class="vdfTopNavLink" href="fantasy-attendance.html" data-privileged-only="1" style="display:none">Asistencia</a>
       </nav>
       <a class="brandLink vdfBrandLink" href="fantasy.html" aria-label="Ir a VaDeFantasy">
         <div class="brand">
@@ -370,7 +371,6 @@
         <div class="heroStat"><b id="statTeams">-</b><span>Managers activos</span></div>
         <div class="heroStat"><b id="statCurrentRound">-</b><span>Jornada fantasy</span></div>
       </div>
-      <div id="fantasyAdminRoundControls" class="hidden"></div>
       <div class="pageMsg" id="pageMsg"></div>
       <div class="schemaNote" id="schemaNote"></div>
     </section>
@@ -434,6 +434,6 @@
     </div>
   </div>
   <script src="fantasy-player-portraits.js?v=20260504a"></script>
-  <script src="fantasy.js?v=20260507l"></script>
+  <script src="fantasy.js?v=20260514b"></script>
 </body>
 </html>
