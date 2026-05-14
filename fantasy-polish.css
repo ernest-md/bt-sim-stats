@@ -1797,7 +1797,7 @@ body[data-fantasy-view="team"] #squadGrid .squadCard .playerVisual{
 
 .rosterTableRow{
   display:grid;
-  grid-template-columns:minmax(220px,1.25fr) repeat(4,minmax(0,.78fr)) minmax(96px,.48fr);
+  grid-template-columns:minmax(220px,1.2fr) repeat(4,minmax(94px,.72fr)) minmax(132px,.7fr);
   gap:8px;
   align-items:center;
   padding:10px 12px;
@@ -1878,6 +1878,18 @@ body[data-fantasy-view="team"] #squadGrid .squadCard .playerVisual{
   font-size:13px;
   font-weight:1000;
   line-height:1.15;
+}
+
+.rosterTableRow .compactActions{
+  justify-content:flex-end;
+  gap:6px;
+}
+
+.rosterTableRow .compactActions .btn{
+  min-width:0;
+  flex:1 1 62px;
+  padding-left:8px;
+  padding-right:8px;
 }
 
 .impactList.statsHidden .impactRow{
@@ -2808,7 +2820,7 @@ body[data-fantasy-view] .buyFullBtn{
 }
 
 body[data-fantasy-view] .rosterTableRow{
-  grid-template-columns:minmax(220px,1.25fr) repeat(4,minmax(0,.78fr)) minmax(96px,.48fr);
+  grid-template-columns:minmax(220px,1.2fr) repeat(4,minmax(94px,.72fr)) minmax(132px,.7fr);
 }
 
 body[data-fantasy-view] .rosterTableMetric,
