@@ -664,6 +664,11 @@
             icon: "F"
           },
           {
+            href: appPageHref("fantasy-attendance.html"),
+            label: "Asistencia",
+            icon: "A"
+          },
+          {
             href: appPageHref("packs.html"),
             label: "Packs",
             icon: "P"
@@ -697,6 +702,11 @@
             href: appPageHref("fantasy.html"),
             label: "Fantasy",
             icon: "F"
+          },
+          {
+            href: appPageHref("fantasy-attendance.html"),
+            label: "Asistencia",
+            icon: "A"
           },
           {
             href: membersHref,

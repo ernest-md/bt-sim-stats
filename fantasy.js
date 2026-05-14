@@ -196,6 +196,15 @@
     notifications: [],
     currentTeam: null,
     profilesById: new Map(),
+    attendanceRows: [],
+    attendanceBySlug: new Map(),
+    attendanceRoundKey: '',
+    attendanceLoaded: false,
+    attendanceSchemaReady: null,
+    attendanceSearch: '',
+    attendanceFilter: 'all',
+    attendanceActionSlugs: new Set(),
+    loadingAttendance: false,
     schemaReady: null,
     schemaMessage: '',
     loadingPlayers: false,
@@ -737,13 +746,14 @@
   }
 
   function pageNeedsPlayerPool(){
-    return ['overview', 'market', 'team', 'ranking', 'standings'].includes(PAGE_VIEW)
+    return ['overview', 'market', 'team', 'ranking', 'standings', 'attendance'].includes(PAGE_VIEW)
       || hasFantasyNode('marketGrid')
       || hasFantasyNode('squadGrid')
       || hasFantasyNode('standingsBoard')
       || hasFantasyNode('topPlayersList')
       || hasFantasyNode('roundPulsePanel')
-      || hasFantasyNode('scoutingPanel');
+      || hasFantasyNode('scoutingPanel')
+      || hasFantasyNode('attendanceList');
   }
 
   function pageNeedsTeamRounds(){
@@ -768,6 +778,16 @@
 
   function pageNeedsNotifications(){
     return !!state.currentUser && (PAGE_VIEW === 'market' || hasFantasyNode('marketNoticePanel') || hasFantasyNode('myActivityPanel'));
+  }
+
+  function pageNeedsAttendance(){
+    return ['overview', 'market', 'team', 'attendance'].includes(PAGE_VIEW)
+      || hasFantasyNode('marketGrid')
+      || hasFantasyNode('squadGrid')
+      || hasFantasyNode('standingsBoard')
+      || hasFantasyNode('topPlayersList')
+      || hasFantasyNode('roundPulsePanel')
+      || hasFantasyNode('attendanceList');
   }
 
   function leagueContextOptionsForPage(options){
@@ -1130,10 +1150,11 @@
     return profile.display_name || profile.username || fallback || 'Mi equipo';
   }
 
-  function renderPlayerVisual(player, overlayHtml){
+  function renderPlayerVisual(player, overlayHtml, options){
+    const opts = options || {};
     const tier = escapeHtml(player.tier || 'Sin tier');
     const portraitUrl = playerPortraitUrl(player);
-    return `<div class="playerVisual ${tierClass(player.tier)} ${portraitUrl ? 'has-photo' : ''}">${portraitUrl ? `<img class="playerPhoto" src="${escapeAttr(portraitUrl)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}${portraitUrl ? '<div class="playerPhotoShade"></div>' : ''}<div class="playerArtFallback"></div>${overlayHtml ? `<div class="playerOverlay">${overlayHtml}</div>` : ''}</div>`;
+    return `<div class="playerVisual ${tierClass(player.tier)} ${portraitUrl ? 'has-photo' : ''}">${opts.attendanceBadge ? renderAttendanceBadge(player.slug) : ''}${portraitUrl ? `<img class="playerPhoto" src="${escapeAttr(portraitUrl)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}${portraitUrl ? '<div class="playerPhotoShade"></div>' : ''}<div class="playerArtFallback"></div>${overlayHtml ? `<div class="playerOverlay">${overlayHtml}</div>` : ''}</div>`;
   }
 
   function teamEntryBySlug(playerSlug){
@@ -2138,6 +2159,51 @@
     return profilesHydrationPromise;
   }
 
+  async function loadAttendance(){
+    if (!pageNeedsAttendance()){
+      resetAttendanceState('');
+      return;
+    }
+    const roundKey = attendanceRoundKey();
+    if (!roundKey || state.schemaReady === false){
+      resetAttendanceState(roundKey);
+      return;
+    }
+    state.loadingAttendance = true;
+    try{
+      const { data, error } = await withTimeout(
+        readSb
+          .from('fantasy_vbf_weekly_attendance')
+          .select('season,round_key,player_slug,player_name,attending,updated_at,updated_by')
+          .eq('season', CURRENT_SEASON)
+          .eq('round_key', roundKey),
+        'asistencia fantasy',
+        6000
+      );
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      state.attendanceRows = rows;
+      state.attendanceBySlug = new Map(rows.map((row) => [String(row.player_slug || ''), row]));
+      state.attendanceRoundKey = roundKey;
+      state.attendanceLoaded = true;
+      state.attendanceSchemaReady = true;
+      if (PAGE_VIEW === 'attendance') setSchemaMessage('');
+    } catch (error){
+      resetAttendanceState(roundKey);
+      if (isSchemaError(error)){
+        state.attendanceSchemaReady = false;
+        if (PAGE_VIEW === 'attendance'){
+          setSchemaMessage(`La asistencia semanal necesita la migracion <code>fantasy-vbf-weekly-attendance.sql</code> en Supabase.<br><span style="opacity:.88;">Detalle: ${escapeHtml(error?.message || error)}</span>`);
+        }
+      } else {
+        console.warn('fantasy loadAttendance:', error?.message || error);
+        if (PAGE_VIEW === 'attendance') showPageMsg(`No pude cargar la asistencia: ${error?.message || error}`, 'err');
+      }
+    } finally {
+      state.loadingAttendance = false;
+    }
+  }
+
   async function loadNotifications(){
     if (!state.currentUser) return;
     try{
@@ -2372,6 +2438,50 @@
 
   function isFantasyAdmin(){
     return String(state.currentProfile?.app_role || '').trim().toLowerCase() === 'admin';
+  }
+
+  function isFantasyStaff(){
+    const role = String(state.currentProfile?.app_role || '').trim().toLowerCase();
+    return role === 'admin' || role === 'vdj';
+  }
+
+  function attendanceRoundMeta(){
+    return state.currentRound || state.sheetRound || null;
+  }
+
+  function attendanceRoundKey(){
+    return String(attendanceRoundMeta()?.key || attendanceRoundMeta()?.round_key || '').trim();
+  }
+
+  function resetAttendanceState(roundKey){
+    state.attendanceRows = [];
+    state.attendanceBySlug = new Map();
+    state.attendanceRoundKey = String(roundKey || '');
+    state.attendanceLoaded = false;
+  }
+
+  function attendanceKnownForRound(){
+    const key = attendanceRoundKey();
+    return !!key && state.attendanceLoaded === true && String(state.attendanceRoundKey || '') === key;
+  }
+
+  function attendanceRowForSlug(playerSlug){
+    const slug = String(playerSlug || '').trim();
+    if (!slug || !attendanceKnownForRound()) return null;
+    return state.attendanceBySlug.get(slug) || { player_slug: slug, attending: false };
+  }
+
+  function isPlayerAttending(playerSlug){
+    const row = attendanceRowForSlug(playerSlug);
+    return row ? row.attending === true : null;
+  }
+
+  function renderAttendanceBadge(playerSlug, options){
+    const status = isPlayerAttending(playerSlug);
+    if (status !== true) return '';
+    const opts = options || {};
+    const label = 'Inscrito al torneo semanal';
+    return `<span class="attendanceBadge isGoing${opts.compact ? ' compact' : ''}" title="${escapeAttr(label)}" aria-label="${escapeAttr(label)}"><img src="inscrito.png" alt="" aria-hidden="true" /></span>`;
   }
 
   function getTeamRound(teamId, roundKey){
@@ -2739,6 +2849,7 @@
     if (mode === 'watchlist') return isWatched(player.slug);
     if (mode === 'free') return direct;
     if (mode === 'clause') return !direct;
+    if (mode === 'attending') return isPlayerAttending(player.slug) === true;
     if (mode === 'hot') return fantasyTrendDelta(player) >= 4 || Number(player.currentFantasyPoints || 0) >= 16 || player.currentWon === true;
     if (mode === 'bargain') return direct && fantasyValueScore(player, player.price || 0) >= 1.25;
     return true;
@@ -2750,6 +2861,7 @@
       watchlist: 'Mi watchlist',
       free: 'Libres',
       clause: 'Clausulables',
+      attending: 'Inscritos',
       hot: 'En racha',
       bargain: 'Gangas'
     };
@@ -3197,7 +3309,7 @@
   function renderAdminRoundControls(){
     const host = $('fantasyAdminRoundControls');
     if (!host) return;
-    if (!isFantasyAdmin()){
+    if (PAGE_VIEW !== 'attendance' || !isFantasyAdmin()){
       host.classList.add('hidden');
       host.innerHTML = '';
       return;
@@ -3219,6 +3331,111 @@
         <button class="btn btnPrimary" type="button" data-admin-round-action="process" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Procesar jornada fantasy</button>
       </div>
     </div>`;
+  }
+
+  function attendancePlayers(){
+    const query = String(state.attendanceSearch || '').trim().toLowerCase();
+    const filter = String(state.attendanceFilter || 'all');
+    return state.poolPlayers
+      .slice()
+      .sort((a, b) => Number(a.rank || 9999) - Number(b.rank || 9999) || collator.compare(a.name, b.name))
+      .filter((player) => {
+        const attending = isPlayerAttending(player.slug) === true;
+        if (filter === 'going' && !attending) return false;
+        if (filter === 'out' && attending) return false;
+        if (!query) return true;
+        return [
+          player.name,
+          player.slug,
+          player.tier,
+          tierLabel(player.tier)
+        ].map((value) => String(value || '').toLowerCase()).join(' ').includes(query);
+      });
+  }
+
+  function renderAttendanceAdmin(){
+    const list = $('attendanceList');
+    const empty = $('attendanceEmpty');
+    const summary = $('attendanceSummary');
+    const roundLabel = $('attendanceRoundLabel');
+    if (!list || !empty) return;
+
+    const round = attendanceRoundMeta();
+    const roundKey = attendanceRoundKey();
+    if (roundLabel){
+      roundLabel.textContent = roundKey
+        ? `Jornada ${round?.label || round?.round_label || roundKey}`
+        : 'Sin jornada activa';
+    }
+
+    const allPlayers = state.poolPlayers.slice();
+    const goingCount = attendanceKnownForRound()
+      ? allPlayers.filter((player) => isPlayerAttending(player.slug) === true).length
+      : 0;
+    if (summary){
+      summary.innerHTML = [
+        `<span class="pill strong">${intFmt.format(allPlayers.length)} jugadores</span>`,
+        `<span class="pill good">${intFmt.format(goingCount)} asisten</span>`,
+        `<span class="pill ${attendanceKnownForRound() ? 'warn' : ''}">${intFmt.format(Math.max(0, allPlayers.length - goingCount))} no asisten</span>`
+      ].join('');
+    }
+
+    if (!isFantasyStaff()){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = state.currentProfile ? 'Solo Admin o VDJ pueden gestionar la asistencia.' : 'Comprobando permisos...';
+      return;
+    }
+
+    if (state.attendanceSchemaReady === false){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = 'Falta aplicar fantasy-vbf-weekly-attendance.sql en Supabase.';
+      return;
+    }
+
+    if (!roundKey){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = 'No hay jornada activa para guardar asistencia.';
+      return;
+    }
+
+    if (state.loadingPlayers || state.loadingAttendance || !attendanceKnownForRound()){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = 'Cargando jugadores y asistencia...';
+      return;
+    }
+
+    const players = attendancePlayers();
+    if (!players.length){
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = state.poolPlayers.length ? 'No hay jugadores que coincidan con este filtro.' : 'Todavia no hay jugadores cargados.';
+      return;
+    }
+
+    empty.classList.add('hidden');
+    list.innerHTML = players.map((player) => {
+      const attending = isPlayerAttending(player.slug) === true;
+      const portrait = playerPortraitUrl(player);
+      const busy = state.attendanceActionSlugs.has(String(player.slug || ''));
+      return `<article class="attendanceRow ${attending ? 'isGoing' : 'isOut'}">
+        <div class="attendancePlayer">
+          <div class="attendanceAvatar ${tierClass(player.tier)}">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</div>
+          <div class="attendanceCopy">
+            <strong>${escapeHtml(player.name || 'Jugador')}</strong>
+            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))}</span>
+          </div>
+        </div>
+        <span class="attendanceStatePill ${attending ? 'isGoing' : 'isOut'}">${attending ? 'Asiste' : 'No asiste'}</span>
+        <label class="attendanceToggle" title="${escapeAttr(attending ? 'Marcar que no asiste' : 'Marcar que asiste')}">
+          <input type="checkbox" data-attendance-player="${escapeAttr(player.slug || '')}" ${attending ? 'checked' : ''} ${busy ? 'disabled' : ''} />
+          <span aria-hidden="true"></span>
+        </label>
+      </article>`;
+    }).join('');
   }
 
   function openPlayerModal(slug, source){
@@ -3981,6 +4198,7 @@
       ['watchlist', 'Watchlist'],
       ['free', 'Libres'],
       ['clause', 'Clausulables'],
+      ['attending', 'Inscritos'],
       ['hot', 'En racha'],
       ['bargain', 'Gangas']
     ];
@@ -4093,7 +4311,7 @@
       const player = entry.player;
       const isCaptain = String(state.currentTeam?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
       const overlay = `<div class="playerOverlayBottom"><div class="overlayNamePlain">${escapeHtml(player.name)}</div><div class="overlaySubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div>`;
-      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${renderPlayerVisual(player, overlay)}</div></article>`;
+      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${renderPlayerVisual(player, overlay, { attendanceBadge: true })}</div></article>`;
     }).join('');
     if (table){
       table.innerHTML = PAGE_VIEW === 'team' ? renderRosterTable(derived.squadCards) : '';
@@ -4143,7 +4361,7 @@
           ? `Fichar · ${renderCoinInline(price, true)}`
           : `Clausula · ${renderCoinInline(minClause, true)}`;
       const badgeHtml = badge?.iconHtml ? `<span class="marketBadge ${escapeAttr(badge.tone)}" title="${escapeAttr(badge.title || '')}" aria-label="${escapeAttr(badge.title || '')}">${badge.iconHtml}</span>` : '';
-      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${renderWatchButton(player, { compact: true })}${renderPlayerVisual(player, overlay)}</div><div class="marketCardAvailability ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
+      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${renderPlayerVisual(player, overlay, { attendanceBadge: true })}</div><div class="marketCardAvailability ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
     }).join('');
   }
 
@@ -4186,6 +4404,68 @@
     } catch (error){
       showPageMsg(`No pude marcar el aviso como visto: ${error?.message || error}`, 'err');
       showFantasyToast('No pude marcar el aviso', error?.message || String(error || ''), 'err');
+    }
+  }
+
+  async function setPlayerAttendance(playerSlug, attending, trigger){
+    const slug = String(playerSlug || '').trim();
+    const roundKey = attendanceRoundKey();
+    if (!slug || !roundKey) return;
+    if (!isFantasyStaff()){
+      showFantasyToast('Sin permisos', 'Solo Admin o VDJ pueden gestionar la asistencia.', 'err');
+      renderAttendanceAdmin();
+      return;
+    }
+    const player = state.playersBySlug.get(slug) || { slug, name: slug };
+    const previous = isPlayerAttending(slug) === true;
+    state.attendanceActionSlugs.add(slug);
+    if (trigger) trigger.disabled = true;
+    renderAttendanceAdmin();
+    try{
+      const { error } = await rpcWithTimeout('fantasy_vbf_set_weekly_attendance', {
+        p_season: CURRENT_SEASON,
+        p_round_key: roundKey,
+        p_player_slug: slug,
+        p_attending: attending === true
+      }, `guardar asistencia de ${player.name || slug}`, 12000);
+      if (error) throw error;
+      const row = {
+        season: CURRENT_SEASON,
+        round_key: roundKey,
+        player_slug: slug,
+        player_name: player.name || slug,
+        attending: attending === true,
+        updated_at: new Date().toISOString(),
+        updated_by: state.currentUser?.id || null
+      };
+      state.attendanceBySlug.set(slug, row);
+      state.attendanceRows = Array.from(state.attendanceBySlug.values());
+      state.attendanceLoaded = true;
+      state.attendanceRoundKey = roundKey;
+      renderAll();
+      showFantasyToast('Asistencia actualizada', `${player.name || slug}: ${attending ? 'asiste' : 'no asiste'}.`, 'ok');
+    } catch (error){
+      if (isSchemaError(error)){
+        state.attendanceSchemaReady = false;
+        setSchemaMessage(`La asistencia semanal necesita la migracion <code>fantasy-vbf-weekly-attendance.sql</code> en Supabase.<br><span style="opacity:.88;">Detalle: ${escapeHtml(error?.message || error)}</span>`);
+      }
+      if (attendanceKnownForRound()){
+        const previousRow = {
+          season: CURRENT_SEASON,
+          round_key: roundKey,
+          player_slug: slug,
+          player_name: player.name || slug,
+          attending: previous
+        };
+        state.attendanceBySlug.set(slug, previousRow);
+        state.attendanceRows = Array.from(state.attendanceBySlug.values());
+      }
+      renderAll();
+      showFantasyToast('No pude guardar asistencia', error?.message || String(error || ''), 'err');
+    } finally {
+      state.attendanceActionSlugs.delete(slug);
+      if (trigger) trigger.disabled = false;
+      renderAttendanceAdmin();
     }
   }
 
@@ -4259,6 +4539,7 @@
     renderWatchlistPanel();
     renderMarketActivity();
     renderMarket();
+    renderAttendanceAdmin();
     renderNotifications();
     renderPersonalActivity();
     renderTeamModal();
@@ -4480,6 +4761,7 @@
       if (error) throw error;
       state.currentRound = { ...state.sheetRound };
       await loadSeasonConfig();
+      await loadAttendance();
       await loadLeagueContext();
       showPageMsg(`Nueva jornada ${state.sheetRound.label} iniciada. La plantilla se mantiene, se recalculan precios y el mercado semanal vuelve a abrir.`, 'ok');
       return true;
@@ -4550,6 +4832,7 @@
       renderHero();
       renderWatchlistPanel();
       renderMarket();
+      renderAttendanceAdmin();
       renderPlayerModal();
       renderBuyConfirm();
       if (App.applyRestrictedNavVisibility) void App.applyRestrictedNavVisibility(sb);
@@ -4592,7 +4875,7 @@
     try{
       const { data: profile, error } = await withTimeout(
         readSb.from('profiles')
-          .select('id,username,display_name,avatar_url,member,fantasy')
+          .select('id,username,display_name,avatar_url,member,fantasy,app_role')
           .eq('id', user.id)
           .maybeSingle(),
         'acceso fantasy',
@@ -4603,7 +4886,16 @@
       state.currentProfile = profile || null;
       syncNavUser(user);
 
-      if (profile?.fantasy !== true){
+      const role = String(profile?.app_role || '').trim().toLowerCase();
+      const privileged = role === 'admin' || role === 'vdj';
+      if (PAGE_VIEW === 'attendance' && !privileged){
+        fantasyAccessAllowed = false;
+        setLoading(false);
+        showPageMsg('Solo Admin o VDJ pueden acceder a la asistencia semanal.', 'err');
+        return false;
+      }
+
+      if (profile?.fantasy !== true && !privileged){
         fantasyAccessAllowed = false;
         setLoading(false);
         showPageMsg('Tu usuario todavia no tiene acceso a VaDeFantasy.', 'err');
@@ -4666,6 +4958,7 @@
         const results = await Promise.allSettled(tasks);
         const failed = results.find((item) => item.status === 'rejected');
         if (failed) throw failed.reason;
+        await loadAttendance();
         renderAll();
         void startBackgroundHydration();
         return results;
@@ -4678,6 +4971,7 @@
           silent
         }) : Promise.resolve(null)
       ]);
+      await loadAttendance();
       await loadLeagueContext(leagueOptions);
       renderAll();
       if (!silent) setLoading(false);
@@ -4723,7 +5017,14 @@
   });
   $('marketSearch')?.addEventListener('input', () => { state.marketSearch = $('marketSearch')?.value || ''; renderMarket(); });
   $('marketSort')?.addEventListener('change', () => { state.marketSort = $('marketSort')?.value || 'vbf_full_rank'; renderMarket(); });
+  $('attendanceSearch')?.addEventListener('input', () => { state.attendanceSearch = $('attendanceSearch')?.value || ''; renderAttendanceAdmin(); });
+  $('attendanceFilter')?.addEventListener('change', () => { state.attendanceFilter = $('attendanceFilter')?.value || 'all'; renderAttendanceAdmin(); });
   document.addEventListener('submit', async (event) => { if (event.target?.id === 'createTeamForm') await createTeam(event); });
+  document.addEventListener('change', (event) => {
+    const trigger = event.target?.closest?.('[data-attendance-player]');
+    if (!trigger) return;
+    void setPlayerAttendance(trigger.getAttribute('data-attendance-player') || '', trigger.checked === true, trigger);
+  });
   function handleOpenPlayerClick(event){
     const captainTrigger = event.target.closest('[data-set-captain]');
     if (captainTrigger){
