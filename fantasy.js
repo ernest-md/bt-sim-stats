@@ -31,7 +31,7 @@
   const PORTRAITS = window.BarateamFantasyPortraits || {};
   const PORTRAIT_PLACEHOLDER = String(window.BarateamFantasyPortraitPlaceholder || 'fantasy_placeholder.jpeg').trim();
   const COIN_ICON = 'berries.png';
-  const PLAYER_POOL_CACHE_VERSION = '20260512a';
+  const PLAYER_POOL_CACHE_VERSION = '20260514a';
   const PLAYER_POOL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const PLAYER_POOL_BACKGROUND_REFRESH_MS = 45 * 60 * 1000;
   const TEAM_ROUNDS_SELECT = 'season,round_key,round_label,round_order,team_id,weekly_points,reward_coins,transfers_used';
@@ -56,13 +56,47 @@
     supernova: 40000,
     piratilla: 20000
   };
-  const RESULT_PRICE_MODIFIERS = {
-    '0-5': -10000,
-    '1-4': -7500,
-    '2-3': -2500,
-    '3-2': 2500,
-    '4-1': 7500,
-    '5-0': 10000
+  const RESULT_PRICE_MODIFIERS_BY_TIER = {
+    'pirate king': {
+      '0-5': -10000,
+      '1-4': -6000,
+      '2-3': -2500,
+      '3-2': 1000,
+      '4-1': 5500,
+      '5-0': 10000
+    },
+    yonkou: {
+      '0-5': -10000,
+      '1-4': -6000,
+      '2-3': -2500,
+      '3-2': 1000,
+      '4-1': 5500,
+      '5-0': 10000
+    },
+    shichibukai: {
+      '0-5': -7000,
+      '1-4': -3000,
+      '2-3': -1000,
+      '3-2': 3000,
+      '4-1': 7500,
+      '5-0': 12000
+    },
+    supernova: {
+      '0-5': -5000,
+      '1-4': -2500,
+      '2-3': 1000,
+      '3-2': 5000,
+      '4-1': 9500,
+      '5-0': 14000
+    },
+    piratilla: {
+      '0-5': -3000,
+      '1-4': -1000,
+      '2-3': 2000,
+      '3-2': 6000,
+      '4-1': 11500,
+      '5-0': 18000
+    }
   };
   let authRpcQueue = Promise.resolve();
   let actionRpcClient = null;
@@ -990,6 +1024,22 @@
     return TIER_BASE_PRICES[normalizeTierKey(tier)] || TIER_BASE_PRICES.piratilla;
   }
 
+  function resultLabelForWins(wins){
+    const count = clamp(Math.round(Number(wins || 0)), 0, 5);
+    if (count >= 5) return '5-0';
+    if (count === 4) return '4-1';
+    if (count === 3) return '3-2';
+    if (count === 2) return '2-3';
+    if (count === 1) return '1-4';
+    return '0-5';
+  }
+
+  function resultPriceModifier(tier, resultLabel){
+    const key = normalizeTierKey(tier);
+    const table = RESULT_PRICE_MODIFIERS_BY_TIER[key] || RESULT_PRICE_MODIFIERS_BY_TIER.piratilla;
+    return Number(table[String(resultLabel || '').trim()] || 0);
+  }
+
   function isStarterEligibleTier(tier){
     const key = normalizeTierKey(tier);
     return key !== 'pirate king' && key !== 'yonkou';
@@ -1064,20 +1114,22 @@
     }).filter((item) => item.label);
   }
 
-  function priceModifierFromFantasyEntry(entry){
+  function priceModifierFromFantasyEntry(entry, tier){
     const exact = Number(entry?.price_modifier);
     const raw = Number(entry?.raw_points);
     if (Number.isFinite(exact) && exact !== 0) return { value: exact, estimated: false };
     if (!Number.isFinite(raw) || raw <= 0) return { value: 0, estimated: false };
-    if (entry?.won === true) return { value: RESULT_PRICE_MODIFIERS['5-0'], estimated: true };
+    if (entry?.won === true) return { value: resultPriceModifier(tier, '5-0'), estimated: true };
+    const resultLabel = String(entry?.result_label || '').trim();
+    if (resultLabel) return { value: resultPriceModifier(tier, resultLabel), estimated: true };
     const fantasy = Number(entry?.fantasy_points);
     if (!Number.isFinite(fantasy)) return { value: 0, estimated: false };
-    if (fantasy >= 15) return { value: RESULT_PRICE_MODIFIERS['5-0'], estimated: true };
-    if (fantasy >= 13) return { value: RESULT_PRICE_MODIFIERS['4-1'], estimated: true };
-    if (fantasy >= 7) return { value: RESULT_PRICE_MODIFIERS['3-2'], estimated: true };
-    if (fantasy >= 3) return { value: RESULT_PRICE_MODIFIERS['2-3'], estimated: true };
-    if (fantasy >= -1) return { value: RESULT_PRICE_MODIFIERS['1-4'], estimated: true };
-    return { value: RESULT_PRICE_MODIFIERS['0-5'], estimated: true };
+    if (fantasy >= 15) return { value: resultPriceModifier(tier, '5-0'), estimated: true };
+    if (fantasy >= 13) return { value: resultPriceModifier(tier, '4-1'), estimated: true };
+    if (fantasy >= 7) return { value: resultPriceModifier(tier, '3-2'), estimated: true };
+    if (fantasy >= 3) return { value: resultPriceModifier(tier, '2-3'), estimated: true };
+    if (fantasy >= -1) return { value: resultPriceModifier(tier, '1-4'), estimated: true };
+    return { value: resultPriceModifier(tier, '0-5'), estimated: true };
   }
 
   function priceSeries(player){
@@ -1089,7 +1141,7 @@
     let hasMovement = false;
     let usesEstimated = false;
     const rows = history.map((entry, index) => {
-      const modifierMeta = priceModifierFromFantasyEntry(entry);
+      const modifierMeta = priceModifierFromFantasyEntry(entry, player?.tier);
       const modifier = Number(modifierMeta.value || 0);
       if (modifier !== 0) hasMovement = true;
       if (modifierMeta.estimated) usesEstimated = true;
@@ -1423,7 +1475,7 @@
     };
   }
 
-  function parseTournamentResult(rawValue, meta){
+  function parseTournamentResult(rawValue, meta, tier){
     const raw = Number(rawValue || 0);
     if (!Number.isFinite(raw) || raw <= 0){
       return {
@@ -1452,16 +1504,8 @@
     const winnerBonus = won ? 5 : 0;
     const fourWinsBonus = !winnerBonus && wins >= 4 ? 2 : 0;
     let fantasyPoints = (wins * 3) - losses + winnerBonus + fourWinsBonus;
-    let priceModifier = RESULT_PRICE_MODIFIERS[resultLabel];
-    if (!Number.isFinite(priceModifier)){
-      if (wins >= 5) priceModifier = RESULT_PRICE_MODIFIERS['5-0'];
-      else if (wins === 4) priceModifier = RESULT_PRICE_MODIFIERS['4-1'];
-      else if (wins === 3) priceModifier = RESULT_PRICE_MODIFIERS['3-2'];
-      else if (wins === 2) priceModifier = RESULT_PRICE_MODIFIERS['2-3'];
-      else if (wins === 1) priceModifier = RESULT_PRICE_MODIFIERS['1-4'];
-      else priceModifier = RESULT_PRICE_MODIFIERS['0-5'];
-    }
-    if (wins >= 5 || won) priceModifier = RESULT_PRICE_MODIFIERS['5-0'];
+    const priceResultLabel = wins >= 5 || won ? '5-0' : resultLabelForWins(wins);
+    const priceModifier = resultPriceModifier(tier, priceResultLabel);
     return {
       raw: Math.round(raw),
       wins,
@@ -1580,7 +1624,7 @@
     players.forEach((player) => {
       let wins = 0;
       player.allPoints.forEach((value, eventPos) => {
-        const result = parseTournamentResult(value, allEventMeta[eventPos]);
+        const result = parseTournamentResult(value, allEventMeta[eventPos], player.tier);
         wins += Number(result.wins || 0);
       });
       player.wins = wins;
@@ -1609,7 +1653,7 @@
       const roundRankBySlug = new Map(ranking.map((entry, index) => [entry.slug, index + 1]));
       players.forEach((player) => {
         const rawPoints = player.points[roundIndex];
-        const result = parseTournamentResult(rawPoints, eventMeta[roundIndex]);
+        const result = parseTournamentResult(rawPoints, eventMeta[roundIndex], player.tier);
         player.currentRawPoints = result.raw;
         player.currentWon = result.won;
         player.currentFantasyPoints = result.fantasyPoints;
@@ -1621,7 +1665,7 @@
     players.forEach((player) => {
       player.history = allEventColumns.map((event, eventPos) => {
         const raw = getNumber(player.sheetRow?.[event.index]);
-        const result = parseTournamentResult(raw, allEventMeta[eventPos]);
+        const result = parseTournamentResult(raw, allEventMeta[eventPos], player.tier);
         return {
           round_key: `${CURRENT_SEASON}:${event.key}`,
           round_label: event.label,
