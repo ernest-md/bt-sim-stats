@@ -2612,6 +2612,13 @@
     return { label: 'Ritmo estable', tone: 'soft' };
   }
 
+  function rosterTrendLabel(player){
+    const delta = fantasyTrendDelta(player);
+    if (delta > 0) return 'Racha positiva';
+    if (delta < 0) return 'Racha negativa';
+    return 'Se mantiene';
+  }
+
   function surpriseDelta(player){
     return Math.max(0, Number(player?.rank || 9999) - Number(player?.roundRank || 9999));
   }
@@ -3558,6 +3565,11 @@
             <p>Si un jugador ya esta en equipos rivales, puedes pagar la clausula de una copia concreta. La clausula cuesta mas que su precio normal, ahora x1,5 por defecto. El vendedor recibe esas berries y tu nuevo jugador queda protegido 24 horas.</p>
           </article>
           <article class="fantasyInfoCard">
+            <span>Venta manual</span>
+            <strong>Cobra el valor actual</strong>
+            <p>Desde tu plantilla puedes vender una ficha por su precio de mercado actual. Ganas esas berries al momento y esa copia vuelve al mercado para que otro manager pueda ficharla.</p>
+          </article>
+          <article class="fantasyInfoCard">
             <span>Mercado</span>
             <strong>Cierre semanal</strong>
             <p>El mercado se cierra los viernes a las 23:59. En ese momento se captura una foto de todas las plantillas. Esa foto es la que puntua, aunque luego fiches o pierdas jugadores.</p>
@@ -3771,7 +3783,7 @@
     const isCaptain = source === 'team' && String(state.currentTeam?.captain_player_slug || '') === String(rosterEntry?.player_slug || player.slug || '');
     const captainBlocked = !marketOpenNow() || !config().isOpen;
     const captainAction = source === 'team'
-      ? `<div class="modalActions captainModalActions"><button class="btn ${isCaptain ? 'btnPrimary' : 'btnGood'}" type="button" data-set-captain="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">${isCaptain ? 'Capit&aacute;n actual' : 'Hacer Capit&aacute;n'}</button><div class="helper compactHelper">El capit&aacute;n punt&uacute;a x${formatPoints(config().captainMultiplier)} en cada cierre fantasy. Solo una ficha puede llevar el bonus.</div></div>`
+      ? `<div class="modalActions captainModalActions"><button class="btn ${isCaptain ? 'btnPrimary' : 'btnGood'}" type="button" data-set-captain="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">${isCaptain ? 'Capit&aacute;n actual' : 'Hacer Capit&aacute;n'}</button><button class="btn btnGhost" type="button" data-sell-confirm="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" data-sell-player-name="${escapeAttr(player.name || 'Jugador')}" data-sell-player-price="${escapeAttr(player.price || currentPrice || 0)}" ${captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : `Vender a ${player.name || 'jugador'} por ${formatCoins(player.price || currentPrice || 0)}`)}">Vender - ${renderCoinInline(player.price || currentPrice || 0, true)}</button><div class="helper compactHelper">El capit&aacute;n punt&uacute;a x${formatPoints(config().captainMultiplier)} en cada cierre fantasy. La venta cobra el valor actual y devuelve la copia al mercado.</div></div>`
       : '';
     const ownersBlock = source === 'market' && ownerRows
       ? `<div class="historyWrap"><div class="historyTitle">Equipos donde juega ahora</div><div class="ownerGrid">${ownerRows}</div></div>`
@@ -4126,7 +4138,7 @@
     return `<div class="rosterTable">${entries.map((entry) => {
       const player = entry.player;
       const portrait = playerPortraitUrl(player);
-      const pulse = playerPulse(player);
+      const trendLabel = rosterTrendLabel(player);
       const weeklyPoints = Number(player.currentFantasyPoints || 0);
       const clausePrice = Number(entry.clause_price || player.clausePrice || defaultClauseForPrice(player.price || 0));
       const isCaptain = String(state.currentTeam?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
@@ -4136,14 +4148,17 @@
           <div class="rosterTableAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</div>
           <div class="rosterTableCopy">
             <strong>${escapeHtml(player.name || 'Jugador')}</strong>
-            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))} · ${intFmt.format(player.wins || 0)} victorias${isCaptain ? ' · Capitan' : ''}</span>
+            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))}${isCaptain ? ' · Capit&aacute;n' : ''}</span>
           </div>
         </div>
         <div class="rosterTableMetric"><span>Valor</span><strong>${formatCoins(player.price || 0)}</strong></div>
         <div class="rosterTableMetric"><span>Clausula</span><strong>${formatCoins(clausePrice)}</strong></div>
         <div class="rosterTableMetric"><span>Ultimo sabado</span><strong>${Number(player.currentRawPoints || 0) > 0 ? formatPointsLabel(weeklyPoints) : 'Sin puntos'}</strong></div>
-        <div class="rosterTableMetric"><span>Lectura</span><strong>${escapeHtml(pulse.label)}</strong></div>
-        <button class="btn compactBtn ${isCaptain ? 'btnPrimary' : 'btnGhost'}" type="button" data-set-captain="${escapeAttr(entry.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">${isCaptain ? 'Capitan' : 'Capitan x1,5'}</button>
+        <div class="rosterTableMetric"><span>Lectura</span><strong>${escapeHtml(trendLabel)}</strong></div>
+        <div class="actionRow compactActions">
+          <button class="btn compactBtn ${isCaptain ? 'btnPrimary' : 'btnGhost'}" type="button" data-set-captain="${escapeAttr(entry.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">Capit&aacute;n</button>
+          <button class="btn btnGhost compactBtn" type="button" data-sell-confirm="${escapeAttr(entry.player_slug || player.slug || '')}" data-sell-player-name="${escapeAttr(player.name || 'Jugador')}" data-sell-player-price="${escapeAttr(player.price || 0)}" ${captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : `Vender a ${player.name || 'jugador'} por ${formatCoins(player.price || 0)}`)}">Vender</button>
+        </div>
       </article>`;
     }).join('')}</div>`;
   }
@@ -4704,19 +4719,35 @@
     });
   }
 
+  function confirmSellPlayer(trigger){
+    const slug = trigger?.getAttribute('data-sell-confirm') || trigger?.getAttribute('data-player-slug') || '';
+    if (!slug) return '';
+    const name = trigger?.getAttribute('data-sell-player-name') || state.playersBySlug.get(slug)?.name || 'este jugador';
+    const price = Number(trigger?.getAttribute('data-sell-player-price') || state.playersBySlug.get(slug)?.price || 0);
+    const message = `Vender a ${name} por ${formatCoins(price)}?\n\nGanas esas berries y el jugador vuelve al mercado.`;
+    return window.confirm(message) ? slug : '';
+  }
+
   async function sellPlayer(playerSlug){
     await withActionLock(async () => {
       try{
-        const { error } = await rpcWithTimeout('fantasy_vbf_sell_player', { p_season: CURRENT_SEASON, p_round_key: state.currentRound?.key || 'manual', p_player_slug: String(playerSlug || ''), p_market_price: 0 }, 'liberar jugador');
+        await ensureActionDataFresh();
+        const player = state.playersBySlug.get(String(playerSlug || ''));
+        const { error } = await rpcWithTimeout('fantasy_vbf_sell_player', {
+          p_season: CURRENT_SEASON,
+          p_round_key: state.currentRound?.key || state.sheetRound?.key || 'manual',
+          p_player_slug: String(playerSlug || ''),
+          p_market_price: Number(player?.price || 0)
+        }, 'vender jugador');
         if (error) throw error;
-        showPageMsg('Operacion registrada.', 'ok');
-        showFantasyToast('Operacion registrada', 'La plantilla se ha actualizado.', 'ok');
+        showPageMsg('Venta registrada.', 'ok');
+        showFantasyToast('Venta registrada', 'Has cobrado el valor actual y la plantilla se ha actualizado.', 'ok');
         await loadLeagueContext();
         renderAll();
       } catch (error){
         if (isSchemaError(error)) markSchemaMissing(error);
-        showPageMsg(`No pude mover el jugador: ${error?.message || error}`, 'err');
-        showFantasyToast('No pude mover el jugador', error?.message || String(error || ''), 'err');
+        showPageMsg(`No pude vender el jugador: ${error?.message || error}`, 'err');
+        showFantasyToast('No pude vender el jugador', error?.message || String(error || ''), 'err');
       }
     });
   }
@@ -5106,6 +5137,14 @@
       void saveCaptain(captainTrigger.getAttribute('data-set-captain') || '', captainTrigger);
       return true;
     }
+    const sellTrigger = event.target.closest('[data-sell-confirm]');
+    if (sellTrigger){
+      event.preventDefault();
+      event.stopPropagation();
+      const slug = confirmSellPlayer(sellTrigger);
+      if (slug) void sellPlayer(slug);
+      return true;
+    }
     const watchTrigger = event.target.closest('[data-toggle-watchlist]');
     if (watchTrigger){
       toggleWatchlist(watchTrigger.getAttribute('data-toggle-watchlist') || '');
@@ -5198,6 +5237,15 @@
     const captainTrigger = event.target.closest('[data-set-captain]');
     if (captainTrigger){
       await saveCaptain(captainTrigger.getAttribute('data-set-captain') || '', captainTrigger);
+      return;
+    }
+    const sellTrigger = event.target.closest('[data-sell-confirm]');
+    if (sellTrigger){
+      const slug = confirmSellPlayer(sellTrigger);
+      if (slug){
+        await sellPlayer(slug);
+        closePlayerModal();
+      }
       return;
     }
     const actionButton = event.target.closest('[data-modal-action]');
