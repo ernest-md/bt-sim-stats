@@ -1,6 +1,9 @@
 -- Fantasy OP15 - manual player sales.
 -- Apply after fantasy-vbf-schema.sql and fantasy-vbf-market-rules.sql.
 
+drop function if exists public.fantasy_vbf_sell_player(text, text, text, integer);
+drop function if exists public.fantasy_vbf_sell_player(text, text, text);
+
 create or replace function public.fantasy_vbf_sell_player(
   p_season text,
   p_round_key text,
@@ -56,8 +59,8 @@ begin
   from public.fantasy_vbf_roster_players
   where team_id = v_team.id;
 
-  if v_roster_count <= coalesce(v_cfg.min_roster_size, 1) then
-    raise exception 'No puedes vender por debajo de la plantilla minima.';
+  if v_roster_count <= 1 then
+    raise exception 'No puedes vender tu ultimo jugador.';
   end if;
 
   select * into v_pool
@@ -128,3 +131,5 @@ end;
 $$;
 
 grant execute on function public.fantasy_vbf_sell_player(text, text, text, integer) to authenticated;
+
+notify pgrst, 'reload schema';
