@@ -51,7 +51,9 @@ export async function getMatchesByPlayer(playerId) {
           code,
           name,
           image_url,
-          parallel_image_url
+          parallel_image_url,
+          color_primary,
+          color_secondary
         )
       `)
       .eq("player_id", playerId)

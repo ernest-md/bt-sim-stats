@@ -8,6 +8,9 @@ const syncAllButton = document.getElementById("syncAllMatchesBtn")
 const summaryView = document.getElementById("summaryView")
 const leaderView = document.getElementById("leaderView")
 const backButton = document.getElementById("backToSummary")
+const leaderSearchInput = document.getElementById("leaderSearchInput")
+const leaderMatchupSearchInput = document.getElementById("leaderMatchupSearchInput")
+const leaderMatchupColorFilters = document.getElementById("leaderMatchupColorFilters")
 const eloValue = document.getElementById("eloValue")
 const eloToggleBtn = document.getElementById("eloToggleBtn")
 const eloChartPanel = document.getElementById("eloChartPanel")
@@ -27,6 +30,29 @@ let allowedPlayerIds = new Set()
 let viewerRole = "user"
 let isSyncRunning = false
 let isEloChartOpen = false
+const LEADER_COLOR_ORDER = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"]
+const leaderMatchupColorStates = new Map(LEADER_COLOR_ORDER.map((color) => [color, "full"]))
+const LEADER_COLOR_ALIASES = new Map([
+  ["r", "Red"],
+  ["red", "Red"],
+  ["rojo", "Red"],
+  ["g", "Green"],
+  ["green", "Green"],
+  ["verde", "Green"],
+  ["u", "Blue"],
+  ["blue", "Blue"],
+  ["azul", "Blue"],
+  ["p", "Purple"],
+  ["purple", "Purple"],
+  ["lila", "Purple"],
+  ["morado", "Purple"],
+  ["b", "Black"],
+  ["black", "Black"],
+  ["negro", "Black"],
+  ["y", "Yellow"],
+  ["yellow", "Yellow"],
+  ["amarillo", "Yellow"]
+])
 
 function pickLeaderImage(leader) {
   return String(leader?.parallel_image_url || leader?.image_url || "").trim()
@@ -49,6 +75,99 @@ function leaderZoomHtml(src, alt = "Lider", thumbWidth = 45) {
       </span>
     </span>
   `
+}
+
+function normalizeLeaderSearchValue(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+}
+
+function compactLeaderSearchValue(value) {
+  return normalizeLeaderSearchValue(value).replace(/[^a-z0-9]/g, "")
+}
+
+function normalizeLeaderColor(color) {
+  const key = normalizeLeaderSearchValue(color)
+  return LEADER_COLOR_ALIASES.get(key) || String(color || "").trim()
+}
+
+function leaderColors(leader) {
+  return [leader?.color_primary, leader?.color_secondary]
+    .map(normalizeLeaderColor)
+    .filter(Boolean)
+}
+
+function nextColorFilterState(state) {
+  if (state === "full") return "partial"
+  if (state === "partial") return "off"
+  return "full"
+}
+
+function colorFilterLabel(color, state) {
+  if (state === "partial") return `${color}: solo bicolor`
+  if (state === "off") return `${color}: excluido`
+  return `${color}: todos`
+}
+
+function matchesColorFilter(colors, colorStates) {
+  const leaderColorList = Array.isArray(colors) ? colors.filter(Boolean) : []
+  if (leaderColorList.length === 0) {
+    return Array.from(colorStates.values()).every((state) => state === "full")
+  }
+
+  return leaderColorList.every((color) => {
+    const state = colorStates.get(color) || "full"
+    if (state === "off") return false
+    if (state === "partial" && leaderColorList.length === 1) return false
+    return true
+  })
+}
+
+function syncColorFilterButtons() {
+  if (!leaderMatchupColorFilters) return
+  leaderMatchupColorFilters.querySelectorAll(".leaderColorButton").forEach((button) => {
+    const color = button.dataset.color || ""
+    const state = leaderMatchupColorStates.get(color) || "full"
+    button.dataset.state = state
+    button.classList.toggle("is-partial", state === "partial")
+    button.classList.toggle("is-muted", state === "off")
+    button.setAttribute("aria-pressed", state === "off" ? "false" : "true")
+    button.setAttribute("aria-label", colorFilterLabel(color, state))
+    button.title = colorFilterLabel(color, state)
+  })
+}
+
+function leaderSearchHaystack(code, data) {
+  const normalizedCode = normalizeLeaderSearchValue(code)
+  const normalizedName = normalizeLeaderSearchValue(data?.name || "")
+  const nameWords = normalizedName.match(/[a-z0-9]+/g) || []
+  const initials = nameWords.map((word) => word[0]).join("")
+  return [
+    normalizedCode,
+    normalizedName,
+    compactLeaderSearchValue(code),
+    compactLeaderSearchValue(data?.name || ""),
+    initials
+  ].join(" ")
+}
+
+function matchesLeaderSearch(code, data, query) {
+  const normalizedQuery = normalizeLeaderSearchValue(query)
+  if (!normalizedQuery) return true
+
+  const compactQuery = compactLeaderSearchValue(query)
+  const haystack = leaderSearchHaystack(code, data)
+  if (haystack.includes(normalizedQuery) || (compactQuery && haystack.includes(compactQuery))) {
+    return true
+  }
+
+  return normalizedQuery
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((token) => haystack.includes(token) || haystack.includes(compactLeaderSearchValue(token)))
 }
 
 function setLoading(on, text) {
@@ -387,6 +506,7 @@ function buildLeaderStats(matches) {
       leaderMap[leaderCode] = {
         name: m.player.name,
         image: pickLeaderImage(m.player),
+        colors: leaderColors(m.player),
         games: 0,
         wins: 0,
         matchups: {}
@@ -404,6 +524,7 @@ function buildLeaderStats(matches) {
       leader.matchups[oppCode] = {
         name: m.opponent.name,
         image: pickLeaderImage(m.opponent),
+        colors: leaderColors(m.opponent),
         games: 0,
         wins: 0
       }
@@ -415,9 +536,19 @@ function buildLeaderStats(matches) {
     }
   })
 
-  Object.entries(leaderMap)
+  const searchQuery = leaderSearchInput?.value || ""
+  const leaderRows = Object.entries(leaderMap)
+    .filter(([leaderCode, data]) => matchesLeaderSearch(leaderCode, data, searchQuery))
   .sort((a, b) => b[1].games - a[1].games)
-  .forEach(([leaderCode, data]) => {
+
+  if (leaderRows.length === 0) {
+    const row = document.createElement("tr")
+    row.innerHTML = `<td colspan="8" class="leaderSearchEmpty">No hay lideres que coincidan con la busqueda.</td>`
+    container.appendChild(row)
+    return
+  }
+
+  leaderRows.forEach(([leaderCode, data]) => {
 
     const losses = data.games - data.wins
     const wr = data.games > 0
@@ -611,7 +742,7 @@ function buildLeaderDetail(leaderCode) {
   const wrClass = wr >= 50 ? "wr-positive" : "wr-negative"
 
 summaryContainer.innerHTML = `
-  ${leaderZoomHtml(pickLeaderImage(leaderInfo), leaderInfo.name || "Lider", 140)}
+  ${leaderZoomHtml(pickLeaderImage(leaderInfo), leaderInfo.name || "Lider", 112)}
   <div class="leaderSummaryStats">
     <div>
       <strong>${total}</strong>
@@ -641,6 +772,7 @@ summaryContainer.innerHTML = `
     if (!matchupMap[opp]) {
       matchupMap[opp] = {
         info: m.opponent,
+        colors: leaderColors(m.opponent),
         games: 0,
         wins: 0,
         firstGames: 0,
@@ -666,9 +798,23 @@ summaryContainer.innerHTML = `
     }
   })
 
-  Object.values(matchupMap)
-    .sort((a,b) => b.games - a.games)
-    .forEach(m => {
+  const matchupQuery = leaderMatchupSearchInput?.value || ""
+  const matchupRows = Object.entries(matchupMap)
+    .filter(([opponentCode, data]) => matchesLeaderSearch(opponentCode, {
+      name: data.info?.name || ""
+    }, matchupQuery))
+    .filter(([, data]) => matchesColorFilter(data.colors, leaderMatchupColorStates))
+    .sort((a,b) => b[1].games - a[1].games)
+    .map(([, data]) => data)
+
+  if (matchupRows.length === 0) {
+    const tr = document.createElement("tr")
+    tr.innerHTML = `<td colspan="10" class="leaderSearchEmpty">No hay rivales que coincidan con la busqueda.</td>`
+    matchupContainer.appendChild(tr)
+    return
+  }
+
+  matchupRows.forEach(m => {
 
       const wr = ((m.wins / m.games) * 100).toFixed(1)
 
@@ -717,6 +863,32 @@ expansionSelect.addEventListener("change", () => {
     buildLeaderDetail(selectedLeaderCode)
   }
 })
+
+if (leaderSearchInput) {
+  leaderSearchInput.addEventListener("input", () => {
+    buildLeaderStats(currentFilteredMatches)
+  })
+}
+
+if (leaderMatchupSearchInput) {
+  leaderMatchupSearchInput.addEventListener("input", () => {
+    if (selectedLeaderCode) buildLeaderDetail(selectedLeaderCode)
+  })
+}
+
+if (leaderMatchupColorFilters) {
+  syncColorFilterButtons()
+  leaderMatchupColorFilters.addEventListener("click", (e) => {
+    const button = e.target.closest(".leaderColorButton")
+    if (!button) return
+
+    const color = button.dataset.color || ""
+    leaderMatchupColorStates.set(color, nextColorFilterState(leaderMatchupColorStates.get(color) || "full"))
+
+    syncColorFilterButtons()
+    if (selectedLeaderCode) buildLeaderDetail(selectedLeaderCode)
+  })
+}
 
 syncButton.addEventListener("click", async () => {
   await syncMatchesForSelectedPlayer()

@@ -334,7 +334,13 @@
 
         <div class="mainLayout">
           <div class="leaders">
-            <h3>Estadisticas por lider</h3>
+            <div class="leaderTableHeader">
+              <h3>Estadisticas por lider</h3>
+              <label class="leaderSearch">
+                <span>Buscar lider</span>
+                <input id="leaderSearchInput" type="search" placeholder="Nombre, codigo o alias" autocomplete="off">
+              </label>
+            </div>
 
             <table>
               <thead>
@@ -386,9 +392,22 @@
       </div>
 
       <div id="leaderView" style="display:none; margin-top:20px;">
-        <button id="backToSummary">Volver</button>
-
-        <div id="leaderSummary" class="leaderSummary"></div>
+        <div class="leaderDetailHeader">
+          <button id="backToSummary">Volver</button>
+          <div id="leaderSummary" class="leaderSummary"></div>
+          <label class="leaderSearch leaderDetailSearch">
+            <span>Buscar rival</span>
+            <input id="leaderMatchupSearchInput" type="search" placeholder="Nombre, codigo o alias" autocomplete="off">
+            <span class="leaderColorFilters" id="leaderMatchupColorFilters" aria-label="Filtrar rivales por color">
+              <button class="leaderColorButton color-red" type="button" data-color="Red" aria-pressed="true">R</button>
+              <button class="leaderColorButton color-green" type="button" data-color="Green" aria-pressed="true">G</button>
+              <button class="leaderColorButton color-blue" type="button" data-color="Blue" aria-pressed="true">U</button>
+              <button class="leaderColorButton color-purple" type="button" data-color="Purple" aria-pressed="true">P</button>
+              <button class="leaderColorButton color-black" type="button" data-color="Black" aria-pressed="true">B</button>
+              <button class="leaderColorButton color-yellow" type="button" data-color="Yellow" aria-pressed="true">Y</button>
+            </span>
+          </label>
+        </div>
 
         <table style="margin-top:20px;">
           <thead>

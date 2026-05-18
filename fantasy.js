@@ -1150,11 +1150,10 @@
     return profile.display_name || profile.username || fallback || 'Mi equipo';
   }
 
-  function renderPlayerVisual(player, overlayHtml, options){
-    const opts = options || {};
+  function renderPlayerVisual(player, overlayHtml){
     const tier = escapeHtml(player.tier || 'Sin tier');
     const portraitUrl = playerPortraitUrl(player);
-    return `<div class="playerVisual ${tierClass(player.tier)} ${portraitUrl ? 'has-photo' : ''}">${opts.attendanceBadge ? renderAttendanceBadge(player.slug) : ''}${portraitUrl ? `<img class="playerPhoto" src="${escapeAttr(portraitUrl)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}${portraitUrl ? '<div class="playerPhotoShade"></div>' : ''}<div class="playerArtFallback"></div>${overlayHtml ? `<div class="playerOverlay">${overlayHtml}</div>` : ''}</div>`;
+    return `<div class="playerVisual ${tierClass(player.tier)} ${portraitUrl ? 'has-photo' : ''}">${portraitUrl ? `<img class="playerPhoto" src="${escapeAttr(portraitUrl)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}${portraitUrl ? '<div class="playerPhotoShade"></div>' : ''}<div class="playerArtFallback"></div>${overlayHtml ? `<div class="playerOverlay">${overlayHtml}</div>` : ''}</div>`;
   }
 
   function teamEntryBySlug(playerSlug){
@@ -2480,8 +2479,53 @@
     const status = isPlayerAttending(playerSlug);
     if (status !== true) return '';
     const opts = options || {};
-    const label = 'Inscrito al torneo semanal';
-    return `<span class="attendanceBadge isGoing${opts.compact ? ' compact' : ''}" title="${escapeAttr(label)}" aria-label="${escapeAttr(label)}"><img src="inscrito.png" alt="" aria-hidden="true" /></span>`;
+    const label = 'Inscrito para la siguiente jornada';
+    return `<span class="attendanceBadge isGoing${opts.compact ? ' compact' : ''}" tabindex="0" aria-label="${escapeAttr(label)}" data-tooltip="${escapeAttr(label)}"><img src="inscrito.png" alt="" aria-hidden="true" /></span>`;
+  }
+
+  let attendanceTooltipNode = null;
+
+  function attendanceTooltip(){
+    if (attendanceTooltipNode && document.body.contains(attendanceTooltipNode)) return attendanceTooltipNode;
+    attendanceTooltipNode = document.createElement('div');
+    attendanceTooltipNode.className = 'attendanceTooltip';
+    attendanceTooltipNode.setAttribute('role', 'tooltip');
+    document.body.appendChild(attendanceTooltipNode);
+    return attendanceTooltipNode;
+  }
+
+  function showAttendanceTooltip(trigger){
+    const label = String(trigger?.getAttribute?.('data-tooltip') || '').trim();
+    if (!label) return;
+    const tooltip = attendanceTooltip();
+    tooltip.textContent = label;
+    tooltip.classList.remove('below');
+    tooltip.style.left = '-9999px';
+    tooltip.style.top = '-9999px';
+    tooltip.classList.add('visible');
+
+    const rect = trigger.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const margin = 8;
+    const center = rect.left + (rect.width / 2);
+    let left = center - (tooltipRect.width / 2);
+    left = Math.max(margin, Math.min(left, window.innerWidth - tooltipRect.width - margin));
+    let top = rect.top - tooltipRect.height - 9;
+    let below = false;
+    if (top < margin){
+      top = rect.bottom + 9;
+      below = true;
+    }
+    const arrowX = Math.max(12, Math.min(tooltipRect.width - 12, center - left));
+    tooltip.style.setProperty('--attendance-tooltip-arrow-x', `${arrowX}px`);
+    tooltip.style.left = `${Math.round(left)}px`;
+    tooltip.style.top = `${Math.round(top)}px`;
+    tooltip.classList.toggle('below', below);
+  }
+
+  function hideAttendanceTooltip(){
+    if (!attendanceTooltipNode) return;
+    attendanceTooltipNode.classList.remove('visible', 'below');
   }
 
   function getTeamRound(teamId, roundKey){
@@ -4399,7 +4443,8 @@
       const player = entry.player;
       const isCaptain = String(state.currentTeam?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
       const overlay = `<div class="playerOverlayBottom"><div class="overlayNamePlain">${escapeHtml(player.name)}</div><div class="overlaySubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div>`;
-      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${renderPlayerVisual(player, overlay, { attendanceBadge: true })}</div></article>`;
+      const attendanceBadge = renderAttendanceBadge(entry.player_slug || player.slug);
+      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${attendanceBadge}${renderPlayerVisual(player, overlay)}</div></article>`;
     }).join('');
     if (table){
       table.innerHTML = PAGE_VIEW === 'team' ? renderRosterTable(derived.squadCards) : '';
@@ -4449,7 +4494,8 @@
           ? `Fichar · ${renderCoinInline(price, true)}`
           : `Clausula · ${renderCoinInline(minClause, true)}`;
       const badgeHtml = badge?.iconHtml ? `<span class="marketBadge ${escapeAttr(badge.tone)}" title="${escapeAttr(badge.title || '')}" aria-label="${escapeAttr(badge.title || '')}">${badge.iconHtml}</span>` : '';
-      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${renderPlayerVisual(player, overlay, { attendanceBadge: true })}</div><div class="marketCardAvailability ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
+      const attendanceBadge = renderAttendanceBadge(player.slug);
+      return `<article class="playerCard marketCard marketCardMinimal isInteractive ${frameClass(player.tier)} ${isWatched(player.slug) ? 'isWatched' : ''}" data-open-player="${escapeAttr(player.slug)}" data-player-source="market"><div class="playerHead marketCardHead">${badgeHtml}${attendanceBadge}${renderPlayerVisual(player, overlay)}</div><div class="marketCardAvailability ${escapeAttr(availabilityTone)}" title="${escapeAttr(pulse.label)}">${escapeHtml(copiesLabel)}</div><div class="actionRow compactActions single"><button class="btn btnPrimary compactBtn buyFullBtn" type="button" data-buy-confirm="${escapeAttr(player.slug)}" aria-label="Comprar ${escapeAttr(player.name)}" ${blocked ? 'disabled' : ''} title="${escapeAttr(blocked || (player.marketMode === 'buyout' ? `Pagar clausula de ${player.name}` : `Fichar a ${player.name}`))}">${buttonLabel}</button></div></article>`;
     }).join('');
   }
 
@@ -5129,7 +5175,31 @@
     if (!trigger) return;
     void setPlayerAttendance(trigger.getAttribute('data-attendance-player') || '', trigger.checked === true, trigger);
   });
+  document.addEventListener('pointerover', (event) => {
+    const trigger = event.target?.closest?.('.attendanceBadge[data-tooltip]');
+    if (trigger) showAttendanceTooltip(trigger);
+  });
+  document.addEventListener('pointerout', (event) => {
+    const trigger = event.target?.closest?.('.attendanceBadge[data-tooltip]');
+    if (!trigger) return;
+    if (event.relatedTarget && trigger.contains(event.relatedTarget)) return;
+    hideAttendanceTooltip();
+  });
+  document.addEventListener('focusin', (event) => {
+    const trigger = event.target?.closest?.('.attendanceBadge[data-tooltip]');
+    if (trigger) showAttendanceTooltip(trigger);
+  });
+  document.addEventListener('focusout', (event) => {
+    if (event.target?.closest?.('.attendanceBadge[data-tooltip]')) hideAttendanceTooltip();
+  });
+  window.addEventListener('scroll', hideAttendanceTooltip, true);
+  window.addEventListener('resize', hideAttendanceTooltip);
   function handleOpenPlayerClick(event){
+    if (event.target.closest('.attendanceBadge')){
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    }
     const captainTrigger = event.target.closest('[data-set-captain]');
     if (captainTrigger){
       event.preventDefault();
