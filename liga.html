@@ -18,6 +18,7 @@
       --liga-line:#d8e0e7;
       --liga-green:#1f8a70;
       --liga-gold:#d6a21f;
+      --liga-blue:#2367c9;
       --liga-red:#b42318;
     }
 
@@ -131,8 +132,73 @@
       white-space:nowrap;
     }
 
+    .stageStrip{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin:0 0 16px;
+      padding:10px;
+      background:rgba(248,250,252,.94);
+      border:1px solid rgba(255,255,255,.24);
+      border-radius:8px;
+      box-shadow:0 10px 28px rgba(0,0,0,.18);
+    }
+
+    .phaseTabs{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px;
+      background:#e9eef3;
+      border-radius:8px;
+    }
+
+    .phaseTab{
+      appearance:none;
+      border:0;
+      border-radius:7px;
+      background:transparent;
+      color:#405062;
+      min-height:32px;
+      padding:7px 10px;
+      font:inherit;
+      font-size:13px;
+      font-weight:950;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    .phaseTab.active{
+      background:#fff;
+      color:#0f6f57;
+      box-shadow:0 1px 3px rgba(15,23,42,.12);
+    }
+
+    .stageSummary{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      min-width:0;
+    }
+
+    .stageSummary b{
+      color:#121820;
+      font-size:13px;
+      line-height:1.2;
+    }
+
+    .stageSummary span{
+      color:#526172;
+      font-size:12px;
+      font-weight:850;
+      line-height:1.2;
+    }
+
     .searchWrap{
-      padding:14px 16px;
+      padding:10px 16px;
       border-bottom:1px solid var(--liga-line);
       background:#fff;
     }
@@ -142,9 +208,10 @@
       box-sizing:border-box;
       border:1px solid var(--liga-line);
       border-radius:8px;
-      padding:10px 12px;
+      padding:8px 11px;
       color:var(--liga-ink);
       font:inherit;
+      font-size:14px;
       background:#fbfcfd;
     }
 
@@ -163,6 +230,16 @@
       text-align:left;
       vertical-align:middle;
       font-size:14px;
+    }
+
+    .rankingTable td{
+      padding-top:6px;
+      padding-bottom:6px;
+    }
+
+    .rankingTable th{
+      padding-top:8px;
+      padding-bottom:8px;
     }
 
     .rankingTable th,
@@ -185,6 +262,10 @@
       background:#edf7f3;
     }
 
+    .rankingRow.eliminated{
+      opacity:.62;
+    }
+
     .rankNo{
       width:42px;
       color:var(--liga-muted);
@@ -198,13 +279,45 @@
     .points{
       color:#0f6f57;
       font-weight:950;
-      font-size:16px;
+      font-size:14px;
     }
 
     .miniStat{
       color:#4b5a6a;
       font-weight:800;
       white-space:nowrap;
+    }
+
+    .statusBadge{
+      display:inline-flex;
+      align-items:center;
+      min-height:20px;
+      padding:2px 7px;
+      border-radius:8px;
+      background:#edf7f3;
+      color:#0f6f57;
+      border:1px solid #cfe3dc;
+      font-size:11px;
+      font-weight:950;
+      white-space:nowrap;
+    }
+
+    .statusBadge.bye{
+      background:#fff7df;
+      color:#8a5b00;
+      border-color:#ead08a;
+    }
+
+    .statusBadge.out{
+      background:#fff1f0;
+      color:var(--liga-red);
+      border-color:#f0c3bf;
+    }
+
+    .statusBadge.pending{
+      background:#eef4ff;
+      color:var(--liga-blue);
+      border-color:#cbdcff;
     }
 
     .detailHero{
@@ -311,7 +424,7 @@
 
     .matchTable th:first-child,
     .matchTable td:first-child{
-      width:150px;
+      width:170px;
     }
 
     .matchTable th:nth-child(2),
@@ -327,8 +440,27 @@
 
     .matchTable th:nth-child(4),
     .matchTable td:nth-child(4){
-      width:44px;
+      width:80px;
       text-align:right;
+    }
+
+    .matchMeta{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+
+    .matchMeta strong{
+      font-size:14px;
+      line-height:1.15;
+    }
+
+    .matchMeta small{
+      color:var(--liga-muted);
+      font-size:11px;
+      font-weight:850;
+      line-height:1.25;
     }
 
     .matchToggle{
@@ -564,6 +696,11 @@
       font-weight:950;
     }
 
+    .score.pendingScore{
+      background:#eef4ff;
+      color:#2458a6;
+    }
+
     .pending{
       color:var(--liga-muted);
       font-weight:850;
@@ -593,6 +730,9 @@
     @media (max-width:760px){
       .brand{ width:100%; margin-right:0; }
       .brand small{ font-size:11px; }
+      .stageStrip{ align-items:stretch; }
+      .phaseTabs{ width:100%; }
+      .phaseTab{ flex:1; }
       .detailHero{ grid-template-columns:1fr; }
       .detailHero .leaderBubbles{ justify-content:flex-start; }
       .detailStats{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
@@ -684,15 +824,26 @@
 
   <main class="wrap">
     <section class="hero">
-      <h1>Liga OP15</h1>
-      <p>Ranking de jugadores ordenado por PTS. Selecciona una persona para ver su tabla de enfrentamientos.</p>
+      <h1 id="leagueTitle">Liga OP15 Playoff</h1>
+      <p id="leagueSubtitle">Repesca BO3 hasta el 25 de mayo a las 23:59. El jugador con mejor posicion de ranking escoge dado.</p>
+    </section>
+
+    <section class="stageStrip" aria-label="Selector de fase">
+      <div class="phaseTabs" role="tablist" aria-label="Fase de la liga">
+        <button class="phaseTab active" type="button" data-phase-tab="playoff">Repesca</button>
+        <button class="phaseTab" type="button" data-phase-tab="groups">Fase de grupos</button>
+      </div>
+      <div class="stageSummary" id="phaseSummary">
+        <b>Top 8 directos</b>
+        <span>16 en repesca · 7 fuera</span>
+      </div>
     </section>
 
     <section class="leagueShell">
       <div class="panel">
         <div class="panelHead">
           <div>
-            <h2 class="panelTitle">Ranking</h2>
+            <h2 class="panelTitle">Clasificacion</h2>
             <p class="panelSub" id="rankingSummary">Cargando jugadores...</p>
           </div>
           <span class="metaPill" id="sourceDate">OP15</span>
@@ -702,13 +853,12 @@
         </div>
         <div class="tableWrap">
           <table class="rankingTable">
-            <thead>
+            <thead id="rankingHead">
               <tr>
                 <th>#</th>
                 <th>Jugador</th>
-                <th>PTS</th>
-                <th>V-D</th>
-                <th>PJ</th>
+                <th>Estado</th>
+                <th>Res.</th>
               </tr>
             </thead>
             <tbody id="rankingBody"></tbody>
@@ -720,9 +870,9 @@
         <div class="panelHead">
           <div>
             <h2 class="panelTitle">Enfrentamientos</h2>
-            <p class="panelSub">Tabla del jugador seleccionado.</p>
+            <p class="panelSub">Cruce del jugador seleccionado, mazos, stats y resultado.</p>
           </div>
-          <a class="metaPill" href="https://scheduler.leaguelobster.com/es/2648809/lliga-op15/op15/?mode=full" target="_blank" rel="noopener">LeagueLobster</a>
+          <span class="metaPill" id="phasePill">Repesca BO3</span>
         </div>
         <div id="playerDetail"></div>
       </div>
@@ -730,10 +880,62 @@
   </main>
 
   <script>
-    let LEAGUE_UPDATED_AT = "2026-04-16T11:06:57Z";
+    let LEAGUE_UPDATED_AT = "2026-05-19T00:00:00Z";
     const LEAGUE_ID = "op15";
     const LEAGUE_SCHEDULE_FUNCTION = `${window.BarateamApp.SUPABASE_URL}/functions/v1/league-lobster-sync?scheduleId=2648809`;
-    let LEAGUE_MATCHES = [
+    const FINAL_STANDINGS = [
+      { rank:1, name:"Daword", status:"bye" },
+      { rank:2, name:"Semidimoni", status:"bye" },
+      { rank:3, name:"Lenox", status:"bye" },
+      { rank:4, name:"Humano", status:"bye" },
+      { rank:5, name:"Charko", status:"bye" },
+      { rank:6, name:"VainaLoca", status:"bye" },
+      { rank:7, name:"Joselu", status:"bye" },
+      { rank:8, name:"Romo", status:"bye" },
+      { rank:9, name:"Xavisu", status:"playin" },
+      { rank:10, name:"DavidVaz", status:"playin" },
+      { rank:11, name:"Karoo", status:"playin" },
+      { rank:12, name:"Yago", status:"playin" },
+      { rank:13, name:"Cape", status:"playin" },
+      { rank:14, name:"Isaac", status:"playin" },
+      { rank:15, name:"Colecta", status:"playin" },
+      { rank:16, name:"Ernest", status:"playin" },
+      { rank:17, name:"Dilix", status:"playin" },
+      { rank:18, name:"Strainer", status:"playin" },
+      { rank:19, name:"Martí", status:"playin" },
+      { rank:20, name:"Oriol", status:"playin" },
+      { rank:21, name:"Noke", status:"playin" },
+      { rank:22, name:"Coquito", status:"playin" },
+      { rank:23, name:"Ezelpro", status:"playin" },
+      { rank:24, name:"Cojinho", status:"playin" },
+      { rank:25, name:"MajinMoonwalker", label:"Majin", status:"out" },
+      { rank:26, name:"Bastian", status:"out" },
+      { rank:27, name:"Sicari", status:"out" },
+      { rank:28, name:"Dani R.", status:"out" },
+      { rank:29, name:"Papa Nami", status:"out" },
+      { rank:30, name:"Keldas", status:"out" },
+      { rank:31, name:"MIGUEL", label:"Miguel", status:"out" }
+    ];
+    const PLAYOFF_MATCHES = [
+      ["playin-01", "Repesca", "Xavisu", "Dilix"],
+      ["playin-02", "Repesca", "DavidVaz", "Strainer"],
+      ["playin-03", "Repesca", "Karoo", "Martí"],
+      ["playin-04", "Repesca", "Yago", "Oriol"],
+      ["playin-05", "Repesca", "Cape", "Noke"],
+      ["playin-06", "Repesca", "Isaac", "Coquito"],
+      ["playin-07", "Repesca", "Colecta", "Ezelpro"],
+      ["playin-08", "Repesca", "Ernest", "Cojinho"]
+    ].map((item, index) => ({
+      id: item[0],
+      week: index + 1,
+      round: item[1],
+      home: item[2],
+      away: item[3],
+      dicePicker: item[2],
+      homeScore: "",
+      awayScore: ""
+    }));
+    let GROUP_MATCHES = [
       [1,"Lenox","Keldas","",""],[1,"Bastian","MajinMoonwalker","",""],[1,"MIGUEL","Papa Nami","",""],[1,"Noke","VainaLoca","",""],[1,"Dilix","Martí","",""],[1,"Semidimoni","Joselu","",""],[1,"Romo","Humano","",""],[1,"Xavisu","Ezelpro","",""],[1,"Daword","Yago","",""],[1,"Isaac","Oriol","",""],[1,"Charko","Ernest","",""],[1,"Cape","Colecta","",""],[1,"Sicari","Dani R.","",""],[1,"DavidVaz","Coquito","",""],
       [2,"Colecta","Bastian","",""],[2,"MajinMoonwalker","Xavisu","",""],[2,"Yago","Romo","",""],[2,"Joselu","Cape","",""],[2,"Cojinho","Charko","",""],[2,"Dani R.","Karoo","",""],[2,"Isaac","Dilix","",""],[2,"DavidVaz","VainaLoca","",""],[2,"Humano","MIGUEL","",""],[2,"Ezelpro","Sicari","",""],[2,"Noke","Martí","",""],[2,"Lenox","Strainer","",""],[2,"Coquito","Daword","",""],[2,"Oriol","Semidimoni","",""],
       [3,"Sicari","Xavisu","",""],[3,"Cojinho","Martí","",""],[3,"DavidVaz","Romo","",""],[3,"Karoo","Bastian","",""],[3,"MIGUEL","Noke","",""],[3,"Dani R.","VainaLoca","",""],[3,"Daword","Lenox","",""],[3,"Keldas","Semidimoni","",""],[3,"Oriol","Strainer","",""],[3,"Ernest","Isaac","",""],[3,"Cape","Charko","",""],[3,"MajinMoonwalker","Yago","",""],[3,"Ezelpro","Coquito","",""],[3,"Joselu","Papa Nami","",""],
@@ -746,11 +948,14 @@
     ].map((item, index) => ({
       id: String(254715553 + index),
       week: item[0],
+      round: `Jornada ${item[0]}`,
       home: item[1],
       away: item[2],
       homeScore: item[3],
       awayScore: item[4]
     }));
+    let currentPhase = "playoff";
+    let LEAGUE_MATCHES = PLAYOFF_MATCHES;
 
     const SEEDED_PLAYER_LEADERS = {
       "Bastian": ["Luffy Y", "Crocodile B", "Buggy U"],
@@ -1065,6 +1270,67 @@
       }).join("");
     }
 
+    function standingFor(playerName){
+      return FINAL_STANDINGS.find((row) => row.name === playerName) || null;
+    }
+
+    function displayPlayerName(playerName){
+      const standing = standingFor(playerName);
+      return standing?.label || playerName;
+    }
+
+    function statusLabel(status){
+      if (status === "bye") return "Top 8";
+      if (status === "out") return "Fuera";
+      return "Repesca";
+    }
+
+    function statusClass(status){
+      if (status === "bye") return "bye";
+      if (status === "out") return "out";
+      return "pending";
+    }
+
+    function phaseTitle(){
+      return currentPhase === "groups" ? "Fase de grupos" : "Repesca BO3";
+    }
+
+    function setPhase(phase){
+      currentPhase = phase === "groups" ? "groups" : "playoff";
+      LEAGUE_MATCHES = currentPhase === "groups" ? GROUP_MATCHES : PLAYOFF_MATCHES;
+      rankingRows = buildRanking();
+      const previous = rankingRows.find((row) => row.name === selectedPlayer);
+      const fallback = currentPhase === "playoff"
+        ? rankingRows.find((row) => row.status === "playin")
+        : rankingRows[0];
+      renderDetail(previous?.name || fallback?.name || "");
+      renderPhaseChrome();
+    }
+
+    function renderPhaseChrome(){
+      document.querySelectorAll("[data-phase-tab]").forEach((button) => {
+        const active = button.dataset.phaseTab === currentPhase;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      const summary = $("phaseSummary");
+      if (summary){
+        summary.innerHTML = currentPhase === "groups"
+          ? "<b>Fase de grupos</b><span>9 jornadas · ranking por PTS · consulta resultados anteriores</span>"
+          : "<b>Top 8 directos</b><span>16 en repesca · 7 fuera · BO3 hasta el 25/05 23:59</span>";
+      }
+      const title = $("leagueTitle");
+      const subtitle = $("leagueSubtitle");
+      if (title) title.textContent = currentPhase === "groups" ? "Liga OP15 Grupos" : "Liga OP15 Playoff";
+      if (subtitle){
+        subtitle.textContent = currentPhase === "groups"
+          ? "Consulta la fase de grupos, resultados guardados y enfrentamientos por jugador."
+          : "Repesca BO3 hasta el 25 de mayo a las 23:59. El jugador con mejor posicion de ranking escoge dado.";
+      }
+      const pill = $("phasePill");
+      if (pill) pill.textContent = phaseTitle();
+    }
+
     function normalizeLeagueMatch(raw, index){
       return {
         id: String(raw?.id || raw?.source_match_id || index),
@@ -1077,6 +1343,7 @@
     }
 
     async function loadLeagueSchedule(){
+      if (!LEAGUE_SCHEDULE_FUNCTION) return;
       try{
         const res = await fetch(LEAGUE_SCHEDULE_FUNCTION, {
           cache:"no-store",
@@ -1091,7 +1358,11 @@
           ? payload.matches.map(normalizeLeagueMatch).filter((match) => match.id && match.home && match.away)
           : [];
         if (!matches.length) throw new Error("La function no ha devuelto enfrentamientos");
-        LEAGUE_MATCHES = matches;
+        GROUP_MATCHES = matches.map((match) => ({
+          ...match,
+          round: match.round || `Jornada ${match.week || ""}`
+        }));
+        if (currentPhase === "groups") LEAGUE_MATCHES = GROUP_MATCHES;
         LEAGUE_UPDATED_AT = payload?.updatedAt || payload?.modified || new Date().toISOString();
       }catch(err){
         console.warn("league-lobster-sync:", err?.message || err);
@@ -1197,14 +1468,28 @@
 
     function buildRanking(){
       const players = new Map();
+      if (currentPhase === "playoff"){
+        FINAL_STANDINGS.forEach((standing) => {
+          players.set(standing.name, {
+            name: standing.name,
+            displayName: standing.label || standing.name,
+            rank: standing.rank,
+            status: standing.status,
+            pts:0,
+            played:0,
+            wins:0,
+            losses:0,
+            pending:0
+          });
+        });
+      }
+
       LEAGUE_MATCHES.forEach((match) => {
         [match.home, match.away].forEach((name) => {
           if (!players.has(name)){
-            players.set(name, { name, pts:0, played:0, wins:0, losses:0, pending:0 });
+            const fallbackRank = currentPhase === "playoff" ? FINAL_STANDINGS.length + players.size + 1 : 0;
+            players.set(name, { name, displayName:displayPlayerName(name), rank:fallbackRank, status:"playin", pts:0, played:0, wins:0, losses:0, pending:0 });
           }
-        });
-
-        [match.home, match.away].forEach((name) => {
           const row = players.get(name);
           if (!hasScore(match)){
             row.pending += 1;
@@ -1221,12 +1506,20 @@
         });
       });
 
-      return Array.from(players.values()).sort((a, b) => {
-        if (b.pts !== a.pts) return b.pts - a.pts;
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        if (b.played !== a.played) return b.played - a.played;
+      const rows = Array.from(players.values()).sort((a, b) => {
+        if (currentPhase === "groups"){
+          if (b.pts !== a.pts) return b.pts - a.pts;
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          if (b.played !== a.played) return b.played - a.played;
+        } else if ((a.rank || 999) !== (b.rank || 999)){
+          return (a.rank || 999) - (b.rank || 999);
+        }
         return a.name.localeCompare(b.name, "es");
       });
+      return rows.map((row, index) => ({
+        ...row,
+        rank: currentPhase === "groups" ? index + 1 : row.rank
+      }));
     }
 
     function playerMatches(player){
@@ -1237,27 +1530,63 @@
 
     function renderRanking(){
       const query = $("playerSearch").value.trim().toLowerCase();
-      const filtered = rankingRows.filter((row) => {
+      const visibleRows = currentPhase === "playoff"
+        ? rankingRows.filter((row) => row.status === "playin")
+        : rankingRows;
+      const filtered = visibleRows.filter((row) => {
         if (!query) return true;
         const leaderText = normalizeLeaderList(playerLeaders[row.name] || []).join(" ").toLowerCase();
-        return row.name.toLowerCase().includes(query) || leaderText.includes(query);
+        return row.name.toLowerCase().includes(query) || String(row.displayName || "").toLowerCase().includes(query) || leaderText.includes(query);
       });
-      $("rankingSummary").textContent = `${rankingRows.length} jugadores · ${LEAGUE_MATCHES.length} enfrentamientos`;
-      $("sourceDate").textContent = `Actualizado ${new Date(LEAGUE_UPDATED_AT).toLocaleDateString("es-ES")}`;
-
-      $("rankingBody").innerHTML = filtered.map((row) => {
-        const rank = rankingRows.findIndex((item) => item.name === row.name) + 1;
-        const active = row.name === selectedPlayer ? " active" : "";
-        return `
-          <tr class="rankingRow${active}" data-player="${escapeHtml(row.name)}">
-            <td class="rankNo">#${rank}</td>
-            <td class="playerName">${escapeHtml(row.name)}</td>
-            <td class="points">${row.pts}</td>
-            <td class="miniStat">${row.wins}-${row.losses}</td>
-            <td class="miniStat">${row.played}</td>
+      if (currentPhase === "groups"){
+        $("rankingHead").innerHTML = `
+          <tr>
+            <th>#</th>
+            <th>Jugador</th>
+            <th>PTS</th>
+            <th>V-D</th>
           </tr>
         `;
-      }).join("") || '<tr><td colspan="5" class="empty">No hay jugadores con ese filtro.</td></tr>';
+        $("rankingSummary").textContent = `${rankingRows.length} jugadores · ${LEAGUE_MATCHES.length} enfrentamientos`;
+        $("sourceDate").textContent = "Fase de grupos";
+      } else {
+        $("rankingHead").innerHTML = `
+          <tr>
+            <th>#</th>
+            <th>Jugador</th>
+            <th>Estado</th>
+            <th>Res.</th>
+          </tr>
+        `;
+        const byes = rankingRows.filter((row) => row.status === "bye").length;
+        const playins = rankingRows.filter((row) => row.status === "playin").length;
+        const outs = rankingRows.filter((row) => row.status === "out").length;
+        $("rankingSummary").textContent = `${playins} jugadores en repesca · ${byes} directos · ${outs} fuera`;
+        $("sourceDate").textContent = `Cierre grupos ${new Date(LEAGUE_UPDATED_AT).toLocaleDateString("es-ES")}`;
+      }
+
+      $("rankingBody").innerHTML = filtered.map((row) => {
+        const active = row.name === selectedPlayer ? " active" : "";
+        const eliminated = row.status === "out" ? " eliminated" : "";
+        const resultText = currentPhase === "groups"
+          ? `${row.wins}-${row.losses}`
+          : row.status === "playin"
+          ? (row.played ? `${row.wins}-${row.losses}` : "Pend.")
+          : row.status === "bye"
+            ? "Directo"
+            : "Final";
+        const metricHtml = currentPhase === "groups"
+          ? `<td class="points">${row.pts}</td>`
+          : `<td><span class="statusBadge ${statusClass(row.status)}">${statusLabel(row.status)}</span></td>`;
+        return `
+          <tr class="rankingRow${active}${eliminated}" data-player="${escapeHtml(row.name)}">
+            <td class="rankNo">#${row.rank || "-"}</td>
+            <td class="playerName">${escapeHtml(row.displayName || row.name)}</td>
+            ${metricHtml}
+            <td class="miniStat">${escapeHtml(resultText)}</td>
+          </tr>
+        `;
+      }).join("") || '<tr><td colspan="4" class="empty">No hay jugadores con ese filtro.</td></tr>';
     }
 
     function scoreLabel(match, player){
@@ -1266,7 +1595,7 @@
         const result = normalizeStoredResult(record.result);
         return record.player_2 === player ? flipResult(result) : result;
       }
-      if (!hasScore(match)) return "0-0";
+      if (!hasScore(match)) return "Pend.";
       return `${scoreNumber(match.homeScore)}-${scoreNumber(match.awayScore)}`;
     }
 
@@ -1495,10 +1824,18 @@
             : "";
         const storedResult = normalizeStoredResult(record?.result);
         const selectedResult = record?.player_2 === row.name ? flipResult(storedResult) : storedResult;
+        const pendingScoreClass = hasScore(match) ? "" : " pendingScore";
         return `
           <tr class="matchMainRow">
-            <td>${escapeHtml(rival)}</td>
-            <td><span class="score">${escapeHtml(scoreLabel(match, row.name))}</span></td>
+            <td>
+              <div class="matchMeta">
+                <strong>${escapeHtml(displayPlayerName(rival))}</strong>
+                <small>${currentPhase === "playoff"
+                  ? `${escapeHtml(match.round || "Repesca")} · escoge dado ${escapeHtml(displayPlayerName(match.dicePicker || match.home))}`
+                  : escapeHtml(match.round || `Jornada ${match.week || ""}`)}</small>
+              </div>
+            </td>
+            <td><span class="score${pendingScoreClass}">${escapeHtml(scoreLabel(match, row.name))}</span></td>
             <td>
               <div class="matchupTools">
                 ${leaderBubblesHtml(rival)}
@@ -1533,35 +1870,47 @@
           </tr>
         `;
       }).join("");
-
-      $("playerDetail").innerHTML = `
-        <div class="detailHero">
-          <div>
-            <h3 class="selectedName">${escapeHtml(row.name)}</h3>
-            <p class="selectedLine">#${rankingRows.findIndex((item) => item.name === row.name) + 1} del ranking · ${row.pending} enfrentamientos pendientes</p>
-          </div>
-          ${leaderBubblesHtml(row.name)}
-        </div>
-        <div class="detailStats">
-          <div class="detailStat"><b>${row.pts}</b><span>PTS</span></div>
-          <div class="detailStat"><b>${row.played}</b><span>PJ</span></div>
-          <div class="detailStat"><b>${row.wins}-${row.losses}</b><span>V-D</span></div>
-          <div class="detailStat"><b>${matches.length}</b><span>Enfr.</span></div>
-        </div>
+      const standing = standingFor(row.name);
+      const emptyDetail = row.status === "bye"
+        ? '<div class="empty">Este jugador esta clasificado directamente para la siguiente fase. No juega repesca.</div>'
+        : row.status === "out"
+          ? '<div class="empty">Este jugador queda fuera por posicion de ranking y ya no tiene mas partidas de OP15.</div>'
+          : '<div class="empty">No hay cruce asignado para este jugador.</div>';
+      const detailStateLabel = currentPhase === "groups" ? "Grupos" : statusLabel(row.status);
+      const tableHtml = matches.length ? `
         <div class="tableWrap">
           <table class="matchTable">
             <thead>
               <tr>
                 <th>Rival</th>
                 <th>Resultado</th>
-                <th>Lideres</th>
+                <th>Mazos</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>${rowsHtml}</tbody>
           </table>
         </div>
-        <div class="sourceNote">Los resultados vacios de LeagueLobster se muestran como 0-0.</div>
+        <div class="sourceNote">${currentPhase === "playoff"
+          ? "Repesca BO3: limite 25 de mayo a las 23:59. Los resultados pendientes se muestran como Pend."
+          : "Fase de grupos OP15. Los resultados pendientes se muestran como Pend."}</div>
+      ` : emptyDetail;
+
+      $("playerDetail").innerHTML = `
+        <div class="detailHero">
+          <div>
+            <h3 class="selectedName">${escapeHtml(row.displayName || row.name)}</h3>
+            <p class="selectedLine">#${row.rank || "-"} del ranking · ${escapeHtml(detailStateLabel)}${standing?.name !== standing?.label && standing?.label ? ` · ${escapeHtml(row.name)}` : ""}</p>
+          </div>
+          ${leaderBubblesHtml(row.name)}
+        </div>
+        <div class="detailStats">
+          <div class="detailStat"><b>${currentPhase === "groups" ? row.pts : escapeHtml(statusLabel(row.status))}</b><span>${currentPhase === "groups" ? "PTS" : "Estado"}</span></div>
+          <div class="detailStat"><b>${row.played}</b><span>PJ</span></div>
+          <div class="detailStat"><b>${row.wins}-${row.losses}</b><span>V-D</span></div>
+          <div class="detailStat"><b>${row.pending}</b><span>Pend.</span></div>
+        </div>
+        ${tableHtml}
       `;
       renderRanking();
     }
@@ -1573,6 +1922,12 @@
     });
 
     $("playerSearch").addEventListener("input", renderRanking);
+
+    document.querySelectorAll("[data-phase-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        setPhase(button.dataset.phaseTab || "playoff");
+      });
+    });
 
     async function toggleMatchupStats(matchId, button){
       const match = LEAGUE_MATCHES.find((item) => item.id === String(matchId));
@@ -1626,8 +1981,7 @@
       await loadLeaderColorLookup();
       await loadLeagueSchedule();
       await loadMatchResults();
-      rankingRows = buildRanking();
-      renderDetail(rankingRows[0]?.name || "");
+      setPhase("playoff");
     }
 
     void initLeaguePage();
