@@ -4,6 +4,7 @@
 
 alter table public.fantasy_vbf_seasons
   add column if not exists min_roster_size integer not null default 1,
+  add column if not exists market_economy_locked boolean not null default false,
   add column if not exists max_weekly_clause_buyouts_made integer not null default 1,
   add column if not exists max_weekly_clause_buyouts_received integer not null default 2,
   add column if not exists buy_protection_hours integer not null default 4,
@@ -11,10 +12,12 @@ alter table public.fantasy_vbf_seasons
   add column if not exists replacement_points_multiplier numeric(4,2) not null default 0.5;
 
 alter table public.fantasy_vbf_roster_players
+  add column if not exists lineup_slot text not null default 'active',
   add column if not exists protected_until timestamptz,
   add column if not exists protection_reason text;
 
 alter table public.fantasy_vbf_roster_snapshots
+  add column if not exists lineup_slot text not null default 'active',
   add column if not exists snapshot_source text not null default 'roster',
   add column if not exists points_multiplier numeric(4,2) not null default 1,
   add column if not exists is_captain boolean not null default false;
@@ -52,6 +55,16 @@ begin
       add constraint fantasy_vbf_roster_protection_reason_chk check (
         protection_reason is null or protection_reason in ('market_buy', 'clause_buyout')
       );
+  end if;
+
+  if not exists (select 1 from pg_constraint where conname = 'fantasy_vbf_roster_lineup_slot_chk') then
+    alter table public.fantasy_vbf_roster_players
+      add constraint fantasy_vbf_roster_lineup_slot_chk check (lineup_slot in ('active', 'bench'));
+  end if;
+
+  if not exists (select 1 from pg_constraint where conname = 'fantasy_vbf_snapshot_lineup_slot_chk') then
+    alter table public.fantasy_vbf_roster_snapshots
+      add constraint fantasy_vbf_snapshot_lineup_slot_chk check (lineup_slot in ('active', 'bench'));
   end if;
 
   if not exists (select 1 from pg_constraint where conname = 'fantasy_vbf_snapshot_source_chk') then
@@ -112,6 +125,7 @@ begin
 
   if not found then raise exception 'La temporada fantasy no existe.'; end if;
   if v_cfg.is_open is not true then raise exception 'El mercado fantasy esta cerrado.'; end if;
+  if coalesce(v_cfg.market_economy_locked, false) is true then raise exception 'La compraventa fantasy esta cerrada. Solo se pueden cambiar capitan y suplente.'; end if;
   if public.fantasy_vbf_market_is_open(now()) is not true then
     raise exception 'El mercado esta cerrado ahora mismo.';
   end if;
@@ -1087,6 +1101,7 @@ begin
 
   update public.fantasy_vbf_seasons
   set is_open = true,
+      market_economy_locked = false,
       current_round_key = v_keep_round.round_key,
       current_round_label = v_keep_round.round_label,
       current_round_order = v_keep_round.round_order

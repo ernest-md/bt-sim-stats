@@ -37,9 +37,11 @@
   const TEAM_ROUNDS_SELECT = 'season,round_key,round_label,round_order,team_id,weekly_points,reward_coins,transfers_used';
   const PAGE_VIEW = String(document.body?.dataset?.fantasyView || 'overview').trim().toLowerCase();
   const DEFAULT_BUDGET = 150000;
-  const DEFAULT_SQUAD_SIZE = 3;
+  const DEFAULT_SQUAD_SIZE = 4;
   const DEFAULT_STARTER_SIZE = 3;
   const DEFAULT_STARTER_PACK_SIZE = 3;
+  const LINEUP_SLOT_ACTIVE = 'active';
+  const LINEUP_SLOT_BENCH = 'bench';
   const DEFAULT_MAX_PLAYER_COPIES = 3;
   const MAX_WEEKLY_TRANSFERS = 999;
   const MAX_WEEKLY_CAPTAIN_CHANGES = 1;
@@ -222,12 +224,14 @@
     modalPlayerSlug: '',
     modalSource: '',
     modalPlayerTab: 'summary',
+    benchSwapSlug: '',
     modalTeamId: '',
     modalMarketPanel: '',
     renameTeamOpen: false,
     confirmBuySlug: '',
     confirmBuyTargetTeamId: '',
     confirmBuyOutgoingSlug: '',
+    benchActionInFlight: false,
     actionInFlight: false,
     poolSyncedRoundKey: '',
     poolSyncedAt: 0,
@@ -965,8 +969,33 @@
     };
   }
 
+  function weeklyWindowState(){
+    const now = madridNowParts();
+    const weekdayMap = { lun: 1, mon: 1, mar: 2, tue: 2, mié: 3, mie: 3, wed: 3, jue: 4, thu: 4, vie: 5, fri: 5, sáb: 6, sab: 6, sat: 6, dom: 7, sun: 7 };
+    const weekday = weekdayMap[String(now.weekday || '').slice(0, 3).toLowerCase()] || 0;
+    const isWeekday = weekday >= 1 && weekday <= 5;
+    const isFriday = weekday === 5;
+    const isEconomicCutoff = isFriday && now.hour >= 19;
+    return {
+      economicOpen: isWeekday && !isEconomicCutoff,
+      lineupOpen: isWeekday
+    };
+  }
+
   function marketOpenNow(){
-    return true;
+    return weeklyWindowState().economicOpen && config().marketEconomyLocked !== true;
+  }
+
+  function lineupOpenNow(){
+    return weeklyWindowState().lineupOpen;
+  }
+
+  function fantasyPhaseLabel(){
+    if (!config().isOpen) return 'Jornada bloqueada';
+    const phase = weeklyWindowState();
+    if (phase.economicOpen && config().marketEconomyLocked !== true) return 'Mercado abierto';
+    if (phase.lineupOpen) return 'Solo plantilla';
+    return 'Cambios bloqueados';
   }
 
   function computeStreak(values){
@@ -1824,6 +1853,7 @@
         max_savings: MAX_SAVINGS,
         captain_multiplier: DEFAULT_CAPTAIN_MULTIPLIER,
         clause_multiplier: DEFAULT_CLAUSE_MULTIPLIER,
+        market_economy_locked: false,
         is_open: true
       };
       if (state.schemaReady == null) state.schemaReady = true;
@@ -2233,16 +2263,48 @@
   }
 
   async function fetchRosterSnapshots(){
-    const { data, error } = await withTimeout(
-      readSb
-        .from('fantasy_vbf_roster_snapshots')
-        .select('season,round_key,round_label,round_order,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,snapshot_source,points_multiplier,is_captain,captured_at,created_at')
-        .eq('season', CURRENT_SEASON)
-        .order('round_order', { ascending: true })
-        .order('captured_at', { ascending: true }),
+    const baseQuery = (select) => readSb
+      .from('fantasy_vbf_roster_snapshots')
+      .select(select)
+      .eq('season', CURRENT_SEASON)
+      .order('round_order', { ascending: true })
+      .order('captured_at', { ascending: true });
+    let { data, error } = await withTimeout(
+      baseQuery('season,round_key,round_label,round_order,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,snapshot_source,points_multiplier,is_captain,lineup_slot,captured_at,created_at'),
       'snapshots fantasy',
       8000
     );
+    if (error && String(error?.message || '').toLowerCase().includes('lineup_slot')){
+      const fallback = await withTimeout(
+        baseQuery('season,round_key,round_label,round_order,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,snapshot_source,points_multiplier,is_captain,captured_at,created_at'),
+        'snapshots fantasy',
+        8000
+      );
+      data = fallback.data;
+      error = fallback.error;
+    }
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function fetchSeasonRoster(){
+    const baseQuery = (select) => readSb
+      .from('fantasy_vbf_roster_players')
+      .select(select)
+      .eq('season', CURRENT_SEASON)
+      .order('created_at', { ascending: true });
+    let { data, error } = await withTimeout(
+      baseQuery('id,season,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,acquisition_type,acquired_round_key,lineup_slot,protected_until,protection_reason,created_at'),
+      'plantillas fantasy'
+    );
+    if (error && String(error?.message || '').toLowerCase().includes('lineup_slot')){
+      const fallback = await withTimeout(
+        baseQuery('id,season,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,acquisition_type,acquired_round_key,protected_until,protection_reason,created_at'),
+        'plantillas fantasy'
+      );
+      data = fallback.data;
+      error = fallback.error;
+    }
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   }
@@ -2290,7 +2352,7 @@
     try{
       const [teamsRes, rosterRes, seasonRoundsRes, snapshotsRes, roundsRes, txRes] = await Promise.all([
         withTimeout(readSb.from('fantasy_vbf_teams').select('id,season,user_id,team_name,coins,captain_player_slug,total_points,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'equipos fantasy'),
-        withTimeout(readSb.from('fantasy_vbf_roster_players').select('id,season,team_id,user_id,player_slug,player_name,player_tier,player_rank,buy_price,clause_price,acquisition_type,acquired_round_key,protected_until,protection_reason,created_at').eq('season', CURRENT_SEASON).order('created_at', { ascending: true }), 'plantillas fantasy'),
+        fetchSeasonRoster().then((data) => ({ data, error: null })).catch((error) => ({ data: [], error })),
         withTimeout(readSb.from('fantasy_vbf_rounds').select('season,round_key,round_label,round_order,rewards_applied,created_at,updated_at').eq('season', CURRENT_SEASON).order('round_order', { ascending: true }), 'rondas fantasy'),
         includeSnapshots ? fetchRosterSnapshots().then((data) => ({ data, error: null })).catch((error) => ({ data: [], error })) : Promise.resolve({ data: [], error: null }),
         includeTeamRounds ? withTimeout(readSb.from('fantasy_vbf_team_rounds').select(TEAM_ROUNDS_SELECT).eq('season', CURRENT_SEASON).order('round_order', { ascending: true }), 'jornadas fantasy') : Promise.resolve({ data: [], error: null }),
@@ -2341,6 +2403,7 @@
       maxSavings: Number(cfg.max_savings || MAX_SAVINGS),
       captainMultiplier: Number(cfg.captain_multiplier || DEFAULT_CAPTAIN_MULTIPLIER),
       clauseMultiplier: Number(cfg.clause_multiplier || DEFAULT_CLAUSE_MULTIPLIER),
+      marketEconomyLocked: cfg.market_economy_locked === true,
       isOpen: cfg.is_open !== false
     };
   }
@@ -2433,6 +2496,42 @@
       isTop5: rank <= 5,
       isTop10: rank <= 10
     };
+  }
+
+  function lineupSlotForEntry(entry){
+    return String(entry?.lineup_slot || LINEUP_SLOT_ACTIVE).trim().toLowerCase() === LINEUP_SLOT_BENCH
+      ? LINEUP_SLOT_BENCH
+      : LINEUP_SLOT_ACTIVE;
+  }
+
+  function isBenchEntry(entry){
+    return lineupSlotForEntry(entry) === LINEUP_SLOT_BENCH;
+  }
+
+  function activeRosterEntries(entries){
+    return (entries || []).filter((entry) => !isBenchEntry(entry));
+  }
+
+  function benchRosterEntry(entries){
+    return (entries || []).find((entry) => isBenchEntry(entry)) || null;
+  }
+
+  function sortRosterEntries(entries){
+    return rosterEntriesWithPlayers(entries || []).sort((a, b) => {
+      const slotDelta = (isBenchEntry(a) ? 1 : 0) - (isBenchEntry(b) ? 1 : 0);
+      return slotDelta
+        || (a.player.rank || 9999) - (b.player.rank || 9999)
+        || collator.compare(a.player.name || '', b.player.name || '');
+    });
+  }
+
+  function activeRosterLimit(){
+    return Math.max(1, Number(config().starterSize || DEFAULT_STARTER_SIZE));
+  }
+
+  function squadCapacity(){
+    const cfg = config();
+    return Math.max(Number(cfg.squadSize || DEFAULT_SQUAD_SIZE), activeRosterLimit());
   }
 
   function isFantasyAdmin(){
@@ -2564,6 +2663,8 @@
       )
       .slice()
       .sort((a, b) =>
+        (isBenchEntry(a) ? 1 : 0) - (isBenchEntry(b) ? 1 : 0)
+        ||
         Number(a.player_rank || 9999) - Number(b.player_rank || 9999)
         || collator.compare(String(a.player_name || ''), String(b.player_name || ''))
       );
@@ -2590,7 +2691,7 @@
   }
 
   function liveWeeklyPointsForRoster(roster, team, roundKey){
-    return (roster || []).reduce((sum, entry) => {
+    return activeRosterEntries(roster || []).reduce((sum, entry) => {
       const player = entry?.player || playerForRosterRow(entry);
       if (!player) return sum;
       const roundEntry = roundKey ? historyEntryForRound(player, roundKey) : null;
@@ -2710,7 +2811,7 @@
   }
 
   function contributionRowsFromEntries(entries, roundKey){
-    const rows = rosterEntriesWithPlayers(entries).map((entry) => {
+    const rows = rosterEntriesWithPlayers(activeRosterEntries(entries)).map((entry) => {
       const player = entry.player;
       const roundEntry = roundKey ? historyEntryForRound(player, roundKey) : null;
       const baseWeeklyPoints = roundKey ? Number(roundEntry?.fantasy_points || 0) : Number(player.currentFantasyPoints || 0);
@@ -2950,6 +3051,7 @@
           userId: String(row.user_id || ''),
           clausePrice: clause,
           playerName: row.player_name || slug,
+          lineupSlot: lineupSlotForEntry(row),
           protectedUntil,
           protectionReason: String(row.protection_reason || ''),
           isProtected: protectedUntil ? new Date(protectedUntil).getTime() > Date.now() : false,
@@ -2972,9 +3074,7 @@
       const coachName = profileNameForUser(team.user_id);
       const teamName = String(team.team_name || '').trim() || coachName || 'Equipo';
       const snapshotPlayers = displayRoundKey ? snapshotRowsForTeam(team.id, displayRoundKey) : [];
-      const players = (snapshotPlayers.length ? snapshotPlayers : roster)
-        .map((row) => ({ ...row, player: playerForRosterRow(row) }))
-        .sort((a, b) => (a.player.rank || 9999) - (b.player.rank || 9999) || collator.compare(a.player.name || '', b.player.name || ''));
+      const players = sortRosterEntries(snapshotPlayers.length ? snapshotPlayers : roster);
       const storedTotal = storedGeneralPoints(team);
       const generalPoints = storedTotal + (!hasSyncedWeeklyPoints ? weeklyPoints : 0);
       return {
@@ -2994,9 +3094,7 @@
     }).sort((a, b) => b.weeklyPoints - a.weeklyPoints || b.generalPoints - a.generalPoints || collator.compare(a.teamName, b.teamName)).map((row, index) => ({ ...row, rank: index + 1 }));
 
     const myRoster = state.currentTeam ? (rosterByTeam.get(String(state.currentTeam.id)) || []) : [];
-    const squadCards = myRoster
-      .map((row) => ({ ...row, player: playerForRosterRow(row) }))
-      .sort((a, b) => (a.player.rank || 9999) - (b.player.rank || 9999) || collator.compare(a.player.name || '', b.player.name || ''));
+    const squadCards = sortRosterEntries(myRoster);
 
     const marketPlayers = state.poolPlayers.map((player) => {
       const ownership = ownershipBySlug.get(String(player.slug || '')) || { count: 0, minClause: null, owners: [] };
@@ -3034,7 +3132,7 @@
     if (state.loadingLeague) return 'Cargando liga';
     if (!state.currentUser) return 'Inicia sesion';
     if (!state.currentTeam) return 'Crea equipo';
-    if (!cfg.isOpen || !marketOpenNow()) return 'Mercado cerrado';
+    if (!cfg.isOpen || !marketOpenNow()) return 'Mercado economico cerrado';
     if (roster.some((row) => String(row.player_slug) === String(player.slug))) return 'Ya en plantilla';
     if (!player?.canDirectBuy) return 'Solo clausula';
     const cost = Number(player.price || 0);
@@ -3055,6 +3153,7 @@
       teamId: String(row.team_id || ''),
       userId: String(row.user_id || ''),
       clausePrice: Number(row.clause_price || defaultClauseForPrice(player?.price || 0)),
+      lineupSlot: lineupSlotForEntry(row),
       playerName: row.player_name || player?.name || row.player_slug || 'Jugador',
       acquiredAt: row.created_at || '',
       teamName: teamById.get(String(row.team_id || ''))?.team_name || 'Equipo',
@@ -3366,7 +3465,7 @@
       return;
     }
     const round = adminRoundMeta();
-    const marketStatus = config().isOpen && marketOpenNow() ? 'Mercado abierto' : 'Mercado cerrado';
+    const marketStatus = fantasyPhaseLabel();
     const source = currentPlayerPoolSourceKey();
     host.classList.remove('hidden');
     host.innerHTML = `<div class="fantasyAdminPanel">
@@ -3376,8 +3475,9 @@
         <small>${escapeHtml(marketStatus)} · Datos ${escapeHtml(source)}</small>
       </div>
       <div class="fantasyAdminActions">
-        <button class="btn btnGhost" type="button" data-admin-round-action="lock" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Bloquear jornada</button>
-        <button class="btn btnGhost" type="button" data-admin-round-action="unlock" ${state.adminActionInFlight ? 'disabled' : ''}>Desbloquear jornada</button>
+        <button class="btn btnGhost" type="button" data-admin-round-action="economy-lock" ${state.adminActionInFlight || !round || config().marketEconomyLocked || !config().isOpen ? 'disabled' : ''}>Bloquear compraventa</button>
+        <button class="btn btnGhost" type="button" data-admin-round-action="lock" ${state.adminActionInFlight || !round || !config().isOpen ? 'disabled' : ''}>Bloquear jornada</button>
+        <button class="btn btnGhost" type="button" data-admin-round-action="unlock" ${state.adminActionInFlight ? 'disabled' : ''}>Desbloquear todo</button>
         <button class="btn btnGhost" type="button" data-admin-round-action="snapshot" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Capturar snapshot</button>
         <button class="btn btnPrimary" type="button" data-admin-round-action="process" ${state.adminActionInFlight || !round ? 'disabled' : ''}>Procesar jornada fantasy</button>
       </div>
@@ -3500,6 +3600,7 @@
     state.modalPlayerSlug = '';
     state.modalSource = '';
     state.modalPlayerTab = 'summary';
+    state.benchSwapSlug = '';
     renderPlayerModal();
   }
 
@@ -3591,17 +3692,22 @@
           <article class="fantasyInfoCard">
             <span>Equipo inicial</span>
             <strong>3 jugadores por manager</strong>
-            <p>Al crear equipo recibes 3 jugadores iniciales aleatorios. Ese pack no incluye Pirate King ni Yonkou: empieza desde Shichibukai, Supernova o Piratilla para que haya margen de mercado.</p>
+            <p>Al crear equipo recibes 3 jugadores iniciales aleatorios. El cuarto hueco es el suplente y hay que comprarlo en mercado o por clausula. El pack no incluye Pirate King ni Yonkou.</p>
+          </article>
+          <article class="fantasyInfoCard">
+            <span>Suplente</span>
+            <strong>3 activos + 1 suplente</strong>
+            <p>Solo los 3 activos puntuan en cada cierre. Si ya tienes suplente, puedes mandar un activo al banquillo o activar al suplente eligiendo quien pasa fuera.</p>
           </article>
           <article class="fantasyInfoCard">
             <span>Capitan</span>
             <strong>Bonus x1,5</strong>
-            <p>Puedes elegir un capitan dentro de tu plantilla. En cada cierre fantasy, sus puntos de esa jornada cuentan x1,5. Solo puede haber un capitan activo por equipo.</p>
+            <p>Puedes elegir un capitan dentro de tus 3 activos. En cada cierre fantasy, sus puntos de esa jornada cuentan x1,5. El suplente no puede ser capitan.</p>
           </article>
           <article class="fantasyInfoCard">
             <span>Fichajes normales</span>
             <strong>Compra desde el pool</strong>
-            <p>Si un jugador tiene cupos libres, puedes ficharlo pagando su precio de mercado. Si ya tienes 3 jugadores, eliges quien sale. Tras comprarlo queda protegido 4 horas para que no te lo roben al instante.</p>
+            <p>Si un jugador tiene cupos libres, puedes ficharlo pagando su precio de mercado. Si tienes 3 activos y ningun suplente, entra al hueco suplente. Si ya tienes 4 jugadores, eliges quien sale.</p>
           </article>
           <article class="fantasyInfoCard">
             <span>Clausulazos</span>
@@ -3688,12 +3794,12 @@
     if (state.loadingLeague) return 'Cargando liga';
     if (!state.currentUser) return 'Inicia sesion';
     if (!state.currentTeam) return 'Crea equipo';
-    if (!cfg.isOpen || !marketOpenNow()) return 'Mercado cerrado';
+    if (!cfg.isOpen || !marketOpenNow()) return 'Mercado economico cerrado';
     if (roster.some((row) => String(row.player_slug) === String(player.slug))) return 'Ya en plantilla';
     if (mode === 'market' && !player?.canDirectBuy) return 'Solo disponible por clausula';
     if (mode === 'buyout' && !targetOwner) return 'Elige un equipo propietario';
     if (Number(state.currentTeam?.coins || 0) < Number(cost || 0)) return 'Sin berries';
-    if (roster.length >= cfg.squadSize && !state.confirmBuyOutgoingSlug) return 'Elige a quien sustituyes';
+    if (roster.length >= squadCapacity() && !state.confirmBuyOutgoingSlug) return 'Elige a quien sustituyes';
     return '';
   }
 
@@ -3727,7 +3833,7 @@
     action.disabled = !!blocked;
     if (blocked) text.innerHTML = `${text.innerHTML} ${escapeHtml(blocked)}.`;
     const outgoingEntry = roster.find((row) => String(row.player_slug || '') === String(state.confirmBuyOutgoingSlug || '')) || null;
-    const needsReplacement = roster.length >= config().squadSize;
+    const needsReplacement = roster.length >= squadCapacity();
     const comparisonHtml = player ? renderTransferComparison(player, outgoingEntry, mode, cost, targetOwner, needsReplacement) : '';
     const replacementOptions = roster.map((row) => {
       const rosterPlayer = playerForRosterRow(row);
@@ -3737,7 +3843,10 @@
     const ownerInfo = targetOwner
       ? `<div class="helper">La clausula sale del equipo <strong>${escapeHtml(targetOwner.teamName || 'Equipo')}</strong> de ${escapeHtml(targetOwner.coachName || 'Manager')} y le abona ${renderCoinInline(targetOwner.clausePrice || 0, false)}.</div>`
       : '';
-    body.innerHTML = `${ownerInfo}${comparisonHtml}${needsReplacement ? `<div class="confirmPicker"><div class="confirmPickerLabel">Jugador que sale de tu plantilla</div><div class="replaceGrid">${replacementOptions}</div></div>` : `<div class="helper">Tienes un hueco libre en plantilla, asi que esta ficha entra directa.</div>`}`;
+    const freeSlotLabel = activeRosterEntries(roster).length >= activeRosterLimit()
+      ? 'Tienes libre el hueco de suplente: esta ficha entra ahi.'
+      : 'Tienes un hueco libre en plantilla, asi que esta ficha entra directa.';
+    body.innerHTML = `${ownerInfo}${comparisonHtml}${needsReplacement ? `<div class="confirmPicker"><div class="confirmPickerLabel">Jugador que sale de tu plantilla</div><div class="replaceGrid">${replacementOptions}</div></div>` : `<div class="helper">${escapeHtml(freeSlotLabel)}</div>`}`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
     lockPageScroll();
@@ -3808,26 +3917,43 @@
       const protectedDate = owner.protectedUntil ? new Date(owner.protectedUntil) : null;
       const protectedLabel = protectedDate && Number.isFinite(protectedDate.getTime()) ? protectedDate.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
       const disabled = owner.isMine || owner.isProtected || !marketOpenNow() || Number(state.currentTeam?.coins || 0) < Number(owner.clausePrice || 0);
+      const ownerIsBench = String(owner.lineupSlot || LINEUP_SLOT_ACTIVE) === LINEUP_SLOT_BENCH;
+      const ownerSlotLabel = ownerIsBench ? 'Suplente' : 'Activo';
       const title = owner.isMine
         ? 'Ya tienes esta copia'
         : owner.isProtected
           ? `Protegido hasta ${protectedLabel || 'dentro de unas horas'}`
-          : (!marketOpenNow() ? 'Mercado cerrado' : (Number(state.currentTeam?.coins || 0) < Number(owner.clausePrice || 0) ? 'Sin berries suficientes' : `Pagar clausula a ${owner.teamName}`));
-      return `<div class="ownerCard"><div class="ownerMeta"><strong>${escapeHtml(owner.teamName || 'Equipo')}</strong><span>${escapeHtml(owner.coachName || 'Manager')}</span><span class="ownerHint">${owner.isMine ? 'Tu copia actual' : owner.isProtected ? `Protegido ${escapeHtml(protectedLabel || '')}` : 'Copia en juego'}</span></div><button class="btn btnPrimary compactBtn" type="button" data-buy-confirm="${escapeAttr(player.slug || '')}" data-buy-target-team="${escapeAttr(owner.teamId || '')}" ${disabled ? 'disabled' : ''} title="${escapeAttr(title)}"><span class="clauseBtnLabel">Clausula</span>${renderCoinInline(owner.clausePrice || 0, true)}</button></div>`;
+          : (!marketOpenNow() ? 'Mercado economico cerrado' : (Number(state.currentTeam?.coins || 0) < Number(owner.clausePrice || 0) ? 'Sin berries suficientes' : `Pagar clausula a ${owner.teamName}`));
+      return `<div class="ownerCard ${ownerIsBench ? 'isBenchOwner' : ''}"><div class="ownerMeta"><strong>${escapeHtml(owner.teamName || 'Equipo')}</strong><span>${escapeHtml(owner.coachName || 'Manager')}</span><span class="ownerHint">${owner.isMine ? (ownerIsBench ? 'Tu suplente' : 'Tu copia activa') : owner.isProtected ? `Protegido ${escapeHtml(protectedLabel || '')}` : `Copia ${escapeHtml(ownerSlotLabel.toLowerCase())}`}</span></div><span class="ownerSlotBadge ${ownerIsBench ? 'bench' : 'active'}">${escapeHtml(ownerSlotLabel)}</span><button class="btn btnPrimary compactBtn" type="button" data-buy-confirm="${escapeAttr(player.slug || '')}" data-buy-target-team="${escapeAttr(owner.teamId || '')}" ${disabled ? 'disabled' : ''} title="${escapeAttr(title)}"><span class="clauseBtnLabel">Clausula</span>${renderCoinInline(owner.clausePrice || 0, true)}</button></div>`;
     }).join('');
     const marketHint = source === 'market'
       ? (marketPlayer?.canDirectBuy
-        ? `<div class="modalMarketHint">Quedan cupos libres (${copiesLabel}). Puedes ficharlo directo desde el pool y, si ya tienes 3, eliges a quien sustituyes.</div>`
+        ? `<div class="modalMarketHint">Quedan cupos libres (${copiesLabel}). Puedes ficharlo directo desde el pool; si ya tienes 4 jugadores, eliges a quien sustituyes.</div>`
         : `<div class="modalMarketHint">Ya ha llenado sus ${intFmt.format(config().maxPlayerCopies)} cupos (${copiesLabel}). Solo entra por clausula sobre alguno de los equipos que lo tienen.</div>`)
       : `<div class="modalMarketHint">Tu copia actual tiene un valor de mercado de ${renderCoinInline(Number(player.price || currentPrice), false)} y una clausula vigente de ${renderCoinInline(clauseValue, false)}.</div>`;
     const directBlocked = source === 'market' ? buyBlockReason(marketPlayer, roster) : '';
     const directAction = source === 'market' && marketPlayer?.canDirectBuy
       ? `<div class="modalActions modalBuyActions"><button class="btn btnPrimary" type="button" data-buy-confirm="${escapeAttr(player.slug || '')}" ${directBlocked ? 'disabled' : ''}>Fichar - ${renderCoinInline(Number(player.price || 0), true)}</button></div>`
       : '';
+    const isBench = source === 'team' && isBenchEntry(rosterEntry);
     const isCaptain = source === 'team' && String(state.currentTeam?.captain_player_slug || '') === String(rosterEntry?.player_slug || player.slug || '');
-    const captainBlocked = !marketOpenNow() || !config().isOpen;
+    const lineupBlocked = !lineupOpenNow() || !config().isOpen;
+    const sellBlocked = !marketOpenNow() || !config().isOpen;
+    const hasBench = !!benchRosterEntry(roster);
+    const benchButtonLabel = isBench ? 'Pasar al equipo activo' : 'Pasar a suplente';
+    const benchButtonTitle = isBench
+      ? 'Activar este jugador y elegir quien pasa a suplente'
+      : (hasBench ? 'Mandar este jugador al hueco de suplente' : 'Necesitas fichar un suplente antes');
+    const swapPicker = source === 'team' && isBench && String(state.benchSwapSlug || '') === String(rosterEntry?.player_slug || player.slug || '')
+      ? `<div class="benchSwapPicker"><div class="confirmPickerLabel">Elige quien pasa a suplente</div><div class="benchSwapGrid">${activeRosterEntries(roster).map((row) => {
+        const activePlayer = row.player || playerForRosterRow(row);
+        const portrait = playerPortraitUrl(activePlayer);
+        const isActiveCaptain = String(state.currentTeam?.captain_player_slug || '') === String(row.player_slug || activePlayer.slug || '');
+        return `<button class="benchSwapOption ${frameClass(activePlayer.tier)}" type="button" data-bench-swap-target="${escapeAttr(row.player_slug || activePlayer.slug || '')}" title="${escapeAttr(`Pasar a ${activePlayer.name || 'jugador'} a suplente`)}"><span class="benchSwapAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(activePlayer.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</span><span><strong>${escapeHtml(activePlayer.name || 'Jugador')}</strong><small>#${intFmt.format(activePlayer.rank || 0)} · ${escapeHtml(tierLabel(activePlayer.tier))}${isActiveCaptain ? ' · Capitan' : ''}</small></span></button>`;
+      }).join('')}</div></div>`
+      : '';
     const captainAction = source === 'team'
-      ? `<div class="modalActions captainModalActions"><button class="btn ${isCaptain ? 'btnPrimary' : 'btnGood'}" type="button" data-set-captain="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">${isCaptain ? 'Capit&aacute;n actual' : 'Hacer Capit&aacute;n'}</button><button class="btn btnGhost" type="button" data-sell-confirm="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" data-sell-player-name="${escapeAttr(player.name || 'Jugador')}" data-sell-player-price="${escapeAttr(player.price || currentPrice || 0)}" ${captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : `Vender a ${player.name || 'jugador'} por ${formatCoins(player.price || currentPrice || 0)}`)}">Vender - ${renderCoinInline(player.price || currentPrice || 0, true)}</button><div class="helper compactHelper">El capit&aacute;n punt&uacute;a x${formatPoints(config().captainMultiplier)} en cada cierre fantasy. La venta cobra el valor actual y devuelve la copia al mercado.</div></div>`
+      ? `<div class="modalActions captainModalActions"><button class="btn ${isCaptain ? 'btnPrimary' : 'btnGood'}" type="button" data-set-captain="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" ${isCaptain || isBench || lineupBlocked ? 'disabled' : ''} title="${escapeAttr(lineupBlocked ? 'Cambios de plantilla cerrados' : isBench ? 'El suplente no puede ser capitan' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">${isCaptain ? 'Capit&aacute;n actual' : 'Hacer Capit&aacute;n'}</button><button class="btn btnGhost" type="button" ${isBench ? 'data-open-bench-swap' : 'data-set-bench'}="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" ${lineupBlocked || (!isBench && !hasBench) ? 'disabled' : ''} title="${escapeAttr(lineupBlocked ? 'Cambios de plantilla cerrados' : benchButtonTitle)}">${escapeHtml(benchButtonLabel)}</button><button class="btn btnGhost" type="button" data-sell-confirm="${escapeAttr(rosterEntry?.player_slug || player.slug || '')}" data-sell-player-name="${escapeAttr(player.name || 'Jugador')}" data-sell-player-price="${escapeAttr(player.price || currentPrice || 0)}" ${sellBlocked ? 'disabled' : ''} title="${escapeAttr(sellBlocked ? 'Mercado economico cerrado' : `Vender a ${player.name || 'jugador'} por ${formatCoins(player.price || currentPrice || 0)}`)}">Vender - ${renderCoinInline(player.price || currentPrice || 0, true)}</button><div class="helper compactHelper">Solo los 3 activos punt&uacute;an. El suplente se puede vender o perder por clausulazo igual que cualquier jugador.</div>${swapPicker}</div>`
       : '';
     const ownersBlock = source === 'market' && ownerRows
       ? `<div class="historyWrap"><div class="historyTitle">Equipos donde juega ahora</div><div class="ownerGrid">${ownerRows}</div></div>`
@@ -3839,7 +3965,7 @@
     const marketOwnershipBlock = source === 'market'
       ? `<div class="modalOwnershipBlock modalDealStack ${ownersBlock ? 'hasOwners' : ''}"><div class="modalDealLead">${marketHint}</div>${ownersBlock}</div>`
       : '';
-    const summaryContent = `<div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Copias en liga' : 'Cupos usados'}</span><strong>${copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada fantasy</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Torneos jugados</span><strong>${intFmt.format(playedCount)}</strong><small>${intFmt.format(saturdayCount)} sabados fantasy</small></div></div>${insightPanel}`;
+    const summaryContent = `<div class="modalStats"><div class="modalStat"><span>${source === 'team' ? 'Valor actual' : 'Precio mercado'}</span><strong>${renderCoinInline(source === 'team' ? Number(player.price || currentPrice) : currentPrice, false)}</strong></div><div class="modalStat"><span>Clausula</span><strong>${renderCoinInline(clauseValue, false)}</strong></div><div class="modalStat"><span>${source === 'team' ? 'Estado' : 'Cupos usados'}</span><strong>${source === 'team' ? escapeHtml(isBench ? 'Suplente' : 'Activo') : copiesLabel}</strong></div><div class="modalStat"><span>Ultima jornada fantasy</span><strong>${formatPointsLabel(player.currentFantasyPoints || 0)}</strong></div><div class="modalStat"><span>Victorias</span><strong>${intFmt.format(player.wins || 0)}</strong></div><div class="modalStat"><span>Torneos jugados</span><strong>${intFmt.format(playedCount)}</strong><small>${intFmt.format(saturdayCount)} sabados fantasy</small></div></div>${insightPanel}`;
     const historyContent = `<div class="historyWrap"><div class="historyTitle">Progresion de sabados</div>${renderHistoryChart(player)}${renderPriceChart(player)}</div>`;
     const marketContent = source === 'market' ? marketOwnershipBlock : teamOwnershipBlock;
     const footerActions = source === 'market' ? directAction : captainAction;
@@ -3847,7 +3973,7 @@
     state.modalPlayerTab = activeTab;
     const tabButton = (id, label) => `<button class="${activeTab === id ? 'active' : ''}" type="button" data-player-modal-tab="${escapeAttr(id)}" aria-pressed="${activeTab === id ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
     const panel = (id, html) => `<div class="playerModalTabPanel ${activeTab === id ? 'active' : ''}" data-player-modal-panel="${escapeAttr(id)}">${html}</div>`;
-    body.innerHTML = `<div class="modalVisual modalVisualSticky"><article class="playerCard ${frameClass(player.tier)}"><div class="playerHead">${renderPlayerVisual(player, modalOverlay)}</div></article>${tournamentHistory}${watchAction}</div><div class="modalPanel playerModalPanel"><div class="playerModalHeader"><div><div class="modalEyebrow">${source === 'team' ? 'Tu plantilla' : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div></div><div class="playerModalTabs">${tabButton('summary', 'Resumen')}${tabButton('history', 'Historial')}${tabButton('market', source === 'team' ? 'Plantilla' : 'Mercado')}</div><div class="playerModalTabPanels">${panel('summary', summaryContent)}${panel('history', historyContent)}${panel('market', marketContent)}</div>${footerActions ? `<div class="playerModalActionRail">${footerActions}</div>` : ''}</div>`;
+    body.innerHTML = `<div class="modalVisual modalVisualSticky"><article class="playerCard ${frameClass(player.tier)} ${isBench ? 'isBenchSlot' : ''}"><div class="playerHead">${isBench ? '<span class="squadSlotBadge bench">Suplente</span>' : ''}${renderPlayerVisual(player, modalOverlay)}</div></article>${tournamentHistory}${watchAction}</div><div class="modalPanel playerModalPanel"><div class="playerModalHeader"><div><div class="modalEyebrow">${source === 'team' ? (isBench ? 'Tu suplente' : 'Tu plantilla') : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div></div><div class="playerModalTabs">${tabButton('summary', 'Resumen')}${tabButton('history', 'Historial')}${tabButton('market', source === 'team' ? 'Plantilla' : 'Mercado')}</div><div class="playerModalTabPanels">${panel('summary', summaryContent)}${panel('history', historyContent)}${panel('market', marketContent)}</div>${footerActions ? `<div class="playerModalActionRail">${footerActions}</div>` : ''}</div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
     lockPageScroll();
@@ -3870,7 +3996,7 @@
       closeTeamModal();
       return;
     }
-    const squadSize = config().squadSize;
+    const squadSize = squadCapacity();
     const slots = Array.from({ length: squadSize }, (_, index) => team.players[index] || null);
     const closedRound = latestClosedRound();
     const contributionRows = closedRound
@@ -3892,7 +4018,8 @@
       }
       const portrait = playerPortraitUrl(entry.player);
       const isTemporary = String(entry.snapshot_source || '').toLowerCase() === 'replacement';
-      return `<button class="teamModalPlayerChip ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}"><span class="teamModalPlayerAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</span><span class="teamModalPlayerCopy"><strong>${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</strong><small>#${intFmt.format(entry.player.rank || 0)} · ${escapeHtml(tierLabel(entry.player.tier))}${isTemporary ? ' · Temporal' : ''}</small></span></button>`;
+      const isBench = isBenchEntry(entry);
+      return `<button class="teamModalPlayerChip ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''} ${isBench ? 'bench' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}"><span class="teamModalPlayerAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</span><span class="teamModalPlayerCopy"><strong>${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</strong><small>#${intFmt.format(entry.player.rank || 0)} · ${escapeHtml(tierLabel(entry.player.tier))}${isTemporary ? ' · Temporal' : ''}${isBench ? ' · Suplente' : ''}</small></span></button>`;
     }).join('');
     const impactRows = contributionRows.length
       ? `<div class="teamModalImpactList">${contributionRows.map((row) => {
@@ -4011,7 +4138,7 @@
     if (facts){
       const showRulesStrip = !state.currentTeam;
       facts.classList.toggle('hidden', !showRulesStrip);
-      const marketStatus = cfg.isOpen && marketOpenNow() ? 'Abierto' : 'Cerrado';
+      const marketStatus = fantasyPhaseLabel();
       facts.innerHTML = showRulesStrip ? `
         <article class="fact factProduct">
           <span>Presupuesto inicial</span>
@@ -4186,13 +4313,16 @@
       const weeklyPoints = Number(player.currentFantasyPoints || 0);
       const clausePrice = Number(entry.clause_price || player.clausePrice || defaultClauseForPrice(player.price || 0));
       const isCaptain = String(state.currentTeam?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
-      const captainBlocked = !marketOpenNow() || !config().isOpen;
-      return `<article class="rosterTableRow ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="team">
+      const isBench = isBenchEntry(entry);
+      const hasBench = !!benchRosterEntry(entries);
+      const lineupBlocked = !lineupOpenNow() || !config().isOpen;
+      const sellBlocked = !marketOpenNow() || !config().isOpen;
+      return `<article class="rosterTableRow ${isBench ? 'isBenchRow' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="team">
         <div class="rosterTablePlayer">
           <div class="rosterTableAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</div>
           <div class="rosterTableCopy">
             <strong>${escapeHtml(player.name || 'Jugador')}</strong>
-            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))}${isCaptain ? ' · Capit&aacute;n' : ''}</span>
+            <span>#${intFmt.format(player.rank || 0)} · ${escapeHtml(tierLabel(player.tier))}${isCaptain ? ' · Capit&aacute;n' : ''}${isBench ? ' · Suplente' : ''}</span>
           </div>
         </div>
         <div class="rosterTableMetric"><span>Valor</span><strong>${formatCoins(player.price || 0)}</strong></div>
@@ -4200,8 +4330,9 @@
         <div class="rosterTableMetric"><span>Ultimo sabado</span><strong>${Number(player.currentRawPoints || 0) > 0 ? formatPointsLabel(weeklyPoints) : 'Sin puntos'}</strong></div>
         <div class="rosterTableMetric"><span>Lectura</span><strong>${escapeHtml(trendLabel)}</strong></div>
         <div class="actionRow compactActions">
-          <button class="btn compactBtn ${isCaptain ? 'btnPrimary' : 'btnGhost'}" type="button" data-set-captain="${escapeAttr(entry.player_slug || player.slug || '')}" ${isCaptain || captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">Capit&aacute;n</button>
-          <button class="btn btnGhost compactBtn" type="button" data-sell-confirm="${escapeAttr(entry.player_slug || player.slug || '')}" data-sell-player-name="${escapeAttr(player.name || 'Jugador')}" data-sell-player-price="${escapeAttr(player.price || 0)}" ${captainBlocked ? 'disabled' : ''} title="${escapeAttr(captainBlocked ? 'El mercado esta cerrado' : `Vender a ${player.name || 'jugador'} por ${formatCoins(player.price || 0)}`)}">Vender</button>
+          <button class="btn compactBtn ${isCaptain ? 'btnPrimary' : 'btnGhost'}" type="button" data-set-captain="${escapeAttr(entry.player_slug || player.slug || '')}" ${isCaptain || isBench || lineupBlocked ? 'disabled' : ''} title="${escapeAttr(lineupBlocked ? 'Cambios de plantilla cerrados' : isBench ? 'El suplente no puede ser capitan' : isCaptain ? 'Capitan actual' : `Hacer capitan a ${player.name || 'jugador'}`)}">Capit&aacute;n</button>
+          <button class="btn btnGhost compactBtn" type="button" ${isBench ? 'data-open-bench-swap' : 'data-set-bench'}="${escapeAttr(entry.player_slug || player.slug || '')}" ${lineupBlocked || (!isBench && !hasBench) ? 'disabled' : ''} title="${escapeAttr(lineupBlocked ? 'Cambios de plantilla cerrados' : isBench ? 'Activar y elegir quien pasa a suplente' : hasBench ? 'Pasar a suplente' : 'Necesitas fichar un suplente antes')}">${isBench ? 'Activar' : 'Suplente'}</button>
+          <button class="btn btnGhost compactBtn" type="button" data-sell-confirm="${escapeAttr(entry.player_slug || player.slug || '')}" data-sell-player-name="${escapeAttr(player.name || 'Jugador')}" data-sell-player-price="${escapeAttr(player.price || 0)}" ${sellBlocked ? 'disabled' : ''} title="${escapeAttr(sellBlocked ? 'Mercado economico cerrado' : `Vender a ${player.name || 'jugador'} por ${formatCoins(player.price || 0)}`)}">Vender</button>
         </div>
       </article>`;
     }).join('')}</div>`;
@@ -4363,14 +4494,16 @@
     wrap.innerHTML = standings.map((row) => {
       const mine = state.currentUser && String(row.userId) === String(state.currentUser.id);
       const rankClass = row.displayRank === 1 ? 'top1' : row.displayRank === 2 ? 'top2' : row.displayRank === 3 ? 'top3' : '';
-      const slots = Array.from({ length: config().squadSize }, (_, index) => row.players[index] || null);
+      const visiblePlayers = activeRosterEntries(row.players || []).slice(0, activeRosterLimit());
+      const slots = Array.from({ length: activeRosterLimit() }, (_, index) => visiblePlayers[index] || null);
       const roster = slots.map((entry) => {
         if (!entry){
           return `<div class="standingRosterCard empty" aria-hidden="true"><div class="standingRosterVisual empty"></div><span class="standingRosterName">Vacío</span></div>`;
         }
         const portrait = playerPortraitUrl(entry.player);
         const isTemporary = String(entry.snapshot_source || '').toLowerCase() === 'replacement';
-        return `<button class="standingRosterCard ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}">${isTemporary ? '<span class="temporaryBadge">Temporal</span>' : ''}<div class="standingRosterVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div><span class="standingRosterName">${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</span></button>`;
+        const isBench = isBenchEntry(entry);
+        return `<button class="standingRosterCard ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''} ${isBench ? 'bench' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}">${isTemporary ? '<span class="temporaryBadge">Temporal</span>' : isBench ? '<span class="temporaryBadge bench">S</span>' : ''}<div class="standingRosterVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div><span class="standingRosterName">${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</span></button>`;
       }).join('');
       const secondary = PAGE_VIEW === 'overview'
         ? `Ultima ${formatPointsLabel(row.weeklyPoints)}`
@@ -4422,7 +4555,9 @@
     const latestPoints = latestTeamRound
       ? Number(latestTeamRound.weekly_points || 0)
       : liveWeeklyPointsForRoster(derived.squadCards, state.currentTeam, displayRoundMeta()?.round_key || state.currentRound?.key || '');
-    summary.innerHTML = `<span class="pill strong" title="Jugadores ocupando ahora mismo tu roster fantasy.">${derived.squadCards.length}/${intFmt.format(config().squadSize)} jugadores</span><span class="pill" title="Valor actual combinado de tu plantilla.">${renderCoinInline(rosterValue, true)} valor</span><span class="pill" title="Exposicion total de clausulas vivas.">${renderCoinInline(clauseValue, true)} clausulas</span><span class="pill" title="Puntos de tu ultimo cierre fantasy.">${formatPointsLabel(latestPoints)} ultimo cierre</span>`;
+    const activeCards = activeRosterEntries(derived.squadCards);
+    const benchCard = benchRosterEntry(derived.squadCards);
+    summary.innerHTML = `<span class="pill strong" title="Jugadores activos ahora mismo en tu roster fantasy.">${activeCards.length}/${intFmt.format(activeRosterLimit())} activos</span><span class="pill ${benchCard ? 'good' : ''}" title="Cuarto jugador comprado como suplente.">${benchCard ? '1/1 suplente' : '0/1 suplente'}</span><span class="pill" title="Valor actual combinado de tu plantilla.">${renderCoinInline(rosterValue, true)} valor</span><span class="pill" title="Exposicion total de clausulas vivas.">${renderCoinInline(clauseValue, true)} clausulas</span><span class="pill" title="Puntos de tu ultimo cierre fantasy.">${formatPointsLabel(latestPoints)} ultimo cierre</span>`;
     if (!derived.squadCards.length){
       if (table){
         table.innerHTML = '';
@@ -4435,16 +4570,18 @@
     }
     empty.classList.add('hidden');
     grid.classList.remove('hidden');
-    const rosterSlots = Array.from({ length: config().squadSize }, (_, index) => derived.squadCards[index] || null);
+    const activeSlots = Array.from({ length: activeRosterLimit() }, (_, index) => activeCards[index] || null);
+    const rosterSlots = [...activeSlots, benchCard || null];
     grid.innerHTML = rosterSlots.map((entry, index) => {
+      const isBenchSlot = index >= activeRosterLimit();
       if (!entry){
-        return `<article class="playerCard squadCard squadSlotEmpty"><div class="squadSlotPlaceholder"><span>${intFmt.format(index + 1)}</span><strong>Hueco libre</strong><small>Listo para fichar desde mercado.</small></div></article>`;
+        return `<article class="playerCard squadCard squadSlotEmpty ${isBenchSlot ? 'benchSlotEmpty' : ''}"><div class="squadSlotPlaceholder"><span>${isBenchSlot ? 'S' : intFmt.format(index + 1)}</span><strong>${isBenchSlot ? 'Suplente libre' : 'Hueco libre'}</strong><small>${isBenchSlot ? 'Compra un cuarto jugador para desbloquear cambios.' : 'Listo para fichar desde mercado.'}</small></div></article>`;
       }
       const player = entry.player;
       const isCaptain = String(state.currentTeam?.captain_player_slug || '') === String(entry.player_slug || player.slug || '');
       const overlay = `<div class="playerOverlayBottom"><div class="overlayNamePlain">${escapeHtml(player.name)}</div><div class="overlaySubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div>`;
       const attendanceBadge = renderAttendanceBadge(entry.player_slug || player.slug);
-      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${attendanceBadge}${renderPlayerVisual(player, overlay)}</div></article>`;
+      return `<article class="playerCard squadCard isInteractive ${isCaptain ? 'isCaptainSlot' : ''} ${isBenchSlot ? 'isBenchSlot' : ''} ${frameClass(player.tier)}" data-open-player="${escapeAttr(entry.player_slug)}" data-player-source="team">${isBenchSlot ? '<span class="squadSlotBadge bench">Suplente</span>' : isCaptain ? '<span class="squadSlotBadge">Capitan</span>' : `<span class="squadSlotIndex">${intFmt.format(index + 1)}</span>`}<div class="playerHead">${attendanceBadge}${renderPlayerVisual(player, overlay)}</div></article>`;
     }).join('');
     if (table){
       table.innerHTML = PAGE_VIEW === 'team' ? renderRosterTable(derived.squadCards) : '';
@@ -4714,6 +4851,11 @@
     if (!state.currentTeam) return;
     const slug = String(playerSlug || '').trim();
     if (!slug) return;
+    const rosterEntry = teamEntryBySlug(slug);
+    if (rosterEntry && isBenchEntry(rosterEntry)){
+      showFantasyToast('Capitan no valido', 'El suplente no puede ser capitan mientras no este activo.', 'err');
+      return;
+    }
     setActionBusy(button, true, 'Guardando');
     try{
       const rosterSlugs = leagueDerived().myRoster.map((row) => String(row.player_slug || '')).filter(Boolean);
@@ -4732,6 +4874,76 @@
       showPageMsg(`No pude guardar el capitan: ${error?.message || error}`, 'err');
       showFantasyToast('No pude guardar el capitan', error?.message || String(error || ''), 'err');
     } finally {
+      setActionBusy(button, false);
+    }
+  }
+
+  function benchPromptForEntry(entry){
+    const derived = leagueDerived();
+    const roster = derived.squadCards || [];
+    const currentBench = benchRosterEntry(roster);
+    const entrySlug = String(entry?.player_slug || '');
+    if (!currentBench && !isBenchEntry(entry)){
+      showFantasyToast('Sin suplente', 'Primero ficha un cuarto jugador para poder mover suplentes.', 'err');
+      return '';
+    }
+    if (!isBenchEntry(entry)){
+      const benchPlayer = playerForRosterRow(currentBench);
+      const entryPlayer = playerForRosterRow(entry);
+      const ok = window.confirm(`Pasar a ${entryPlayer.name || 'este jugador'} a suplente y activar a ${benchPlayer.name || 'el suplente'}?`);
+      return ok ? entrySlug : '';
+    }
+    const activeEntries = activeRosterEntries(roster);
+    if (!activeEntries.length) return '';
+    const lines = activeEntries.map((row, index) => {
+      const player = row.player || playerForRosterRow(row);
+      return `${index + 1}. ${player.name || row.player_name || row.player_slug}`;
+    });
+    const answer = window.prompt(`Que jugador activo pasa a suplente?\n${lines.join('\n')}`, '1');
+    if (answer == null) return '';
+    const pickIndex = Math.max(0, Number.parseInt(String(answer).trim(), 10) - 1);
+    const picked = activeEntries[pickIndex];
+    if (!picked){
+      showFantasyToast('Opcion invalida', 'No he podido identificar ese jugador activo.', 'err');
+      return '';
+    }
+    return String(picked.player_slug || '');
+  }
+
+  function openBenchSwapPicker(playerSlug){
+    const slug = String(playerSlug || '').trim();
+    if (!slug) return;
+    state.benchSwapSlug = slug;
+    state.modalPlayerSlug = slug;
+    state.modalSource = 'team';
+    state.modalPlayerTab = 'market';
+    renderPlayerModal();
+  }
+
+  async function setBenchPlayer(playerSlug, button){
+    if (!state.currentTeam) return;
+    const slug = String(playerSlug || '').trim();
+    if (!slug) return;
+    setActionBusy(button, true, 'Guardando');
+    state.benchActionInFlight = true;
+    try{
+      await withActionLock(async () => {
+        const { error } = await rpcWithTimeout('fantasy_vbf_set_bench_player', {
+          p_season: CURRENT_SEASON,
+          p_bench_player_slug: slug
+        }, 'guardar suplente fantasy');
+        if (error) throw error;
+        showPageMsg('Suplente actualizado.', 'ok');
+        showFantasyToast('Plantilla actualizada', 'El cambio de activo/suplente queda guardado.', 'ok');
+        await loadLeagueContext();
+        renderAll();
+      });
+    } catch (error){
+      if (isSchemaError(error)) markSchemaMissing(error);
+      showPageMsg(`No pude cambiar el suplente: ${error?.message || error}`, 'err');
+      showFantasyToast('No pude cambiar el suplente', error?.message || String(error || ''), 'err');
+    } finally {
+      state.benchActionInFlight = false;
       setActionBusy(button, false);
     }
   }
@@ -4828,7 +5040,7 @@
     }
     state.adminActionInFlight = true;
     renderAdminRoundControls();
-    setActionBusy(trigger, true, action === 'process' ? 'Procesando' : action === 'snapshot' ? 'Capturando' : action === 'unlock' ? 'Desbloqueando' : 'Bloqueando');
+    setActionBusy(trigger, true, action === 'process' ? 'Procesando' : action === 'snapshot' ? 'Capturando' : action === 'unlock' ? 'Desbloqueando' : action === 'economy-lock' ? 'Cerrando compraventa' : 'Bloqueando');
     try{
       const ensureSelectedRoundIsCurrent = async () => {
         const currentKey = String(state.seasonConfig?.current_round_key || state.currentRound?.key || '').trim();
@@ -4846,10 +5058,20 @@
           current_round_key: round.key,
           current_round_label: round.label || round.key,
           current_round_order: Number(round.order || 0),
-          is_open: false
+          is_open: false,
+          market_economy_locked: true
         };
       };
-      if (action === 'lock'){
+      if (action === 'economy-lock'){
+        const { error } = await rpcWithTimeout('fantasy_vbf_lock_market_economy', {
+          p_season: CURRENT_SEASON,
+          p_round_key: round.key,
+          p_round_label: round.label || round.key,
+          p_round_order: Number(round.order || 0)
+        }, 'bloquear compraventa fantasy', 12000);
+        if (error) throw error;
+        showFantasyToast('Compraventa bloqueada', 'Capitan y suplente siguen abiertos hasta el bloqueo de jornada.', 'ok');
+      } else if (action === 'lock'){
         const { error } = await rpcWithTimeout('fantasy_vbf_lock_round', {
           p_season: CURRENT_SEASON,
           p_round_key: round.key,
@@ -4857,13 +5079,13 @@
           p_round_order: Number(round.order || 0)
         }, 'bloquear jornada fantasy', 12000);
         if (error) throw error;
-        showFantasyToast('Jornada bloqueada', 'Mercado cerrado y jornada preparada.', 'ok');
+        showFantasyToast('Jornada bloqueada', 'Compraventa, capitan y suplente cerrados.', 'ok');
       } else if (action === 'unlock'){
         const { error } = await rpcWithTimeout('fantasy_vbf_unlock_round', {
           p_season: CURRENT_SEASON
         }, 'desbloquear jornada fantasy', 12000);
         if (error) throw error;
-        showFantasyToast('Jornada desbloqueada', 'Mercado abierto sin procesar puntos.', 'ok');
+        showFantasyToast('Todo desbloqueado', 'Compraventa, capitan y suplente vuelven a estar abiertos.', 'ok');
       } else if (action === 'snapshot'){
         await ensureSelectedRoundIsCurrent();
         const { error } = await rpcWithTimeout('fantasy_vbf_capture_current_round_snapshot', {
@@ -5207,6 +5429,20 @@
       void saveCaptain(captainTrigger.getAttribute('data-set-captain') || '', captainTrigger);
       return true;
     }
+    const openBenchSwapTrigger = event.target.closest('[data-open-bench-swap]');
+    if (openBenchSwapTrigger){
+      event.preventDefault();
+      event.stopPropagation();
+      openBenchSwapPicker(openBenchSwapTrigger.getAttribute('data-open-bench-swap') || '');
+      return true;
+    }
+    const benchTrigger = event.target.closest('[data-set-bench]');
+    if (benchTrigger){
+      event.preventDefault();
+      event.stopPropagation();
+      void setBenchPlayer(benchTrigger.getAttribute('data-set-bench') || '', benchTrigger);
+      return true;
+    }
     const sellTrigger = event.target.closest('[data-sell-confirm]');
     if (sellTrigger){
       event.preventDefault();
@@ -5307,6 +5543,23 @@
     const captainTrigger = event.target.closest('[data-set-captain]');
     if (captainTrigger){
       await saveCaptain(captainTrigger.getAttribute('data-set-captain') || '', captainTrigger);
+      return;
+    }
+    const swapTarget = event.target.closest('[data-bench-swap-target]');
+    if (swapTarget){
+      await setBenchPlayer(swapTarget.getAttribute('data-bench-swap-target') || '', swapTarget);
+      closePlayerModal();
+      return;
+    }
+    const openBenchSwapTrigger = event.target.closest('[data-open-bench-swap]');
+    if (openBenchSwapTrigger){
+      openBenchSwapPicker(openBenchSwapTrigger.getAttribute('data-open-bench-swap') || '');
+      return;
+    }
+    const benchTrigger = event.target.closest('[data-set-bench]');
+    if (benchTrigger){
+      await setBenchPlayer(benchTrigger.getAttribute('data-set-bench') || '', benchTrigger);
+      closePlayerModal();
       return;
     }
     const sellTrigger = event.target.closest('[data-sell-confirm]');

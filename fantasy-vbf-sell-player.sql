@@ -1,6 +1,9 @@
 -- Fantasy OP15 - manual player sales.
 -- Apply after fantasy-vbf-schema.sql and fantasy-vbf-market-rules.sql.
 
+alter table public.fantasy_vbf_seasons
+  add column if not exists market_economy_locked boolean not null default false;
+
 drop function if exists public.fantasy_vbf_sell_player(text, text, text, integer);
 drop function if exists public.fantasy_vbf_sell_player(text, text, text);
 
@@ -35,6 +38,7 @@ begin
 
   if not found then raise exception 'La temporada fantasy no existe.'; end if;
   if v_cfg.is_open is not true then raise exception 'El mercado fantasy esta cerrado.'; end if;
+  if coalesce(v_cfg.market_economy_locked, false) is true then raise exception 'La compraventa fantasy esta cerrada. Solo se pueden cambiar capitan y suplente.'; end if;
   if public.fantasy_vbf_market_is_open(now()) is not true then
     raise exception 'Mercado cerrado.';
   end if;
