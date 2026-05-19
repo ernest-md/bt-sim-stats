@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VadeFantasy - Ranking de equipos</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="app.css?v=20260514a" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260514a"></script>
+  <style>
+    :root{--bg:#09111f;--card:rgba(255,255,255,.94);--line:rgba(15,23,42,.1);--ink:#0f172a;--muted:#64748b;--shadow:0 18px 50px rgba(0,0,0,.34)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(1200px 800px at 8% 8%,rgba(37,99,235,.3),transparent 60%),radial-gradient(950px 700px at 92% 18%,rgba(220,38,38,.22),transparent 60%),linear-gradient(180deg,rgba(9,17,31,.34),rgba(9,17,31,.48)),url("VDF_BG.png");background-size:cover;background-position:center top;z-index:-1}
+    .brand{display:flex;flex-direction:column;align-items:center;color:#fff;font-weight:900;letter-spacing:.4px;margin-right:6px;line-height:1.1}
+    .wrap{max-width:1180px;margin:0 auto;padding:14px 14px 42px}
+    .hero,.card{border:1px solid rgba(255,255,255,.18);box-shadow:var(--shadow)}
+    .hero{border-radius:24px;padding:18px 16px;color:#fff;background:radial-gradient(780px 260px at 10% 10%,rgba(124,58,237,.58),transparent 60%),radial-gradient(760px 240px at 92% 18%,rgba(6,182,212,.42),transparent 60%),linear-gradient(135deg,rgba(15,23,42,.95),rgba(15,23,42,.74))}
+    .heroTop,.sectionHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .eyebrow{margin:0 0 6px;color:rgba(255,255,255,.72);font-size:12px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
+    .hero h1{margin:0;font-size:30px;font-weight:1000;line-height:1.02;letter-spacing:-.02em}
+    .hero p{margin:8px 0 0;color:rgba(255,255,255,.86);font-size:13px;line-height:1.48;max-width:78ch}
+    .heroStats,.pageGrid{display:grid;gap:10px}
+    .heroStats{margin-top:14px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .heroStat{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);border-radius:14px;padding:10px 12px}
+    .heroStat b{display:block;font-size:20px;font-weight:1000}
+    .heroStat span{font-size:12px;font-weight:800;color:rgba(255,255,255,.86)}
+    .pageGrid{grid-template-columns:1fr;margin-top:14px;align-items:start}
+    .card{background:var(--card);border-radius:22px;padding:14px;min-width:0}
+    .sectionHead h2{margin:0;font-size:18px;font-weight:1000;letter-spacing:-.02em}
+    .sectionHead p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+    .inlineMeta,.pillRow,.actionRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .inlineMeta:empty{display:none}
+    .pill{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:5px 10px;border-radius:999px;border:1px solid rgba(15,23,42,.1);background:rgba(15,23,42,.06);color:#0f172a;font-size:12px;font-weight:900;white-space:nowrap}
+    .pageMsg,.schemaNote,.empty{margin-top:12px;border-radius:16px;padding:12px 14px}
+    .pageMsg{display:none;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;font-size:13px;line-height:1.45;white-space:pre-line}
+    .pageMsg.ok{display:block;border-color:rgba(34,197,94,.24);background:rgba(34,197,94,.14);color:#dcfce7}
+    .pageMsg.err{display:block;border-color:rgba(239,68,68,.24);background:rgba(239,68,68,.14);color:#fee2e2}
+    .schemaNote{display:none;border:1px dashed rgba(251,191,36,.34);background:rgba(245,158,11,.12);color:#fef3c7;font-size:13px;line-height:1.45}
+    .schemaNote code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#fff7ed}
+    .empty{border:1px dashed rgba(15,23,42,.14);background:rgba(255,255,255,.54);color:#475569;font-size:14px;line-height:1.5}
+    .btn{appearance:none;border:1px solid rgba(15,23,42,.12);border-radius:12px;padding:10px 12px;background:#fff;color:#0f172a;font:inherit;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .14s ease}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:disabled{cursor:not-allowed;opacity:.58;transform:none}
+    .btnPrimary{background:linear-gradient(135deg,rgba(37,99,235,.96),rgba(14,165,233,.92));border-color:rgba(37,99,235,.2);color:#fff}
+    .btnGhost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#fff}
+    .standingsBoard{display:grid;gap:10px}
+    .standingRow{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid rgba(15,23,42,.08);border-radius:18px;padding:14px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.92))}
+    .standingRow.isMine{border-color:rgba(37,99,235,.22);box-shadow:0 12px 28px rgba(37,99,235,.08)}
+    .standingIdentity{display:grid;gap:8px;min-width:0}
+    .standingIdentityTop,.standingIdentityBottom{display:grid;gap:3px;min-width:0}
+    .standingIdentityTop strong,.standingIdentityBottom strong{display:block;color:#0f172a;font-size:14px;font-weight:1000;line-height:1.15}
+    .standingIdentityTop span,.standingIdentityBottom span{display:block;color:#64748b;font-size:11px;font-weight:900;letter-spacing:.04em}
+    .rankBadge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:38px;border-radius:999px;border:1px solid rgba(15,23,42,.08);background:rgba(226,232,240,.72);color:#0f172a;font-size:12px;font-weight:1000}
+    .rankBadge.top1{background:linear-gradient(135deg,#facc15,#f59e0b);border-color:rgba(245,158,11,.38);color:#111827}
+    .rankBadge.top2{background:linear-gradient(135deg,#e2e8f0,#94a3b8);border-color:rgba(148,163,184,.34);color:#0f172a}
+    .rankBadge.top3{background:linear-gradient(135deg,#fdba74,#c2410c);border-color:rgba(194,65,12,.28);color:#fff7ed}
+    .standingRoster{display:grid;grid-template-columns:repeat(3,minmax(82px,92px));gap:10px;justify-content:end}
+    .standingRosterCard{appearance:none;display:grid;gap:7px;padding:7px;border-radius:16px;border:1px solid rgba(15,23,42,.08);background:rgba(255,255,255,.94);min-width:0;text-align:left;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease}
+    .standingRosterCard:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(15,23,42,.12)}
+    .standingRosterCard.empty{cursor:default;border-style:dashed;background:rgba(248,250,252,.88);box-shadow:none}
+    .standingRosterVisual{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:linear-gradient(165deg,#334155,#0f172a)}
+    .standingRosterVisual img{width:100%;height:100%;object-fit:cover;object-position:center 12%}
+    .standingRosterVisual.empty{background:linear-gradient(165deg,rgba(226,232,240,.9),rgba(203,213,225,.65))}
+    .standingRosterShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,23,42,.04),rgba(15,23,42,.14) 52%,rgba(15,23,42,.82))}
+    .standingRosterName{display:block;color:#0f172a;font-size:11px;font-weight:1000;line-height:1.15;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .standingRow[data-open-team]{cursor:pointer}
+    .coinInline{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
+    .coinValue{display:inline-block;color:inherit;font-size:inherit;font-weight:1000;line-height:1}
+    .coinIcon{width:18px;height:18px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(15,23,42,.18))}
+    .playerCard{border:1px solid rgba(255,255,255,.58);border-radius:18px;padding:8px;background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.82));min-width:0;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .playerCard.isInteractive{cursor:pointer}
+    .frame-king{border-color:#7f1d1d;box-shadow:0 0 0 1px rgba(17,24,39,.85),inset 0 0 0 1px rgba(239,68,68,.65)}
+    .frame-yonkou{border-color:#d4a936;box-shadow:0 0 0 1px rgba(250,204,21,.62),inset 0 0 0 1px rgba(255,244,179,.68)}
+    .frame-shichibukai{border-color:#94a3b8;box-shadow:0 0 0 1px rgba(226,232,240,.82),inset 0 0 0 1px rgba(148,163,184,.72)}
+    .frame-supernova{border-color:#b87333;box-shadow:0 0 0 1px rgba(180,83,9,.62),inset 0 0 0 1px rgba(253,186,116,.58)}
+    .frame-piratilla{border-color:rgba(255,255,255,.72);box-shadow:inset 0 0 0 1px rgba(255,255,255,.52)}
+    .playerVisual{position:relative;width:100%;aspect-ratio:5/7;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.22);background:linear-gradient(160deg,#334155,#0f172a)}
+    .playerPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 10%}
+    .playerPhotoShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,23,42,.02),rgba(15,23,42,.06) 44%,rgba(15,23,42,.38) 66%,rgba(15,23,42,.94))}
+    .playerArtFallback{position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,23,42,.04),rgba(15,23,42,.12) 48%,rgba(15,23,42,.3) 68%,rgba(15,23,42,.82))}
+    .playerOverlay{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:10px 8px;pointer-events:none}
+    .playerOverlayBottom{display:grid;justify-items:center;gap:5px;width:100%;padding:0 4px 4px}
+    .overlayNamePlain{display:-webkit-box;max-width:96%;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:#fff;font-size:17px;font-weight:1000;line-height:.98;text-transform:uppercase;text-align:center;text-shadow:0 3px 12px rgba(0,0,0,.58);word-break:break-word}
+    .overlaySubtitle{max-width:96%;color:rgba(255,255,255,.92);font-size:10px;font-weight:900;line-height:1.12;text-align:center;text-transform:uppercase;letter-spacing:.04em;text-shadow:0 2px 10px rgba(0,0,0,.44)}
+    .modalWrap{position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:20px;overflow:auto}
+    .modalBackdrop{position:absolute;inset:0;background:rgba(9,17,31,.62);backdrop-filter:blur(8px)}
+    .modalCard,.confirmCard{position:relative;z-index:1;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,252,.96));box-shadow:0 30px 80px rgba(2,6,23,.42)}
+    .modalCard{width:min(940px,96vw);overflow:visible;border-radius:26px;padding:18px}
+    .confirmCard{width:min(420px,94vw);border-radius:22px;padding:18px}
+    .modalClose{position:absolute;top:14px;right:14px;z-index:2;min-width:40px;min-height:40px;border-radius:999px}
+    .modalGrid{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:18px;align-items:start}
+    .modalPanel{display:grid;gap:14px;min-width:0}
+    .modalEyebrow{color:#64748b;font-size:12px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
+    .modalTitle{margin:0;color:#0f172a;font-size:28px;font-weight:1000;line-height:1.02;text-transform:uppercase;word-break:break-word}
+    .modalSubtitle{color:#475569;font-size:13px;font-weight:900;line-height:1.3;text-transform:uppercase;letter-spacing:.04em}
+    .modalStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .modalStat,.ownerRow,.replaceOption{border:1px solid rgba(15,23,42,.08);border-radius:16px;background:rgba(248,250,252,.92)}
+    .modalStat{padding:12px}
+    .modalStat span,.confirmPickerLabel{display:block;color:#64748b;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .modalStat strong{display:block;margin-top:6px;color:#0f172a;font-size:22px;font-weight:1000;line-height:1.02}
+    .ownerList,.replaceGrid,.confirmBody{display:grid;gap:8px}
+    .ownerRow,.replaceOption{display:flex;align-items:center;gap:10px;padding:10px 12px}
+    .confirmCard h3{margin:0;color:#0f172a;font-size:22px;font-weight:1000;line-height:1.04}
+    .confirmCard p{margin:10px 0 0;color:#475569;font-size:14px;line-height:1.45}
+    .confirmBody{margin-top:12px}
+    .confirmActions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap}
+    .hidden{display:none!important}
+    .loadingOverlay{position:fixed;inset:0;display:grid;place-items:center;padding:20px;background:rgba(9,17,31,.44);backdrop-filter:blur(6px);z-index:120}
+    .loadingCard{display:flex;align-items:center;gap:14px;min-width:min(92vw,420px);padding:16px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.18);background:rgba(15,23,42,.9);box-shadow:var(--shadow);color:#fff}
+    .loadingSpinner{width:40px;height:40px;border-radius:999px;border:3px solid rgba(255,255,255,.18);border-top-color:#60a5fa;animation:spin .8s linear infinite;flex:0 0 auto}
+    .loadingText strong{display:block;font-size:15px;font-weight:1000}
+    .loadingText span{display:block;margin-top:4px;color:rgba(255,255,255,.78);font-size:13px;line-height:1.45}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:820px){.wrap{padding:12px}.hero h1{font-size:26px}.heroStats,.modalStats{grid-template-columns:1fr}.modalGrid{grid-template-columns:1fr}.standingRow{grid-template-columns:1fr;gap:10px}.standingRoster{justify-content:start}}
+    @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats{grid-template-columns:1fr 1fr}.loadingCard{padding:14px 16px;border-radius:18px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRoster{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  </style>
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260519g" />
+  <style>
+    body[data-fantasy-view="ranking"] .wrap{max-width:1180px}
+    body[data-fantasy-view="ranking"] .rankingBoardCard{overflow:visible}
+    body[data-fantasy-view="ranking"] .standingRow{
+      grid-template-columns:52px minmax(0,1fr) minmax(210px,auto);
+      gap:14px;
+      min-height:112px;
+      padding:14px 16px;
+      border-radius:18px;
+    }
+    body[data-fantasy-view="ranking"] .rankBadge{
+      min-width:38px;
+      width:38px;
+      height:38px;
+      font-size:12px;
+    }
+    body[data-fantasy-view="ranking"] .standingIdentity{
+      grid-template-columns:minmax(0,1fr) minmax(132px,auto);
+      grid-template-areas:"title week" "coach week";
+      gap:6px 14px;
+    }
+    body[data-fantasy-view="ranking"] .standingIdentityTop strong{font-size:18px}
+    body[data-fantasy-view="ranking"] .standingIdentityBottom strong{font-size:13px}
+    body[data-fantasy-view="ranking"] .standingRoster{
+      grid-template-columns:repeat(3,64px);
+      gap:9px;
+    }
+    body[data-fantasy-view="ranking"] .standingRow .standingRosterCard{
+      padding:5px;
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:14px;
+      background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(243,247,252,.94));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.75);
+    }
+    body[data-fantasy-view="ranking"] .standingRow .standingRosterCard:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 24px rgba(15,23,42,.12),inset 0 1px 0 rgba(255,255,255,.75);
+    }
+    body[data-fantasy-view="ranking"] .standingRow .standingRosterVisual{
+      width:58px;
+      height:58px;
+      border-radius:12px;
+    }
+    body[data-fantasy-view="ranking"] .standingRow .standingRosterName{
+      max-width:64px;
+      font-size:10px;
+      line-height:1.08;
+    }
+    body[data-fantasy-view="ranking"] .standingWeekBar{
+      min-width:126px;
+      max-width:148px;
+    }
+    @media (max-width:760px){
+      body[data-fantasy-view="ranking"] .standingRow{grid-template-columns:1fr}
+      body[data-fantasy-view="ranking"] .standingIdentity{grid-template-columns:1fr;grid-template-areas:"title" "coach" "week"}
+      body[data-fantasy-view="ranking"] .standingWeekBar{justify-self:start}
+      body[data-fantasy-view="ranking"] .standingRoster{grid-template-columns:repeat(3,58px);justify-content:start}
+      body[data-fantasy-view="ranking"] .standingRow .standingRosterVisual{width:52px;height:52px}
+    }
+  </style>
+</head>
+<body data-requires-fantasy="1" data-fantasy-view="ranking">
+  <div class="topbar">
+    <div class="bar with-auth-corner">
+      <nav class="vdfTopNav" aria-label="Navegacion principal VaDeFantasy">
+        <a class="vdfTopNavLink" href="fantasy.html">Liga</a>
+        <a class="vdfTopNavLink is-current" href="fantasy-ranking.html" aria-current="page">Ranking equipos</a>
+        <a class="vdfTopNavLink" href="fantasy-team.html">Plantilla</a>
+        <a class="vdfTopNavLink" href="fantasy-market.html">Mercado</a>
+        <a class="vdfTopNavLink" href="fantasy-attendance.html" data-privileged-only="1" style="display:none">Asistencia</a>
+        <a class="vdfTopNavLink" href="vade-back-fight.html" data-privileged-only="1" style="display:none">Ranking VBF</a>
+      </nav>
+      <a class="brandLink vdfBrandLink" href="fantasy.html" aria-label="Ir a VaDeFantasy">
+        <div class="brand">
+          <img class="brandLogo" src="VDF.png" alt="VaDeFantasy" />
+        </div>
+      </a>
+      <a class="vdfOriginalLink" href="index.html" aria-label="Volver a Barateam"><img src="favicon.ico" alt="" /> Barateam</a>
+    </div>
+  </div>
+  <div class="authCorner">
+    <a class="btn" id="navLogin" href="login.html">&#128274; Login</a>
+    <div class="userwrap" id="navUser" style="display:none;">
+      <button class="btn userbtn" id="userBtn" type="button">
+        <img id="navAvatarImg" class="navAvatarImg" alt="avatar" />
+        <span id="navAvatarFallback" class="navAvatarFallback">?</span>
+        <span id="userLabel" style="display:none;">Usuario</span>
+        <span class="chev">v</span>
+      </button>
+      <div class="menu" id="userMenu">
+        <div class="head"><strong id="userEmail">-</strong><span>Sesion iniciada</span></div>
+        <a href="profile.html">Configurar perfil</a>
+        <a href="user.html" id="publicProfileLink" style="display:none;">Ver perfil</a>
+        <div class="sep"></div>
+        <button class="danger" id="menuLogout" type="button">Cerrar sesion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loadingOverlay hidden" id="loadingOverlay" aria-live="polite" aria-busy="true">
+    <div class="loadingCard">
+      <div class="loadingSpinner" aria-hidden="true"></div>
+      <div class="loadingText">
+        <strong>Cargando ranking...</strong>
+        <span id="loadingLabel">Estamos refrescando equipos, jugadores y jornada.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modalWrap hidden" id="playerModalWrap" aria-hidden="true">
+    <div class="modalBackdrop" data-close-player-modal="1"></div>
+    <div class="modalCard">
+      <button class="btn modalClose" id="playerModalClose" type="button" aria-label="Cerrar ficha">&#10005;</button>
+      <div class="modalGrid" id="playerModalBody"></div>
+    </div>
+  </div>
+  <div class="modalWrap hidden" id="teamModalWrap" aria-hidden="true">
+    <div class="modalBackdrop" data-close-team-modal="1"></div>
+    <div class="modalCard">
+      <button class="btn modalClose" id="teamModalClose" type="button" aria-label="Cerrar manager">&#10005;</button>
+      <div id="teamModalBody"></div>
+    </div>
+  </div>
+  <div class="modalWrap hidden" id="buyConfirmWrap" aria-hidden="true">
+    <div class="modalBackdrop" data-close-buy-confirm="1"></div>
+    <div class="confirmCard">
+      <h3 id="buyConfirmTitle">Confirmar compra</h3>
+      <p id="buyConfirmText"></p>
+      <div class="confirmBody" id="buyConfirmBody"></div>
+      <div class="confirmActions">
+        <button class="btn" id="buyConfirmCancel" type="button">Cancelar</button>
+        <button class="btn btnPrimary" id="buyConfirmAccept" type="button">Comprar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero">
+      <div class="heroTop">
+        <div>
+          <div class="eyebrow">VadeFantasy OP15</div>
+          <h1>Ranking de equipos</h1>
+          <p>Clasificacion fantasy por puntos acumulados, con la ultima jornada y las berries ganadas visibles en cada equipo.</p>
+        </div>
+        <div class="pillRow">
+          <a class="btn btnGhost" href="fantasy.html">Volver a liga</a>
+          <a class="btn btnGhost" href="fantasy-team.html">Mi plantilla</a>
+          <button class="btn btnPrimary" id="reloadPlayersButton" type="button">Refrescar datos</button>
+        </div>
+      </div>
+      <div class="heroStats">
+        <div class="heroStat"><b id="statPlayers">-</b><span>Jugadores monitorizados</span></div>
+        <div class="heroStat"><b id="statTeams">-</b><span>Managers activos</span></div>
+        <div class="heroStat"><b id="statCurrentRound">-</b><span>Jornada fantasy</span></div>
+      </div>
+      <div class="pageMsg" id="pageMsg"></div>
+      <div class="schemaNote" id="schemaNote"></div>
+    </section>
+
+    <div class="pageGrid rankingOnly">
+      <section class="card rankingBoardCard">
+        <div class="sectionHead">
+          <div>
+            <h2>Clasificacion de equipos</h2>
+            <p>Ordenada por puntos acumulados. Pulsa un equipo para abrir su resumen y ver que jugadores estan aportando.</p>
+          </div>
+          <div class="inlineMeta"><span class="pill hidden" id="standingsMeta"></span></div>
+        </div>
+        <div class="empty" id="standingsEmpty">Todavia no hay equipos inscritos en la liga fantasy.</div>
+        <div class="standingsBoard hidden" id="standingsBoard"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="fantasy-player-portraits.js?v=20260504a"></script>
+  <script src="fantasy.js?v=20260519a"></script>
+</body>
+</html>

@@ -3870,6 +3870,9 @@
       closeTeamModal();
       return;
     }
+    const modalRankIndex = derived.standings.slice().sort(compareStandingsForPage).findIndex((row) => String(row.id) === String(team.id));
+    const modalRank = modalRankIndex >= 0 ? modalRankIndex + 1 : (team.rank || 0);
+    const modalRankLabel = standingRankLabel();
     const squadSize = config().squadSize;
     const slots = Array.from({ length: squadSize }, (_, index) => team.players[index] || null);
     const closedRound = latestClosedRound();
@@ -3912,7 +3915,7 @@
           <div class="modalSubtitle">${escapeHtml(team.coachName || 'Manager')} · ${formatPointsLabel(team.generalPoints)} acumulados</div>
         </div>
         <div class="teamModalScoreStrip" aria-label="Resumen semanal del equipo">
-          <div class="teamModalScoreItem"><small>Semana</small><strong>#${intFmt.format(team.displayRank || team.rank || 0)}</strong></div>
+          <div class="teamModalScoreItem"><small>${escapeHtml(modalRankLabel)}</small><strong>#${intFmt.format(modalRank || 0)}</strong></div>
           <div class="teamModalScoreItem"><small>Jornada</small><strong>${formatPointsLabel(team.weeklyPoints)}</strong></div>
           <div class="teamModalScoreItem"><small>Premio</small><strong>${renderCoinInline(team.rewardCoins || 0, false)}</strong></div>
           <div class="teamModalScoreItem"><small>Roster</small><strong>${filledCount}/${squadSize}</strong></div>
@@ -4337,6 +4340,27 @@
     host.innerHTML = items.map(([value, label]) => `<button class="marketFilterChip ${String(state.marketFilter || 'all') === value ? 'active' : ''}" type="button" data-market-filter="${escapeAttr(value)}">${escapeHtml(label)}</button>`).join('');
   }
 
+  function compareStandingsForPage(a, b){
+    if (PAGE_VIEW === 'ranking' || PAGE_VIEW === 'standings'){
+      return (b.generalPoints || 0) - (a.generalPoints || 0)
+        || (b.weeklyPoints || 0) - (a.weeklyPoints || 0)
+        || collator.compare(a.teamName, b.teamName);
+    }
+    if (PAGE_VIEW === 'overview'){
+      return (b.rewardCoins || 0) - (a.rewardCoins || 0)
+        || (b.weeklyPoints || 0) - (a.weeklyPoints || 0)
+        || (b.generalPoints || 0) - (a.generalPoints || 0)
+        || collator.compare(a.teamName, b.teamName);
+    }
+    return (b.weeklyPoints || 0) - (a.weeklyPoints || 0)
+      || (b.generalPoints || 0) - (a.generalPoints || 0)
+      || collator.compare(a.teamName, b.teamName);
+  }
+
+  function standingRankLabel(){
+    return (PAGE_VIEW === 'ranking' || PAGE_VIEW === 'standings') ? 'General' : 'Semana';
+  }
+
   function renderStandings(){
     const wrap = $('standingsBoard');
     const empty = $('standingsEmpty');
@@ -4348,17 +4372,7 @@
     if (meta.parentElement) meta.parentElement.classList.add('hidden');
     if (!derived.standings.length){ wrap.classList.add('hidden'); empty.classList.remove('hidden'); empty.textContent = 'Todavia no hay equipos inscritos en el fantasy.'; return; }
     empty.classList.add('hidden');
-    const standings = derived.standings.slice().sort((a, b) => {
-      if (PAGE_VIEW === 'overview'){
-        return (b.rewardCoins || 0) - (a.rewardCoins || 0)
-          || (b.weeklyPoints || 0) - (a.weeklyPoints || 0)
-          || (b.generalPoints || 0) - (a.generalPoints || 0)
-          || collator.compare(a.teamName, b.teamName);
-      }
-      return (b.weeklyPoints || 0) - (a.weeklyPoints || 0)
-        || (b.generalPoints || 0) - (a.generalPoints || 0)
-        || collator.compare(a.teamName, b.teamName);
-    }).map((row, index) => ({ ...row, displayRank: index + 1 }));
+    const standings = derived.standings.slice().sort(compareStandingsForPage).map((row, index) => ({ ...row, displayRank: index + 1 }));
     wrap.classList.remove('hidden');
     wrap.innerHTML = standings.map((row) => {
       const mine = state.currentUser && String(row.userId) === String(state.currentUser.id);

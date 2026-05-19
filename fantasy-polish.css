@@ -6623,3 +6623,587 @@ body[data-fantasy-view="attendance"] .attendanceOnly{
     grid-row:1;
   }
 }
+
+/* Mobile app polish: scoped below tablet widths so desktop remains unchanged */
+@media (max-width:760px){
+  body[data-fantasy-view],
+  body[data-fantasy-view] *,
+  body[data-fantasy-view] *::before,
+  body[data-fantasy-view] *::after{
+    box-sizing:border-box;
+  }
+
+  body[data-fantasy-view]{
+    overflow-x:hidden;
+  }
+
+  body[data-fantasy-view] .topbar{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+    padding:6px max(8px, env(safe-area-inset-right)) 7px max(8px, env(safe-area-inset-left));
+    backdrop-filter:blur(18px);
+  }
+
+  body[data-fantasy-view] .bar.with-auth-corner{
+    min-height:0;
+    gap:6px;
+    padding:0;
+  }
+
+  body[data-fantasy-view] .vdfBrandLink{
+    width:100%;
+    padding:0 46px;
+    box-sizing:border-box;
+  }
+
+  body[data-fantasy-view] .vdfBrandLink .brandLogo{
+    height:44px;
+    max-width:154px;
+  }
+
+  body[data-fantasy-view] .vdfTopNav{
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:6px;
+    width:100%;
+    margin:2px 0 0;
+    padding:2px 8px 5px;
+    overflow:visible;
+    scroll-snap-type:none;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+
+  body[data-fantasy-view] .vdfTopNav::-webkit-scrollbar{
+    display:none;
+  }
+
+  body[data-fantasy-view] .vdfTopNavLink{
+    flex:0 0 auto;
+    scroll-snap-align:start;
+    min-height:34px;
+    padding:7px 10px;
+    border-radius:999px;
+    font-size:12px;
+  }
+
+  body[data-fantasy-view] .vdfOriginalLink{
+    display:none;
+  }
+
+  body[data-fantasy-view] .authCorner{
+    top:7px;
+    right:max(8px, env(safe-area-inset-right));
+  }
+
+  body[data-fantasy-view] .authCorner .btn,
+  body[data-fantasy-view] .authCorner .userbtn{
+    min-width:38px;
+    width:38px;
+    min-height:38px;
+    height:38px;
+    padding:4px 8px;
+    border-radius:12px;
+    overflow:hidden;
+  }
+
+  body[data-fantasy-view] .authCorner #navLogin{
+    font-size:0;
+  }
+
+  body[data-fantasy-view] .authCorner #navLogin::before{
+    content:"Login";
+    color:currentColor;
+    font-size:10px;
+    font-weight:1000;
+    line-height:1;
+  }
+
+  body[data-fantasy-view] .wrap{
+    gap:12px;
+    width:auto;
+    max-width:100%;
+    margin:0;
+    box-sizing:border-box;
+    overflow-x:hidden;
+    padding:10px max(10px, env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+
+  body[data-fantasy-view] .wrap,
+  body[data-fantasy-view] .hero,
+  body[data-fantasy-view] .heroTop,
+  body[data-fantasy-view] .heroTop > *,
+  body[data-fantasy-view] .hero .pillRow,
+  body[data-fantasy-view] .hero .pillRow > *,
+  body[data-fantasy-view] .heroStats,
+  body[data-fantasy-view] .heroStat,
+  body[data-fantasy-view] .pageGrid,
+  body[data-fantasy-view] .stack,
+  body[data-fantasy-view] .card,
+  body[data-fantasy-view] .sectionHead,
+  body[data-fantasy-view] .sectionHead > *,
+  body[data-fantasy-view] .subPanel,
+  body[data-fantasy-view] .factGrid,
+  body[data-fantasy-view] .factProduct,
+  body[data-fantasy-view] .marketControlDock{
+    min-width:0;
+    max-width:100%;
+  }
+
+  body[data-fantasy-view] .hero{
+    min-height:0;
+    gap:12px;
+    padding:16px 14px;
+    border-radius:12px;
+    background-position:center 42%;
+  }
+
+  body[data-fantasy-view] .heroTop{
+    display:grid;
+    gap:12px;
+  }
+
+  body[data-fantasy-view] .hero h1{
+    font-size:26px;
+    line-height:1.04;
+  }
+
+  body[data-fantasy-view] .hero p{
+    max-width:100% !important;
+    font-size:13px;
+    line-height:1.45;
+    overflow-wrap:break-word;
+    word-break:normal;
+  }
+
+  body[data-fantasy-view] .hero .pillRow{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:8px;
+    width:100%;
+    max-width:100%;
+    justify-content:stretch;
+  }
+
+  body[data-fantasy-view] .hero .pillRow .btn,
+  body[data-fantasy-view] .hero .pillRow a{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    min-height:38px;
+    padding:8px 9px;
+    font-size:12px;
+    white-space:normal;
+    line-height:1.12;
+    text-align:center;
+  }
+
+  body[data-fantasy-view] .btnInfo{
+    min-width:0;
+  }
+
+  body[data-fantasy-view="attendance"] .heroStats{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+  }
+
+  body[data-fantasy-view="attendance"] .heroStat{
+    min-height:58px;
+    padding:8px 7px;
+    gap:4px;
+  }
+
+  body[data-fantasy-view="attendance"] .heroStat b{
+    font-size:19px;
+  }
+
+  body[data-fantasy-view="attendance"] .heroStat span{
+    font-size:9px;
+    line-height:1.12;
+    overflow-wrap:anywhere;
+  }
+
+  body[data-fantasy-view] .pageGrid,
+  body[data-fantasy-view] .stack{
+    gap:12px;
+  }
+
+  body[data-fantasy-view] .card{
+    padding:14px;
+    border-radius:10px;
+  }
+
+  body[data-fantasy-view] .card *,
+  body[data-fantasy-view] .subPanel *,
+  body[data-fantasy-view] .empty{
+    min-width:0;
+  }
+
+  body[data-fantasy-view] .card p,
+  body[data-fantasy-view] .subPanel p,
+  body[data-fantasy-view] .empty{
+    overflow-wrap:break-word;
+    word-break:normal;
+  }
+
+  body[data-fantasy-view] .sectionHead,
+  body[data-fantasy-view] .teamRosterHead,
+  body[data-fantasy-view] .managerConsoleHead{
+    display:grid;
+    gap:10px;
+    padding-bottom:10px;
+  }
+
+  body[data-fantasy-view] .sectionHead h2,
+  body[data-fantasy-view] .teamRosterHead h3{
+    font-size:19px;
+  }
+
+  body[data-fantasy-view] .sectionHead p,
+  body[data-fantasy-view] .teamRosterHead p{
+    font-size:12px;
+    line-height:1.42;
+    overflow-wrap:break-word;
+    word-break:normal;
+  }
+
+  body[data-fantasy-view] .inlineMeta,
+  body[data-fantasy-view] #teamSummary{
+    width:100%;
+    gap:6px;
+  }
+
+  body[data-fantasy-view] .pill,
+  body[data-fantasy-view] .utilityChip{
+    min-height:28px;
+    padding:5px 9px;
+    font-size:11px;
+  }
+
+  body[data-fantasy-view] .factGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+
+  body[data-fantasy-view] .factProduct{
+    min-height:104px;
+    padding:10px;
+  }
+
+  body[data-fantasy-view] .factProduct strong{
+    font-size:18px;
+  }
+
+  body[data-fantasy-view="overview"] .pulseGrid,
+  body[data-fantasy-view="overview"] .overviewList{
+    grid-template-columns:1fr;
+    gap:9px;
+  }
+
+  body[data-fantasy-view="team"] .teamStateStrip{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+
+  body[data-fantasy-view="team"] .teamStateChip,
+  body[data-fantasy-view="team"] .teamStateChip.isCoins{
+    min-width:0;
+  }
+
+  body[data-fantasy-view="team"] #squadGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px;
+  }
+
+  body[data-fantasy-view="team"] #squadGrid .squadCard{
+    padding:8px;
+  }
+
+  body[data-fantasy-view] .rosterTableRow{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding:10px;
+  }
+
+  body[data-fantasy-view] .rosterTablePlayer,
+  body[data-fantasy-view] .rosterTableRow .compactActions{
+    grid-column:1 / -1;
+  }
+
+  body[data-fantasy-view] .rosterTableMetric{
+    min-height:48px;
+    padding:8px;
+  }
+
+  .managerPanelTabs,
+  .playerModalTabs{
+    width:100%;
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    padding:5px;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .managerPanelTabs button,
+  .playerModalTabs button{
+    flex:1 0 auto;
+    min-height:36px;
+    padding:7px 10px;
+    font-size:12px;
+  }
+
+  body[data-fantasy-view="market"] .marketControlDock{
+    top:92px;
+    gap:8px;
+    margin-bottom:12px;
+    padding:8px;
+  }
+
+  body[data-fantasy-view] .marketFilters,
+  .marketControlDock .marketFilters,
+  .attendanceToolbar{
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+
+  body[data-fantasy-view] .control input,
+  body[data-fantasy-view] .control select{
+    min-height:42px;
+    font-size:16px;
+    border-radius:10px;
+  }
+
+  .marketQuickFilters{
+    display:flex;
+    flex-wrap:nowrap;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:2px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+
+  .marketQuickFilters::-webkit-scrollbar{
+    display:none;
+  }
+
+  .marketQuickFilters button{
+    flex:0 0 auto;
+  }
+
+  body[data-fantasy-view="market"] #marketGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px;
+  }
+
+  body[data-fantasy-view] .marketCardMinimal{
+    gap:7px;
+    padding:7px;
+    grid-template-rows:auto 28px 38px;
+  }
+
+  body[data-fantasy-view] .marketCardMinimal .playerVisual{
+    aspect-ratio:5/6.85;
+  }
+
+  body[data-fantasy-view] .marketCardAvailability{
+    min-height:28px;
+    padding:5px 6px;
+    font-size:10px;
+  }
+
+  body[data-fantasy-view] .marketCardMinimal .buyFullBtn{
+    min-height:38px;
+    padding:7px 6px;
+    font-size:11px;
+  }
+
+  body[data-fantasy-view] .standingRow,
+  body[data-fantasy-view="ranking"] .standingRow{
+    grid-template-columns:34px minmax(0,1fr) !important;
+    gap:9px !important;
+    padding:10px 10px 10px 12px !important;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view] .standingIdentity,
+  body[data-fantasy-view="ranking"] .standingIdentity{
+    grid-template-columns:1fr !important;
+    grid-template-areas:"title" "coach" "week" !important;
+    gap:5px !important;
+  }
+
+  body[data-fantasy-view] .standingIdentityTop,
+  body[data-fantasy-view] .standingIdentityBottom{
+    min-width:0;
+  }
+
+  body[data-fantasy-view] .standingIdentityTop strong,
+  body[data-fantasy-view="ranking"] .standingIdentityTop strong{
+    font-size:15px !important;
+  }
+
+  body[data-fantasy-view] .standingWeekBar,
+  body[data-fantasy-view="ranking"] .standingWeekBar{
+    justify-self:start !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    width:auto;
+  }
+
+  body[data-fantasy-view] .standingRoster,
+  body[data-fantasy-view="overview"] .standingRoster,
+  body[data-fantasy-view="ranking"] .standingRoster{
+    grid-column:1 / -1;
+    grid-template-columns:repeat(3,46px) !important;
+    justify-content:start !important;
+    gap:7px !important;
+  }
+
+  body[data-fantasy-view] .standingRow .standingRosterVisual,
+  body[data-fantasy-view="ranking"] .standingRow .standingRosterVisual{
+    width:42px !important;
+    height:42px !important;
+  }
+
+  body[data-fantasy-view] .standingRow .standingRosterName,
+  body[data-fantasy-view="ranking"] .standingRow .standingRosterName{
+    max-width:46px !important;
+    font-size:9px !important;
+  }
+
+  body[data-fantasy-view] .modalWrap{
+    align-items:end;
+    padding:0;
+  }
+
+  body[data-fantasy-view] .modalCard,
+  body[data-fantasy-view] .confirmCard{
+    width:100%;
+    max-width:100%;
+    max-height:calc(100vh - 10px);
+    max-height:calc(100dvh - 10px);
+    border-radius:16px 16px 0 0;
+    padding:14px;
+  }
+
+  body[data-fantasy-view] .modalClose{
+    top:10px;
+    right:10px;
+    min-width:38px;
+    min-height:38px;
+  }
+
+  body[data-fantasy-view] .modalGrid{
+    grid-template-columns:1fr;
+    gap:12px;
+    padding-right:0;
+  }
+
+  body[data-fantasy-view] .modalVisual{
+    justify-items:center;
+  }
+
+  body[data-fantasy-view] .modalVisual > .playerCard{
+    width:min(230px,72vw);
+  }
+
+  body[data-fantasy-view] .modalTitle{
+    padding-right:42px;
+    font-size:22px;
+  }
+
+  body[data-fantasy-view] .modalStats,
+  .teamModalScoreStrip,
+  .teamModalIntelGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+
+  .teamModalHeroCompact{
+    display:grid;
+    gap:10px;
+    padding:0 46px 10px 0;
+    align-items:start;
+  }
+
+  .teamModalCompactGrid,
+  .fantasyInfoGrid,
+  .fantasyInfoTables{
+    grid-template-columns:1fr;
+  }
+
+  .attendanceList{
+    gap:8px;
+  }
+
+  .attendanceRow{
+    grid-template-columns:minmax(0,1fr) 48px;
+    gap:9px;
+    min-height:68px;
+    padding:9px;
+    border-radius:12px;
+  }
+
+  .attendanceAvatar{
+    width:46px;
+    height:46px;
+    flex-basis:46px;
+    border-radius:12px;
+  }
+
+  .attendanceCopy strong{
+    font-size:14px;
+  }
+
+  .attendanceCopy span{
+    font-size:11px;
+  }
+
+  .attendanceStatePill{
+    grid-column:1 / -1;
+    justify-self:start;
+    min-height:27px;
+    min-width:0;
+    font-size:10px;
+  }
+
+  .attendanceToggle span{
+    width:44px;
+    height:32px;
+  }
+
+  .fantasyToastHost{
+    right:10px;
+    bottom:calc(10px + env(safe-area-inset-bottom));
+    width:calc(100% - 20px);
+  }
+}
+
+@media (max-width:420px){
+  body[data-fantasy-view] .hero .pillRow{
+    grid-template-columns:1fr;
+  }
+
+  body[data-fantasy-view] .factGrid,
+  body[data-fantasy-view="team"] .teamStateStrip{
+    grid-template-columns:1fr;
+  }
+
+  body[data-fantasy-view="team"] #squadGrid{
+    grid-template-columns:1fr;
+  }
+
+  body[data-fantasy-view="market"] #marketGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  body[data-fantasy-view] .modalStats,
+  .teamModalScoreStrip,
+  .teamModalIntelGrid{
+    grid-template-columns:1fr;
+  }
+}
