@@ -40,15 +40,17 @@
     .control span{display:block;color:#64748b;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
     .control input,.control select{width:100%;min-width:0;border:1px solid rgba(15,23,42,.12);border-radius:12px;padding:10px 12px;background:#fff;color:#0f172a;font:inherit;outline:none}
     .attendanceToolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(160px,220px);gap:10px;margin-top:14px}
+    .hidden{display:none!important}
     @media (max-width:720px){.heroStats,.attendanceToolbar{grid-template-columns:1fr}.wrap{padding:10px}}
   </style>
-  <link rel="stylesheet" href="fantasy-polish.css?v=20260514i" />
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260519g" />
 </head>
 <body data-requires-fantasy="1" data-requires-privileged="1" data-fantasy-view="attendance">
   <div class="topbar">
     <div class="bar with-auth-corner">
       <nav class="vdfTopNav" aria-label="Navegacion principal VaDeFantasy">
         <a class="vdfTopNavLink" href="fantasy.html">Liga</a>
+        <a class="vdfTopNavLink" href="fantasy-ranking.html">Ranking equipos</a>
         <a class="vdfTopNavLink" href="fantasy-team.html">Plantilla</a>
         <a class="vdfTopNavLink" href="fantasy-market.html">Mercado</a>
         <a class="vdfTopNavLink is-current" href="fantasy-attendance.html" aria-current="page">Asistencia</a>
@@ -133,6 +135,6 @@
   </div>
 
   <script src="fantasy-player-portraits.js?v=20260504a"></script>
-  <script src="fantasy.js?v=20260514i"></script>
+  <script src="fantasy.js?v=20260519a"></script>
 </body>
 </html>

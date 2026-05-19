@@ -267,13 +267,14 @@
     @media (max-width:560px){.wrap{padding:10px}.hero{padding:16px 14px;border-radius:20px}.card{border-radius:18px;padding:12px}.heroStats,.factGrid,.playerGrid{grid-template-columns:1fr 1fr}.actionRow .btn{flex:1 1 calc(50% - 4px)}.loadingCard{padding:14px 16px;border-radius:18px}.overlayNamePlain{font-size:15px}.overlaySubtitle{font-size:9px}.modalCard{padding:14px}.modalTitle{font-size:22px}.standingRow{grid-template-columns:1fr}.standingRoster{grid-template-columns:repeat(3,minmax(0,1fr))}#squadGrid{grid-template-columns:1fr}}
     @media (max-width:420px){.playerGrid{grid-template-columns:1fr}}
   </style>
-  <link rel="stylesheet" href="fantasy-polish.css?v=20260514i" />
+  <link rel="stylesheet" href="fantasy-polish.css?v=20260519g" />
 </head>
 <body data-requires-fantasy="1" data-fantasy-view="overview">
   <div class="topbar">
     <div class="bar with-auth-corner">
       <nav class="vdfTopNav" aria-label="Navegacion principal VaDeFantasy">
         <a class="vdfTopNavLink is-current" href="fantasy.html" aria-current="page">Liga</a>
+        <a class="vdfTopNavLink" href="fantasy-ranking.html">Ranking equipos</a>
         <a class="vdfTopNavLink" href="fantasy-team.html">Plantilla</a>
         <a class="vdfTopNavLink" href="fantasy-market.html">Mercado</a>
         <a class="vdfTopNavLink" href="fantasy-attendance.html" data-privileged-only="1" style="display:none">Asistencia</a>
@@ -360,10 +361,11 @@
         <div>
           <div class="eyebrow">VadeFantasy OP15</div>
           <h1>Cuadro de mando fantasy</h1>
-          <p>Controla la liga, los managers en racha y los jugadores que estan moviendo el mercado de Vade Back Fight.</p>
+          <p>Controla el estado de la liga, el pulso de jornada y los jugadores que estan moviendo el mercado de Vade Back Fight.</p>
         </div>
         <div class="pillRow">
           <button class="btn btnInfo" id="openFantasyInfoButton" type="button">INFORMACI&Oacute;N</button>
+          <a class="btn btnGhost" href="fantasy-ranking.html">Ranking equipos</a>
           <a class="btn btnGhost" href="vade-back-fight.html">Ver VBF</a>
           <button class="btn btnPrimary" id="reloadPlayersButton" type="button">Refrescar datos</button>
         </div>
@@ -402,17 +404,6 @@
           <div class="helper" id="authHint">Necesitas sesion para crear tu equipo, recibir tu starter pack y entrar al mercado.</div>
         </section>
 
-        <section class="card">
-          <div class="sectionHead">
-            <div>
-                <h2>Managers de la semana</h2>
-                <p>Ordenados por berries ganados en la jornada cerrada del sabado. Desde aqui puedes entrar a sus jugadores y buscar clausulazos.</p>
-            </div>
-            <div class="inlineMeta"><span class="pill hidden" id="standingsMeta"></span></div>
-          </div>
-          <div class="empty" id="standingsEmpty">Todavia no hay equipos inscritos en la liga fantasy.</div>
-          <div class="standingsBoard hidden" id="standingsBoard"></div>
-        </section>
       </div>
 
       <div class="stack">
@@ -447,6 +438,6 @@
     </div>
   </div>
   <script src="fantasy-player-portraits.js?v=20260504a"></script>
-  <script src="fantasy.js?v=20260514i"></script>
+  <script src="fantasy.js?v=20260519a"></script>
 </body>
 </html>
