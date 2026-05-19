@@ -61,7 +61,23 @@ returns boolean
 language sql
 stable
 as $$
-  select extract(isodow from timezone('Europe/Madrid', coalesce(p_now, now())))::integer not in (6, 7)
+  with local_now as (
+    select timezone('Europe/Madrid', coalesce(p_now, now())) as ts
+  )
+  select extract(isodow from ts)::integer between 1 and 5
+    and not (
+      extract(isodow from ts)::integer = 5
+      and ts::time >= time '19:00'
+    )
+  from local_now
+$$;
+
+create or replace function public.fantasy_vbf_lineup_is_open(p_now timestamptz default now())
+returns boolean
+language sql
+stable
+as $$
+  select extract(isodow from timezone('Europe/Madrid', coalesce(p_now, now())))::integer between 1 and 5
 $$;
 
 create or replace function public.fantasy_vbf_price_bucket(p_round_rank integer)
@@ -93,7 +109,7 @@ create table public.fantasy_vbf_seasons (
   season text primary key,
   label text not null,
   budget integer not null default 150000 check (budget > 0),
-  squad_size integer not null default 3 check (squad_size between 1 and 6),
+  squad_size integer not null default 4 check (squad_size between 1 and 6),
   starter_size integer not null default 3 check (starter_size between 1 and 6),
   starter_pack_size integer not null default 3 check (starter_pack_size between 1 and 6),
   max_player_copies integer not null default 3 check (max_player_copies between 1 and 12),
@@ -104,6 +120,7 @@ create table public.fantasy_vbf_seasons (
   captain_multiplier numeric(4,2) not null default 1.5 check (captain_multiplier >= 1),
   clause_multiplier numeric(4,2) not null default 1.5 check (clause_multiplier >= 1.1),
   is_open boolean not null default true,
+  market_economy_locked boolean not null default false,
   current_round_key text,
   current_round_label text,
   current_round_order integer,
@@ -178,6 +195,7 @@ create table public.fantasy_vbf_roster_players (
   clause_price integer not null check (clause_price >= 0),
   acquisition_type text not null default 'market' check (acquisition_type in ('starter', 'market', 'buyout')),
   acquired_round_key text,
+  lineup_slot text not null default 'active' check (lineup_slot in ('active', 'bench')),
   created_at timestamptz not null default timezone('utc', now()),
   unique (season, team_id, player_slug)
 );
@@ -196,6 +214,7 @@ create table public.fantasy_vbf_roster_snapshots (
   player_rank integer not null default 9999,
   buy_price integer not null default 0 check (buy_price >= 0),
   clause_price integer not null default 0 check (clause_price >= 0),
+  lineup_slot text not null default 'active' check (lineup_slot in ('active', 'bench')),
   captured_at timestamptz not null default timezone('utc', now()),
   created_at timestamptz not null default timezone('utc', now()),
   unique (season, round_key, team_id, player_slug)
@@ -295,7 +314,7 @@ insert into public.fantasy_vbf_seasons (
   max_player_copies, max_weekly_transfers, max_weekly_captain_changes,
   weekly_base_reward, max_savings, captain_multiplier, clause_multiplier, is_open
 )
-values ('OP15', 'Fantasy OP15', 150000, 3, 3, 3, 3, 999, 1, 20000, 2147483647, 1.5, 1.5, true);
+values ('OP15', 'Fantasy OP15', 150000, 4, 3, 3, 3, 999, 1, 20000, 2147483647, 1.5, 1.5, true);
 
 alter table public.fantasy_vbf_seasons enable row level security;
 alter table public.fantasy_vbf_player_pool enable row level security;
@@ -757,6 +776,7 @@ begin
 
   if not found then raise exception 'La temporada fantasy no existe.'; end if;
   if v_cfg.is_open is not true then raise exception 'El mercado fantasy esta cerrado.'; end if;
+  if coalesce(v_cfg.market_economy_locked, false) is true then raise exception 'La compraventa fantasy esta cerrada. Solo se pueden cambiar capitan y suplente.'; end if;
   if public.fantasy_vbf_market_is_open(now()) is not true then
     raise exception 'El mercado esta cerrado entre sabado 00:00 y lunes 00:00.';
   end if;
@@ -1039,6 +1059,7 @@ begin
 
   if not found then raise exception 'La temporada fantasy no existe.'; end if;
   if v_cfg.is_open is not true then raise exception 'El mercado fantasy esta cerrado.'; end if;
+  if coalesce(v_cfg.market_economy_locked, false) is true then raise exception 'La compraventa fantasy esta cerrada. Solo se pueden cambiar capitan y suplente.'; end if;
   if public.fantasy_vbf_market_is_open(now()) is not true then
     raise exception 'Mercado cerrado.';
   end if;
@@ -1639,6 +1660,7 @@ end;
 $$;
 
 grant execute on function public.fantasy_vbf_market_is_open(timestamptz) to anon, authenticated;
+grant execute on function public.fantasy_vbf_lineup_is_open(timestamptz) to anon, authenticated;
 grant execute on function public.fantasy_vbf_create_team(text, text, jsonb) to authenticated;
 grant execute on function public.fantasy_vbf_buy_player(text, text, text, text, uuid) to authenticated;
 grant execute on function public.fantasy_vbf_sell_player(text, text, text, integer) to authenticated;
