@@ -2445,7 +2445,7 @@
   }
 
   function attendanceRoundMeta(){
-    return state.currentRound || state.sheetRound || null;
+    return state.sheetRound || state.currentRound || null;
   }
 
   function attendanceRoundKey(){
