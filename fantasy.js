@@ -461,6 +461,11 @@
 
   function lockPageScroll(){
     if (document.body.dataset.fantasyScrollLocked === '1') return;
+    if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches){
+      document.body.dataset.fantasyScrollLocked = '1';
+      document.body.dataset.fantasyScrollLockMode = 'mobile';
+      return;
+    }
     pageScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
     document.body.dataset.fantasyScrollLocked = '1';
     document.body.style.position = 'fixed';
@@ -477,8 +482,14 @@
       document.body.style.overflow = '';
       return;
     }
+    if (document.body.dataset.fantasyScrollLockMode === 'mobile'){
+      delete document.body.dataset.fantasyScrollLocked;
+      delete document.body.dataset.fantasyScrollLockMode;
+      return;
+    }
     const y = pageScrollLockY;
     delete document.body.dataset.fantasyScrollLocked;
+    delete document.body.dataset.fantasyScrollLockMode;
     document.body.style.position = '';
     document.body.style.top = '';
     document.body.style.left = '';
@@ -3433,14 +3444,17 @@
     const watchlistButton = $('openWatchlistButton');
     const activityButton = $('openActivityButton');
     if (statPlayers){
-      if (state.loadingPlayers) statPlayers.textContent = '...';
-      else animateStatNumber(statPlayers, state.poolPlayers.length);
+      if (state.loadingPlayers){ statPlayers.textContent = ''; statPlayers.classList.add('vdfSkelton'); }
+      else { statPlayers.classList.remove('vdfSkelton'); animateStatNumber(statPlayers, state.poolPlayers.length); }
     }
     if (statTeams){
-      if (state.loadingLeague) statTeams.textContent = '...';
-      else animateStatNumber(statTeams, state.seasonTeams.length);
+      if (state.loadingLeague){ statTeams.textContent = ''; statTeams.classList.add('vdfSkelton'); }
+      else { statTeams.classList.remove('vdfSkelton'); animateStatNumber(statTeams, state.seasonTeams.length); }
     }
-    if (statCurrentRound) statCurrentRound.textContent = state.loadingPlayers ? '...' : (state.currentRound?.label || '-');
+    if (statCurrentRound){
+      if (state.loadingPlayers){ statCurrentRound.textContent = ''; statCurrentRound.classList.add('vdfSkelton'); }
+      else { statCurrentRound.classList.remove('vdfSkelton'); statCurrentRound.textContent = state.currentRound?.label || '-'; }
+    }
     if (watchlistButton){
       const count = Number(state.watchlistSlugs?.size || 0);
       watchlistButton.textContent = count ? `Watchlist (${Math.min(count, 99)})` : 'Watchlist';
@@ -3976,7 +3990,34 @@
     body.innerHTML = `<div class="modalVisual modalVisualSticky"><article class="playerCard ${frameClass(player.tier)} ${isBench ? 'isBenchSlot' : ''}"><div class="playerHead">${isBench ? '<span class="squadSlotBadge bench">Suplente</span>' : ''}${renderPlayerVisual(player, modalOverlay)}</div></article>${tournamentHistory}${watchAction}</div><div class="modalPanel playerModalPanel"><div class="playerModalHeader"><div><div class="modalEyebrow">${source === 'team' ? (isBench ? 'Tu suplente' : 'Tu plantilla') : 'Pool de jugadores'}</div><h3 class="modalTitle">${escapeHtml(player.name)}</h3><div class="modalSubtitle">#${intFmt.format(player.rank || 0)} - ${escapeHtml(tierLabel(player.tier))}</div></div></div><div class="playerModalTabs">${tabButton('summary', 'Resumen')}${tabButton('history', 'Historial')}${tabButton('market', source === 'team' ? 'Plantilla' : 'Mercado')}</div><div class="playerModalTabPanels">${panel('summary', summaryContent)}${panel('history', historyContent)}${panel('market', marketContent)}</div>${footerActions ? `<div class="playerModalActionRail">${footerActions}</div>` : ''}</div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
+    wrap.scrollTop = 0;
+    body.scrollTop = 0;
     lockPageScroll();
+  }
+
+  function buildTeamSparkline(rows){
+    if (!rows.length) return '<div class="empty teamModalEmpty">Sin historial de jornadas todavia.</div>';
+    const W = 320, H = 68, PAD = 6;
+    const vals = rows.map(r => Number(r.weekly_points || 0));
+    const maxV = Math.max(...vals, 1);
+    const range = maxV || 1;
+    const avg = vals.reduce((s, v) => s + v, 0) / (vals.length || 1);
+    const n = rows.length;
+    const xStep = n > 1 ? (W - PAD * 2) / (n - 1) : 0;
+    const pts = rows.map((r, i) => ({
+      x: n > 1 ? PAD + i * xStep : W / 2,
+      y: H - PAD - (Number(r.weekly_points || 0) / range) * (H - PAD * 2),
+      v: Number(r.weekly_points || 0),
+      lbl: String(r.round_label || r.round_key || `J${i + 1}`).replace(/^jornada\s*/i, 'J')
+    }));
+    const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+    const stems = pts.map(p => `<line class="chartStem" x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${(H - PAD).toFixed(1)}"/>`).join('');
+    const dots = pts.map(p => {
+      const dc = p.v >= avg * 1.1 ? ' won' : p.v <= avg * 0.9 ? ' miss' : '';
+      return `<circle class="chartPoint${dc}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5"><title>${escapeHtml(p.lbl)}: ${formatPointsLabel(p.v)}</title></circle>`;
+    }).join('');
+    const labels = pts.map(p => `<text x="${p.x.toFixed(1)}" y="${H + 10}" text-anchor="middle" font-size="7.5" fill="#94a3b8" font-family="inherit" font-weight="900">${escapeHtml(p.lbl)}</text>`).join('');
+    return `<svg class="chartSvg teamSparkSvg" viewBox="0 0 ${W} ${H + 14}" xmlns="http://www.w3.org/2000/svg">${stems}<path class="chartLine" d="${path}"/>${dots}${labels}</svg>`;
   }
 
   function renderTeamModal(){
@@ -4000,30 +4041,91 @@
     const modalRank = modalRankIndex >= 0 ? modalRankIndex + 1 : (team.rank || 0);
     const modalRankLabel = standingRankLabel();
     const squadSize = squadCapacity();
+    const activeLimit = activeRosterLimit();
+    const benchCapacity = Math.max(0, squadSize - activeLimit);
     const slots = Array.from({ length: squadSize }, (_, index) => team.players[index] || null);
+    const rosterEntries = rosterEntriesWithPlayers(slots.filter(Boolean));
+    const rawActiveEntries = rosterEntries.filter((entry) => !isBenchEntry(entry));
+    const rawBenchEntries = rosterEntries.filter((entry) => isBenchEntry(entry));
+    const activeEntries = rawActiveEntries.slice(0, activeLimit);
+    const benchEntries = rawBenchEntries.length
+      ? rawBenchEntries
+      : (rawActiveEntries.length > activeLimit ? rawActiveEntries.slice(activeLimit) : []);
+    const activeSlots = Array.from({ length: activeLimit }, (_, index) => activeEntries[index] || null);
+    const benchSlots = Array.from({ length: benchCapacity }, (_, index) => benchEntries[index] || null);
     const closedRound = latestClosedRound();
     const contributionRows = closedRound
       ? contributionRowsForTeamRound(team.id, closedRound.round_key, team.players || [])
       : contributionRowsFromEntries(team.players || []);
-    const marketValue = contributionRows.reduce((sum, row) => sum + Number(row.price || 0), 0);
-    const clauseValue = contributionRows.reduce((sum, row) => sum + Number(row.clause || 0), 0);
-    const avgRank = contributionRows.length ? Math.round(contributionRows.reduce((sum, row) => sum + Number(row.rank || 0), 0) / contributionRows.length) : 0;
-    const bestAsset = contributionRows.slice().sort((a, b) => b.price - a.price || collator.compare(a.name, b.name))[0] || null;
-    const filledCount = slots.filter(Boolean).length;
+    const rosterAssetRows = rosterEntries.map((entry) => {
+      const player = entry.player || playerForRosterRow(entry) || {};
+      const price = Number(entry.buy_price || entry.buyPrice || player.price || 0);
+      return {
+        entry,
+        player,
+        slug: String(entry.player_slug || player.slug || ''),
+        name: player.name || entry.player_name || entry.player_slug || 'Jugador',
+        tier: player.tier || entry.player_tier || '',
+        rank: Number(player.rank || entry.player_rank || 9999),
+        price,
+        clause: Number(entry.clause_price || entry.clausePrice || player.clausePrice || defaultClauseForPrice(price || player.price || 0))
+      };
+    });
+    const marketValue = rosterAssetRows.reduce((sum, row) => sum + Number(row.price || 0), 0);
+    const clauseValue = rosterAssetRows.reduce((sum, row) => sum + Number(row.clause || 0), 0);
+    const bestAsset = rosterAssetRows.slice().sort((a, b) => b.price - a.price || collator.compare(a.name, b.name))[0] || null;
+    const filledCount = rosterEntries.length;
+    const activeFilled = activeSlots.filter(Boolean).length;
+    const benchFilled = benchSlots.filter(Boolean).length;
     const sourceTeam = state.seasonTeams.find((item) => String(item.id || '') === String(team.id || '')) || {};
     const captainSlug = String(sourceTeam.captain_player_slug || '');
-    const captain = contributionRows.find((row) => row.isCaptain || String(row.slug || '') === captainSlug) || null;
+    const captain = contributionRows.find((row) => row.isCaptain || String(row.slug || '') === captainSlug)
+      || rosterAssetRows.find((row) => String(row.slug || '') === captainSlug)
+      || null;
     const topContributor = contributionRows[0] || null;
-    const lowClause = contributionRows.filter((row) => Number(row.clause || 0) > 0).slice().sort((a, b) => Number(a.clause || 0) - Number(b.clause || 0) || collator.compare(a.name, b.name))[0] || null;
-    const roster = slots.map((entry) => {
+    const lowClause = rosterAssetRows.filter((row) => Number(row.clause || 0) > 0).slice().sort((a, b) => Number(a.clause || 0) - Number(b.clause || 0) || collator.compare(a.name, b.name))[0] || null;
+    const sparkRows = state.teamRounds
+      .filter(r => String(r.team_id) === String(team.id))
+      .sort((a, b) => Number(a.round_order || 0) - Number(b.round_order || 0));
+    const sparkPointRows = sparkRows.length ? sparkRows : [];
+    const totalHistoryPoints = sparkPointRows.reduce((sum, row) => sum + Number(row.weekly_points || 0), 0);
+    const avgRoundPoints = sparkPointRows.length ? totalHistoryPoints / sparkPointRows.length : 0;
+    const latestSparkRound = sparkPointRows[sparkPointRows.length - 1] || null;
+    const previousSparkRound = sparkPointRows.length > 1 ? sparkPointRows[sparkPointRows.length - 2] : null;
+    const trendDelta = latestSparkRound && previousSparkRound
+      ? Number(latestSparkRound.weekly_points || 0) - Number(previousSparkRound.weekly_points || 0)
+      : 0;
+    const trendLabel = latestSparkRound && previousSparkRound
+      ? (trendDelta > 0 ? `+${formatPointsLabel(trendDelta)}` : trendDelta < 0 ? `-${formatPointsLabel(Math.abs(trendDelta))}` : formatPointsLabel(0))
+      : 'Sin datos';
+    const trendHelp = latestSparkRound && previousSparkRound
+      ? `vs ${String(previousSparkRound.round_label || previousSparkRound.round_key || 'previa').replace(/^jornada\s*/i, 'J')}`
+      : 'Necesita dos cierres';
+    const bestRound = sparkRows.length
+      ? sparkRows.slice().sort((a, b) => Number(b.weekly_points || 0) - Number(a.weekly_points || 0))[0]
+      : null;
+    const bestRoundLabel = bestRound ? String(bestRound.round_label || bestRound.round_key || '?').replace(/^jornada\s*/i, 'J') : '';
+    const activeScorers = contributionRows.filter((row) => Number(row.weeklyPoints || 0) > 0).length;
+    const captainRoundText = captain
+      ? (Number.isFinite(Number(captain.weeklyPoints)) ? `${formatPointsLabel(captain.weeklyPoints || 0)} en este cierre` : 'En plantilla')
+      : 'No detectado en snapshot';
+    const renderRosterSlot = (entry, slotLabel, roleClass) => {
       if (!entry){
-        return `<div class="teamModalPlayerChip empty" aria-hidden="true"><span class="teamModalPlayerAvatar empty"></span><span class="teamModalPlayerCopy"><strong>Hueco libre</strong><small>Sin jugador</small></span></div>`;
+        const emptyLabel = roleClass === 'bench' ? 'Suplente libre' : 'Hueco libre';
+        return `<div class="teamModalPlayerChip empty ${roleClass}" aria-hidden="true"><span class="teamModalRoleBadge ${roleClass}">${escapeHtml(slotLabel)}</span><span class="teamModalPlayerAvatar empty"></span><span class="teamModalPlayerCopy"><strong>${escapeHtml(emptyLabel)}</strong><small>Sin jugador</small></span></div>`;
       }
       const portrait = playerPortraitUrl(entry.player);
       const isTemporary = String(entry.snapshot_source || '').toLowerCase() === 'replacement';
-      const isBench = isBenchEntry(entry);
-      return `<button class="teamModalPlayerChip ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''} ${isBench ? 'bench' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}"><span class="teamModalPlayerAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</span><span class="teamModalPlayerCopy"><strong>${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</strong><small>#${intFmt.format(entry.player.rank || 0)} · ${escapeHtml(tierLabel(entry.player.tier))}${isTemporary ? ' · Temporal' : ''}${isBench ? ' · Suplente' : ''}</small></span></button>`;
-    }).join('');
+      const isBench = roleClass === 'bench' || isBenchEntry(entry);
+      const isCaptain = !isBench && String(entry.player_slug || entry.player?.slug || '') === captainSlug;
+      const badgeLabel = isCaptain ? 'C' : slotLabel;
+      const badgeClass = isCaptain ? 'captain' : roleClass;
+      return `<button class="teamModalPlayerChip ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''} ${isBench ? 'bench' : ''} ${isCaptain ? 'captain' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}"><span class="teamModalRoleBadge ${badgeClass}" title="${escapeAttr(isCaptain ? 'Capitan' : isBench ? 'Suplente' : 'Activo')}">${escapeHtml(badgeLabel)}</span><span class="teamModalPlayerAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}</span><span class="teamModalPlayerCopy"><strong>${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</strong><small>#${intFmt.format(entry.player.rank || 0)} · ${escapeHtml(tierLabel(entry.player.tier))}${isTemporary ? ' · Temporal' : ''}${isBench ? ' · Suplente' : isCaptain ? ' · Capitan' : ''}</small></span></button>`;
+    };
+    const activeRoster = activeSlots.map((entry, index) => renderRosterSlot(entry, `A${index + 1}`, 'active')).join('');
+    const benchRoster = benchCapacity
+      ? benchSlots.map((entry) => renderRosterSlot(entry, 'S', 'bench')).join('')
+      : '';
     const impactRows = contributionRows.length
       ? `<div class="teamModalImpactList">${contributionRows.map((row) => {
         const portrait = playerPortraitUrl(row.player);
@@ -4034,6 +4136,9 @@
         return `<button class="teamModalImpactRow ${frameClass(row.tier)}" type="button" data-open-player="${escapeAttr(row.slug || '')}" data-player-source="market"><span class="teamModalImpactAvatar">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(row.name)}" loading="lazy" decoding="async" />` : ''}</span><span class="teamModalImpactCopy"><strong>${escapeHtml(row.name)}</strong><small>#${intFmt.format(row.rank || 0)} · ${escapeHtml(tierLabel(row.tier))}${row.isCaptain ? ' · Capitan' : ''}${row.isReplacement ? ` · Temporal x${formatPoints(row.pointsMultiplier || 0.5)}` : ''}</small><span class="teamModalImpactRail"><span style="width:${relativePct}%"></span></span></span><span class="teamModalImpactScore"><strong>${weeklyLabel}</strong><small class="${deltaTone}">${escapeHtml(deltaLabel)}</small></span></button>`;
       }).join('')}</div>`
       : '<div class="empty teamModalEmpty">Aun no hay datos suficientes para ordenar el impacto del roster.</div>';
+    const sparkHtml = sparkRows.length
+      ? `<div class="teamModalSparkCard"><div class="teamModalBlockHead"><div class="historyTitle">Evolucion por jornada</div><span>${intFmt.format(sparkRows.length)} cierres</span></div>${buildTeamSparkline(sparkRows)}</div>`
+      : '';
     body.innerHTML = `<div class="teamModalShell teamModalShellCompact">
       <div class="teamModalHero teamModalHeroCompact">
         <div class="teamModalTitleBlock">
@@ -4053,22 +4158,38 @@
         <article class="teamModalIntelCard"><small>Valor roster</small><strong>${renderCoinInline(marketValue, false)}</strong><span>${escapeHtml(bestAsset?.name || 'Sin activo claro')} lidera el valor</span></article>
         <article class="teamModalIntelCard"><small>Clausulas vivas</small><strong>${renderCoinInline(clauseValue, false)}</strong><span>Total a pagar por toda la plantilla</span></article>
         <article class="teamModalIntelCard"><small>Top cierre</small><strong>${escapeHtml(topContributor?.name || 'Sin datos')}</strong><span>${topContributor ? formatPointsLabel(topContributor.weeklyPoints || 0) : 'Sin jornada cerrada'}</span></article>
-        <article class="teamModalIntelCard"><small>Capitan</small><strong>${escapeHtml(captain?.name || 'Sin capitan')}</strong><span>${captain ? `${formatPointsLabel(captain.weeklyPoints || 0)} en este cierre` : 'No detectado en snapshot'}</span></article>
+        <article class="teamModalIntelCard"><small>Capitan</small><strong>${escapeHtml(captain?.name || 'Sin capitan')}</strong><span>${escapeHtml(captainRoundText)}</span></article>
         <article class="teamModalIntelCard"><small>Clausula mas baja</small><strong>${escapeHtml(lowClause?.name || 'Sin datos')}</strong><span>${lowClause ? renderCoinInline(lowClause.clause || 0, false) : 'Sin clausulas activas'}</span></article>
+        <article class="teamModalIntelCard"><small>Mejor jornada</small><strong>${bestRound ? escapeHtml(bestRoundLabel) : 'Sin datos'}</strong><span>${bestRound ? `${formatPointsLabel(Number(bestRound.weekly_points || 0))} · ${formatCoins(Number(bestRound.reward_coins || 0))}` : 'Sin historial'}</span></article>
+        <article class="teamModalIntelCard"><small>Media jornada</small><strong>${sparkPointRows.length ? formatPointsLabel(avgRoundPoints) : 'Sin datos'}</strong><span>${sparkPointRows.length ? `${intFmt.format(sparkPointRows.length)} cierres registrados` : 'Sin historial'}</span></article>
+        <article class="teamModalIntelCard"><small>Tendencia</small><strong>${escapeHtml(trendLabel)}</strong><span>${escapeHtml(trendHelp)}</span></article>
       </div>
-      <div class="teamModalCompactGrid">
-        <section class="teamModalBlock">
-          <div class="historyTitle">Plantilla actual</div>
-          <div class="teamModalPlayerList">${roster}</div>
-        </section>
-        <section class="teamModalBlock">
-          <div class="historyTitle">${closedRound ? `Impacto del cierre ${escapeHtml(closedRound.round_label || '')}` : 'Impacto de la jornada'}</div>
-          ${impactRows}
-        </section>
+      <div class="teamModalMainGrid">
+        <div class="teamModalSideStack">
+          <section class="teamModalBlock teamModalRosterBlock">
+            <div class="teamModalBlockHead"><div class="historyTitle">Plantilla actual</div><span>${intFmt.format(activeFilled)}/${intFmt.format(activeLimit)} activos${benchCapacity ? ` · ${intFmt.format(benchFilled)}/${intFmt.format(benchCapacity)} suplente` : ''}</span></div>
+            <div class="teamModalRosterGroups">
+              <div class="teamModalRosterGroup">
+                <div class="teamModalRosterGroupHead"><span>Activos</span><strong>${intFmt.format(activeScorers)} aportando</strong></div>
+                <div class="teamModalPlayerList teamModalPlayerListCompact">${activeRoster}</div>
+              </div>
+              ${benchCapacity ? `<div class="teamModalRosterGroup teamModalBenchGroup"><div class="teamModalRosterGroupHead"><span>Suplente</span><strong>Reserva viva</strong></div><div class="teamModalPlayerList teamModalBenchList">${benchRoster}</div></div>` : ''}
+            </div>
+          </section>
+        </div>
+        <div class="teamModalFlowStack">
+          ${sparkHtml}
+          <section class="teamModalBlock">
+            <div class="historyTitle">${closedRound ? `Impacto del cierre ${escapeHtml(closedRound.round_label || '')}` : 'Impacto de la jornada'}</div>
+            ${impactRows}
+          </section>
+        </div>
       </div>
     </div>`;
     wrap.classList.remove('hidden');
     wrap.setAttribute('aria-hidden', 'false');
+    wrap.scrollTop = 0;
+    body.scrollTop = 0;
     lockPageScroll();
   }
 
@@ -4193,6 +4314,7 @@
   function renderOverviewPanels(){
     const topPlayersHost = $('topPlayersList');
     const surpriseHost = $('surprisePlayersList');
+    const leagueSnapshotHost = $('leagueSnapshotPanel');
     if (topPlayersHost){
       const rows = topGeneralPlayers(4);
       topPlayersHost.innerHTML = rows.map((player) => renderOverviewFeature(player, 'general')).join('') || '<div class="empty">Aun no hay datos de jugadores.</div>';
@@ -4200,6 +4322,41 @@
     if (surpriseHost){
       const rows = topSurprisePlayers(4);
       surpriseHost.innerHTML = rows.map((player) => renderOverviewFeature(player, 'surprise')).join('') || '<div class="empty">Todavia no hay sorpresas marcadas esta jornada.</div>';
+    }
+    if (leagueSnapshotHost){
+      const derived = leagueDerived();
+      const standings = derived.standings.slice().sort(compareStandingsForPage);
+      const leader = standings.slice().sort((a, b) => Number(b.generalPoints || 0) - Number(a.generalPoints || 0) || Number(b.weeklyPoints || 0) - Number(a.weeklyPoints || 0))[0] || null;
+      const weekLeader = standings.slice().sort((a, b) => Number(b.weeklyPoints || 0) - Number(a.weeklyPoints || 0) || Number(b.generalPoints || 0) - Number(a.generalPoints || 0))[0] || null;
+      const berriesLeader = standings.slice().sort((a, b) => Number(b.rewardCoins || 0) - Number(a.rewardCoins || 0) || Number(b.weeklyPoints || 0) - Number(a.weeklyPoints || 0))[0] || null;
+      const round = displayRoundMeta();
+      const marketStatus = fantasyPhaseLabel();
+      leagueSnapshotHost.innerHTML = `<div class="leagueSnapshotGrid">
+        <button class="leagueSnapshotTile isLeader" type="button" ${leader ? `data-open-team="${escapeAttr(leader.id)}"` : 'disabled'}>
+          <span>Lider general</span>
+          <strong>${escapeHtml(leader?.teamName || 'Sin equipos')}</strong>
+          <small>${leader ? `${escapeHtml(leader.coachName || 'Manager')} · ${formatPointsLabel(leader.generalPoints || 0)}` : 'Aun no hay clasificacion'}</small>
+        </button>
+        <button class="leagueSnapshotTile" type="button" ${weekLeader ? `data-open-team="${escapeAttr(weekLeader.id)}"` : 'disabled'}>
+          <span>Mejor jornada</span>
+          <strong>${escapeHtml(weekLeader?.teamName || 'Sin cierre')}</strong>
+          <small>${weekLeader ? `${formatPointsLabel(weekLeader.weeklyPoints || 0)} · ${renderCoinInline(weekLeader.rewardCoins || 0, false)}` : 'Esperando datos'}</small>
+        </button>
+        <article class="leagueSnapshotTile">
+          <span>Mercado</span>
+          <strong>${escapeHtml(marketStatus)}</strong>
+          <small>${escapeHtml(round?.round_label || state.currentRound?.label || 'Jornada fantasy')}</small>
+        </article>
+        <button class="leagueSnapshotTile" type="button" ${berriesLeader ? `data-open-team="${escapeAttr(berriesLeader.id)}"` : 'disabled'}>
+          <span>Berries calientes</span>
+          <strong>${berriesLeader ? renderCoinInline(berriesLeader.rewardCoins || 0, false) : '-'}</strong>
+          <small>${escapeHtml(berriesLeader?.teamName || 'Sin premios todavia')}</small>
+        </button>
+      </div>
+      <div class="leagueSnapshotActions">
+        <a class="btn btnPrimary compactBtn" href="fantasy-ranking.html">Ver ranking completo</a>
+        <a class="btn compactBtn" href="fantasy-market.html">Ir al mercado</a>
+      </div>`;
     }
   }
 
@@ -4504,44 +4661,91 @@
     if (!derived.standings.length){ wrap.classList.add('hidden'); empty.classList.remove('hidden'); empty.textContent = 'Todavia no hay equipos inscritos en el fantasy.'; return; }
     empty.classList.add('hidden');
     const standings = derived.standings.slice().sort(compareStandingsForPage).map((row, index) => ({ ...row, displayRank: index + 1 }));
+    const maxPoints = Math.max(...standings.map(r => Number(r.generalPoints || 0)), 1);
+    const maxWeeklyPts = Math.max(...standings.map(r => Number(r.weeklyPoints || 0)), 1);
     wrap.classList.remove('hidden');
-    wrap.innerHTML = standings.map((row) => {
+    wrap.innerHTML = standings.map((row, rowIndex) => {
       const mine = state.currentUser && String(row.userId) === String(state.currentUser.id);
       const rankClass = row.displayRank === 1 ? 'top1' : row.displayRank === 2 ? 'top2' : row.displayRank === 3 ? 'top3' : '';
-      const visiblePlayers = activeRosterEntries(row.players || []).slice(0, activeRosterLimit());
-      const slots = Array.from({ length: activeRosterLimit() }, (_, index) => visiblePlayers[index] || null);
-      const roster = slots.map((entry) => {
-        if (!entry){
-          return `<div class="standingRosterCard empty" aria-hidden="true"><div class="standingRosterVisual empty"></div><span class="standingRosterName">Vacío</span></div>`;
-        }
+      const pct = ((Number(row.generalPoints || 0) / maxPoints) * 100).toFixed(1);
+      const wpct = ((Number(row.weeklyPoints || 0) / maxWeeklyPts) * 100).toFixed(1);
+      const gapToAbove = rowIndex > 0 ? Number(standings[rowIndex - 1].generalPoints || 0) - Number(row.generalPoints || 0) : 0;
+      const gapBadge = rowIndex > 0 ? `<span class="standingGapBadge">${gapToAbove === 0 ? 'Empatados' : `+${formatPoints(gapToAbove)}`}</span>` : '';
+      const sourceTeam = state.seasonTeams.find((item) => String(item.id || '') === String(row.id || '')) || {};
+      const captainSlug = String(sourceTeam.captain_player_slug || '');
+      const visiblePlayers = activeRosterEntries(row.players || []).slice(0, 3);
+      const roster = visiblePlayers.length ? visiblePlayers.map((entry) => {
         const portrait = playerPortraitUrl(entry.player);
         const isTemporary = String(entry.snapshot_source || '').toLowerCase() === 'replacement';
         const isBench = isBenchEntry(entry);
-        return `<button class="standingRosterCard ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''} ${isBench ? 'bench' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}">${isTemporary ? '<span class="temporaryBadge">Temporal</span>' : isBench ? '<span class="temporaryBadge bench">S</span>' : ''}<div class="standingRosterVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div><span class="standingRosterName">${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</span></button>`;
-      }).join('');
+        const isCaptain = !!captainSlug && String(entry.player_slug || entry.player?.slug || '') === captainSlug;
+        return `<button class="standingRosterCard ${frameClass(entry.player.tier)} ${isTemporary ? 'temporary' : ''} ${isBench ? 'bench' : ''} ${isCaptain ? 'isCaptain' : ''}" type="button" data-open-player="${escapeAttr(entry.player_slug || '')}" data-player-source="market" title="Ver ficha de ${escapeAttr(entry.player.name || entry.player_slug || 'Jugador')}">${isCaptain ? '<span class="standingCaptainBadge" title="Capitan">C</span>' : ''}${isTemporary ? '<span class="temporaryBadge">Temporal</span>' : isBench ? '<span class="temporaryBadge bench">S</span>' : ''}<div class="standingRosterVisual">${portrait ? `<img src="${escapeAttr(portrait)}" alt="${escapeAttr(entry.player.name || 'Jugador')}" loading="lazy" decoding="async" />` : ''}<div class="standingRosterShade"></div></div><span class="standingRosterName">${escapeHtml(entry.player.name || entry.player_slug || 'Jugador')}</span></button>`;
+      }).join('') : '<div class="standingRosterEmpty">Sin plantilla</div>';
       const secondary = PAGE_VIEW === 'overview'
         ? `Ultima ${formatPointsLabel(row.weeklyPoints)}`
         : `Jornada ${formatPointsLabel(row.weeklyPoints)}`;
-      return `<article class="standingRow ${mine ? 'isMine' : ''}" data-open-team="${escapeAttr(row.id)}">
+      return `<article class="standingRow ${mine ? 'isMine' : ''} ${rankClass}" data-open-team="${escapeAttr(row.id)}">
+        ${gapBadge}
         <div><span class="rankBadge ${rankClass}">#${row.displayRank}</span></div>
         <div class="standingIdentity">
           <div class="standingIdentityTop">
             <strong>${escapeHtml(row.teamName)}</strong>
-            <span>${formatPointsLabel(row.generalPoints)} acumulados</span>
+            <span class="standingTotalPoints">${formatPointsLabel(row.generalPoints)} acumulados</span>
           </div>
           <div class="standingIdentityBottom">
             <strong>${escapeHtml(row.coachName || 'Manager')}</strong>
             <span>Manager fantasy</span>
           </div>
-          <div class="standingWeekBar">
+          <div class="standingWeekBar" style="--wpct:${wpct}%">
             <span>Berries de esta semana</span>
             <strong>${renderCoinInline(row.rewardCoins || 0, false)}</strong>
             <small>${secondary}</small>
           </div>
         </div>
         <div class="standingRoster">${roster}</div>
+        <div class="standingPtsBand" style="--pct:${pct}%" aria-hidden="true"><div class="standingPtsFill"></div></div>
+        <div class="standingAccumulatedMobile">${formatPointsLabel(row.generalPoints)} acumulados</div>
       </article>`;
     }).join('');
+    const berriesEl = $('statBerriesLeader');
+    if (berriesEl && standings.length){
+      const topB = standings.slice().sort((a, b) => Number(b.rewardCoins || 0) - Number(a.rewardCoins || 0))[0];
+      berriesEl.innerHTML = topB && Number(topB.rewardCoins || 0) > 0
+        ? `${renderCoinInline(topB.rewardCoins, false)}<small style="display:block;font-size:10px;font-weight:900;color:rgba(255,255,255,.78);margin-top:3px">${escapeHtml(topB.coachName || topB.teamName || '?')}</small>`
+        : '-';
+    }
+    const leaderEl = $('statLeader');
+    if (leaderEl && standings.length){
+      const top = standings[0];
+      leaderEl.innerHTML = `${escapeHtml(top.teamName)}<small style="display:block;font-size:10px;font-weight:900;color:rgba(255,255,255,.78);margin-top:3px">${formatPointsLabel(top.generalPoints)}</small>`;
+    }
+    const podiumEl = $('podiumBoard');
+    if (podiumEl && standings.length >= 1){
+      const top3 = standings.slice(0, 3);
+      const arranged = [top3[1] || null, top3[0], top3[2] || null];
+      const podiumClasses = ['pos2', 'pos1', 'pos3'];
+      const positions = [2, 1, 3];
+      podiumEl.innerHTML = arranged.map((row, i) => {
+        if (!row) return `<div class="podiumCard ${podiumClasses[i]} empty"></div>`;
+        const pos = positions[i];
+        const isMe = state.currentUser && String(row.userId) === String(state.currentUser.id);
+        const firstEntry = activeRosterEntries(row.players || [])[0];
+        const portrait = firstEntry ? playerPortraitUrl(firstEntry.player) : null;
+        const rosterPreview = activeRosterEntries(row.players || []).slice(0, 3).map((entry) => {
+          const previewPortrait = playerPortraitUrl(entry.player);
+          return `<span class="podiumRosterDot">${previewPortrait ? `<img src="${escapeAttr(previewPortrait)}" alt="" loading="lazy" decoding="async" />` : ''}</span>`;
+        }).join('');
+        return `<button class="podiumCard ${podiumClasses[i]}${isMe ? ' isMine' : ''}" type="button" data-open-team="${escapeAttr(row.id)}">
+          <span class="podiumMedal">${pos}</span>
+          <span class="podiumAvatarWrap">${portrait ? `<img class="podiumAvatar" src="${escapeAttr(portrait)}" alt="" loading="lazy" decoding="async" />` : '<span class="podiumAvatarEmpty"></span>'}</span>
+          <strong class="podiumName">${escapeHtml(row.teamName)}</strong>
+          <span class="podiumCoach">${escapeHtml(row.coachName || 'Manager')}</span>
+          <span class="podiumRosterMini">${rosterPreview}</span>
+          <span class="podiumPts">${formatPointsLabel(row.generalPoints)}</span>
+        </button>`;
+      }).join('');
+      podiumEl.classList.remove('hidden');
+    }
   }
 
   function renderTeam(){
@@ -5503,6 +5707,17 @@
     renderMarket();
   });
   $('standingsBoard')?.addEventListener('click', (event) => {
+    if (handleOpenPlayerClick(event)) return;
+    const teamTrigger = event.target.closest('[data-open-team]');
+    if (!teamTrigger) return;
+    openTeamModal(teamTrigger.getAttribute('data-open-team') || '');
+  });
+  $('podiumBoard')?.addEventListener('click', (event) => {
+    const teamTrigger = event.target.closest('[data-open-team]');
+    if (!teamTrigger) return;
+    openTeamModal(teamTrigger.getAttribute('data-open-team') || '');
+  });
+  $('leagueSnapshotPanel')?.addEventListener('click', (event) => {
     if (handleOpenPlayerClick(event)) return;
     const teamTrigger = event.target.closest('[data-open-team]');
     if (!teamTrigger) return;

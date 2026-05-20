@@ -2836,6 +2836,18 @@ body[data-fantasy-view] .chartLine{
   stroke:#2563eb;
 }
 
+body[data-fantasy-view] .chartLine,
+body[data-fantasy-view] .chartBridge{
+  fill:none !important;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+body[data-fantasy-view] .chartAxis,
+body[data-fantasy-view] .chartStem{
+  fill:none !important;
+}
+
 body[data-fantasy-view] .chartPoint,
 body[data-fantasy-view] .chartPoint.won{
   fill:#2563eb;
@@ -6093,6 +6105,133 @@ body[data-fantasy-view="overview"] .standingRoster{
   border-radius:10px;
 }
 
+.teamModalMainGrid{
+  display:grid;
+  grid-template-columns:minmax(300px,.82fr) minmax(0,1.18fr);
+  gap:12px;
+  align-items:start;
+  min-width:0;
+}
+
+.teamModalSideStack,
+.teamModalFlowStack{
+  display:grid;
+  gap:12px;
+  min-width:0;
+}
+
+.teamModalBlockHead,
+.teamModalRosterGroupHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+.teamModalBlockHead > span,
+.teamModalRosterGroupHead > span,
+.teamModalRosterGroupHead > strong{
+  min-width:0;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  line-height:1.1;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.teamModalRosterGroupHead > strong{
+  color:#1d4ed8;
+  letter-spacing:0;
+  text-transform:none;
+}
+
+.teamModalRosterGroups{
+  display:grid;
+  gap:10px;
+  min-width:0;
+}
+
+.teamModalRosterGroup{
+  display:grid;
+  gap:7px;
+  min-width:0;
+}
+
+.teamModalPlayerListCompact{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.teamModalBenchList{
+  grid-template-columns:1fr;
+}
+
+.teamModalPlayerChip{
+  position:relative;
+}
+
+.teamModalPlayerChip.captain{
+  border-color:rgba(245,158,11,.4);
+  box-shadow:inset 0 0 0 1px rgba(245,158,11,.28);
+}
+
+.teamModalPlayerChip.bench{
+  background:linear-gradient(180deg,rgba(248,250,252,.98),rgba(239,246,255,.9));
+}
+
+.teamModalRoleBadge{
+  position:absolute;
+  top:5px;
+  left:5px;
+  z-index:2;
+  display:inline-grid;
+  place-items:center;
+  min-width:20px;
+  height:18px;
+  padding:0 5px;
+  border:1px solid rgba(255,255,255,.86);
+  border-radius:999px;
+  background:rgba(37,99,235,.92);
+  color:#fff;
+  font-size:9px;
+  font-weight:1000;
+  line-height:1;
+  box-shadow:0 6px 14px rgba(15,23,42,.14);
+  pointer-events:none;
+}
+
+.teamModalRoleBadge.captain{
+  background:linear-gradient(135deg,#f59e0b,#facc15);
+  color:#111827;
+}
+
+.teamModalRoleBadge.bench{
+  background:rgba(100,116,139,.92);
+}
+
+.teamModalPlayerChip.empty .teamModalRoleBadge{
+  background:rgba(148,163,184,.9);
+}
+
+.teamModalSparkCard{
+  padding:11px 12px;
+  border-radius:12px;
+}
+
+.teamModalSparkCard .historyTitle{
+  font-size:15px;
+}
+
+.teamSparkSvg{
+  height:132px;
+  max-height:132px;
+  margin-top:6px;
+}
+
 body[data-fantasy-view] .standingsBoard{
   gap:8px;
 }
@@ -6996,7 +7135,11 @@ body[data-fantasy-view="attendance"] .attendanceOnly{
     overflow-wrap:anywhere;
   }
 
-  body[data-fantasy-view] .pageGrid,
+  body[data-fantasy-view] .pageGrid{
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
   body[data-fantasy-view] .stack{
     gap:12px;
   }
@@ -7229,21 +7372,21 @@ body[data-fantasy-view="attendance"] .attendanceOnly{
   body[data-fantasy-view="overview"] .standingRoster,
   body[data-fantasy-view="ranking"] .standingRoster{
     grid-column:1 / -1;
-    grid-template-columns:repeat(3,46px) !important;
+    grid-template-columns:repeat(3,54px) !important;
     justify-content:start !important;
     gap:7px !important;
   }
 
   body[data-fantasy-view] .standingRow .standingRosterVisual,
   body[data-fantasy-view="ranking"] .standingRow .standingRosterVisual{
-    width:42px !important;
-    height:42px !important;
+    width:46px !important;
+    height:46px !important;
   }
 
   body[data-fantasy-view] .standingRow .standingRosterName,
   body[data-fantasy-view="ranking"] .standingRow .standingRosterName{
-    max-width:46px !important;
-    font-size:9px !important;
+    max-width:54px !important;
+    font-size:10px !important;
   }
 
   body[data-fantasy-view] .modalWrap{
@@ -7376,5 +7519,1626 @@ body[data-fantasy-view="attendance"] .attendanceOnly{
   .teamModalScoreStrip,
   .teamModalIntelGrid{
     grid-template-columns:1fr;
+  }
+}
+
+/* =========================================================
+   VDF Visual Polish — efectos, ranking, sparkline, stats
+   ========================================================= */
+
+/* 1 — Shimmer dorado top 1 */
+@keyframes vdfGoldShimmer{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+
+.standingRow.top1{
+  background:linear-gradient(270deg,rgba(250,204,21,.1),rgba(255,255,255,.98),rgba(245,158,11,.08),rgba(255,255,255,.98));
+  background-size:400% 400%;
+  animation:vdfGoldShimmer 5s ease infinite;
+  border-color:rgba(245,158,11,.28);
+  box-shadow:0 14px 36px rgba(245,158,11,.12),0 4px 12px rgba(15,23,42,.06);
+}
+
+.standingRow.top2{
+  background:linear-gradient(180deg,rgba(226,232,240,.18) 0%,rgba(255,255,255,.98) 100%);
+  border-color:rgba(148,163,184,.3);
+}
+
+.standingRow.top3{
+  background:linear-gradient(180deg,rgba(253,186,116,.12) 0%,rgba(255,255,255,.98) 100%);
+  border-color:rgba(194,65,12,.2);
+}
+
+/* Franja de color izquierda para top 3 */
+.standingRow.top1,
+.standingRow.top2,
+.standingRow.top3{
+  position:relative;
+}
+
+.standingRow.top1::before,
+.standingRow.top2::before,
+.standingRow.top3::before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:5px;
+  border-radius:18px 0 0 18px;
+}
+
+.standingRow.top1::before{background:linear-gradient(180deg,#facc15,#f59e0b)}
+.standingRow.top2::before{background:linear-gradient(180deg,#e2e8f0,#94a3b8)}
+.standingRow.top3::before{background:linear-gradient(180deg,#fdba74,#c2410c)}
+
+/* 2 — Barra de puntos relativa al líder */
+.standingPtsBand{
+  grid-column:1/-1;
+  height:4px;
+  border-radius:999px;
+  background:rgba(15,23,42,.07);
+  overflow:hidden;
+  margin-top:2px;
+}
+
+.standingPtsFill{
+  height:100%;
+  width:var(--pct,0%);
+  border-radius:999px;
+  background:linear-gradient(90deg,#3b82f6,#0ea5e9);
+  transition:width .9s cubic-bezier(.25,.46,.45,.94);
+}
+
+.standingRow.top1 .standingPtsFill{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.standingRow.top2 .standingPtsFill{background:linear-gradient(90deg,#64748b,#94a3b8)}
+.standingRow.top3 .standingPtsFill{background:linear-gradient(90deg,#c2410c,#fb923c)}
+
+/* 3 — Animación de entrada en el ranking */
+@keyframes vdfRowIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+
+.standingsBoard .standingRow{animation:vdfRowIn .35s ease both}
+.standingsBoard .standingRow:nth-child(1){animation-delay:0ms}
+.standingsBoard .standingRow:nth-child(2){animation-delay:55ms}
+.standingsBoard .standingRow:nth-child(3){animation-delay:110ms}
+.standingsBoard .standingRow:nth-child(4){animation-delay:165ms}
+.standingsBoard .standingRow:nth-child(5){animation-delay:220ms}
+.standingsBoard .standingRow:nth-child(6){animation-delay:275ms}
+.standingsBoard .standingRow:nth-child(7){animation-delay:330ms}
+.standingsBoard .standingRow:nth-child(8){animation-delay:385ms}
+.standingsBoard .standingRow:nth-child(9){animation-delay:440ms}
+.standingsBoard .standingRow:nth-child(10){animation-delay:495ms}
+.standingsBoard .standingRow:nth-child(n+11){animation-delay:550ms}
+
+/* 4 — Sparkline card en modal de equipo */
+.teamModalSparkCard{
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:16px;
+  padding:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.94));
+}
+
+.teamSparkSvg{
+  display:block;
+  width:100%;
+  height:auto;
+  margin-top:10px;
+  overflow:visible;
+}
+
+/* 6 — Glow de tier en tarjetas del ranking */
+body[data-fantasy-view="ranking"] .standingRosterCard.frame-king{
+  border-color:#7f1d1d;
+  box-shadow:0 0 0 1px rgba(17,24,39,.7),inset 0 0 0 1px rgba(239,68,68,.5);
+}
+body[data-fantasy-view="ranking"] .standingRosterCard.frame-yonkou{
+  border-color:#d4a936;
+  box-shadow:0 0 0 1px rgba(250,204,21,.52),inset 0 0 0 1px rgba(255,244,179,.56);
+}
+body[data-fantasy-view="ranking"] .standingRosterCard.frame-shichibukai{
+  border-color:#94a3b8;
+  box-shadow:0 0 0 1px rgba(226,232,240,.72),inset 0 0 0 1px rgba(148,163,184,.6);
+}
+body[data-fantasy-view="ranking"] .standingRosterCard.frame-supernova{
+  border-color:#b87333;
+  box-shadow:0 0 0 1px rgba(180,83,9,.52),inset 0 0 0 1px rgba(253,186,116,.48);
+}
+
+/* 7 — Acento de color en heroStats */
+body[data-fantasy-view] .heroStats .heroStat{border-top-width:2px}
+body[data-fantasy-view] .heroStats .heroStat:nth-child(1){border-top-color:#60a5fa}
+body[data-fantasy-view] .heroStats .heroStat:nth-child(2){border-top-color:#34d399}
+body[data-fantasy-view] .heroStats .heroStat:nth-child(3){border-top-color:#f59e0b}
+body[data-fantasy-view] .heroStats .heroStat:nth-child(4){border-top-color:#a78bfa}
+
+/* =========================================================
+   VDF Visual Polish — ronda 2
+   ========================================================= */
+
+/* 5 — Gap badge entre filas del ranking */
+.standingRow{position:relative}
+
+.standingGapBadge{
+  position:absolute;
+  top:-11px;left:50%;
+  transform:translateX(-50%);
+  padding:2px 8px;
+  border-radius:999px;
+  background:rgba(241,245,249,.96);
+  border:1px solid rgba(15,23,42,.08);
+  color:#64748b;
+  font-size:9px;
+  font-weight:1000;
+  letter-spacing:.04em;
+  white-space:nowrap;
+  z-index:1;
+  line-height:1.7;
+  pointer-events:none;
+}
+
+/* 2 — Barra de rendimiento de jornada en el WeekBar */
+.standingWeekBar{position:relative;overflow:hidden;border-radius:10px}
+
+.standingWeekBar::after{
+  content:"";
+  position:absolute;
+  bottom:0;left:0;
+  height:2px;
+  width:var(--wpct,0%);
+  border-radius:999px;
+  background:linear-gradient(90deg,#f59e0b,#fbbf24);
+  transition:width .85s ease;
+}
+
+/* 6 — Animated border en el hero */
+@keyframes vdfHeroBorder{
+  0%,100%{border-color:rgba(255,255,255,.18)}
+  33%{border-color:rgba(124,58,237,.38)}
+  66%{border-color:rgba(6,182,212,.32)}
+}
+
+body[data-fantasy-view] .hero{animation:vdfHeroBorder 9s ease infinite}
+
+/* 7 — Skeleton shimmer mientras carga */
+@keyframes vdfShimmer{
+  0%{background-position:-200% center}
+  100%{background-position:200% center}
+}
+
+body[data-fantasy-view] .heroStat b.vdfSkelton{
+  display:block;
+  min-width:52px;
+  height:22px;
+  border-radius:6px;
+  background:linear-gradient(90deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.06) 80%);
+  background-size:200% 100%;
+  animation:vdfShimmer 1.4s ease infinite;
+  color:transparent;
+  pointer-events:none;
+}
+
+/* 8 - Chip TU en la fila del usuario */
+.standingRow.isMine::after{
+  content:"TU";
+  position:absolute;
+  top:-11px;right:14px;
+  padding:2px 9px;
+  border-radius:999px;
+  background:linear-gradient(135deg,rgba(37,99,235,.96),rgba(14,165,233,.9));
+  color:#fff;
+  font-size:10px;
+  font-weight:1000;
+  letter-spacing:.06em;
+  line-height:1.7;
+  z-index:2;
+  box-shadow:0 4px 10px rgba(37,99,235,.28);
+  pointer-events:none;
+}
+
+/* 9 — Hover lift con glow por tier */
+body[data-fantasy-view] .playerCard.isInteractive.frame-king:hover{
+  box-shadow:0 20px 36px rgba(239,68,68,.2),0 0 0 1px rgba(17,24,39,.85),inset 0 0 0 1px rgba(239,68,68,.72);
+}
+body[data-fantasy-view] .playerCard.isInteractive.frame-yonkou:hover{
+  box-shadow:0 20px 36px rgba(245,158,11,.22),0 0 0 1px rgba(250,204,21,.72),inset 0 0 0 1px rgba(255,244,179,.76);
+}
+body[data-fantasy-view] .playerCard.isInteractive.frame-shichibukai:hover{
+  box-shadow:0 20px 36px rgba(148,163,184,.18),0 0 0 1px rgba(226,232,240,.9),inset 0 0 0 1px rgba(148,163,184,.8);
+}
+body[data-fantasy-view] .playerCard.isInteractive.frame-supernova:hover{
+  box-shadow:0 20px 36px rgba(180,83,9,.2),0 0 0 1px rgba(180,83,9,.72),inset 0 0 0 1px rgba(253,186,116,.64);
+}
+
+/* 10 — Pulso en coin icon al hacer hover */
+@keyframes vdfCoinPulse{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.4) rotate(-8deg)}
+  70%{transform:scale(.88)}
+  100%{transform:scale(1)}
+}
+
+body[data-fantasy-view] .teamStateChip.isCoins:hover .coinIcon,
+body[data-fantasy-view] .teamBudgetBox:hover .coinIcon{
+  animation:vdfCoinPulse .55s cubic-bezier(.36,.07,.19,.97);
+}
+
+/* 12 — Distribución de tiers en el mercado */
+/* 1 — Podio visual */
+.podiumBoard{
+  display:grid;
+  grid-template-columns:1fr 1.15fr 1fr;
+  gap:8px;
+  align-items:end;
+  margin-bottom:4px;
+}
+
+.podiumCard{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding:14px 10px 16px;
+  border-radius:16px;
+  border:1px solid rgba(15,23,42,.08);
+  background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(241,245,249,.94));
+  cursor:pointer;
+  text-align:center;
+  transition:transform .16s ease,box-shadow .16s ease;
+  min-width:0;
+}
+
+.podiumCard:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 28px rgba(15,23,42,.1);
+}
+
+.podiumCard.empty{
+  background:rgba(248,250,252,.5);
+  border-style:dashed;
+  cursor:default;
+  min-height:80px;
+}
+
+.podiumCard.pos1{
+  background:linear-gradient(180deg,rgba(250,204,21,.12),rgba(255,255,255,.98));
+  border-color:rgba(245,158,11,.24);
+  box-shadow:0 8px 24px rgba(245,158,11,.1);
+}
+
+.podiumCard.pos2{
+  background:linear-gradient(180deg,rgba(226,232,240,.14),rgba(255,255,255,.97));
+  border-color:rgba(148,163,184,.22);
+}
+
+.podiumCard.pos3{
+  background:linear-gradient(180deg,rgba(253,186,116,.1),rgba(255,255,255,.97));
+  border-color:rgba(194,65,12,.16);
+}
+
+.podiumMedal{font-size:26px;line-height:1}
+
+.podiumAvatar{
+  width:52px;height:52px;
+  border-radius:12px;
+  object-fit:cover;
+  object-position:center 10%;
+  border:1px solid rgba(255,255,255,.6);
+}
+
+.podiumCard.pos1 .podiumAvatar{
+  width:62px;height:62px;
+  border-color:rgba(245,158,11,.3);
+  box-shadow:0 6px 16px rgba(245,158,11,.18);
+}
+
+.podiumAvatarEmpty{
+  width:50px;height:50px;
+  border-radius:12px;
+  background:linear-gradient(165deg,rgba(226,232,240,.9),rgba(203,213,225,.65));
+}
+
+.podiumName{
+  display:block;
+  color:#0f172a;
+  font-size:12px;
+  font-weight:1000;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:100%;
+}
+
+.podiumCoach{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:900;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:100%;
+}
+
+.podiumPts{
+  display:inline-flex;
+  align-items:center;
+  padding:3px 8px;
+  border-radius:999px;
+  background:rgba(15,23,42,.06);
+  color:#0f172a;
+  font-size:11px;
+  font-weight:1000;
+}
+
+.podiumCard.pos1 .podiumPts{background:rgba(245,158,11,.12);color:#78350f}
+
+@media (max-width:760px){
+  .podiumMedal{font-size:20px}
+  .podiumAvatar,.podiumCard.pos1 .podiumAvatar{width:44px;height:44px}
+  .podiumName{font-size:11px}
+}
+
+/* Fantasy product pass - ranking, lobby and mobile modals */
+.standingAccumulatedMobile{
+  display:none;
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotCard{
+  overflow:hidden;
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotTile{
+  appearance:none;
+  display:grid;
+  align-content:space-between;
+  gap:8px;
+  min-height:118px;
+  padding:14px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.92));
+  color:#0f172a;
+  font:inherit;
+  text-align:left;
+  text-decoration:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.82);
+}
+
+body[data-fantasy-view="overview"] button.leagueSnapshotTile:not(:disabled){
+  cursor:pointer;
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+}
+
+body[data-fantasy-view="overview"] button.leagueSnapshotTile:not(:disabled):hover{
+  transform:translateY(-2px);
+  border-color:rgba(37,99,235,.22);
+  box-shadow:0 12px 26px rgba(15,23,42,.1),inset 0 1px 0 rgba(255,255,255,.82);
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotTile:disabled{
+  cursor:default;
+  opacity:.76;
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotTile span{
+  color:#64748b;
+  font-size:11px;
+  font-weight:1000;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotTile strong{
+  min-width:0;
+  color:#0f172a;
+  font-size:20px;
+  font-weight:1000;
+  line-height:1.05;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotTile small{
+  min-width:0;
+  color:#475569;
+  font-size:12px;
+  font-weight:900;
+  line-height:1.3;
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotTile.isLeader{
+  border-color:rgba(245,158,11,.22);
+  background:linear-gradient(160deg,rgba(255,251,235,.98),rgba(255,255,255,.96) 48%,rgba(239,246,255,.94));
+}
+
+body[data-fantasy-view="overview"] .leagueSnapshotActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+body[data-fantasy-view] .standingRow .standingRosterCard{
+  position:relative;
+}
+
+body[data-fantasy-view] .standingRow .standingRosterVisual img,
+.podiumRosterDot img,
+.teamModalPlayerAvatar img,
+.teamModalImpactAvatar img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 18%;
+}
+
+.podiumAvatar{
+  object-position:center 18%;
+}
+
+body[data-fantasy-view] .standingRow .standingRosterVisual.empty{
+  display:grid;
+  place-items:center;
+  background:linear-gradient(160deg,rgba(248,250,252,.96),rgba(226,232,240,.82));
+  border:1px dashed rgba(100,116,139,.34);
+}
+
+body[data-fantasy-view] .standingRow .standingRosterVisual.empty span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:28px;
+  min-height:18px;
+  padding:3px 6px;
+  border-radius:999px;
+  background:rgba(255,255,255,.74);
+  color:#64748b;
+  font-size:8px;
+  font-weight:1000;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+body[data-fantasy-view] .standingRosterCard.empty{
+  cursor:default;
+  pointer-events:none;
+}
+
+body[data-fantasy-view] .standingRosterCard.empty .standingRosterName{
+  color:#94a3b8;
+}
+
+.standingRosterEmpty{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:0 12px;
+  border:1px dashed rgba(100,116,139,.28);
+  border-radius:12px;
+  background:rgba(248,250,252,.82);
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+.standingCaptainBadge{
+  position:absolute;
+  top:-6px;
+  right:-6px;
+  z-index:3;
+  display:inline-grid;
+  place-items:center;
+  width:20px;
+  height:20px;
+  border:2px solid #fff;
+  border-radius:999px;
+  background:linear-gradient(135deg,#f59e0b,#facc15);
+  color:#111827;
+  font-size:10px;
+  font-weight:1000;
+  line-height:1;
+  box-shadow:0 6px 14px rgba(245,158,11,.3);
+}
+
+body[data-fantasy-view] .standingRosterCard.isCaptain .standingRosterVisual{
+  box-shadow:0 0 0 2px rgba(245,158,11,.82),0 8px 18px rgba(245,158,11,.16);
+}
+
+body[data-fantasy-view="ranking"] .standingRow .standingRosterCard.empty{
+  border-color:rgba(100,116,139,.18);
+  background:linear-gradient(180deg,rgba(248,250,252,.94),rgba(241,245,249,.8));
+}
+
+.podiumCard{
+  appearance:none;
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  font:inherit;
+}
+
+.podiumCard::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:radial-gradient(240px 120px at 50% 0%,rgba(255,255,255,.72),transparent 64%);
+  opacity:.72;
+}
+
+.podiumCard::after{
+  content:"";
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:0;
+  height:4px;
+  border-radius:999px 999px 0 0;
+  background:rgba(37,99,235,.45);
+}
+
+.podiumCard.pos1::after{background:linear-gradient(90deg,#f59e0b,#facc15)}
+.podiumCard.pos2::after{background:linear-gradient(90deg,#94a3b8,#e2e8f0)}
+.podiumCard.pos3::after{background:linear-gradient(90deg,#c2410c,#fb923c)}
+
+.podiumCard:focus-visible{
+  outline:3px solid rgba(37,99,235,.35);
+  outline-offset:3px;
+}
+
+.podiumMedal{
+  display:inline-grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  border-radius:999px;
+  background:rgba(255,255,255,.68);
+  color:#0f172a;
+  font-size:14px;
+  font-weight:1000;
+  line-height:1;
+  box-shadow:0 6px 18px rgba(15,23,42,.1);
+}
+
+.podiumCard.pos1 .podiumMedal{
+  background:linear-gradient(135deg,#facc15,#f59e0b);
+}
+
+.podiumCard.pos2 .podiumMedal{
+  background:linear-gradient(135deg,#e2e8f0,#94a3b8);
+}
+
+.podiumCard.pos3 .podiumMedal{
+  background:linear-gradient(135deg,#fdba74,#c2410c);
+  color:#fff7ed;
+}
+
+.podiumAvatarWrap{
+  position:relative;
+  display:inline-grid;
+  place-items:center;
+  padding:3px;
+  border-radius:16px;
+  background:rgba(255,255,255,.64);
+  box-shadow:0 12px 24px rgba(15,23,42,.12);
+}
+
+.podiumRosterMini{
+  display:flex;
+  justify-content:center;
+  min-height:22px;
+  margin-top:1px;
+}
+
+.podiumRosterDot{
+  display:block;
+  width:24px;
+  height:24px;
+  margin-left:-5px;
+  border:2px solid rgba(255,255,255,.92);
+  border-radius:999px;
+  overflow:hidden;
+  background:linear-gradient(160deg,#e2e8f0,#f8fafc);
+  box-shadow:0 5px 12px rgba(15,23,42,.12);
+}
+
+.podiumRosterDot:first-child{
+  margin-left:0;
+}
+
+@media (max-width:760px){
+  html{
+    height:auto !important;
+    min-height:100%;
+    overflow-y:auto !important;
+    overscroll-behavior-y:auto;
+  }
+
+  body[data-fantasy-view],
+  html{
+    min-height:100%;
+    overflow-y:auto;
+  }
+
+  body[data-fantasy-view]{
+    height:auto !important;
+    min-height:100dvh;
+    overflow-y:auto !important;
+    overscroll-behavior-y:auto;
+    touch-action:pan-y;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  body[data-fantasy-view] .wrap{
+    padding-bottom:calc(96px + env(safe-area-inset-bottom)) !important;
+    overflow-y:visible !important;
+  }
+
+  body[data-fantasy-view] .wrap::after{
+    content:"";
+    display:block;
+    width:100%;
+    height:calc(120px + env(safe-area-inset-bottom));
+    grid-column:1 / -1;
+  }
+
+  body[data-fantasy-view="team"] #squadGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  body[data-fantasy-view="overview"] .leagueSnapshotGrid{
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+
+  body[data-fantasy-view="overview"] .leagueSnapshotTile{
+    min-height:88px;
+    padding:12px;
+  }
+
+  body[data-fantasy-view="overview"] .leagueSnapshotTile strong{
+    font-size:18px;
+  }
+
+  body[data-fantasy-view="ranking"] .podiumBoard{
+    grid-template-columns:1fr !important;
+    gap:10px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .podiumCard.pos1{order:1}
+  body[data-fantasy-view="ranking"] .podiumCard.pos2{order:2}
+  body[data-fantasy-view="ranking"] .podiumCard.pos3{order:3}
+
+  body[data-fantasy-view="ranking"] .podiumCard{
+    display:grid !important;
+    grid-template-columns:42px 54px minmax(0,1fr) auto;
+    grid-template-areas:
+      "medal avatar name pts"
+      "medal avatar coach roster";
+    align-items:center;
+    justify-items:start;
+    min-height:78px;
+    padding:10px 12px !important;
+    text-align:left;
+  }
+
+  body[data-fantasy-view="ranking"] .podiumMedal{grid-area:medal}
+  body[data-fantasy-view="ranking"] .podiumAvatarWrap{grid-area:avatar}
+  body[data-fantasy-view="ranking"] .podiumName{grid-area:name;font-size:14px;white-space:normal}
+  body[data-fantasy-view="ranking"] .podiumCoach{grid-area:coach;font-size:11px}
+  body[data-fantasy-view="ranking"] .podiumRosterMini{grid-area:roster;justify-content:flex-start}
+  body[data-fantasy-view="ranking"] .podiumPts{grid-area:pts;justify-self:end}
+
+  body[data-fantasy-view="ranking"] .standingRow{
+    display:grid !important;
+    grid-template-columns:54px minmax(0,1fr) !important;
+    grid-template-areas:
+      "rank identity"
+      "roster roster"
+      "band total" !important;
+    align-items:start !important;
+    gap:12px 10px !important;
+    min-height:0 !important;
+    padding:16px 14px 14px !important;
+    border-radius:14px !important;
+    overflow:visible !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRow > div:first-of-type{
+    grid-area:rank;
+    align-self:start;
+  }
+
+  body[data-fantasy-view="ranking"] .rankBadge{
+    min-width:48px !important;
+    width:48px !important;
+    height:48px !important;
+    font-size:13px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingIdentity{
+    grid-area:identity;
+    grid-template-columns:1fr !important;
+    grid-template-areas:"title" "coach" "week" !important;
+    gap:5px !important;
+    align-self:start;
+  }
+
+  body[data-fantasy-view="ranking"] .standingIdentityTop{
+    display:grid !important;
+    gap:4px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingIdentityTop strong{
+    display:block !important;
+    width:100%;
+    max-width:100%;
+    white-space:normal !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
+    font-size:18px !important;
+    line-height:1.18 !important;
+    padding-top:1px;
+  }
+
+  body[data-fantasy-view="ranking"] .standingIdentityTop .standingTotalPoints{
+    display:none !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingIdentityBottom strong{
+    font-size:13px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingWeekBar{
+    justify-self:start !important;
+    width:auto !important;
+    min-width:132px !important;
+    max-width:100% !important;
+    padding:6px 9px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRoster{
+    grid-area:roster;
+    grid-column:1 / -1 !important;
+    display:flex !important;
+    flex-wrap:wrap;
+    justify-content:center !important;
+    align-items:flex-start;
+    gap:10px !important;
+    width:min(100%,288px) !important;
+    max-width:288px !important;
+    overflow:hidden;
+    padding:0;
+    margin:0 auto;
+    justify-self:center !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRow .standingRosterCard,
+  body[data-fantasy-view="ranking"] .standingRosterCard.bench{
+    flex:0 0 86px !important;
+    width:86px !important;
+    min-height:0 !important;
+    justify-items:center;
+    padding:6px !important;
+    border-radius:14px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRoster > .standingRosterCard:last-child:nth-child(odd){
+    width:86px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRow .standingRosterVisual,
+  body[data-fantasy-view="ranking"] .standingRosterCard.empty.bench .standingRosterVisual{
+    width:min(18vw,64px) !important;
+    height:min(18vw,64px) !important;
+    min-width:56px;
+    min-height:56px;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRow .standingRosterName{
+    max-width:76px !important;
+    font-size:11px !important;
+    line-height:1.08 !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingPtsBand{
+    grid-area:band;
+    grid-column:auto !important;
+    align-self:end;
+    margin:5px 0 0 !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingAccumulatedMobile{
+    grid-area:total;
+    display:block;
+    justify-self:end;
+    align-self:end;
+    color:#64748b;
+    font-size:12px;
+    font-weight:1000;
+    line-height:1.1;
+    text-align:right;
+    white-space:nowrap;
+  }
+
+  body[data-fantasy-view="ranking"] .standingGapBadge{
+    top:-10px;
+  }
+
+  body[data-fantasy-view] #playerModalWrap,
+  body[data-fantasy-view] #teamModalWrap{
+    align-items:start;
+    justify-items:stretch;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    padding:0 !important;
+  }
+
+  body[data-fantasy-view] #playerModalWrap .modalCard,
+  body[data-fantasy-view] #teamModalWrap .modalCard{
+    display:block;
+    width:100% !important;
+    max-width:100% !important;
+    min-height:100vh !important;
+    min-height:100dvh !important;
+    height:auto !important;
+    max-height:none !important;
+    padding:0 !important;
+    overflow:visible !important;
+    border-radius:0 !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody,
+  body[data-fantasy-view] #teamModalBody{
+    min-height:100dvh;
+    height:auto !important;
+    overflow:visible !important;
+    padding:calc(16px + env(safe-area-inset-top)) 16px calc(128px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody{
+    grid-template-columns:1fr !important;
+    gap:14px !important;
+    align-items:start;
+  }
+
+  body[data-fantasy-view] #teamModalBody{
+    padding-top:calc(20px + env(safe-area-inset-top)) !important;
+  }
+
+  body[data-fantasy-view] .modalClose{
+    top:12px !important;
+    right:12px !important;
+    z-index:20;
+    min-width:44px !important;
+    min-height:44px !important;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view] .modalVisualSticky{
+    position:relative !important;
+    top:auto !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalVisualSticky{
+    display:grid;
+    justify-items:center;
+    gap:10px;
+    padding-top:4px;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalVisualSticky > .playerCard{
+    width:min(220px,70vw) !important;
+  }
+
+  body[data-fantasy-view] .playerModalPanel{
+    gap:12px;
+    min-height:0;
+  }
+
+  body[data-fantasy-view] .playerModalHeader{
+    padding-right:50px;
+  }
+
+  body[data-fantasy-view] .playerModalTabs{
+    position:sticky;
+    top:-18px;
+    z-index:8;
+    background:linear-gradient(180deg,rgba(248,250,252,.98),rgba(248,250,252,.92));
+    box-shadow:0 8px 18px rgba(248,250,252,.88);
+  }
+
+  body[data-fantasy-view] .playerModalTabPanels,
+  body[data-fantasy-view] .playerModalTabPanel{
+    min-height:0;
+    overflow:visible !important;
+  }
+
+  body[data-fantasy-view] .playerModalActionRail{
+    position:static;
+    margin:8px 0 0;
+    padding:10px 0 0;
+    background:transparent;
+    border-top:1px solid rgba(15,23,42,.08);
+  }
+
+  body[data-fantasy-view] .modalStats{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  body[data-fantasy-view] .teamModalShellCompact{
+    display:grid;
+    gap:14px;
+  }
+
+  body[data-fantasy-view] .teamModalHeroCompact{
+    display:grid;
+    gap:12px;
+    padding:0 54px 12px 0 !important;
+  }
+
+  body[data-fantasy-view] .teamModalScoreStrip,
+  body[data-fantasy-view] .teamModalIntelGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px !important;
+  }
+
+  body[data-fantasy-view] .teamModalScoreItem,
+  body[data-fantasy-view] .teamModalIntelCard{
+    min-height:86px;
+    padding:11px !important;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view] .teamModalIntelCard strong{
+    font-size:19px;
+    line-height:1.05;
+    overflow-wrap:anywhere;
+  }
+
+  body[data-fantasy-view] .teamModalCompactGrid{
+    grid-template-columns:1fr !important;
+    gap:12px;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:9px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList .teamModalPlayerChip{
+    grid-template-columns:1fr !important;
+    justify-items:center;
+    text-align:center;
+    min-height:132px;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList .teamModalPlayerAvatar{
+    width:58px !important;
+    height:58px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList .teamModalPlayerCopy{
+    justify-items:center;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerChip,
+  body[data-fantasy-view] .teamModalImpactRow{
+    display:grid !important;
+    grid-template-columns:48px minmax(0,1fr) !important;
+    gap:10px !important;
+    padding:9px !important;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerAvatar,
+  body[data-fantasy-view] .teamModalImpactAvatar{
+    width:48px !important;
+    height:48px !important;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view] .teamModalImpactScore{
+    grid-column:1 / -1;
+    justify-self:stretch;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+  }
+}
+
+@media (max-width:420px){
+  body[data-fantasy-view] .teamModalScoreStrip,
+  body[data-fantasy-view] .teamModalIntelGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRoster{
+    gap:8px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRow .standingRosterCard,
+  body[data-fantasy-view="ranking"] .standingRosterCard.bench{
+    flex-basis:78px !important;
+    width:78px !important;
+  }
+
+  body[data-fantasy-view="ranking"] .standingRow .standingRosterVisual,
+  body[data-fantasy-view="ranking"] .standingRosterCard.empty.bench .standingRosterVisual{
+    width:58px !important;
+    height:58px !important;
+    min-width:58px;
+    min-height:58px;
+  }
+}
+
+@media (min-width:921px){
+  body[data-fantasy-view] .topbar{
+    padding:6px 14px;
+    background:rgba(15,23,42,.78);
+  }
+
+  body[data-fantasy-view] .bar.with-auth-corner{
+    min-height:56px;
+    gap:12px;
+    align-items:center;
+  }
+
+  body[data-fantasy-view] .vdfBrandLink .brandLogo{
+    height:56px;
+    max-width:150px;
+    filter:drop-shadow(0 8px 18px rgba(0,0,0,.34));
+  }
+
+  body[data-fantasy-view] .vdfTopNav{
+    flex-wrap:nowrap;
+    overflow:hidden;
+  }
+
+  body[data-fantasy-view] .vdfTopNavLink,
+  body[data-fantasy-view] .vdfOriginalLink{
+    min-height:34px;
+    padding:7px 10px;
+    font-size:12px;
+  }
+}
+
+body[data-fantasy-view] .teamModalSparkCard{
+  padding:11px 12px;
+  border-radius:12px;
+}
+
+body[data-fantasy-view] .teamSparkSvg{
+  height:132px !important;
+  max-height:132px;
+  margin-top:6px;
+}
+
+@media (max-width:920px){
+  body[data-fantasy-view] .teamModalMainGrid{
+    grid-template-columns:1fr;
+  }
+
+  body[data-fantasy-view] .teamSparkSvg{
+    height:118px !important;
+    max-height:118px;
+  }
+}
+
+@media (max-width:760px){
+  body[data-fantasy-view] .teamModalBlockHead,
+  body[data-fantasy-view] .teamModalRosterGroupHead{
+    align-items:flex-start;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerListCompact{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  body[data-fantasy-view] .teamModalBenchList{
+    grid-template-columns:1fr !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerListCompact .teamModalPlayerChip{
+    min-height:118px !important;
+    align-content:center;
+  }
+}
+
+@media (min-width:761px){
+  body[data-fantasy-view] #teamModalWrap{
+    align-items:start !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    padding:16px !important;
+  }
+
+  body[data-fantasy-view] #teamModalWrap .modalCard{
+    width:min(1408px,calc(100vw - 32px)) !important;
+    max-height:calc(100vh - 32px) !important;
+    max-height:calc(100dvh - 32px) !important;
+    padding:14px 16px !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view] #teamModalBody{
+    overflow:visible !important;
+  }
+
+  body[data-fantasy-view] .teamModalShellCompact{
+    gap:9px;
+  }
+
+  body[data-fantasy-view] .teamModalHeroCompact{
+    padding:0 54px 8px 0;
+  }
+
+  body[data-fantasy-view] .teamModalTitleBlock .modalTitle{
+    font-size:26px;
+  }
+
+  body[data-fantasy-view] .teamModalIntelGrid{
+    gap:7px;
+  }
+
+  body[data-fantasy-view] .teamModalIntelCard{
+    min-height:60px;
+    padding:8px 10px;
+    gap:3px;
+  }
+
+  body[data-fantasy-view] .teamModalIntelCard > strong{
+    font-size:14px;
+  }
+
+  body[data-fantasy-view] .teamModalIntelCard > span{
+    font-size:10px;
+  }
+
+  body[data-fantasy-view] .teamModalMainGrid{
+    grid-template-columns:minmax(292px,.7fr) minmax(0,1fr);
+    gap:10px;
+  }
+
+  body[data-fantasy-view] .teamModalBlock{
+    gap:8px;
+    padding:10px;
+  }
+
+  body[data-fantasy-view] .teamModalSparkCard{
+    padding:9px 10px;
+  }
+
+  body[data-fantasy-view] .teamSparkSvg{
+    height:104px !important;
+    max-height:104px;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList,
+  body[data-fantasy-view] .teamModalImpactList{
+    gap:7px;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerChip{
+    grid-template-columns:40px minmax(0,1fr);
+    min-height:50px;
+    padding:6px 8px;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerAvatar{
+    width:40px;
+    height:40px;
+  }
+
+  body[data-fantasy-view] .teamModalImpactRow{
+    grid-template-columns:34px minmax(0,1fr) minmax(66px,auto);
+    min-height:46px;
+    padding:6px;
+    gap:8px;
+  }
+
+  body[data-fantasy-view] .teamModalImpactAvatar{
+    width:34px;
+    height:34px;
+  }
+}
+
+@media (max-width:760px){
+  body[data-fantasy-view] #teamModalWrap{
+    height:100vh !important;
+    height:100dvh !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+  }
+
+  body[data-fantasy-view] #teamModalBody{
+    padding:calc(12px + env(safe-area-inset-top)) 12px calc(152px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body[data-fantasy-view] .teamModalShellCompact{
+    gap:10px !important;
+  }
+
+  body[data-fantasy-view] .teamModalHeroCompact{
+    gap:8px !important;
+    padding:0 48px 9px 0 !important;
+  }
+
+  body[data-fantasy-view] .teamModalTitleBlock .modalTitle{
+    font-size:26px !important;
+    line-height:1.02 !important;
+  }
+
+  body[data-fantasy-view] .teamModalScoreStrip{
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:6px !important;
+    width:100% !important;
+  }
+
+  body[data-fantasy-view] .teamModalScoreItem{
+    min-height:52px !important;
+    padding:6px 5px !important;
+    border-radius:10px !important;
+    gap:2px !important;
+  }
+
+  body[data-fantasy-view] .teamModalScoreItem small,
+  body[data-fantasy-view] .teamModalIntelCard > small{
+    font-size:8.5px !important;
+    line-height:1 !important;
+  }
+
+  body[data-fantasy-view] .teamModalScoreItem strong{
+    font-size:12px !important;
+    line-height:1.05 !important;
+  }
+
+  body[data-fantasy-view] .teamModalScoreItem .coinIcon,
+  body[data-fantasy-view] .teamModalIntelCard .coinIcon{
+    width:11px !important;
+    height:11px !important;
+  }
+
+  body[data-fantasy-view] .teamModalIntelGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:6px !important;
+  }
+
+  body[data-fantasy-view] .teamModalIntelCard{
+    min-height:58px !important;
+    padding:7px 8px !important;
+    gap:2px !important;
+    border-left-width:2px !important;
+    border-radius:10px !important;
+  }
+
+  body[data-fantasy-view] .teamModalIntelCard > strong{
+    font-size:14px !important;
+    line-height:1.05 !important;
+  }
+
+  body[data-fantasy-view] .teamModalIntelCard > span{
+    font-size:9.5px !important;
+    line-height:1.12 !important;
+  }
+
+  body[data-fantasy-view] .teamModalMainGrid{
+    gap:9px;
+  }
+
+  body[data-fantasy-view] .teamModalBlock{
+    padding:9px !important;
+    gap:8px !important;
+    border-radius:11px !important;
+  }
+
+  body[data-fantasy-view] .teamModalSparkCard{
+    padding:9px !important;
+  }
+
+  body[data-fantasy-view] .teamSparkSvg{
+    height:92px !important;
+    max-height:92px !important;
+  }
+
+  body[data-fantasy-view] .teamModalBlockHead > span,
+  body[data-fantasy-view] .teamModalRosterGroupHead > span,
+  body[data-fantasy-view] .teamModalRosterGroupHead > strong{
+    font-size:8.5px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList{
+    gap:7px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList .teamModalPlayerChip{
+    min-height:86px !important;
+    padding:7px !important;
+    gap:5px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerList .teamModalPlayerAvatar{
+    width:42px !important;
+    height:42px !important;
+    border-radius:10px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerCopy strong,
+  body[data-fantasy-view] .teamModalImpactCopy strong{
+    font-size:12px !important;
+  }
+
+  body[data-fantasy-view] .teamModalPlayerCopy small,
+  body[data-fantasy-view] .teamModalImpactCopy small{
+    font-size:9px !important;
+  }
+
+  body[data-fantasy-view] .teamModalImpactRow{
+    grid-template-columns:36px minmax(0,1fr) !important;
+    min-height:0 !important;
+    padding:7px !important;
+    gap:7px !important;
+  }
+
+  body[data-fantasy-view] .teamModalImpactAvatar{
+    width:36px !important;
+    height:36px !important;
+  }
+
+  body[data-fantasy-view] .teamModalImpactScore{
+    margin-top:2px;
+  }
+}
+
+@media (max-width:480px){
+  body[data-fantasy-view] .teamModalScoreStrip{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+}
+
+@media (min-width:761px){
+  body[data-fantasy-view] #playerModalWrap{
+    align-items:start !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    padding:16px !important;
+  }
+
+  body[data-fantasy-view] #playerModalWrap .modalCard{
+    width:min(1408px,calc(100vw - 32px)) !important;
+    max-height:calc(100vh - 32px) !important;
+    max-height:calc(100dvh - 32px) !important;
+    padding:14px 16px !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    border-radius:12px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody{
+    grid-template-columns:minmax(250px,360px) minmax(0,1fr) !important;
+    align-items:start !important;
+    gap:14px !important;
+    overflow:visible !important;
+    padding-right:0 !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalVisualSticky{
+    position:sticky !important;
+    top:0 !important;
+    max-height:calc(100dvh - 72px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:4px;
+  }
+
+  body[data-fantasy-view] .playerModalPanel{
+    grid-template-rows:auto auto auto auto !important;
+    min-height:0 !important;
+  }
+
+  body[data-fantasy-view] .playerModalTabPanels,
+  body[data-fantasy-view] .playerModalTabPanel{
+    min-height:0 !important;
+    overflow:visible !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .chartSvg{
+    max-height:170px !important;
+  }
+
+  body[data-fantasy-view] .playerModalActionRail{
+    position:static !important;
+    margin-top:8px !important;
+    padding:10px 0 0 !important;
+    border-top:1px solid rgba(15,23,42,.08);
+    background:transparent !important;
+  }
+
+  body[data-fantasy-view] .playerModalActionRail .modalActions .btn{
+    min-height:44px !important;
+  }
+}
+
+@media (max-width:760px){
+  body[data-fantasy-view] #playerModalWrap{
+    display:block !important;
+    height:100vh !important;
+    height:100dvh !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    padding:0 !important;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  body[data-fantasy-view] #playerModalWrap.hidden{
+    display:none !important;
+  }
+
+  body[data-fantasy-view] #playerModalWrap .modalCard{
+    width:100% !important;
+    max-width:100% !important;
+    min-height:100vh !important;
+    min-height:100dvh !important;
+    height:auto !important;
+    max-height:none !important;
+    padding:0 !important;
+    overflow:visible !important;
+    border-radius:0 !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody{
+    min-height:100dvh !important;
+    height:auto !important;
+    overflow:visible !important;
+    padding:calc(12px + env(safe-area-inset-top)) 12px calc(220px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody::after{
+    content:"";
+    display:block;
+    height:calc(96px + env(safe-area-inset-bottom));
+    grid-column:1 / -1;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalVisualSticky > .playerCard{
+    width:min(200px,62vw) !important;
+  }
+
+  body[data-fantasy-view] .playerModalHeader{
+    padding-right:52px !important;
+  }
+
+  body[data-fantasy-view] .playerModalTabs{
+    top:0 !important;
+  }
+
+  body[data-fantasy-view] .playerModalActionRail{
+    position:static !important;
+    margin-top:10px !important;
+    padding:12px 0 calc(34px + env(safe-area-inset-bottom)) !important;
+    background:transparent !important;
+    border-top:1px solid rgba(15,23,42,.08);
+  }
+
+  body[data-fantasy-view] .playerModalActionRail .modalActions .btn{
+    min-height:48px !important;
+  }
+}
+
+@media (min-width:761px){
+  body[data-fantasy-view] #playerModalWrap{
+    display:grid !important;
+    place-items:center !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    padding:24px !important;
+    scrollbar-width:none;
+  }
+
+  body[data-fantasy-view] #playerModalWrap::-webkit-scrollbar{
+    display:none;
+  }
+
+  body[data-fantasy-view] #playerModalWrap .modalCard{
+    width:min(1120px,calc(100vw - 48px)) !important;
+    max-height:calc(100vh - 48px) !important;
+    max-height:calc(100dvh - 48px) !important;
+    padding:16px !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    border-radius:14px !important;
+    scrollbar-width:none;
+  }
+
+  body[data-fantasy-view] #playerModalWrap .modalCard::-webkit-scrollbar{
+    display:none;
+  }
+
+  body[data-fantasy-view] #playerModalBody{
+    grid-template-columns:minmax(220px,300px) minmax(0,1fr) !important;
+    overflow:visible !important;
+    gap:16px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalVisualSticky{
+    max-height:none !important;
+    overflow:visible !important;
+    padding-right:0 !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .playerTournamentHistory,
+  body[data-fantasy-view] #playerModalBody .playerTournamentRows,
+  body[data-fantasy-view] #playerModalBody .playerModalTabPanels,
+  body[data-fantasy-view] #playerModalBody .playerModalTabPanel{
+    overflow:visible !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalVisualSticky > .playerCard{
+    width:100% !important;
+    max-width:300px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalVisual .playerVisual{
+    border-radius:16px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .playerTournamentHistory{
+    padding:9px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .playerTournamentRow{
+    min-height:25px !important;
+    padding:4px 7px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .playerModalHeader{
+    padding-right:46px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalTitle{
+    font-size:28px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalStats{
+    gap:7px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .modalStat{
+    padding:8px 10px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .playerInsightPanel{
+    padding:9px !important;
+  }
+
+  body[data-fantasy-view] #playerModalBody .playerModalActionRail .modalActions .btn{
+    min-height:40px !important;
+  }
+}
+
+/* Fix: display:grid !important on #playerModalWrap overrides .hidden on desktop */
+@media (min-width:761px){
+  body[data-fantasy-view] #playerModalWrap.hidden{
+    display:none !important;
   }
 }

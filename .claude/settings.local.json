@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\ErnestGladiadorValde\\\\Documents\\\\barateam-hub\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Directory\"}else{\"File\"}}} | Sort-Object Type, Name)",
+      "Bash(powershell -Command \"\\(Get-Content fantasy.html\\), \\(Get-Content fantasy-ranking.html\\), \\(Get-Content fantasy-team.html\\), \\(Get-Content fantasy-market.html\\), \\(Get-Content fantasy-attendance.html\\) | Select-String 'fantasy-polish.css'\")"
+    ]
+  }
+}
