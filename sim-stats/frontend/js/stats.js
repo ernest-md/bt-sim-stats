@@ -8,9 +8,12 @@ const syncAllButton = document.getElementById("syncAllMatchesBtn")
 const summaryView = document.getElementById("summaryView")
 const leaderView = document.getElementById("leaderView")
 const backButton = document.getElementById("backToSummary")
+const leaderPortrait = document.getElementById("leaderPortrait")
 const leaderSearchInput = document.getElementById("leaderSearchInput")
 const leaderMatchupSearchInput = document.getElementById("leaderMatchupSearchInput")
+const leaderMatchupColorModes = document.querySelectorAll("input[name='leaderMatchupColorMode']")
 const leaderMatchupColorFilters = document.getElementById("leaderMatchupColorFilters")
+const leaderMatchupColorClear = document.getElementById("leaderMatchupColorClear")
 const eloValue = document.getElementById("eloValue")
 const eloToggleBtn = document.getElementById("eloToggleBtn")
 const eloChartPanel = document.getElementById("eloChartPanel")
@@ -31,7 +34,7 @@ let viewerRole = "user"
 let isSyncRunning = false
 let isEloChartOpen = false
 const LEADER_COLOR_ORDER = ["Red", "Green", "Blue", "Purple", "Black", "Yellow"]
-const leaderMatchupColorStates = new Map(LEADER_COLOR_ORDER.map((color) => [color, "full"]))
+const leaderMatchupSelectedColors = new Set()
 const LEADER_COLOR_ALIASES = new Map([
   ["r", "Red"],
   ["red", "Red"],
@@ -100,43 +103,35 @@ function leaderColors(leader) {
     .filter(Boolean)
 }
 
-function nextColorFilterState(state) {
-  if (state === "full") return "partial"
-  if (state === "partial") return "off"
-  return "full"
+function colorFilterLabel(color, selected, mode) {
+  if (!selected) return `${color}: sin filtro`
+  return mode === "exclude" ? `${color}: excluido` : `${color}: incluido`
 }
 
-function colorFilterLabel(color, state) {
-  if (state === "partial") return `${color}: solo bicolor`
-  if (state === "off") return `${color}: excluido`
-  return `${color}: todos`
+function getLeaderMatchupColorMode() {
+  return document.querySelector("input[name='leaderMatchupColorMode']:checked")?.value || "include"
 }
 
-function matchesColorFilter(colors, colorStates) {
+function matchesColorFilter(colors, selectedColors, mode = "include") {
+  if (!selectedColors.size) return true
+
   const leaderColorList = Array.isArray(colors) ? colors.filter(Boolean) : []
-  if (leaderColorList.length === 0) {
-    return Array.from(colorStates.values()).every((state) => state === "full")
-  }
+  if (leaderColorList.length === 0) return false
 
-  return leaderColorList.every((color) => {
-    const state = colorStates.get(color) || "full"
-    if (state === "off") return false
-    if (state === "partial" && leaderColorList.length === 1) return false
-    return true
-  })
+  const hasSelectedColor = leaderColorList.some((color) => selectedColors.has(color))
+  return mode === "exclude" ? !hasSelectedColor : hasSelectedColor
 }
 
 function syncColorFilterButtons() {
   if (!leaderMatchupColorFilters) return
+  const mode = getLeaderMatchupColorMode()
   leaderMatchupColorFilters.querySelectorAll(".leaderColorButton").forEach((button) => {
     const color = button.dataset.color || ""
-    const state = leaderMatchupColorStates.get(color) || "full"
-    button.dataset.state = state
-    button.classList.toggle("is-partial", state === "partial")
-    button.classList.toggle("is-muted", state === "off")
-    button.setAttribute("aria-pressed", state === "off" ? "false" : "true")
-    button.setAttribute("aria-label", colorFilterLabel(color, state))
-    button.title = colorFilterLabel(color, state)
+    const selected = leaderMatchupSelectedColors.has(color)
+    button.classList.toggle("is-selected", selected)
+    button.setAttribute("aria-pressed", selected ? "true" : "false")
+    button.setAttribute("aria-label", colorFilterLabel(color, selected, mode))
+    button.title = colorFilterLabel(color, selected, mode)
   })
 }
 
@@ -728,6 +723,7 @@ function buildLeaderDetail(leaderCode) {
   const matchupContainer = document.getElementById("leaderMatchups")
 
   summaryContainer.innerHTML = ""
+  if (leaderPortrait) leaderPortrait.innerHTML = ""
   matchupContainer.innerHTML = ""
 
   const matches = currentFilteredMatches.filter(m => m.player && m.player.code === leaderCode)
@@ -741,8 +737,11 @@ function buildLeaderDetail(leaderCode) {
   const wr = ((wins / total) * 100).toFixed(1)
   const wrClass = wr >= 50 ? "wr-positive" : "wr-negative"
 
-summaryContainer.innerHTML = `
-  ${leaderZoomHtml(pickLeaderImage(leaderInfo), leaderInfo.name || "Lider", 112)}
+  if (leaderPortrait) {
+    leaderPortrait.innerHTML = leaderZoomHtml(pickLeaderImage(leaderInfo), leaderInfo.name || "Lider", 150)
+  }
+
+  summaryContainer.innerHTML = `
   <div class="leaderSummaryStats">
     <div>
       <strong>${total}</strong>
@@ -803,7 +802,11 @@ summaryContainer.innerHTML = `
     .filter(([opponentCode, data]) => matchesLeaderSearch(opponentCode, {
       name: data.info?.name || ""
     }, matchupQuery))
-    .filter(([, data]) => matchesColorFilter(data.colors, leaderMatchupColorStates))
+    .filter(([, data]) => matchesColorFilter(
+      data.colors,
+      leaderMatchupSelectedColors,
+      getLeaderMatchupColorMode()
+    ))
     .sort((a,b) => b[1].games - a[1].games)
     .map(([, data]) => data)
 
@@ -883,8 +886,27 @@ if (leaderMatchupColorFilters) {
     if (!button) return
 
     const color = button.dataset.color || ""
-    leaderMatchupColorStates.set(color, nextColorFilterState(leaderMatchupColorStates.get(color) || "full"))
+    if (leaderMatchupSelectedColors.has(color)) {
+      leaderMatchupSelectedColors.delete(color)
+    } else {
+      leaderMatchupSelectedColors.add(color)
+    }
 
+    syncColorFilterButtons()
+    if (selectedLeaderCode) buildLeaderDetail(selectedLeaderCode)
+  })
+}
+
+leaderMatchupColorModes.forEach((modeInput) => {
+  modeInput.addEventListener("change", () => {
+    syncColorFilterButtons()
+    if (selectedLeaderCode) buildLeaderDetail(selectedLeaderCode)
+  })
+})
+
+if (leaderMatchupColorClear) {
+  leaderMatchupColorClear.addEventListener("click", () => {
+    leaderMatchupSelectedColors.clear()
     syncColorFilterButtons()
     if (selectedLeaderCode) buildLeaderDetail(selectedLeaderCode)
   })

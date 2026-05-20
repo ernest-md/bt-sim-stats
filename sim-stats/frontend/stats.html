@@ -393,20 +393,40 @@
 
       <div id="leaderView" style="display:none; margin-top:20px;">
         <div class="leaderDetailHeader">
-          <button id="backToSummary">Volver</button>
-          <div id="leaderSummary" class="leaderSummary"></div>
-          <label class="leaderSearch leaderDetailSearch">
-            <span>Buscar rival</span>
-            <input id="leaderMatchupSearchInput" type="search" placeholder="Nombre, codigo o alias" autocomplete="off">
-            <span class="leaderColorFilters" id="leaderMatchupColorFilters" aria-label="Filtrar rivales por color">
-              <button class="leaderColorButton color-red" type="button" data-color="Red" aria-pressed="true">R</button>
-              <button class="leaderColorButton color-green" type="button" data-color="Green" aria-pressed="true">G</button>
-              <button class="leaderColorButton color-blue" type="button" data-color="Blue" aria-pressed="true">U</button>
-              <button class="leaderColorButton color-purple" type="button" data-color="Purple" aria-pressed="true">P</button>
-              <button class="leaderColorButton color-black" type="button" data-color="Black" aria-pressed="true">B</button>
-              <button class="leaderColorButton color-yellow" type="button" data-color="Yellow" aria-pressed="true">Y</button>
-            </span>
-          </label>
+          <div class="leaderDetailAside">
+            <button id="backToSummary">Volver</button>
+            <div id="leaderPortrait" class="leaderPortrait"></div>
+          </div>
+          <div class="leaderDetailMain">
+            <div id="leaderSummary" class="leaderSummary"></div>
+            <div class="leaderDetailFilters">
+              <label class="leaderSearch leaderDetailSearch">
+                <span>Buscar rival</span>
+                <input id="leaderMatchupSearchInput" type="search" placeholder="Nombre, codigo o alias" autocomplete="off">
+              </label>
+              <span class="leaderColorFilterGroup" aria-label="Filtrar rivales por color">
+                <span class="leaderColorFilters" id="leaderMatchupColorFilters">
+                  <button class="leaderColorButton color-red" type="button" data-color="Red" aria-pressed="false">R</button>
+                  <button class="leaderColorButton color-green" type="button" data-color="Green" aria-pressed="false">G</button>
+                  <button class="leaderColorButton color-blue" type="button" data-color="Blue" aria-pressed="false">U</button>
+                  <button class="leaderColorButton color-purple" type="button" data-color="Purple" aria-pressed="false">P</button>
+                  <button class="leaderColorButton color-black" type="button" data-color="Black" aria-pressed="false">B</button>
+                  <button class="leaderColorButton color-yellow" type="button" data-color="Yellow" aria-pressed="false">Y</button>
+                </span>
+                <span class="leaderColorActions" aria-label="Modo de filtro de color">
+                  <label class="leaderColorModeCheck">
+                    <input type="radio" name="leaderMatchupColorMode" value="include" checked>
+                    <span>Incluye</span>
+                  </label>
+                  <label class="leaderColorModeCheck">
+                    <input type="radio" name="leaderMatchupColorMode" value="exclude">
+                    <span>Excluye</span>
+                  </label>
+                  <button id="leaderMatchupColorClear" class="leaderColorClear" type="button">Limpiar</button>
+                </span>
+              </span>
+            </div>
+          </div>
         </div>
 
         <table style="margin-top:20px;">
